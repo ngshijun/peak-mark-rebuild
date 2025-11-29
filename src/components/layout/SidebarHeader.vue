@@ -1,0 +1,31 @@
+<script setup lang="ts">
+import {
+  SidebarHeader,
+  SidebarMenuButton,
+  SidebarMenu,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar'
+import { Mountain } from 'lucide-vue-next'
+</script>
+
+<template>
+  <SidebarHeader>
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton size="lg" as-child>
+          <a href="#">
+            <div
+              class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg"
+            >
+              <Mountain class="size-4" />
+            </div>
+            <div class="grid flex-1 text-left text-sm leading-tight">
+              <span class="truncate font-medium">Peak Mark</span>
+              <span class="truncate text-xs text-muted-foreground">Learning Platform</span>
+            </div>
+          </a>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  </SidebarHeader>
+</template>

@@ -1,0 +1,48 @@
+import {
+  LayoutDashboard,
+  BookOpen,
+  Database,
+  BarChart3,
+  MessageSquare,
+  Cat,
+  PenTool,
+  History,
+  Users,
+  Trophy,
+  Heart,
+  FolderHeart,
+  ShoppingBag,
+  Baby,
+  PieChart,
+  CreditCard,
+  Gift,
+} from 'lucide-vue-next'
+import type { SidebarNavConfig } from '@/types'
+
+export const sidebarNavConfig: SidebarNavConfig = {
+  admin: [
+    { title: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { title: 'Curriculum', path: '/admin/curriculum', icon: BookOpen },
+    { title: 'Question Bank', path: '/admin/question-bank', icon: Database },
+    { title: 'Question Statistics', path: '/admin/question-statistics', icon: BarChart3 },
+    { title: 'Question Feedback', path: '/admin/question-feedback', icon: MessageSquare },
+    { title: 'Pets', path: '/admin/pets', icon: Cat },
+  ],
+  student: [
+    { title: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
+    { title: 'Practice', path: '/student/practice', icon: PenTool },
+    { title: 'History', path: '/student/history', icon: History },
+    { title: 'Parent', path: '/student/parent', icon: Users },
+    { title: 'Leaderboard', path: '/student/leaderboard', icon: Trophy },
+    { title: 'Gacha', path: '/student/gacha', icon: Gift },
+    { title: 'My Pet', path: '/student/my-pet', icon: Heart },
+    { title: 'Collections', path: '/student/collections', icon: FolderHeart },
+    { title: 'Market', path: '/student/market', icon: ShoppingBag },
+  ],
+  parent: [
+    { title: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
+    { title: 'Children', path: '/parent/children', icon: Baby },
+    { title: 'Statistics', path: '/parent/statistics', icon: PieChart },
+    { title: 'Subscription', path: '/parent/subscription', icon: CreditCard },
+  ],
+}
