@@ -446,7 +446,6 @@ CREATE INDEX idx_invitations_status ON parent_student_invitations(status);
 
 -- Feedback
 CREATE INDEX idx_feedback_question ON question_feedback(question_id);
-CREATE INDEX idx_feedback_resolved ON question_feedback(is_resolved);
 
 -- Child Subscriptions
 CREATE INDEX idx_child_subscriptions_parent ON child_subscriptions(parent_id);
