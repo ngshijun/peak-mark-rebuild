@@ -260,53 +260,57 @@ function handleRowClick(row: HistoryRow) {
     </div>
 
     <template v-else>
-    <!-- Filters Row -->
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <!-- Date Range Selector -->
-      <Select v-model="selectedDateRange">
-        <SelectTrigger class="w-[140px]">
-          <Calendar class="mr-2 size-4" />
-          <SelectValue placeholder="Date range" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="option in dateRangeOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <!-- Filters Row -->
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <!-- Date Range Selector -->
+        <Select v-model="selectedDateRange">
+          <SelectTrigger class="w-[140px]">
+            <Calendar class="mr-2 size-4" />
+            <SelectValue placeholder="Date range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              v-for="option in dateRangeOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
-      <!-- Subject Selector -->
-      <Select v-model="selectedSubject">
-        <SelectTrigger class="w-[140px]">
-          <SelectValue placeholder="All Subjects" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
-          <SelectItem v-for="subject in availableSubjects" :key="subject" :value="subject">
-            {{ subject }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
+        <!-- Subject Selector -->
+        <Select v-model="selectedSubject">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All Subjects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
+            <SelectItem v-for="subject in availableSubjects" :key="subject" :value="subject">
+              {{ subject }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
-      <!-- Topic Selector -->
-      <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
-        <SelectTrigger class="w-[140px]">
-          <SelectValue placeholder="All Topics" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
-          <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
-            {{ topic }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+        <!-- Topic Selector -->
+        <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All Topics" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
+            <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
+              {{ topic }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-    <DataTable :columns="columns" :data="historyData" :on-row-click="handleRowClick" />
+      <DataTable :columns="columns" :data="historyData" :on-row-click="handleRowClick" />
 
-    <div v-if="historyData.length === 0" class="py-12 text-center">
-      <p class="text-muted-foreground">No practice sessions found for the selected filters.</p>
-    </div>
+      <div v-if="historyData.length === 0" class="py-12 text-center">
+        <p class="text-muted-foreground">No practice sessions found for the selected filters.</p>
+      </div>
     </template>
   </div>
 </template>

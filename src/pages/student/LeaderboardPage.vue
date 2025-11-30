@@ -29,9 +29,7 @@ const displayedStudents = computed<LeaderboardStudent[]>(() => {
   }
 
   // Find the grade level name from the ID
-  const gradeLevel = curriculumStore.gradeLevels.find(
-    (g) => g.id === selectedGradeLevel.value,
-  )
+  const gradeLevel = curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)
   if (!gradeLevel) {
     return leaderboardStore.getTop20()
   }
@@ -53,9 +51,7 @@ const currentStudentInfo = computed(() => {
 
   // If filtering by grade level, check if current student matches
   if (selectedGradeLevel.value !== ALL_VALUE) {
-    const gradeLevel = curriculumStore.gradeLevels.find(
-      (g) => g.id === selectedGradeLevel.value,
-    )
+    const gradeLevel = curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)
     if (gradeLevel && currentStudent.gradeLevelName !== gradeLevel.name) {
       return null
     }
@@ -66,8 +62,7 @@ const currentStudentInfo = computed(() => {
     selectedGradeLevel.value === ALL_VALUE
       ? leaderboardStore.students
       : leaderboardStore.getStudentsByGradeLevel(
-          curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)?.name ??
-            null,
+          curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)?.name ?? null,
         )
 
   const rank = allFiltered.findIndex((s) => s.id === currentStudent.id) + 1
@@ -157,10 +152,7 @@ function getRankBg(rank: number): string {
           <Trophy class="size-5 text-yellow-500" />
           Top 20 Students
           <Badge v-if="selectedGradeLevel !== ALL_VALUE" variant="secondary" class="ml-2">
-            {{
-              curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel)?.name ??
-              ''
-            }}
+            {{ curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel)?.name ?? '' }}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -278,7 +270,10 @@ function getRankBg(rank: number): string {
                 <div class="w-12 text-center">
                   <p class="text-sm text-muted-foreground">Streak</p>
                   <p class="flex items-center justify-center gap-1 font-semibold">
-                    <Flame v-if="currentStudentInfo.currentStreak > 0" class="size-4 text-orange-500" />
+                    <Flame
+                      v-if="currentStudentInfo.currentStreak > 0"
+                      class="size-4 text-orange-500"
+                    />
                     {{ currentStudentInfo.currentStreak }}
                   </p>
                 </div>

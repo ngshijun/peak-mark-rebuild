@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, h } from 'vue'
+import { computed, ref, watch, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
@@ -27,11 +27,17 @@ import {
   ArrowUpDown,
   History,
   Calendar,
+  Loader2,
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
+
+// Fetch data on mount
+onMounted(async () => {
+  await childStatisticsStore.fetchChildrenStatistics()
+})
 
 const ALL_VALUE = '__all__'
 
@@ -281,8 +287,13 @@ function handleRowClick(row: ChildPracticeSession) {
       <p class="text-muted-foreground">View your children's learning progress</p>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="childStatisticsStore.isLoading" class="flex items-center justify-center py-16">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
+    </div>
+
     <!-- No Children State -->
-    <div v-if="childLinkStore.linkedChildren.length === 0" class="py-16 text-center">
+    <div v-else-if="childLinkStore.linkedChildren.length === 0" class="py-16 text-center">
       <Users class="mx-auto size-16 text-muted-foreground/50" />
       <h2 class="mt-4 text-lg font-semibold">No Linked Children</h2>
       <p class="mt-2 text-muted-foreground">

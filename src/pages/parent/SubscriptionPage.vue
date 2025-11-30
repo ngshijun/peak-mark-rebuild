@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useSubscriptionStore, type SubscriptionTier } from '@/stores/subscription'
 import { useChildLinkStore } from '@/stores/child-link'
 import {
@@ -30,10 +30,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Check, Sparkles, Zap, Crown, CreditCard, Users } from 'lucide-vue-next'
+import { Check, Sparkles, Zap, Crown, CreditCard, Users, Loader2 } from 'lucide-vue-next'
 
 const subscriptionStore = useSubscriptionStore()
 const childLinkStore = useChildLinkStore()
+
+const isUpgrading = ref(false)
+
+// Fetch data on mount
+onMounted(async () => {
+  await Promise.all([
+    subscriptionStore.fetchPlans(),
+    subscriptionStore.fetchChildrenSubscriptions(),
+  ])
+})
 
 const selectedChildId = ref<string>(
   childLinkStore.linkedChildren.length > 0 ? (childLinkStore.linkedChildren[0]?.id ?? '') : '',
@@ -61,14 +71,18 @@ function formatDate(dateString: string): string {
   })
 }
 
-function handleUpgrade(tier: SubscriptionTier) {
+async function handleUpgrade(tier: SubscriptionTier) {
   if (!selectedChildId.value) return
-  subscriptionStore.upgradePlan(selectedChildId.value, tier)
+  isUpgrading.value = true
+  await subscriptionStore.upgradePlan(selectedChildId.value, tier)
+  isUpgrading.value = false
 }
 
-function handleCancel() {
+async function handleCancel() {
   if (!selectedChildId.value) return
-  subscriptionStore.cancelSubscription(selectedChildId.value)
+  isUpgrading.value = true
+  await subscriptionStore.cancelSubscription(selectedChildId.value)
+  isUpgrading.value = false
 }
 
 function getTierIcon(tier: SubscriptionTier) {
@@ -114,8 +128,13 @@ function getButtonVariant(
       <p class="text-muted-foreground">Manage subscriptions for your children</p>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="subscriptionStore.isLoading" class="flex items-center justify-center py-16">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
+    </div>
+
     <!-- No Children State -->
-    <div v-if="childLinkStore.linkedChildren.length === 0" class="py-16 text-center">
+    <div v-else-if="childLinkStore.linkedChildren.length === 0" class="py-16 text-center">
       <Users class="mx-auto size-16 text-muted-foreground/50" />
       <h2 class="mt-4 text-lg font-semibold">No Linked Children</h2>
       <p class="mt-2 text-muted-foreground">

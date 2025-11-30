@@ -31,9 +31,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
   /**
    * Fetch leaderboard data from Supabase
    */
-  async function fetchLeaderboard(
-    gradeLevelId?: string | null,
-  ): Promise<{ error: string | null }> {
+  async function fetchLeaderboard(gradeLevelId?: string | null): Promise<{ error: string | null }> {
     isLoading.value = true
     error.value = null
 

@@ -204,11 +204,6 @@ const columns: ColumnDef<QuestionFeedback>[] = [
 
       <!-- Data Table -->
       <DataTable :columns="columns" :data="filteredFeedbacks" />
-
-      <!-- Empty State -->
-      <div v-if="filteredFeedbacks.length === 0 && !searchQuery" class="py-12 text-center">
-        <p class="text-muted-foreground">No feedback reports yet.</p>
-      </div>
     </template>
 
     <!-- Delete Feedback Confirmation -->

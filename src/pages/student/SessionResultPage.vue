@@ -232,17 +232,15 @@ async function retryTopic() {
             'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20':
               !isQuestionDeleted(question) && getAnswerByIndex(index)?.isCorrect,
             'border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20':
-              !isQuestionDeleted(question) && getAnswerByIndex(index) && !getAnswerByIndex(index)?.isCorrect,
+              !isQuestionDeleted(question) &&
+              getAnswerByIndex(index) &&
+              !getAnswerByIndex(index)?.isCorrect,
           }"
         >
           <CardHeader class="pb-2">
             <div class="flex items-start justify-between gap-2">
               <CardTitle class="text-sm font-medium"> Question {{ index + 1 }} </CardTitle>
-              <Badge
-                v-if="isQuestionDeleted(question)"
-                variant="secondary"
-                class="shrink-0"
-              >
+              <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
                 Deleted
               </Badge>
               <Badge
@@ -260,7 +258,13 @@ async function retryTopic() {
               <p>This question has been deleted from the question bank.</p>
               <p class="mt-2">
                 Your answer was:
-                <span :class="getAnswerByIndex(index)?.isCorrect ? 'text-green-600 font-medium' : 'text-red-600 font-medium'">
+                <span
+                  :class="
+                    getAnswerByIndex(index)?.isCorrect
+                      ? 'text-green-600 font-medium'
+                      : 'text-red-600 font-medium'
+                  "
+                >
                   {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
                 </span>
               </p>
@@ -318,9 +322,7 @@ async function retryTopic() {
                 <div class="flex gap-2">
                   <span class="font-medium">Your Answer:</span>
                   <span
-                    :class="
-                      getAnswerByIndex(index)?.isCorrect ? 'text-green-600' : 'text-red-600'
-                    "
+                    :class="getAnswerByIndex(index)?.isCorrect ? 'text-green-600' : 'text-red-600'"
                   >
                     {{ getAnswerByIndex(index)?.textAnswer || '-' }}
                   </span>

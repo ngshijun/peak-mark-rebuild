@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useChildStatisticsStore } from '@/stores/child-statistics'
+import {
+  useChildStatisticsStore,
+  type ChildPracticeSessionFull,
+  type PracticeAnswer,
+} from '@/stores/child-statistics'
 import { useChildLinkStore } from '@/stores/child-link'
-import type { Question, PracticeAnswer } from '@/types'
+import { useQuestionsStore } from '@/stores/questions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, XCircle, Clock, ArrowLeft, BarChart3 } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Clock, ArrowLeft, BarChart3, Loader2 } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
+const questionsStore = useQuestionsStore()
 
 const childId = computed(() => route.params.childId as string)
 const sessionId = computed(() => route.params.sessionId as string)
@@ -22,18 +27,18 @@ const child = computed(() => {
   return childLinkStore.linkedChildren.find((c) => c.id === childId.value)
 })
 
-const session = computed(() => {
-  return childStatisticsStore.getSessionById(childId.value, sessionId.value)
-})
+const session = ref<ChildPracticeSessionFull | null>(null)
+const isLoading = ref(true)
+const error = ref<string | null>(null)
 
 const summary = computed(() => {
   if (!session.value) return null
-  const totalQuestions = session.value.questions.length
+  const totalQuestions = session.value.questions.length || session.value.totalQuestions
   const correctAnswers = session.value.answers.filter((a) => a.isCorrect).length
   const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
 
   let durationSeconds = 0
-  if (session.value.completedAt) {
+  if (session.value.completedAt && session.value.startedAt) {
     const start = new Date(session.value.startedAt).getTime()
     const end = new Date(session.value.completedAt).getTime()
     durationSeconds = Math.round((end - start) / 1000)
@@ -48,10 +53,15 @@ const summary = computed(() => {
   }
 })
 
-onMounted(() => {
-  if (!session.value) {
+onMounted(async () => {
+  const result = await childStatisticsStore.getSessionById(childId.value, sessionId.value)
+  if (result.session) {
+    session.value = result.session
+  } else {
+    error.value = result.error
     router.push('/parent/statistics')
   }
+  isLoading.value = false
 })
 
 function formatDuration(seconds: number): string {
@@ -77,8 +87,20 @@ function formatDate(dateString: string): string {
   })
 }
 
-function getAnswerForQuestion(questionId: string): PracticeAnswer | undefined {
-  return session.value?.answers.find((a) => a.questionId === questionId)
+function getAnswerByIndex(index: number): PracticeAnswer | undefined {
+  return session.value?.answers[index]
+}
+
+// Convert selectedOption (number) to option id (letter)
+function getSelectedOptionId(answer: PracticeAnswer | undefined): string | undefined {
+  if (!answer?.selectedOption) return undefined
+  const map: Record<number, string> = { 1: 'a', 2: 'b', 3: 'c', 4: 'd' }
+  return map[answer.selectedOption]
+}
+
+// Check if question is deleted
+function isQuestionDeleted(question: unknown): boolean {
+  return (question as { isDeleted?: boolean })?.isDeleted === true
 }
 
 function goBack() {
@@ -92,21 +114,26 @@ function goToStatistics() {
 
 <template>
   <div class="p-6">
-    <!-- Header -->
-    <div class="mb-6">
-      <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
-        <ArrowLeft class="mr-2 size-4" />
-        Back
-      </Button>
-
-      <h1 class="text-2xl font-bold">Session Results</h1>
-      <p v-if="session && child" class="text-muted-foreground">
-        {{ child.name }} - {{ session.subjectName }} - {{ session.topicName }} |
-        {{ session.gradeLevelName }}
-      </p>
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
     </div>
 
-    <template v-if="session && summary">
+    <template v-else-if="session && summary">
+      <!-- Header -->
+      <div class="mb-6">
+        <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
+          <ArrowLeft class="mr-2 size-4" />
+          Back
+        </Button>
+
+        <h1 class="text-2xl font-bold">Session Results</h1>
+        <p v-if="child" class="text-muted-foreground">
+          {{ child.name }} - {{ session.subjectName }} - {{ session.topicName }} |
+          {{ session.gradeLevelName }}
+        </p>
+      </div>
+
       <!-- Summary Cards -->
       <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
@@ -161,8 +188,8 @@ function goToStatistics() {
         </Button>
       </div>
 
-      <div class="mb-4 text-sm text-muted-foreground">
-        Completed: {{ formatDate(session.completedAt!) }}
+      <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
+        Completed: {{ formatDate(session.completedAt) }}
       </div>
 
       <Separator class="mb-6" />
@@ -175,95 +202,128 @@ function goToStatistics() {
           v-for="(question, index) in session.questions"
           :key="question.id"
           :class="{
+            'border-gray-300 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/20':
+              isQuestionDeleted(question),
             'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20':
-              getAnswerForQuestion(question.id)?.isCorrect,
+              !isQuestionDeleted(question) && getAnswerByIndex(index)?.isCorrect,
             'border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20':
-              getAnswerForQuestion(question.id) && !getAnswerForQuestion(question.id)?.isCorrect,
+              !isQuestionDeleted(question) &&
+              getAnswerByIndex(index) &&
+              !getAnswerByIndex(index)?.isCorrect,
           }"
         >
           <CardHeader class="pb-2">
             <div class="flex items-start justify-between gap-2">
               <CardTitle class="text-sm font-medium"> Question {{ index + 1 }} </CardTitle>
+              <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
+                Deleted
+              </Badge>
               <Badge
-                :variant="getAnswerForQuestion(question.id)?.isCorrect ? 'default' : 'destructive'"
+                v-else
+                :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
                 class="shrink-0"
               >
-                {{ getAnswerForQuestion(question.id)?.isCorrect ? 'Correct' : 'Incorrect' }}
+                {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
               </Badge>
             </div>
           </CardHeader>
           <CardContent class="space-y-3">
-            <!-- Question Text -->
-            <p class="text-sm">{{ question.question }}</p>
-
-            <!-- Question Image if exists -->
-            <img
-              v-if="question.imageUrl"
-              :src="question.imageUrl"
-              :alt="`Question ${index + 1} image`"
-              class="max-h-40 rounded-md object-contain"
-            />
-
-            <!-- MCQ Options -->
-            <div v-if="question.type === 'mcq'" class="space-y-2">
-              <div
-                v-for="option in question.options"
-                :key="option.id"
-                class="flex items-center gap-2 rounded-md border p-2 text-sm"
-                :class="{
-                  'border-green-500 bg-green-100 dark:bg-green-900/30': option.isCorrect,
-                  'border-red-500 bg-red-100 dark:bg-red-900/30':
-                    !option.isCorrect &&
-                    getAnswerForQuestion(question.id)?.selectedOptionId === option.id,
-                }"
-              >
-                <span v-if="option.isCorrect" class="text-green-600">
-                  <CheckCircle2 class="size-4" />
-                </span>
-                <span
-                  v-else-if="getAnswerForQuestion(question.id)?.selectedOptionId === option.id"
-                  class="text-red-600"
-                >
-                  <XCircle class="size-4" />
-                </span>
-                <span v-else class="size-4" />
-                <span>{{ option.text }}</span>
-              </div>
-            </div>
-
-            <!-- Short Answer -->
-            <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
-              <div class="flex gap-2">
-                <span class="font-medium">Answer:</span>
+            <!-- Deleted Question Notice -->
+            <div v-if="isQuestionDeleted(question)" class="text-sm italic text-muted-foreground">
+              <p>This question has been deleted from the question bank.</p>
+              <p class="mt-2">
+                Your answer was:
                 <span
                   :class="
-                    getAnswerForQuestion(question.id)?.isCorrect ? 'text-green-600' : 'text-red-600'
+                    getAnswerByIndex(index)?.isCorrect
+                      ? 'font-medium text-green-600'
+                      : 'font-medium text-red-600'
                   "
                 >
-                  {{ getAnswerForQuestion(question.id)?.textAnswer || '-' }}
+                  {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
                 </span>
-              </div>
-              <div v-if="!getAnswerForQuestion(question.id)?.isCorrect" class="flex gap-2">
-                <span class="font-medium">Correct Answer:</span>
-                <span class="text-green-600">{{ question.answer }}</span>
-              </div>
+              </p>
             </div>
 
-            <!-- Explanation -->
-            <div
-              v-if="question.explanation && !getAnswerForQuestion(question.id)?.isCorrect"
-              class="rounded-md bg-muted p-3"
-            >
-              <p class="text-xs font-medium text-muted-foreground">Explanation</p>
-              <p class="text-sm">{{ question.explanation }}</p>
-            </div>
+            <!-- Question Text -->
+            <template v-else>
+              <p class="text-sm">{{ question.question }}</p>
+
+              <!-- Question Image if exists -->
+              <img
+                v-if="question.imagePath"
+                :src="questionsStore.getQuestionImageUrl(question.imagePath)"
+                :alt="`Question ${index + 1} image`"
+                class="max-h-40 rounded-md object-contain"
+              />
+
+              <!-- MCQ Options -->
+              <div v-if="question.type === 'mcq' && question.options" class="space-y-2">
+                <div
+                  v-for="option in question.options"
+                  :key="option.id"
+                  class="flex items-center gap-2 rounded-md border p-2 text-sm"
+                  :class="{
+                    'border-green-500 bg-green-100 dark:bg-green-900/30': option.isCorrect,
+                    'border-red-500 bg-red-100 dark:bg-red-900/30':
+                      !option.isCorrect &&
+                      getSelectedOptionId(getAnswerByIndex(index)) === option.id,
+                  }"
+                >
+                  <span v-if="option.isCorrect" class="text-green-600">
+                    <CheckCircle2 class="size-4" />
+                  </span>
+                  <span
+                    v-else-if="getSelectedOptionId(getAnswerByIndex(index)) === option.id"
+                    class="text-red-600"
+                  >
+                    <XCircle class="size-4" />
+                  </span>
+                  <span v-else class="size-4" />
+                  <div class="flex flex-1 items-center gap-2">
+                    <span v-if="option.text">{{ option.text }}</span>
+                    <img
+                      v-if="option.imagePath"
+                      :src="questionsStore.getQuestionImageUrl(option.imagePath)"
+                      :alt="`Option ${option.id.toUpperCase()}`"
+                      class="max-h-12 rounded border object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Short Answer -->
+              <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
+                <div class="flex gap-2">
+                  <span class="font-medium">Your Answer:</span>
+                  <span
+                    :class="getAnswerByIndex(index)?.isCorrect ? 'text-green-600' : 'text-red-600'"
+                  >
+                    {{ getAnswerByIndex(index)?.textAnswer || '-' }}
+                  </span>
+                </div>
+                <div v-if="!getAnswerByIndex(index)?.isCorrect" class="flex gap-2">
+                  <span class="font-medium">Correct Answer:</span>
+                  <span class="text-green-600">{{ question.answer }}</span>
+                </div>
+              </div>
+
+              <!-- Explanation -->
+              <div
+                v-if="question.explanation && !getAnswerByIndex(index)?.isCorrect"
+                class="rounded-md bg-muted p-3"
+              >
+                <p class="text-xs font-medium text-muted-foreground">Explanation</p>
+                <p class="text-sm">{{ question.explanation }}</p>
+              </div>
+            </template>
           </CardContent>
         </Card>
       </div>
     </template>
 
     <!-- Empty State -->
-    <div v-else class="py-12 text-center">
+    <div v-else-if="!isLoading" class="py-12 text-center">
       <p class="text-muted-foreground">Session not found</p>
       <Button class="mt-4" @click="goToStatistics">Go to Statistics</Button>
     </div>

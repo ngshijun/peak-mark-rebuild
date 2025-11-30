@@ -250,10 +250,7 @@ function resetInviteForm() {
                     class="text-destructive hover:text-destructive"
                     :disabled="removingParentId === parent.id"
                   >
-                    <Loader2
-                      v-if="removingParentId === parent.id"
-                      class="size-4 animate-spin"
-                    />
+                    <Loader2 v-if="removingParentId === parent.id" class="size-4 animate-spin" />
                     <Trash2 v-else class="size-4" />
                   </Button>
                 </AlertDialogTrigger>

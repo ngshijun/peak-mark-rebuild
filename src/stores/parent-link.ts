@@ -233,9 +233,25 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     }
 
     try {
+      // Look up the parent by email - they must exist in the system
+      const { data: parentProfile, error: lookupError } = await supabase
+        .from('profiles')
+        .select('id, name, user_type')
+        .eq('email', parentEmail.toLowerCase())
+        .single()
+
+      if (lookupError || !parentProfile) {
+        return { error: 'No parent account found with this email address' }
+      }
+
+      if (parentProfile.user_type !== 'parent') {
+        return { error: 'This email is not associated with a parent account' }
+      }
+
       const { data, error: insertError } = await supabase
         .from('parent_student_invitations')
         .insert({
+          parent_id: parentProfile.id,
           parent_email: parentEmail,
           student_id: authStore.user.id,
           student_email: authStore.user.email,
@@ -251,6 +267,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
         id: data.id,
         parentId: data.parent_id,
         parentEmail: data.parent_email,
+        parentName: parentProfile.name,
         studentId: data.student_id,
         studentEmail: data.student_email,
         studentName: authStore.user.name,

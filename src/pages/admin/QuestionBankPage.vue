@@ -286,22 +286,6 @@ async function handleSave() {
 
       <!-- Data Table -->
       <DataTable :columns="columns" :data="filteredQuestions" />
-
-      <!-- Empty State -->
-      <div
-        v-if="filteredQuestions.length === 0 && !searchQuery"
-        class="rounded-lg border border-dashed p-12 text-center"
-      >
-        <div class="mx-auto size-12 rounded-full bg-muted flex items-center justify-center">
-          <Plus class="size-6 text-muted-foreground" />
-        </div>
-        <h3 class="mt-4 text-lg font-medium">No questions yet</h3>
-        <p class="mt-2 text-sm text-muted-foreground">Get started by adding your first question.</p>
-        <Button class="mt-4" @click="openAddDialog">
-          <Plus class="mr-2 size-4" />
-          Add Question
-        </Button>
-      </div>
     </template>
 
     <!-- Add Question Dialog -->
