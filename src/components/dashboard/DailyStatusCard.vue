@@ -11,9 +11,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-vue-next'
 
 const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
+const isSaving = ref(false)
 
 const moods: { type: MoodType; emoji: string; label: string }[] = [
   { type: 'sad', emoji: '😢', label: 'Sad' },
@@ -21,19 +23,24 @@ const moods: { type: MoodType; emoji: string; label: string }[] = [
   { type: 'happy', emoji: '😊', label: 'Happy' },
 ]
 
-function getMoodEmoji(mood: MoodType | undefined): string {
+function getMoodEmoji(mood: MoodType | null | undefined): string {
   if (!mood) return '❓'
   return moods.find((m) => m.type === mood)?.emoji ?? '❓'
 }
 
-function getMoodLabel(mood: MoodType | undefined): string {
+function getMoodLabel(mood: MoodType | null | undefined): string {
   if (!mood) return 'Not set'
   return moods.find((m) => m.type === mood)?.label ?? 'Unknown'
 }
 
-function selectMood(mood: MoodType) {
-  dashboardStore.setMood(mood)
-  isOpen.value = false
+async function selectMood(mood: MoodType) {
+  isSaving.value = true
+  try {
+    await dashboardStore.setMood(mood)
+    isOpen.value = false
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -46,10 +53,14 @@ function selectMood(mood: MoodType) {
           <CardDescription>How are you feeling today?</CardDescription>
         </CardHeader>
         <CardContent>
-          <div class="flex items-center gap-3">
-            <span class="text-4xl">{{ getMoodEmoji(dashboardStore.todayStatus.mood) }}</span>
+          <div v-if="dashboardStore.isLoading" class="flex items-center gap-3">
+            <Loader2 class="size-8 animate-spin text-muted-foreground" />
+            <span class="text-muted-foreground">Loading...</span>
+          </div>
+          <div v-else class="flex items-center gap-3">
+            <span class="text-4xl">{{ getMoodEmoji(dashboardStore.todayStatus?.mood) }}</span>
             <div>
-              <p class="font-medium">{{ getMoodLabel(dashboardStore.todayStatus.mood) }}</p>
+              <p class="font-medium">{{ getMoodLabel(dashboardStore.todayStatus?.mood) }}</p>
               <p class="text-xs text-muted-foreground">
                 {{ dashboardStore.hasMoodToday ? 'Tap to change' : 'Tap to set your mood' }}
               </p>
@@ -69,7 +80,8 @@ function selectMood(mood: MoodType) {
           :key="mood.type"
           variant="ghost"
           class="flex h-auto flex-col gap-2 p-4 hover:bg-muted"
-          :class="{ 'ring-2 ring-primary': dashboardStore.todayStatus.mood === mood.type }"
+          :class="{ 'ring-2 ring-primary': dashboardStore.todayStatus?.mood === mood.type }"
+          :disabled="isSaving"
           @click="selectMood(mood.type)"
         >
           <span class="text-5xl">{{ mood.emoji }}</span>

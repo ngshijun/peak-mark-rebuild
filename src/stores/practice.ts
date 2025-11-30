@@ -633,13 +633,68 @@ export const usePracticeStore = defineStore('practice', () => {
 
       session.answers = (answersData ?? []).map(rowToAnswer)
 
-      // Fetch questions for this session's topic
-      const questionsResult = await questionsStore.fetchQuestionsByTopic(session.topicId)
-      if (!questionsResult.error) {
-        // Match questions to answers
-        const questionIds = session.answers.map((a) => a.questionId).filter(Boolean) as string[]
-        session.questions = questionsResult.questions.filter((q) => questionIds.includes(q.id))
+      // Get all question IDs from answers (including null for deleted questions)
+      const questionIds = session.answers.map((a) => a.questionId).filter(Boolean) as string[]
+
+      // Fetch existing questions by their IDs directly (not by topic, as question might be deleted)
+      const { data: questionsData } = await supabase
+        .from('questions')
+        .select('*')
+        .in('id', questionIds)
+
+      const existingQuestions = new Map<string, Question>()
+      if (questionsData) {
+        for (const row of questionsData) {
+          // Get curriculum names for this question
+          const hierarchy = curriculumStore.getTopicWithHierarchy(row.topic_id)
+          existingQuestions.set(row.id, {
+            id: row.id,
+            type: row.type,
+            question: row.question,
+            imagePath: row.image_path,
+            topicId: row.topic_id,
+            gradeLevelId: row.grade_level_id,
+            subjectId: row.subject_id,
+            explanation: row.explanation,
+            answer: row.answer,
+            options: [
+              { id: 'a', text: row.option_1_text, imagePath: row.option_1_image_path, isCorrect: row.option_1_is_correct ?? false },
+              { id: 'b', text: row.option_2_text, imagePath: row.option_2_image_path, isCorrect: row.option_2_is_correct ?? false },
+              { id: 'c', text: row.option_3_text, imagePath: row.option_3_image_path, isCorrect: row.option_3_is_correct ?? false },
+              { id: 'd', text: row.option_4_text, imagePath: row.option_4_image_path, isCorrect: row.option_4_is_correct ?? false },
+            ],
+            createdAt: row.created_at,
+            gradeLevelName: hierarchy?.gradeLevel.name ?? '',
+            subjectName: hierarchy?.subject.name ?? '',
+            topicName: hierarchy?.topic.name ?? '',
+          })
+        }
       }
+
+      // Build questions array in order of answers, with placeholders for deleted questions
+      session.questions = session.answers.map((answer, index) => {
+        if (answer.questionId && existingQuestions.has(answer.questionId)) {
+          return existingQuestions.get(answer.questionId)!
+        }
+        // Create placeholder for deleted question
+        return {
+          id: answer.questionId ?? `deleted-${index}`,
+          type: 'mcq' as const,
+          question: '[Question has been deleted]',
+          imagePath: null,
+          topicId: session.topicId,
+          gradeLevelId: session.gradeLevelId,
+          subjectId: session.subjectId,
+          explanation: null,
+          answer: null,
+          options: [],
+          createdAt: null,
+          gradeLevelName: session.gradeLevelName,
+          subjectName: session.subjectName,
+          topicName: session.topicName,
+          isDeleted: true,
+        } as Question & { isDeleted?: boolean }
+      })
 
       return { session, error: null }
     } catch (err) {

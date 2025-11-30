@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch, h } from 'vue'
+import { computed, ref, watch, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { usePracticeStore, type DateRangeFilter } from '@/stores/practice'
 import { useAuthStore } from '@/stores/auth'
-import type { PracticeSession } from '@/types'
-import { ArrowUpDown, Calendar } from 'lucide-vue-next'
+import { ArrowUpDown, Calendar, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
@@ -37,6 +36,14 @@ const dateRangeOptions = [
 // Get current student's grade level from profile
 // TODO: gradeLevelName needs to be fetched or added to studentProfile
 const currentGradeLevel = computed(() => undefined)
+
+const isLoading = ref(true)
+
+// Fetch session history on mount
+onMounted(async () => {
+  await practiceStore.fetchSessionHistory()
+  isLoading.value = false
+})
 
 // Reset topic when subject changes
 watch(selectedSubject, () => {
@@ -247,6 +254,12 @@ function handleRowClick(row: HistoryRow) {
       <p class="text-muted-foreground">View your past practice sessions and scores.</p>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
+    </div>
+
+    <template v-else>
     <!-- Filters Row -->
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <!-- Date Range Selector -->
@@ -294,5 +307,6 @@ function handleRowClick(row: HistoryRow) {
     <div v-if="historyData.length === 0" class="py-12 text-center">
       <p class="text-muted-foreground">No practice sessions found for the selected filters.</p>
     </div>
+    </template>
   </div>
 </template>

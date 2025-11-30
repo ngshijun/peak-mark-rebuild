@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePracticeStore, type PracticeSession, type PracticeAnswer } from '@/stores/practice'
+import { useQuestionsStore } from '@/stores/questions'
+import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +22,8 @@ import {
 const route = useRoute()
 const router = useRouter()
 const practiceStore = usePracticeStore()
+const questionsStore = useQuestionsStore()
+const dashboardStore = useStudentDashboardStore()
 
 const sessionId = computed(() => route.params.sessionId as string)
 const session = ref<PracticeSession | null>(null)
@@ -51,6 +55,10 @@ onMounted(async () => {
   const result = await practiceStore.getSessionById(sessionId.value)
   if (result.session) {
     session.value = result.session
+    // Mark that user has practiced today (if session was just completed)
+    if (result.session.completedAt) {
+      await dashboardStore.markPracticedToday()
+    }
   } else {
     router.push('/student/history')
   }
@@ -88,6 +96,16 @@ function getAnswerForQuestion(questionId: string): PracticeAnswer | undefined {
 function getSelectedOptionId(answer: PracticeAnswer | undefined): string | undefined {
   if (!answer?.selectedOption) return undefined
   return practiceStore.optionNumberToId(answer.selectedOption)
+}
+
+// Check if question is deleted
+function isQuestionDeleted(question: unknown): boolean {
+  return (question as { isDeleted?: boolean })?.isDeleted === true
+}
+
+// Get answer by index (for deleted questions where questionId is null)
+function getAnswerByIndex(index: number): PracticeAnswer | undefined {
+  return session.value?.answers[index]
 }
 
 function goBack() {
@@ -209,88 +227,119 @@ async function retryTopic() {
           v-for="(question, index) in session.questions"
           :key="question.id"
           :class="{
+            'border-gray-300 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/20':
+              isQuestionDeleted(question),
             'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20':
-              getAnswerForQuestion(question.id)?.isCorrect,
+              !isQuestionDeleted(question) && getAnswerByIndex(index)?.isCorrect,
             'border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20':
-              getAnswerForQuestion(question.id) && !getAnswerForQuestion(question.id)?.isCorrect,
+              !isQuestionDeleted(question) && getAnswerByIndex(index) && !getAnswerByIndex(index)?.isCorrect,
           }"
         >
           <CardHeader class="pb-2">
             <div class="flex items-start justify-between gap-2">
               <CardTitle class="text-sm font-medium"> Question {{ index + 1 }} </CardTitle>
               <Badge
-                :variant="getAnswerForQuestion(question.id)?.isCorrect ? 'default' : 'destructive'"
+                v-if="isQuestionDeleted(question)"
+                variant="secondary"
                 class="shrink-0"
               >
-                {{ getAnswerForQuestion(question.id)?.isCorrect ? 'Correct' : 'Incorrect' }}
+                Deleted
+              </Badge>
+              <Badge
+                v-else
+                :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
+                class="shrink-0"
+              >
+                {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
               </Badge>
             </div>
           </CardHeader>
           <CardContent class="space-y-3">
+            <!-- Deleted Question Notice -->
+            <div v-if="isQuestionDeleted(question)" class="text-sm text-muted-foreground italic">
+              <p>This question has been deleted from the question bank.</p>
+              <p class="mt-2">
+                Your answer was:
+                <span :class="getAnswerByIndex(index)?.isCorrect ? 'text-green-600 font-medium' : 'text-red-600 font-medium'">
+                  {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
+                </span>
+              </p>
+            </div>
+
             <!-- Question Text -->
-            <p class="text-sm">{{ question.question }}</p>
+            <template v-else>
+              <p class="text-sm">{{ question.question }}</p>
 
-            <!-- Question Image if exists -->
-            <img
-              v-if="question.imagePath"
-              :src="question.imagePath"
-              :alt="`Question ${index + 1} image`"
-              class="max-h-40 rounded-md object-contain"
-            />
+              <!-- Question Image if exists -->
+              <img
+                v-if="question.imagePath"
+                :src="questionsStore.getQuestionImageUrl(question.imagePath)"
+                :alt="`Question ${index + 1} image`"
+                class="max-h-40 rounded-md object-contain"
+              />
 
-            <!-- MCQ Options -->
-            <div v-if="question.type === 'mcq' && question.options" class="space-y-2">
+              <!-- MCQ Options -->
+              <div v-if="question.type === 'mcq' && question.options" class="space-y-2">
+                <div
+                  v-for="option in question.options"
+                  :key="option.id"
+                  class="flex items-center gap-2 rounded-md border p-2 text-sm"
+                  :class="{
+                    'border-green-500 bg-green-100 dark:bg-green-900/30': option.isCorrect,
+                    'border-red-500 bg-red-100 dark:bg-red-900/30':
+                      !option.isCorrect &&
+                      getSelectedOptionId(getAnswerByIndex(index)) === option.id,
+                  }"
+                >
+                  <span v-if="option.isCorrect" class="text-green-600">
+                    <CheckCircle2 class="size-4" />
+                  </span>
+                  <span
+                    v-else-if="getSelectedOptionId(getAnswerByIndex(index)) === option.id"
+                    class="text-red-600"
+                  >
+                    <XCircle class="size-4" />
+                  </span>
+                  <span v-else class="size-4" />
+                  <div class="flex flex-1 items-center gap-2">
+                    <span v-if="option.text">{{ option.text }}</span>
+                    <img
+                      v-if="option.imagePath"
+                      :src="questionsStore.getQuestionImageUrl(option.imagePath)"
+                      :alt="`Option ${option.id.toUpperCase()}`"
+                      class="max-h-12 rounded border object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Short Answer -->
+              <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
+                <div class="flex gap-2">
+                  <span class="font-medium">Your Answer:</span>
+                  <span
+                    :class="
+                      getAnswerByIndex(index)?.isCorrect ? 'text-green-600' : 'text-red-600'
+                    "
+                  >
+                    {{ getAnswerByIndex(index)?.textAnswer || '-' }}
+                  </span>
+                </div>
+                <div v-if="!getAnswerByIndex(index)?.isCorrect" class="flex gap-2">
+                  <span class="font-medium">Correct Answer:</span>
+                  <span class="text-green-600">{{ question.answer }}</span>
+                </div>
+              </div>
+
+              <!-- Explanation -->
               <div
-                v-for="option in question.options"
-                :key="option.id"
-                class="flex items-center gap-2 rounded-md border p-2 text-sm"
-                :class="{
-                  'border-green-500 bg-green-100 dark:bg-green-900/30': option.isCorrect,
-                  'border-red-500 bg-red-100 dark:bg-red-900/30':
-                    !option.isCorrect &&
-                    getSelectedOptionId(getAnswerForQuestion(question.id)) === option.id,
-                }"
+                v-if="question.explanation && !getAnswerByIndex(index)?.isCorrect"
+                class="rounded-md bg-muted p-3"
               >
-                <span v-if="option.isCorrect" class="text-green-600">
-                  <CheckCircle2 class="size-4" />
-                </span>
-                <span
-                  v-else-if="getSelectedOptionId(getAnswerForQuestion(question.id)) === option.id"
-                  class="text-red-600"
-                >
-                  <XCircle class="size-4" />
-                </span>
-                <span v-else class="size-4" />
-                <span>{{ option.text }}</span>
+                <p class="text-xs font-medium text-muted-foreground">Explanation</p>
+                <p class="text-sm">{{ question.explanation }}</p>
               </div>
-            </div>
-
-            <!-- Short Answer -->
-            <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
-              <div class="flex gap-2">
-                <span class="font-medium">Your Answer:</span>
-                <span
-                  :class="
-                    getAnswerForQuestion(question.id)?.isCorrect ? 'text-green-600' : 'text-red-600'
-                  "
-                >
-                  {{ getAnswerForQuestion(question.id)?.textAnswer || '-' }}
-                </span>
-              </div>
-              <div v-if="!getAnswerForQuestion(question.id)?.isCorrect" class="flex gap-2">
-                <span class="font-medium">Correct Answer:</span>
-                <span class="text-green-600">{{ question.answer }}</span>
-              </div>
-            </div>
-
-            <!-- Explanation -->
-            <div
-              v-if="question.explanation && !getAnswerForQuestion(question.id)?.isCorrect"
-              class="rounded-md bg-muted p-3"
-            >
-              <p class="text-xs font-medium text-muted-foreground">Explanation</p>
-              <p class="text-sm">{{ question.explanation }}</p>
-            </div>
+            </template>
           </CardContent>
         </Card>
       </div>

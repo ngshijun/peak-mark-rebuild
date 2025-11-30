@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
-import type { Question } from '@/stores/questions'
+import { useQuestionsStore, type Question } from '@/stores/questions'
 import { CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +22,7 @@ import {
 
 const router = useRouter()
 const practiceStore = usePracticeStore()
+const questionsStore = useQuestionsStore()
 
 const selectedOptionId = ref('')
 const textAnswer = ref('')
@@ -161,7 +162,7 @@ async function goToQuestion(index: number) {
           <!-- Question Image -->
           <div v-if="currentQuestion.imagePath" class="flex justify-center">
             <img
-              :src="currentQuestion.imagePath"
+              :src="questionsStore.getQuestionImageUrl(currentQuestion.imagePath)"
               alt="Question image"
               class="max-h-64 rounded-lg border object-contain"
             />
@@ -198,7 +199,15 @@ async function goToQuestion(index: number) {
                 >
                   {{ option.id.toUpperCase() }}
                 </span>
-                <span>{{ option.text }}</span>
+                <div class="flex flex-1 items-center gap-2">
+                  <span v-if="option.text">{{ option.text }}</span>
+                  <img
+                    v-if="option.imagePath"
+                    :src="questionsStore.getQuestionImageUrl(option.imagePath)"
+                    :alt="`Option ${option.id.toUpperCase()}`"
+                    class="max-h-16 rounded border object-contain"
+                  />
+                </div>
                 <CheckCircle2
                   v-if="isAnswered && option.isCorrect"
                   class="ml-auto size-5 text-green-500"

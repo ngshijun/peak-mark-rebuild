@@ -27,14 +27,16 @@ const wheelStyle = computed(() => ({
   transition: isSpinning.value ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
 }))
 
-function spin() {
+async function spin() {
   if (isSpinning.value || dashboardStore.hasSpunToday) return
 
   isSpinning.value = true
   reward.value = null
 
-  // Determine reward first
-  const wonReward = dashboardStore.spinWheel()
+  // Call async spinWheel
+  const result = await dashboardStore.spinWheel()
+  const wonReward = result.reward
+
   if (wonReward === null) {
     isSpinning.value = false
     return
@@ -90,7 +92,7 @@ function closeDialog() {
               <p class="text-xs text-muted-foreground">
                 {{
                   dashboardStore.hasSpunToday
-                    ? `+${dashboardStore.todayStatus.spinReward} coins earned`
+                    ? `+${dashboardStore.todayStatus?.spinReward ?? 0} coins earned`
                     : 'Tap to spin the wheel'
                 }}
               </p>

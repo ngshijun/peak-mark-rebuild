@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { usePracticeStore } from '@/stores/practice'
-import { ChevronLeft } from 'lucide-vue-next'
+import { ChevronLeft, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -14,6 +15,14 @@ const curriculumStore = useCurriculumStore()
 const practiceStore = usePracticeStore()
 
 const selectedSubjectId = ref<string | null>(null)
+const isStartingSession = ref(false)
+
+// Fetch curriculum on mount
+onMounted(async () => {
+  if (curriculumStore.gradeLevels.length === 0) {
+    await curriculumStore.fetchCurriculum()
+  }
+})
 
 // Get student's grade level ID
 const studentGradeLevelId = computed(() => {
@@ -92,11 +101,11 @@ const topicImages: Record<string, string> = {
 const defaultTopicImage =
   'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400&h=300&fit=crop'
 
-function getSubjectImage(subject: { name: string; coverImage?: string }): string {
+function getSubjectImage(subject: { name: string; coverImage?: string | null }): string {
   return subject.coverImage || subjectImages[subject.name] || defaultSubjectImage
 }
 
-function getTopicImage(topic: { name: string; coverImage?: string }): string {
+function getTopicImage(topic: { name: string; coverImage?: string | null }): string {
   return topic.coverImage || topicImages[topic.name] || defaultTopicImage
 }
 
@@ -109,88 +118,124 @@ function goBackToSubjects() {
 }
 
 async function selectTopic(topicId: string) {
-  if (!selectedSubject.value) return
+  if (!selectedSubject.value || isStartingSession.value) return
 
-  const result = await practiceStore.startSession(topicId)
+  isStartingSession.value = true
 
-  if (result.session) {
-    router.push('/student/practice/quiz')
+  try {
+    const result = await practiceStore.startSession(topicId)
+
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+
+    if (result.session) {
+      router.push('/student/practice/quiz')
+    }
+  } finally {
+    isStartingSession.value = false
   }
 }
 </script>
 
 <template>
   <div class="p-6">
-    <!-- Subject Selection -->
-    <div v-if="!selectedSubject">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold">Practice</h1>
-        <p class="text-muted-foreground">Select a subject to start practicing</p>
-      </div>
-
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          v-for="subject in availableSubjects"
-          :key="subject.id"
-          class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
-          @click="selectSubject(subject.id)"
-        >
-          <div class="aspect-video w-full overflow-hidden">
-            <img
-              :src="getSubjectImage(subject)"
-              :alt="subject.name"
-              class="size-full object-cover transition-transform hover:scale-105"
-            />
-          </div>
-          <CardContent class="p-4">
-            <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
-            <p class="text-sm text-muted-foreground">
-              {{ subject.topics.length }}
-              {{ subject.topics.length === 1 ? 'topic' : 'topics' }} available
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div v-if="availableSubjects.length === 0" class="py-12 text-center">
-        <p class="text-muted-foreground">No subjects available for your grade level.</p>
-      </div>
+    <!-- Loading State -->
+    <div v-if="curriculumStore.isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
     </div>
 
-    <!-- Topic Selection -->
-    <div v-else>
-      <div class="mb-6">
-        <Button variant="ghost" size="sm" class="mb-2 -ml-2" @click="goBackToSubjects">
-          <ChevronLeft class="mr-1 size-4" />
-          Back to Subjects
-        </Button>
-        <h1 class="text-2xl font-bold">{{ selectedSubject.name }}</h1>
-        <p class="text-muted-foreground">Select a topic to start practicing</p>
+    <!-- No Grade Level Set -->
+    <div v-else-if="!studentGradeLevelId" class="py-12 text-center">
+      <p class="text-muted-foreground">Please set your grade level in your profile first.</p>
+      <Button class="mt-4" @click="router.push('/student/profile')">Go to Profile</Button>
+    </div>
+
+    <template v-else>
+      <!-- Subject Selection -->
+      <div v-if="!selectedSubject">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold">Practice</h1>
+          <p class="text-muted-foreground">Select a subject to start practicing</p>
+        </div>
+
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Card
+            v-for="subject in availableSubjects"
+            :key="subject.id"
+            class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
+            @click="selectSubject(subject.id)"
+          >
+            <div class="aspect-video w-full overflow-hidden">
+              <img
+                :src="getSubjectImage(subject)"
+                :alt="subject.name"
+                class="size-full object-cover transition-transform hover:scale-105"
+              />
+            </div>
+            <CardContent class="p-4">
+              <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
+              <p class="text-sm text-muted-foreground">
+                {{ subject.topics.length }}
+                {{ subject.topics.length === 1 ? 'topic' : 'topics' }} available
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div v-if="availableSubjects.length === 0" class="py-12 text-center">
+          <p class="text-muted-foreground">No subjects available for your grade level.</p>
+        </div>
       </div>
 
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          v-for="topic in selectedSubject.topics"
-          :key="topic.id"
-          class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
-          @click="selectTopic(topic.id)"
-        >
-          <div class="aspect-video w-full overflow-hidden">
-            <img
-              :src="getTopicImage(topic)"
-              :alt="topic.name"
-              class="size-full object-cover transition-transform hover:scale-105"
-            />
-          </div>
-          <CardContent class="p-4">
-            <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
-            <p class="text-sm text-muted-foreground">10 questions</p>
-          </CardContent>
-        </Card>
-      </div>
+      <!-- Topic Selection -->
+      <div v-else>
+        <div class="mb-6">
+          <Button variant="ghost" size="sm" class="mb-2 -ml-2" @click="goBackToSubjects">
+            <ChevronLeft class="mr-1 size-4" />
+            Back to Subjects
+          </Button>
+          <h1 class="text-2xl font-bold">{{ selectedSubject.name }}</h1>
+          <p class="text-muted-foreground">Select a topic to start practicing</p>
+        </div>
 
-      <div v-if="selectedSubject.topics.length === 0" class="py-12 text-center">
-        <p class="text-muted-foreground">No topics available for this subject.</p>
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Card
+            v-for="topic in selectedSubject.topics"
+            :key="topic.id"
+            class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
+            :class="{ 'opacity-50 pointer-events-none': isStartingSession }"
+            @click="selectTopic(topic.id)"
+          >
+            <div class="aspect-video w-full overflow-hidden">
+              <img
+                :src="getTopicImage(topic)"
+                :alt="topic.name"
+                class="size-full object-cover transition-transform hover:scale-105"
+              />
+            </div>
+            <CardContent class="p-4">
+              <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
+              <p class="text-sm text-muted-foreground">10 questions</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div v-if="selectedSubject.topics.length === 0" class="py-12 text-center">
+          <p class="text-muted-foreground">No topics available for this subject.</p>
+        </div>
+      </div>
+    </template>
+
+    <!-- Loading Overlay -->
+    <div
+      v-if="isStartingSession"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+    >
+      <div class="flex flex-col items-center gap-4">
+        <Loader2 class="size-12 animate-spin text-primary" />
+        <p class="text-lg font-medium">Starting practice session...</p>
       </div>
     </div>
   </div>

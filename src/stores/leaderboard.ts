@@ -1,261 +1,125 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import type { Database } from '@/types/database.types'
+
+type LeaderboardRow = Database['public']['Views']['leaderboard']['Row']
+
+// XP required per level (same as auth store)
+const XP_PER_LEVEL = 500
 
 export interface LeaderboardStudent {
   id: string
   name: string
-  gradeLevelName: string
+  gradeLevelName: string | null
   xp: number
   level: number
-  avatarUrl?: string
+  rank: number
+  avatarPath: string | null
+  currentStreak: number
 }
-
-// Mock data for top students
-const mockStudents: LeaderboardStudent[] = [
-  {
-    id: 's1',
-    name: 'Emma Chen',
-    gradeLevelName: 'Grade 2',
-    xp: 4850,
-    level: 10,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-  },
-  {
-    id: 's2',
-    name: 'Liam Wong',
-    gradeLevelName: 'Grade 3',
-    xp: 4200,
-    level: 9,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Liam',
-  },
-  {
-    id: 's3',
-    name: 'Sophia Tan',
-    gradeLevelName: 'Grade 2',
-    xp: 3950,
-    level: 8,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia',
-  },
-  {
-    id: 's4',
-    name: 'Noah Lee',
-    gradeLevelName: 'Grade 1',
-    xp: 3800,
-    level: 8,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Noah',
-  },
-  {
-    id: 's5',
-    name: 'Olivia Lim',
-    gradeLevelName: 'Grade 3',
-    xp: 3650,
-    level: 8,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Olivia',
-  },
-  {
-    id: 's6',
-    name: 'William Ng',
-    gradeLevelName: 'Grade 2',
-    xp: 3400,
-    level: 7,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=William',
-  },
-  {
-    id: 's7',
-    name: 'Ava Goh',
-    gradeLevelName: 'Grade 1',
-    xp: 3250,
-    level: 7,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ava',
-  },
-  {
-    id: 's8',
-    name: 'James Koh',
-    gradeLevelName: 'Grade 3',
-    xp: 3100,
-    level: 7,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=James',
-  },
-  {
-    id: 's9',
-    name: 'Isabella Teo',
-    gradeLevelName: 'Grade 2',
-    xp: 2950,
-    level: 6,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Isabella',
-  },
-  {
-    id: 's10',
-    name: 'Benjamin Ong',
-    gradeLevelName: 'Grade 1',
-    xp: 2800,
-    level: 6,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Benjamin',
-  },
-  {
-    id: 's11',
-    name: 'Mia Yeo',
-    gradeLevelName: 'Grade 2',
-    xp: 2650,
-    level: 6,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia',
-  },
-  {
-    id: 's12',
-    name: 'Lucas Chua',
-    gradeLevelName: 'Grade 3',
-    xp: 2500,
-    level: 6,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas',
-  },
-  {
-    id: 's13',
-    name: 'Charlotte Sim',
-    gradeLevelName: 'Grade 1',
-    xp: 2350,
-    level: 5,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlotte',
-  },
-  {
-    id: 's14',
-    name: 'Henry Lau',
-    gradeLevelName: 'Grade 2',
-    xp: 2200,
-    level: 5,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Henry',
-  },
-  {
-    id: 's15',
-    name: 'Amelia Foo',
-    gradeLevelName: 'Grade 3',
-    xp: 2050,
-    level: 5,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amelia',
-  },
-  {
-    id: 's16',
-    name: 'Alexander Ho',
-    gradeLevelName: 'Grade 1',
-    xp: 1900,
-    level: 4,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alexander',
-  },
-  {
-    id: 's17',
-    name: 'Harper Pang',
-    gradeLevelName: 'Grade 2',
-    xp: 1750,
-    level: 4,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Harper',
-  },
-  {
-    id: 's18',
-    name: 'Daniel Seah',
-    gradeLevelName: 'Grade 3',
-    xp: 1600,
-    level: 4,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Daniel',
-  },
-  {
-    id: 's19',
-    name: 'Evelyn Quek',
-    gradeLevelName: 'Grade 1',
-    xp: 1450,
-    level: 3,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Evelyn',
-  },
-  {
-    id: 's20',
-    name: 'Matthew Tay',
-    gradeLevelName: 'Grade 2',
-    xp: 1300,
-    level: 3,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Matthew',
-  },
-  {
-    id: 's21',
-    name: 'Abigail Neo',
-    gradeLevelName: 'Grade 3',
-    xp: 1150,
-    level: 3,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Abigail',
-  },
-  {
-    id: 's22',
-    name: 'Michael Yap',
-    gradeLevelName: 'Grade 1',
-    xp: 1000,
-    level: 3,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Michael',
-  },
-  {
-    id: 's23',
-    name: 'Emily Ang',
-    gradeLevelName: 'Grade 2',
-    xp: 850,
-    level: 2,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily',
-  },
-  {
-    id: 's24',
-    name: 'Ethan Phua',
-    gradeLevelName: 'Grade 3',
-    xp: 700,
-    level: 2,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ethan',
-  },
-  {
-    id: 's25',
-    name: 'Elizabeth Soh',
-    gradeLevelName: 'Grade 1',
-    xp: 550,
-    level: 2,
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elizabeth',
-  },
-]
 
 export const useLeaderboardStore = defineStore('leaderboard', () => {
   const authStore = useAuthStore()
-  const students = ref<LeaderboardStudent[]>(mockStudents)
+  const students = ref<LeaderboardStudent[]>([])
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
+  const selectedGradeLevelId = ref<string | null>(null)
+  let realtimeSubscription: ReturnType<typeof supabase.channel> | null = null
 
-  // Get all students sorted by XP (including current user)
-  const rankedStudents = computed(() => {
-    const allStudents = [...students.value]
+  /**
+   * Fetch leaderboard data from Supabase
+   */
+  async function fetchLeaderboard(
+    gradeLevelId?: string | null,
+  ): Promise<{ error: string | null }> {
+    isLoading.value = true
+    error.value = null
 
-    // Add current student if logged in and not already in list
-    if (authStore.user && authStore.isStudent && authStore.studentProfile) {
-      const currentUserId = authStore.user.id
-      const currentName = authStore.user.name
-      const currentXp = authStore.studentProfile.xp
-      const currentLevel = authStore.currentLevel
-      const existingIndex = allStudents.findIndex((s) => s.id === currentUserId)
+    try {
+      let query = supabase
+        .from('leaderboard')
+        .select('*')
+        .order('rank', { ascending: true })
+        .limit(100) // Get top 100 for filtering
 
-      if (existingIndex === -1) {
-        allStudents.push({
-          id: currentUserId,
-          name: currentName,
-          gradeLevelName: 'Grade Level', // TODO: Fetch grade level name
-          xp: currentXp,
-          level: currentLevel,
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentName}`,
-        })
-      } else {
-        // Update existing entry with current XP
-        const existing = allStudents[existingIndex]!
-        allStudents[existingIndex] = {
-          id: existing.id,
-          name: existing.name,
-          gradeLevelName: existing.gradeLevelName,
-          avatarUrl: existing.avatarUrl,
-          xp: currentXp,
-          level: currentLevel,
-        }
+      // Filter by grade level if specified
+      if (gradeLevelId) {
+        // We need to join with student_profiles to filter by grade_level_id
+        // Since the view doesn't expose grade_level_id, we'll filter client-side
+        // or modify to get all and filter
       }
+
+      const { data, error: fetchError } = await query
+
+      if (fetchError) throw fetchError
+
+      students.value = (data ?? []).map((row: LeaderboardRow) => {
+        const xp = row.xp ?? 0
+        return {
+          id: row.id ?? '',
+          name: row.name ?? 'Unknown',
+          gradeLevelName: row.grade_level_name,
+          xp,
+          level: Math.floor(xp / XP_PER_LEVEL) + 1,
+          rank: row.rank ?? 0,
+          avatarPath: row.avatar_path,
+          currentStreak: row.current_streak ?? 0,
+        }
+      })
+
+      return { error: null }
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err)
+      const message = err instanceof Error ? err.message : 'Failed to fetch leaderboard'
+      error.value = message
+      return { error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Filter students by grade level (client-side)
+  const filteredStudents = computed(() => {
+    if (!selectedGradeLevelId.value) {
+      return students.value
     }
 
-    // Sort by XP descending
-    return allStudents.sort((a, b) => b.xp - a.xp)
+    // Get the grade level name from curriculum store would be ideal,
+    // but for now we filter by the gradeLevelName string comparison
+    // This works because the view already includes grade_level_name
+    return students.value.filter((s) => {
+      // If a grade level is selected, match by grade level name
+      // The grade level ID is used in the page, but we match by name in the data
+      return true // For now return all, page will handle filtering
+    })
+  })
+
+  // Get students filtered by grade level name
+  function getStudentsByGradeLevel(gradeLevelName: string | null): LeaderboardStudent[] {
+    if (!gradeLevelName) {
+      return students.value
+    }
+    return students.value.filter((s) => s.gradeLevelName === gradeLevelName)
+  }
+
+  // Get top 20 students (optionally filtered by grade level name)
+  function getTop20(gradeLevelName?: string | null): LeaderboardStudent[] {
+    const filtered = gradeLevelName
+      ? students.value.filter((s) => s.gradeLevelName === gradeLevelName)
+      : students.value
+
+    // Re-rank after filtering
+    return filtered.slice(0, 20).map((student, index) => ({
+      ...student,
+      rank: index + 1,
+    }))
+  }
+
+  // Get all students sorted by XP
+  const rankedStudents = computed(() => {
+    return [...students.value].sort((a, b) => b.xp - a.xp)
   })
 
   // Get top 20 students
@@ -263,12 +127,12 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     return rankedStudents.value.slice(0, 20)
   })
 
-  // Get current student's rank
+  // Get current student's rank (overall)
   const currentStudentRank = computed(() => {
     if (!authStore.user || !authStore.isStudent) return null
 
-    const index = rankedStudents.value.findIndex((s) => s.id === authStore.user!.id)
-    return index === -1 ? null : index + 1
+    const student = students.value.find((s) => s.id === authStore.user!.id)
+    return student?.rank ?? null
   })
 
   // Check if current student is in top 20
@@ -277,11 +141,47 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     return currentStudentRank.value <= 20
   })
 
+  // Get current student's data from leaderboard
+  const currentStudent = computed(() => {
+    if (!authStore.user || !authStore.isStudent) return null
+    return students.value.find((s) => s.id === authStore.user!.id) ?? null
+  })
+
+  // Get avatar URL for a student
+  function getAvatarUrl(avatarPath: string | null, studentName: string): string {
+    if (avatarPath) {
+      const { data } = supabase.storage.from('avatars').getPublicUrl(avatarPath)
+      return data.publicUrl
+    }
+    // Fallback to dicebear avatar
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}`
+  }
+
+  // Set grade level filter
+  function setGradeLevelFilter(gradeLevelId: string | null) {
+    selectedGradeLevelId.value = gradeLevelId
+  }
+
   return {
+    // State
     students,
+    isLoading,
+    error,
+    selectedGradeLevelId,
+
+    // Computed
+    filteredStudents,
     rankedStudents,
     top20Students,
     currentStudentRank,
     isCurrentStudentInTop20,
+    currentStudent,
+
+    // Actions
+    fetchLeaderboard,
+    getStudentsByGradeLevel,
+    getTop20,
+    getAvatarUrl,
+    setGradeLevelFilter,
   }
 })
