@@ -346,35 +346,43 @@ const columns: ColumnDef<Pet>[] = [
             <Input v-model="formName" placeholder="Enter pet name" :disabled="isSaving" />
           </div>
 
-          <!-- Rarity -->
-          <div class="space-y-2">
-            <Label>Rarity</Label>
-            <Select v-model="formRarity" :disabled="isSaving">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="(config, rarity) in rarityConfig" :key="rarity" :value="rarity">
-                  <span :class="config.color">{{ config.label }}</span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <!-- Rarity and Gacha Weight Row -->
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Rarity -->
+            <div class="space-y-2">
+              <Label>Rarity</Label>
+              <Select v-model="formRarity" :disabled="isSaving">
+                <SelectTrigger class="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="(config, rarity) in rarityConfig"
+                    :key="rarity"
+                    :value="rarity"
+                  >
+                    <span :class="config.color">{{ config.label }}</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <!-- Gacha Weight -->
-          <div class="space-y-2">
-            <Label>Gacha Weight</Label>
-            <Input
-              v-model.number="formGachaWeight"
-              type="number"
-              min="1"
-              placeholder="100"
-              :disabled="isSaving"
-            />
-            <p class="text-xs text-muted-foreground">
-              Higher weight = more likely to be pulled within its rarity tier.
-            </p>
+            <!-- Gacha Weight -->
+            <div class="space-y-2">
+              <Label>Gacha Weight</Label>
+              <Input
+                v-model.number="formGachaWeight"
+                type="number"
+                min="1"
+                placeholder="100"
+                class="w-full"
+                :disabled="isSaving"
+              />
+            </div>
           </div>
+          <p class="text-xs text-muted-foreground">
+            Higher weight = more likely to be pulled within its rarity tier.
+          </p>
 
           <!-- Pet Image -->
           <div class="space-y-2">

@@ -187,7 +187,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Update user's avatar
+   * Update user's avatar path in database
    */
   async function updateAvatar(avatarPath: string) {
     if (!user.value) return { error: 'Not authenticated' }
@@ -203,6 +203,87 @@ export const useAuthStore = defineStore('auth', () => {
 
     user.value.avatarPath = avatarPath
     return { error: null }
+  }
+
+  /**
+   * Upload avatar image to storage and update profile
+   */
+  async function uploadAvatar(file: File): Promise<{ path: string | null; error: string | null }> {
+    if (!user.value) return { path: null, error: 'Not authenticated' }
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${user.value.id}/avatar.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      // Update the avatar path in the database
+      const updateResult = await updateAvatar(filePath)
+      if (updateResult.error) {
+        return { path: null, error: updateResult.error }
+      }
+
+      return { path: filePath, error: null }
+    } catch (err) {
+      console.error('Error uploading avatar:', err)
+      const message = err instanceof Error ? err.message : 'Failed to upload avatar'
+      return { path: null, error: message }
+    }
+  }
+
+  /**
+   * Upload avatar from a URL (e.g., dicebear) to storage
+   */
+  async function uploadAvatarFromUrl(
+    avatarUrl: string,
+  ): Promise<{ path: string | null; error: string | null }> {
+    if (!user.value) return { path: null, error: 'Not authenticated' }
+
+    try {
+      // Fetch the image from the URL
+      const response = await fetch(avatarUrl)
+      if (!response.ok) {
+        throw new Error('Failed to fetch avatar from URL')
+      }
+
+      const blob = await response.blob()
+      const contentType = blob.type || 'image/svg+xml'
+      const ext = contentType.includes('svg') ? 'svg' : 'png'
+      const filePath = `${user.value.id}/avatar.${ext}`
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, blob, {
+        upsert: true,
+        contentType,
+      })
+
+      if (uploadError) throw uploadError
+
+      // Update the avatar path in the database
+      const updateResult = await updateAvatar(filePath)
+      if (updateResult.error) {
+        return { path: null, error: updateResult.error }
+      }
+
+      return { path: filePath, error: null }
+    } catch (err) {
+      console.error('Error uploading avatar from URL:', err)
+      const message = err instanceof Error ? err.message : 'Failed to upload avatar'
+      return { path: null, error: message }
+    }
+  }
+
+  /**
+   * Get public URL for avatar from storage path
+   */
+  function getAvatarUrl(path: string | null): string {
+    if (!path) return ''
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    return data.publicUrl
   }
 
   /**
@@ -376,6 +457,9 @@ export const useAuthStore = defineStore('auth', () => {
     refreshProfile,
     updateName,
     updateAvatar,
+    uploadAvatar,
+    uploadAvatarFromUrl,
+    getAvatarUrl,
     updateGradeLevel,
     addXp,
     addCoins,

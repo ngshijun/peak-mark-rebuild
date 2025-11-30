@@ -146,13 +146,10 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
   })
 
   // Get avatar URL for a student
-  function getAvatarUrl(avatarPath: string | null, studentName: string): string {
-    if (avatarPath) {
-      const { data } = supabase.storage.from('avatars').getPublicUrl(avatarPath)
-      return data.publicUrl
-    }
-    // Fallback to dicebear avatar
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}`
+  function getAvatarUrl(avatarPath: string | null): string {
+    if (!avatarPath) return ''
+    const { data } = supabase.storage.from('avatars').getPublicUrl(avatarPath)
+    return data.publicUrl
   }
 
   // Set grade level filter

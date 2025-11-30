@@ -49,7 +49,7 @@ export interface ChildPracticeSession {
   score: number
   totalQuestions: number
   correctAnswers: number
-  durationMinutes: number
+  durationSeconds: number
   completedAt: string
 }
 
@@ -59,6 +59,7 @@ export interface PracticeAnswer {
   textAnswer: string | null
   isCorrect: boolean
   answeredAt: string
+  timeSpentSeconds: number | null
 }
 
 export interface Question {
@@ -145,13 +146,13 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       if (fetchError) throw fetchError
 
-      // For each session, get the answers to calculate score
+      // For each session, get the answers to calculate score and total time
       const sessionsWithScores: ChildPracticeSession[] = []
 
       for (const session of sessionsData ?? []) {
         const { data: answersData } = await supabase
           .from('practice_answers')
-          .select('is_correct')
+          .select('is_correct, time_spent_seconds')
           .eq('session_id', session.id)
 
         const correctAnswers = answersData?.filter((a) => a.is_correct).length ?? 0
@@ -167,14 +168,10 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           }
         }
 
-        const durationMinutes =
-          session.completed_at && session.created_at
-            ? Math.round(
-                (new Date(session.completed_at).getTime() -
-                  new Date(session.created_at).getTime()) /
-                  60000,
-              )
-            : 0
+        // Calculate duration from sum of time_spent_seconds in answers
+        // This accurately tracks actual time spent, even if student left and came back
+        const durationSeconds =
+          answersData?.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0) ?? 0
 
         sessionsWithScores.push({
           id: session.id,
@@ -184,7 +181,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
           totalQuestions,
           correctAnswers,
-          durationMinutes,
+          durationSeconds,
           completedAt: session.completed_at!,
         })
       }
@@ -413,6 +410,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         textAnswer: a.text_answer,
         isCorrect: a.is_correct ?? false,
         answeredAt: a.answered_at ?? new Date().toISOString(),
+        timeSpentSeconds: a.time_spent_seconds,
       }))
 
       const topic = sessionData.topics as unknown as {
@@ -427,14 +425,8 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       const correctAnswers = answers.filter((a) => a.isCorrect).length
       const totalQuestions = sessionData.total_questions ?? answers.length
-      const durationMinutes =
-        sessionData.completed_at && sessionData.created_at
-          ? Math.round(
-              (new Date(sessionData.completed_at).getTime() -
-                new Date(sessionData.created_at).getTime()) /
-                60000,
-            )
-          : 0
+      // Calculate duration from sum of time_spent_seconds in answers
+      const durationSeconds = answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)
 
       const session: ChildPracticeSessionFull = {
         id: sessionData.id,
@@ -447,7 +439,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
         totalQuestions,
         correctAnswers,
-        durationMinutes,
+        durationSeconds,
         startedAt: sessionData.created_at ?? '',
         completedAt: sessionData.completed_at!,
         questions,
@@ -523,7 +515,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     return getFilteredSessions(childId, gradeLevelName, subjectName, topicName, dateRange).length
   }
 
-  // Get total study time in minutes for filtered sessions
+  // Get total study time in seconds for filtered sessions
   function getTotalStudyTime(
     childId: string,
     gradeLevelName?: string,
@@ -532,7 +524,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     dateRange?: DateRangeFilter,
   ): number {
     const sessions = getFilteredSessions(childId, gradeLevelName, subjectName, topicName, dateRange)
-    return sessions.reduce((sum, s) => sum + s.durationMinutes, 0)
+    return sessions.reduce((sum, s) => sum + s.durationSeconds, 0)
   }
 
   // Get unique topics practiced by a child (from filtered sessions)

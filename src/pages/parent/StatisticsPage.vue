@@ -170,7 +170,11 @@ const recentSessions = computed(() => {
   )
 })
 
-function formatStudyTime(minutes: number): string {
+function formatStudyTime(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds} sec`
+  }
+  const minutes = Math.floor(seconds / 60)
   if (minutes < 60) {
     return `${minutes} min`
   }
@@ -193,16 +197,16 @@ function formatDate(dateString: string): string {
   })
 }
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) {
+function formatDuration(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}s`
+  }
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  if (remainingSeconds === 0) {
     return `${minutes}m`
   }
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-  if (remainingMinutes === 0) {
-    return `${hours}h`
-  }
-  return `${hours}h ${remainingMinutes}m`
+  return `${minutes}m ${remainingSeconds}s`
 }
 
 // Column definitions for recent sessions table
@@ -261,7 +265,7 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
     },
   },
   {
-    accessorKey: 'durationMinutes',
+    accessorKey: 'durationSeconds',
     header: ({ column }) => {
       return h(
         Button,
@@ -269,11 +273,15 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Duration', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => ['Time Used', h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
-      return h('div', {}, formatDuration(row.original.durationMinutes))
+      const seconds = row.original.durationSeconds
+      if (seconds == null) {
+        return h('div', { class: 'text-muted-foreground' }, '-')
+      }
+      return h('div', {}, formatDuration(seconds))
     },
   },
 ]

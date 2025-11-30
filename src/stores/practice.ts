@@ -36,6 +36,7 @@ export interface PracticeSession {
   totalQuestions: number
   currentQuestionIndex: number
   correctCount: number
+  totalTimeSeconds: number
   xpEarned: number | null
   coinsEarned: number | null
   createdAt: string | null
@@ -168,6 +169,22 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
+   * Convert option ID ('a', 'b', 'c', 'd') to number (1, 2, 3, 4) for database storage
+   */
+  function optionIdToNumber(optionId: string): number {
+    const mapping: Record<string, number> = { a: 1, b: 2, c: 3, d: 4 }
+    return mapping[optionId] ?? 1
+  }
+
+  /**
+   * Convert option number (1, 2, 3, 4) to ID ('a', 'b', 'c', 'd') for UI display
+   */
+  function optionNumberToId(optionNumber: number): string {
+    const mapping: Record<number, string> = { 1: 'a', 2: 'b', 3: 'c', 4: 'd' }
+    return mapping[optionNumber] ?? 'a'
+  }
+
+  /**
    * Convert database row to PracticeAnswer
    */
   function rowToAnswer(row: PracticeAnswerRow): PracticeAnswer {
@@ -199,6 +216,7 @@ export const usePracticeStore = defineStore('practice', () => {
       totalQuestions: row.total_questions,
       currentQuestionIndex: row.current_question_index ?? 0,
       correctCount: row.correct_count ?? 0,
+      totalTimeSeconds: row.total_time_seconds ?? 0,
       xpEarned: row.xp_earned,
       coinsEarned: row.coins_earned,
       createdAt: row.created_at,
@@ -484,6 +502,23 @@ export const usePracticeStore = defineStore('practice', () => {
         return { session: null, error: insertError.message }
       }
 
+      // Insert selected questions into session_questions table to preserve order
+      const sessionQuestionsData = selectedQuestions.map((question, index) => ({
+        session_id: sessionData.id,
+        question_id: question.id,
+        question_order: index,
+      }))
+
+      const { error: questionsInsertError } = await supabase
+        .from('session_questions')
+        .insert(sessionQuestionsData)
+
+      if (questionsInsertError) {
+        // If we fail to insert questions, delete the session and return error
+        await supabase.from('practice_sessions').delete().eq('id', sessionData.id)
+        return { session: null, error: questionsInsertError.message }
+      }
+
       const session: PracticeSession = {
         id: sessionData.id,
         studentId: sessionData.student_id,
@@ -496,6 +531,7 @@ export const usePracticeStore = defineStore('practice', () => {
         totalQuestions: sessionData.total_questions,
         currentQuestionIndex: 0,
         correctCount: 0,
+        totalTimeSeconds: 0,
         xpEarned: null,
         coinsEarned: null,
         createdAt: sessionData.created_at,
@@ -650,6 +686,12 @@ export const usePracticeStore = defineStore('practice', () => {
     }
 
     try {
+      // Calculate total time from answers (sum of time_spent_seconds)
+      const totalTimeSeconds = currentSession.value.answers.reduce(
+        (sum, a) => sum + (a.timeSpentSeconds ?? 0),
+        0,
+      )
+
       // Calculate rewards
       const correctAnswers = currentSession.value.correctCount
       const baseXp = 50
@@ -665,6 +707,7 @@ export const usePracticeStore = defineStore('practice', () => {
         .from('practice_sessions')
         .update({
           completed_at: new Date().toISOString(),
+          total_time_seconds: totalTimeSeconds,
           xp_earned: totalXp,
           coins_earned: totalCoins,
         })
@@ -675,6 +718,7 @@ export const usePracticeStore = defineStore('practice', () => {
       }
 
       currentSession.value.completedAt = new Date().toISOString()
+      currentSession.value.totalTimeSeconds = totalTimeSeconds
       currentSession.value.xpEarned = totalXp
       currentSession.value.coinsEarned = totalCoins
 
@@ -916,13 +960,87 @@ export const usePracticeStore = defineStore('practice', () => {
       return { session: null, error: 'Session is already completed' }
     }
 
-    // Fetch all questions for the topic to resume
-    const questionsResult = await questionsStore.fetchQuestionsByTopic(result.session.topicId)
-    if (questionsResult.error) {
-      return { session: null, error: questionsResult.error }
+    // Fetch questions from session_questions table to get the original question order
+    const { data: sessionQuestionsData, error: sqError } = await supabase
+      .from('session_questions')
+      .select('question_id, question_order')
+      .eq('session_id', sessionId)
+      .order('question_order', { ascending: true })
+
+    if (sqError) {
+      return { session: null, error: sqError.message }
     }
 
-    result.session.questions = questionsResult.questions.slice(0, result.session.totalQuestions)
+    if (!sessionQuestionsData || sessionQuestionsData.length === 0) {
+      return { session: null, error: 'Session questions not found' }
+    }
+
+    const questionIds = sessionQuestionsData.map((sq) => sq.question_id)
+
+    // Fetch the actual question data
+    const { data: questionsData, error: qError } = await supabase
+      .from('questions')
+      .select('*')
+      .in('id', questionIds)
+
+    if (qError) {
+      return { session: null, error: qError.message }
+    }
+
+    // Create a map for quick lookup
+    const questionsMap = new Map<string, Question>()
+    if (questionsData) {
+      for (const row of questionsData) {
+        const hierarchy = curriculumStore.getTopicWithHierarchy(row.topic_id)
+        questionsMap.set(row.id, {
+          id: row.id,
+          type: row.type,
+          question: row.question,
+          imagePath: row.image_path,
+          topicId: row.topic_id,
+          gradeLevelId: row.grade_level_id,
+          subjectId: row.subject_id,
+          explanation: row.explanation,
+          answer: row.answer,
+          options: [
+            {
+              id: 'a',
+              text: row.option_1_text,
+              imagePath: row.option_1_image_path,
+              isCorrect: row.option_1_is_correct ?? false,
+            },
+            {
+              id: 'b',
+              text: row.option_2_text,
+              imagePath: row.option_2_image_path,
+              isCorrect: row.option_2_is_correct ?? false,
+            },
+            {
+              id: 'c',
+              text: row.option_3_text,
+              imagePath: row.option_3_image_path,
+              isCorrect: row.option_3_is_correct ?? false,
+            },
+            {
+              id: 'd',
+              text: row.option_4_text,
+              imagePath: row.option_4_image_path,
+              isCorrect: row.option_4_is_correct ?? false,
+            },
+          ],
+          createdAt: row.created_at,
+          gradeLevelName: hierarchy?.gradeLevel.name ?? '',
+          subjectName: hierarchy?.subject.name ?? '',
+          topicName: hierarchy?.topic.name ?? '',
+        })
+      }
+    }
+
+    // Build questions array in the original order
+    result.session.questions = sessionQuestionsData
+      .map((sq) => questionsMap.get(sq.question_id))
+      .filter((q): q is Question => q !== undefined)
+
     currentSession.value = result.session
 
     return { session: result.session, error: null }

@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Trophy, Medal, Award, Loader2, Flame } from 'lucide-vue-next'
+import { Trophy, Medal, Award, Loader2 } from 'lucide-vue-next'
+import fireGif from '@/assets/icons/fire.gif'
 
 const leaderboardStore = useLeaderboardStore()
 const authStore = useAuthStore()
@@ -186,7 +187,7 @@ function getRankBg(rank: number): string {
             <!-- Avatar -->
             <Avatar class="size-10">
               <AvatarImage
-                :src="leaderboardStore.getAvatarUrl(student.avatarPath, student.name)"
+                :src="leaderboardStore.getAvatarUrl(student.avatarPath)"
                 :alt="student.name"
               />
               <AvatarFallback>{{ getInitials(student.name) }}</AvatarFallback>
@@ -209,7 +210,7 @@ function getRankBg(rank: number): string {
               <div class="w-12 text-center">
                 <p class="text-sm text-muted-foreground">Streak</p>
                 <p class="flex items-center justify-center gap-1 font-semibold">
-                  <Flame v-if="student.currentStreak > 0" class="size-4 text-orange-500" />
+                  <img v-if="student.currentStreak > 0" :src="fireGif" alt="fire" class="size-4" />
                   {{ student.currentStreak }}
                 </p>
               </div>
@@ -242,12 +243,7 @@ function getRankBg(rank: number): string {
               <!-- Avatar -->
               <Avatar class="size-10">
                 <AvatarImage
-                  :src="
-                    leaderboardStore.getAvatarUrl(
-                      currentStudentInfo.avatarPath,
-                      currentStudentInfo.name,
-                    )
-                  "
+                  :src="leaderboardStore.getAvatarUrl(currentStudentInfo.avatarPath)"
                   :alt="currentStudentInfo.name"
                 />
                 <AvatarFallback>{{ getInitials(currentStudentInfo.name) }}</AvatarFallback>
@@ -270,9 +266,11 @@ function getRankBg(rank: number): string {
                 <div class="w-12 text-center">
                   <p class="text-sm text-muted-foreground">Streak</p>
                   <p class="flex items-center justify-center gap-1 font-semibold">
-                    <Flame
+                    <img
                       v-if="currentStudentInfo.currentStreak > 0"
-                      class="size-4 text-orange-500"
+                      :src="fireGif"
+                      alt="fire"
+                      class="size-4"
                     />
                     {{ currentStudentInfo.currentStreak }}
                   </p>

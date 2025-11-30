@@ -136,10 +136,16 @@ export const usePetsStore = defineStore('pets', () => {
 
   // Get pet image URL from storage path
   function getPetImageUrl(imagePath: string): string {
-    // If it's already a full URL or emoji, return as-is
-    if (imagePath.startsWith('http') || !imagePath.includes('/')) {
+    if (!imagePath) return ''
+    // If it's already a full URL, return as-is
+    if (imagePath.startsWith('http')) {
       return imagePath
     }
+    // If it's a data URL (preview), return as-is
+    if (imagePath.startsWith('data:')) {
+      return imagePath
+    }
+    // Otherwise, get the public URL from storage
     const { data } = supabase.storage.from('pet-images').getPublicUrl(imagePath)
     return data.publicUrl
   }

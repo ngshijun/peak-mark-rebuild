@@ -12,16 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import {
-  CheckCircle2,
-  XCircle,
-  Clock,
-  ArrowLeft,
-  BarChart3,
-  Loader2,
-  Lock,
-  Sparkles,
-} from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2, Lock, Sparkles } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,12 +38,9 @@ const summary = computed(() => {
   const correctAnswers = session.value.answers.filter((a) => a.isCorrect).length
   const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
 
-  let durationSeconds = 0
-  if (session.value.completedAt && session.value.startedAt) {
-    const start = new Date(session.value.startedAt).getTime()
-    const end = new Date(session.value.completedAt).getTime()
-    durationSeconds = Math.round((end - start) / 1000)
-  }
+  // Use durationSeconds from session (sum of time spent on each question)
+  // This accurately tracks actual time spent, even if student left and came back
+  const durationSeconds = session.value.durationSeconds ?? 0
 
   return {
     totalQuestions,
@@ -119,10 +107,6 @@ function isQuestionDeleted(question: unknown): boolean {
 
 function goBack() {
   router.back()
-}
-
-function goToStatistics() {
-  router.push('/parent/statistics')
 }
 </script>
 
@@ -192,14 +176,6 @@ function goToStatistics() {
             <div class="text-sm text-muted-foreground">Duration</div>
           </CardContent>
         </Card>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="mb-6 flex flex-wrap gap-3">
-        <Button variant="outline" @click="goToStatistics">
-          <BarChart3 class="mr-2 size-4" />
-          Back to Statistics
-        </Button>
       </div>
 
       <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
@@ -350,14 +326,14 @@ function goToStatistics() {
           <Sparkles class="mr-2 size-4" />
           Upgrade Plan
         </Button>
-        <Button variant="outline" @click="goToStatistics"> Back to Statistics </Button>
+        <Button variant="outline" @click="goBack"> Back </Button>
       </div>
     </div>
 
     <!-- Empty State -->
     <div v-else-if="!isLoading" class="py-12 text-center">
       <p class="text-muted-foreground">Session not found</p>
-      <Button class="mt-4" @click="goToStatistics">Go to Statistics</Button>
+      <Button class="mt-4" @click="goBack">Go Back</Button>
     </div>
   </div>
 </template>

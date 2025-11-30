@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/lib/supabaseClient'
 import { ChevronsUpDown, LogOut, User } from 'lucide-vue-next'
 import {
   SidebarFooter,
@@ -44,9 +43,7 @@ const userEmail = computed(() => authStore.user?.email ?? '')
 
 // Generate avatar URL from storage path
 const userAvatar = computed(() => {
-  if (!authStore.user?.avatarPath) return ''
-  const { data } = supabase.storage.from('avatars').getPublicUrl(authStore.user.avatarPath)
-  return data.publicUrl
+  return authStore.getAvatarUrl(authStore.user?.avatarPath ?? null)
 })
 
 async function handleLogout() {

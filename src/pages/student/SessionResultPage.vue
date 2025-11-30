@@ -13,18 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import {
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Home,
-  RotateCcw,
-  ArrowLeft,
-  History,
-  Loader2,
-  Lock,
-  Users,
-} from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2, Lock, Users } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,12 +33,9 @@ const summary = computed(() => {
   const correctAnswers = session.value.answers.filter((a) => a.isCorrect).length
   const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
 
-  let durationSeconds = 0
-  if (session.value.completedAt && session.value.createdAt) {
-    const start = new Date(session.value.createdAt).getTime()
-    const end = new Date(session.value.completedAt).getTime()
-    durationSeconds = Math.round((end - start) / 1000)
-  }
+  // Use totalTimeSeconds from session (sum of time spent on each question)
+  // This accurately tracks actual time spent, even if student left and came back
+  const durationSeconds = session.value.totalTimeSeconds ?? 0
 
   return {
     totalQuestions,
@@ -134,19 +120,6 @@ function goBack() {
 function goToHistory() {
   router.push('/student/history')
 }
-
-function goToPractice() {
-  router.push('/student/practice')
-}
-
-async function retryTopic() {
-  if (session.value) {
-    const result = await practiceStore.startSession(session.value.topicId)
-    if (result.session) {
-      router.push('/student/practice/quiz')
-    }
-  }
-}
 </script>
 
 <template>
@@ -214,22 +187,6 @@ async function retryTopic() {
             <div class="text-sm text-muted-foreground">Duration</div>
           </CardContent>
         </Card>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="mb-6 flex flex-wrap gap-3">
-        <Button variant="outline" @click="goToPractice">
-          <Home class="mr-2 size-4" />
-          Back to Practice
-        </Button>
-        <Button variant="outline" @click="goToHistory">
-          <History class="mr-2 size-4" />
-          View History
-        </Button>
-        <Button @click="retryTopic">
-          <RotateCcw class="mr-2 size-4" />
-          Try Again
-        </Button>
       </div>
 
       <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">

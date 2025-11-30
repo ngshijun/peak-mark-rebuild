@@ -93,16 +93,16 @@ const historyData = computed<HistoryRow[]>(() => {
 
   return filteredSessions.map((session) => {
     const isCompleted = !!session.completedAt
-    const correctAnswers = session.answers.filter((a) => a.isCorrect).length
-    const totalAnswered = session.answers.length
-    const score = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : null
+    // Use correctCount and totalQuestions from session data (stored in DB)
+    // instead of answers array which is not loaded in history fetch
+    const correctAnswers = session.correctCount
+    const totalQuestions = session.totalQuestions
+    const score =
+      isCompleted && totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : null
 
-    let timeUsedSeconds: number | null = null
-    if (session.completedAt && session.createdAt) {
-      const start = new Date(session.createdAt).getTime()
-      const end = new Date(session.completedAt).getTime()
-      timeUsedSeconds = Math.round((end - start) / 1000)
-    }
+    // Use totalTimeSeconds from session (sum of time spent on each question)
+    // This accurately tracks actual time spent, even if student left and came back
+    const timeUsedSeconds = isCompleted ? session.totalTimeSeconds : null
 
     return {
       id: session.id,
@@ -112,7 +112,7 @@ const historyData = computed<HistoryRow[]>(() => {
       topicName: session.topicName,
       status: isCompleted ? 'completed' : 'in_progress',
       score,
-      totalQuestions: session.questions.length || 10, // Default to 10 if questions array is empty
+      totalQuestions,
       correctAnswers,
       timeUsedSeconds,
     }

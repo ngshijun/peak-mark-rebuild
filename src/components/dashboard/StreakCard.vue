@@ -2,21 +2,13 @@
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRouter } from 'vue-router'
+import fireGif from '@/assets/icons/fire.gif'
 
 const dashboardStore = useStudentDashboardStore()
 const router = useRouter()
 
 function goToPractice() {
   router.push('/student/practice')
-}
-
-function getStreakEmoji(streak: number): string {
-  if (streak === 0) return '💤'
-  if (streak < 3) return '🔥'
-  if (streak < 7) return '🔥🔥'
-  if (streak < 14) return '🔥🔥🔥'
-  if (streak < 30) return '⚡'
-  return '🌟'
 }
 
 function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
@@ -45,15 +37,9 @@ function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
     </CardHeader>
     <CardContent>
       <div class="flex items-center gap-3">
-        <div
-          class="flex size-14 items-center justify-center rounded-lg text-2xl"
-          :class="
-            dashboardStore.currentStreak > 0
-              ? 'bg-orange-100 border border-orange-300'
-              : 'bg-gray-100 border border-gray-300'
-          "
-        >
-          {{ getStreakEmoji(dashboardStore.currentStreak) }}
+        <div class="flex size-14 items-center justify-center">
+          <img v-if="dashboardStore.currentStreak > 0" :src="fireGif" alt="fire" class="size-10" />
+          <span v-else class="text-4xl">💤</span>
         </div>
         <div>
           <p class="text-2xl font-bold">

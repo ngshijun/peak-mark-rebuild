@@ -510,13 +510,10 @@ export const useChildLinkStore = defineStore('childLink', () => {
   /**
    * Get avatar URL for a child
    */
-  function getAvatarUrl(avatarPath: string | null, childName: string): string {
-    if (avatarPath) {
-      const { data } = supabase.storage.from('avatars').getPublicUrl(avatarPath)
-      return data.publicUrl
-    }
-    // Fallback to dicebear avatar
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(childName)}`
+  function getAvatarUrl(avatarPath: string | null): string {
+    if (!avatarPath) return ''
+    const { data } = supabase.storage.from('avatars').getPublicUrl(avatarPath)
+    return data.publicUrl
   }
 
   return {

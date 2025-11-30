@@ -198,7 +198,7 @@ function resetInviteForm() {
             >
               <Avatar>
                 <AvatarImage
-                  :src="childLinkStore.getAvatarUrl(child.avatarPath, child.name)"
+                  :src="childLinkStore.getAvatarUrl(child.avatarPath)"
                   :alt="child.name"
                 />
                 <AvatarFallback>{{ getInitials(child.name) }}</AvatarFallback>

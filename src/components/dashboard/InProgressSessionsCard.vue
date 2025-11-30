@@ -27,16 +27,16 @@ const inProgressData = computed<InProgressRow[]>(() => {
   return practiceStore.studentHistory
     .filter((session) => !session.completedAt)
     .map((session) => {
-      const correctAnswers = session.answers.filter((a) => a.isCorrect).length
-
+      // Use currentQuestionIndex and correctCount from session data
+      // since answers array is not populated in history fetch
       return {
         id: session.id,
         createdAt: session.createdAt ?? new Date().toISOString(),
         subjectName: session.subjectName,
         topicName: session.topicName,
-        answeredQuestions: session.answers.length,
-        totalQuestions: session.questions.length || 10,
-        correctAnswers,
+        answeredQuestions: session.currentQuestionIndex,
+        totalQuestions: session.totalQuestions,
+        correctAnswers: session.correctCount,
       }
     })
 })
@@ -112,12 +112,16 @@ const columns: ColumnDef<InProgressRow>[] = [
     header: '',
     cell: ({ row }) => {
       return h(
-        Button,
-        {
-          size: 'sm',
-          onClick: () => handleContinue(row.original.id),
-        },
-        () => [h(Play, { class: 'mr-1 size-4' }), 'Continue'],
+        'div',
+        { class: 'flex justify-end' },
+        h(
+          Button,
+          {
+            size: 'sm',
+            onClick: () => handleContinue(row.original.id),
+          },
+          () => [h(Play, { class: 'mr-1 size-4' }), 'Continue'],
+        ),
       )
     },
   },

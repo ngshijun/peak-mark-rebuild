@@ -66,6 +66,15 @@ const optionImageInputRefs = ref<Record<string, HTMLInputElement | null>>({
   d: null,
 })
 
+// Store actual File objects for upload
+const questionImageFile = ref<File | null>(null)
+const optionImageFiles = ref<Record<string, File | null>>({
+  a: null,
+  b: null,
+  c: null,
+  d: null,
+})
+
 // Fetch curriculum on mount if needed
 onMounted(async () => {
   if (curriculumStore.gradeLevels.length === 0) {
@@ -110,12 +119,18 @@ function resetForm() {
     { id: 'c', text: '', imagePath: null, isCorrect: false },
     { id: 'd', text: '', imagePath: null, isCorrect: false },
   ]
+  // Clear file objects
+  questionImageFile.value = null
+  optionImageFiles.value = { a: null, b: null, c: null, d: null }
 }
 
 function handleImageUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
+    // Store the file for later upload
+    questionImageFile.value = file
+    // Create preview URL
     const reader = new FileReader()
     reader.onload = (e) => {
       formImageUrl.value = e.target?.result as string
@@ -126,6 +141,7 @@ function handleImageUpload(event: Event) {
 
 function removeImage() {
   formImageUrl.value = ''
+  questionImageFile.value = null
   if (imageInputRef.value) {
     imageInputRef.value.value = ''
   }
@@ -135,6 +151,9 @@ function handleOptionImageUpload(event: Event, optionId: 'a' | 'b' | 'c' | 'd') 
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
+    // Store the file for later upload
+    optionImageFiles.value[optionId] = file
+    // Create preview URL
     const reader = new FileReader()
     reader.onload = (e) => {
       const option = formOptions.value.find((o) => o.id === optionId)
@@ -151,6 +170,7 @@ function removeOptionImage(optionId: 'a' | 'b' | 'c' | 'd') {
   if (option) {
     option.imagePath = null
   }
+  optionImageFiles.value[optionId] = null
   const inputRef = optionImageInputRefs.value[optionId]
   if (inputRef) {
     inputRef.value = ''
@@ -164,11 +184,6 @@ function setCorrectOption(optionId: string) {
   }))
 }
 
-function getOptionImageUrl(imagePath: string | null): string {
-  if (!imagePath) return ''
-  return questionsStore.getQuestionImageUrl(imagePath)
-}
-
 async function handleSave() {
   isSaving.value = true
 
@@ -178,23 +193,78 @@ async function handleSave() {
     const gradeLevelId = hierarchy?.gradeLevel.id ?? formGradeLevelId.value
     const subjectId = hierarchy?.subject.id ?? formSubjectId.value
 
-    // Add new question
+    // First, create the question without images
     const result = await questionsStore.addQuestion({
       type: formType.value,
       question: formQuestion.value,
-      imagePath: formImageUrl.value || null,
+      imagePath: null, // Will be updated after upload
       topicId: formTopicId.value,
       gradeLevelId,
       subjectId,
       explanation: formExplanation.value || null,
       answer: formType.value === 'short_answer' ? formAnswer.value : null,
-      options: formType.value === 'mcq' ? formOptions.value : undefined,
+      options:
+        formType.value === 'mcq'
+          ? formOptions.value.map((opt) => ({ ...opt, imagePath: null })) // Clear image paths for initial creation
+          : undefined,
     })
 
-    if (result.error) {
-      toast.error(result.error)
+    if (result.error || !result.id) {
+      toast.error(result.error ?? 'Failed to create question')
       return
     }
+
+    const questionId = result.id
+    let questionImagePath: string | null = null
+    const optionImagePaths: Record<string, string | null> = { a: null, b: null, c: null, d: null }
+
+    // Upload question image if present
+    if (questionImageFile.value) {
+      const uploadResult = await questionsStore.uploadQuestionImage(
+        questionImageFile.value,
+        questionId,
+      )
+      if (uploadResult.success && uploadResult.path) {
+        questionImagePath = uploadResult.path
+      } else {
+        console.error('Failed to upload question image:', uploadResult.error)
+      }
+    }
+
+    // Upload option images if present (for MCQ)
+    if (formType.value === 'mcq') {
+      for (const optionId of ['a', 'b', 'c', 'd'] as const) {
+        const file = optionImageFiles.value[optionId]
+        if (file) {
+          const uploadResult = await questionsStore.uploadQuestionImage(file, questionId, optionId)
+          if (uploadResult.success && uploadResult.path) {
+            optionImagePaths[optionId] = uploadResult.path
+          } else {
+            console.error(`Failed to upload option ${optionId} image:`, uploadResult.error)
+          }
+        }
+      }
+    }
+
+    // Update question with image paths if any were uploaded
+    const hasImages =
+      questionImagePath || Object.values(optionImagePaths).some((path) => path !== null)
+
+    if (hasImages) {
+      const updateOptions =
+        formType.value === 'mcq'
+          ? formOptions.value.map((opt) => ({
+              ...opt,
+              imagePath: optionImagePaths[opt.id] ?? null,
+            }))
+          : undefined
+
+      await questionsStore.updateQuestion(questionId, {
+        imagePath: questionImagePath,
+        options: updateOptions,
+      })
+    }
+
     toast.success('Question added successfully')
 
     emit('save')
@@ -223,7 +293,7 @@ function handleCancel() {
         <div class="space-y-2">
           <Label>Question Type</Label>
           <Select v-model="formType" :disabled="isSaving">
-            <SelectTrigger>
+            <SelectTrigger class="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -233,70 +303,73 @@ function handleCancel() {
           </Select>
         </div>
 
-        <!-- Grade Level -->
-        <div class="space-y-2">
-          <Label>Grade Level</Label>
-          <Select
-            v-model="formGradeLevelId"
-            :disabled="isSaving"
-            @update:model-value="
-              () => {
-                formSubjectId = ''
-                formTopicId = ''
-              }
-            "
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select grade level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="grade in curriculumStore.gradeLevels"
-                :key="grade.id"
-                :value="grade.id"
-              >
-                {{ grade.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <!-- Grade Level, Subject, Topic Row -->
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Grade Level -->
+          <div class="space-y-2">
+            <Label>Grade Level</Label>
+            <Select
+              v-model="formGradeLevelId"
+              :disabled="isSaving"
+              @update:model-value="
+                () => {
+                  formSubjectId = ''
+                  formTopicId = ''
+                }
+              "
+            >
+              <SelectTrigger class="w-full">
+                <SelectValue placeholder="Select grade level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="grade in curriculumStore.gradeLevels"
+                  :key="grade.id"
+                  :value="grade.id"
+                >
+                  {{ grade.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <!-- Subject -->
-        <div class="space-y-2">
-          <Label>Subject</Label>
-          <Select
-            v-model="formSubjectId"
-            :disabled="!formGradeLevelId || isSaving"
-            @update:model-value="formTopicId = ''"
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select subject" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="subject in availableSubjects"
-                :key="subject.id"
-                :value="subject.id"
-              >
-                {{ subject.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <!-- Subject -->
+          <div class="space-y-2">
+            <Label>Subject</Label>
+            <Select
+              v-model="formSubjectId"
+              :disabled="!formGradeLevelId || isSaving"
+              @update:model-value="formTopicId = ''"
+            >
+              <SelectTrigger class="w-full">
+                <SelectValue placeholder="Select subject" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="subject in availableSubjects"
+                  :key="subject.id"
+                  :value="subject.id"
+                >
+                  {{ subject.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <!-- Topic -->
-        <div class="space-y-2">
-          <Label>Topic</Label>
-          <Select v-model="formTopicId" :disabled="!formSubjectId || isSaving">
-            <SelectTrigger>
-              <SelectValue placeholder="Select topic" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="topic in availableTopics" :key="topic.id" :value="topic.id">
-                {{ topic.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <!-- Topic -->
+          <div class="space-y-2">
+            <Label>Topic</Label>
+            <Select v-model="formTopicId" :disabled="!formSubjectId || isSaving">
+              <SelectTrigger class="w-full">
+                <SelectValue placeholder="Select topic" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="topic in availableTopics" :key="topic.id" :value="topic.id">
+                  {{ topic.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <!-- Question -->
@@ -313,9 +386,9 @@ function handleCancel() {
         <!-- Question Image -->
         <div class="space-y-2">
           <Label>Question Image (Optional)</Label>
-          <div v-if="formImageUrl" class="relative">
+          <div v-if="formImageUrl" class="relative inline-block">
             <img
-              :src="questionsStore.getQuestionImageUrl(formImageUrl)"
+              :src="formImageUrl"
               alt="Question image"
               class="max-h-48 rounded-lg border object-contain"
             />
@@ -330,7 +403,7 @@ function handleCancel() {
               <X class="size-4" />
             </Button>
           </div>
-          <div v-else class="flex gap-2">
+          <div v-else>
             <input
               ref="imageInputRef"
               type="file"
@@ -346,15 +419,9 @@ function handleCancel() {
               @click="imageInputRef?.click()"
             >
               <ImagePlus class="mr-2 size-4" />
-              Upload Image
+              Add Image
             </Button>
           </div>
-          <Input
-            v-model="formImageUrl"
-            placeholder="Or paste an image URL"
-            class="mt-2"
-            :disabled="isSaving"
-          />
         </div>
 
         <!-- MCQ Options -->
@@ -383,7 +450,7 @@ function handleCancel() {
                 <!-- Option Image -->
                 <div v-if="option.imagePath" class="relative inline-block">
                   <img
-                    :src="getOptionImageUrl(option.imagePath)"
+                    :src="option.imagePath"
                     :alt="`Option ${option.id.toUpperCase()} image`"
                     class="max-h-24 rounded border object-contain"
                   />

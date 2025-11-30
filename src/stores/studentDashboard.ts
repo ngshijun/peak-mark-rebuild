@@ -255,10 +255,11 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     const sessions = practiceStore.studentHistory
     if (sessions.length === 0) return 0
 
-    // Get unique dates with completed sessions (or sessions with answers)
+    // Get unique dates with sessions that have progress (answered at least one question)
     const practiceDates = new Set<string>()
     for (const session of sessions) {
-      if (session.answers.length > 0 && session.createdAt) {
+      // Check currentQuestionIndex > 0 since answers array is not populated in history fetch
+      if (session.currentQuestionIndex > 0 && session.createdAt) {
         const date = new Date(session.createdAt)
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
         practiceDates.add(dateStr)

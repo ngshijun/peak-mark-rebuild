@@ -468,6 +468,7 @@ export type Database = {
           subject_id: string | null
           topic_id: string
           total_questions: number
+          total_time_seconds: number | null
           xp_earned: number | null
         }
         Insert: {
@@ -482,6 +483,7 @@ export type Database = {
           subject_id?: string | null
           topic_id: string
           total_questions: number
+          total_time_seconds?: number | null
           xp_earned?: number | null
         }
         Update: {
@@ -496,6 +498,7 @@ export type Database = {
           subject_id?: string | null
           topic_id?: string
           total_questions?: number
+          total_time_seconds?: number | null
           xp_earned?: number | null
         }
         Relationships: [

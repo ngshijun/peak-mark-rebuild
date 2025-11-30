@@ -185,25 +185,26 @@ async function selectTopic(topicId: string) {
         </AlertDescription>
       </Alert>
 
-      <!-- Session Counter -->
-      <div
-        v-else-if="!isLoadingLimit && sessionLimitStatus"
-        class="mb-6 flex items-center gap-2 text-sm text-muted-foreground"
-      >
-        <span>
-          Sessions today: {{ sessionLimitStatus.sessionsToday }} /
-          {{ sessionLimitStatus.sessionLimit }}
-        </span>
-        <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
-          ({{ sessionLimitStatus.remainingSessions }} remaining)
-        </span>
-      </div>
-
       <!-- Subject Selection -->
       <div v-if="!selectedSubject">
-        <div class="mb-6">
-          <h1 class="text-2xl font-bold">Practice</h1>
-          <p class="text-muted-foreground">Select a subject to start practicing</p>
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-bold">Practice</h1>
+            <p class="text-muted-foreground">Select a subject to start practicing</p>
+          </div>
+          <!-- Session Counter -->
+          <div
+            v-if="!isLoadingLimit && sessionLimitStatus && sessionLimitStatus.canStartSession"
+            class="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
+          >
+            <span>
+              Sessions today: {{ sessionLimitStatus.sessionsToday }} /
+              {{ sessionLimitStatus.sessionLimit }}
+            </span>
+            <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
+              ({{ sessionLimitStatus.remainingSessions }} remaining)
+            </span>
+          </div>
         </div>
 
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -242,8 +243,25 @@ async function selectTopic(topicId: string) {
             <ChevronLeft class="mr-1 size-4" />
             Back to Subjects
           </Button>
-          <h1 class="text-2xl font-bold">{{ selectedSubject.name }}</h1>
-          <p class="text-muted-foreground">Select a topic to start practicing</p>
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-bold">{{ selectedSubject.name }}</h1>
+              <p class="text-muted-foreground">Select a topic to start practicing</p>
+            </div>
+            <!-- Session Counter -->
+            <div
+              v-if="!isLoadingLimit && sessionLimitStatus && sessionLimitStatus.canStartSession"
+              class="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
+            >
+              <span>
+                Sessions today: {{ sessionLimitStatus.sessionsToday }} /
+                {{ sessionLimitStatus.sessionLimit }}
+              </span>
+              <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
+                ({{ sessionLimitStatus.remainingSessions }} remaining)
+              </span>
+            </div>
+          </div>
         </div>
 
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

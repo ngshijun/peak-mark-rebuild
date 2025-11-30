@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/lib/supabaseClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -17,15 +16,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
-import { Mail, Calendar, Pencil, Camera, Shield, Loader2 } from 'lucide-vue-next'
+import { Mail, Calendar, Pencil, Camera, Shield, Loader2, ImagePlus, Dices } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 
 const showAvatarDialog = ref(false)
-const avatarUrl = ref('')
+const avatarPreviewUrl = ref('')
+const avatarFile = ref<File | null>(null)
 const showEditNameDialog = ref(false)
 const newName = ref('')
 const isSaving = ref(false)
+
+// Avatar file input ref
+const avatarInputRef = ref<HTMLInputElement | null>(null)
 
 const userInitials = computed(() => {
   if (!authStore.user?.name) return '?'
@@ -48,25 +51,53 @@ const formattedDateJoined = computed(() => {
 
 // Get avatar URL from storage path
 const userAvatarUrl = computed(() => {
-  if (!authStore.user?.avatarPath) return ''
-  const { data } = supabase.storage.from('avatars').getPublicUrl(authStore.user.avatarPath)
-  return data.publicUrl
+  return authStore.getAvatarUrl(authStore.user?.avatarPath ?? null)
 })
 
 function openAvatarDialog() {
-  avatarUrl.value = ''
+  avatarPreviewUrl.value = ''
+  avatarFile.value = null
   showAvatarDialog.value = true
 }
 
+function handleAvatarFileSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    avatarFile.value = file
+    // Create preview URL
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      avatarPreviewUrl.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+function generateRandomAvatar() {
+  const seed = Math.random().toString(36).substring(7)
+  avatarPreviewUrl.value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
+  avatarFile.value = null // Clear file since we're using generated avatar
+}
+
 async function saveAvatar() {
-  if (!avatarUrl.value.trim()) {
+  if (!avatarPreviewUrl.value) {
     showAvatarDialog.value = false
     return
   }
 
   isSaving.value = true
   try {
-    const result = await authStore.updateAvatar(avatarUrl.value.trim())
+    let result: { path: string | null; error: string | null }
+
+    if (avatarFile.value) {
+      // Upload file to storage
+      result = await authStore.uploadAvatar(avatarFile.value)
+    } else {
+      // Upload from URL (dicebear)
+      result = await authStore.uploadAvatarFromUrl(avatarPreviewUrl.value)
+    }
+
     if (result.error) {
       toast.error(result.error)
       return
@@ -76,11 +107,6 @@ async function saveAvatar() {
   } finally {
     isSaving.value = false
   }
-}
-
-function generateRandomAvatar() {
-  const seed = Math.random().toString(36).substring(7)
-  avatarUrl.value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
 }
 
 function openEditNameDialog() {
@@ -202,40 +228,48 @@ async function saveName() {
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Change Profile Picture</DialogTitle>
-          <DialogDescription>
-            Enter a URL for your new avatar or generate a random one.
-          </DialogDescription>
+          <DialogDescription> Upload an image or generate a random avatar. </DialogDescription>
         </DialogHeader>
         <div class="space-y-4">
           <div class="flex justify-center">
             <Avatar class="size-24">
-              <AvatarImage :src="avatarUrl || userAvatarUrl" alt="Preview" />
+              <AvatarImage :src="avatarPreviewUrl || userAvatarUrl" alt="Preview" />
               <AvatarFallback class="text-2xl">{{ userInitials }}</AvatarFallback>
             </Avatar>
           </div>
-          <div class="space-y-2">
-            <Label for="avatar-url">Avatar URL</Label>
-            <Input
-              id="avatar-url"
-              v-model="avatarUrl"
-              placeholder="https://example.com/avatar.png"
-              :disabled="isSaving"
+          <div class="grid grid-cols-2 gap-3">
+            <input
+              ref="avatarInputRef"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleAvatarFileSelect"
             />
+            <Button
+              variant="outline"
+              class="w-full"
+              :disabled="isSaving"
+              @click="avatarInputRef?.click()"
+            >
+              <ImagePlus class="mr-2 size-4" />
+              Upload Image
+            </Button>
+            <Button
+              variant="outline"
+              class="w-full"
+              :disabled="isSaving"
+              @click="generateRandomAvatar"
+            >
+              <Dices class="mr-2 size-4" />
+              Random Avatar
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            class="w-full"
-            :disabled="isSaving"
-            @click="generateRandomAvatar"
-          >
-            Generate Random Avatar
-          </Button>
         </div>
         <DialogFooter>
           <Button variant="outline" :disabled="isSaving" @click="showAvatarDialog = false">
             Cancel
           </Button>
-          <Button :disabled="isSaving" @click="saveAvatar">
+          <Button :disabled="isSaving || !avatarPreviewUrl" @click="saveAvatar">
             <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
             Save
           </Button>

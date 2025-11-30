@@ -18,6 +18,9 @@ import PixelCoin from '@/components/icons/PixelCoin.vue'
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
 
+// Reversed rarity order for display (legendary first)
+const rarityOrder: (keyof typeof rarityConfig)[] = ['legendary', 'epic', 'rare', 'common']
+
 // Gacha costs (in coins)
 const SINGLE_PULL_COST = 100
 const MULTI_PULL_COST = 900 // 10 pulls for price of 9
@@ -120,89 +123,95 @@ function closeResults() {
     </div>
 
     <template v-else>
-      <!-- Gacha Machine -->
-      <Card class="overflow-hidden">
-        <CardHeader class="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-          <CardTitle class="flex items-center gap-2">
-            <Gift class="size-6" />
-            Lucky Draw
-          </CardTitle>
-          <CardDescription class="text-white/80"
-            >Try your luck and win amazing items!</CardDescription
-          >
-        </CardHeader>
-        <CardContent class="p-6">
-          <div class="flex flex-col items-center gap-6">
-            <!-- Gacha Animation Area -->
-            <div
-              class="flex size-48 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100"
+      <div class="grid gap-6 lg:grid-cols-4">
+        <!-- Gacha Machine -->
+        <Card class="overflow-hidden lg:col-span-3">
+          <CardHeader class="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+            <CardTitle class="flex items-center gap-2">
+              <Gift class="size-6" />
+              Lucky Draw
+            </CardTitle>
+            <CardDescription class="text-white/80"
+              >Try your luck and win amazing items!</CardDescription
             >
+          </CardHeader>
+          <CardContent class="p-6">
+            <div class="flex flex-col items-center gap-6">
+              <!-- Gacha Animation Area -->
               <div
-                class="flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-purple-200 to-pink-200"
-                :class="{ 'animate-pulse': isRolling }"
+                class="flex size-48 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100"
               >
-                <Gift v-if="!isRolling" class="size-16 text-purple-500" />
-                <Sparkles v-else class="size-16 animate-spin text-pink-500" />
+                <div
+                  class="flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-purple-200 to-pink-200"
+                  :class="{ 'animate-pulse': isRolling }"
+                >
+                  <Gift v-if="!isRolling" class="size-16 text-purple-500" />
+                  <Sparkles v-else class="size-16 animate-spin text-pink-500" />
+                </div>
+              </div>
+
+              <!-- Pull Buttons -->
+              <div class="flex flex-col gap-4 sm:flex-row">
+                <Button
+                  size="lg"
+                  class="min-w-40 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  :disabled="isRolling || currentCoins < SINGLE_PULL_COST"
+                  @click="singlePull"
+                >
+                  <Star class="mr-2 size-5" />
+                  Single Pull
+                  <Badge variant="secondary" class="ml-2 gap-1">
+                    <PixelCoin :size="12" />
+                    {{ SINGLE_PULL_COST }}
+                  </Badge>
+                </Button>
+                <Button
+                  size="lg"
+                  class="min-w-40 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                  :disabled="isRolling || currentCoins < MULTI_PULL_COST"
+                  @click="multiPull"
+                >
+                  <Sparkles class="mr-2 size-5" />
+                  10x Pull
+                  <Badge variant="secondary" class="ml-2 gap-1">
+                    <PixelCoin :size="12" />
+                    {{ MULTI_PULL_COST }}
+                  </Badge>
+                </Button>
+              </div>
+
+              <p v-if="currentCoins < SINGLE_PULL_COST" class="text-sm text-muted-foreground">
+                Not enough coins! Complete practice sessions to earn more.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Rarity Info -->
+        <Card class="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Drop Rates</CardTitle>
+            <CardDescription>Chances of getting each rarity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div class="flex flex-col gap-3">
+              <div
+                v-for="rarity in rarityOrder"
+                :key="rarity"
+                class="rounded-lg p-4 text-center"
+                :class="rarityConfig[rarity].bgColor"
+              >
+                <p class="text-sm font-medium" :class="rarityConfig[rarity].color">
+                  {{ rarityConfig[rarity].label }}
+                </p>
+                <p class="text-2xl font-bold" :class="rarityConfig[rarity].color">
+                  {{ rarityConfig[rarity].chance }}%
+                </p>
               </div>
             </div>
-
-            <!-- Pull Buttons -->
-            <div class="flex flex-col gap-4 sm:flex-row">
-              <Button
-                size="lg"
-                class="min-w-40 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                :disabled="isRolling || currentCoins < SINGLE_PULL_COST"
-                @click="singlePull"
-              >
-                <Star class="mr-2 size-5" />
-                Single Pull
-                <Badge variant="secondary" class="ml-2 gap-1">
-                  <PixelCoin :size="12" />
-                  {{ SINGLE_PULL_COST }}
-                </Badge>
-              </Button>
-              <Button
-                size="lg"
-                class="min-w-40 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-                :disabled="isRolling || currentCoins < MULTI_PULL_COST"
-                @click="multiPull"
-              >
-                <Sparkles class="mr-2 size-5" />
-                10x Pull
-                <Badge variant="secondary" class="ml-2 gap-1">
-                  <PixelCoin :size="12" />
-                  {{ MULTI_PULL_COST }}
-                </Badge>
-              </Button>
-            </div>
-
-            <p v-if="currentCoins < SINGLE_PULL_COST" class="text-sm text-muted-foreground">
-              Not enough coins! Complete practice sessions to earn more.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Rarity Info -->
-      <Card>
-        <CardHeader>
-          <CardTitle>Drop Rates</CardTitle>
-          <CardDescription>Chances of getting each rarity</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div
-              v-for="(config, rarity) in rarityConfig"
-              :key="rarity"
-              class="rounded-lg p-3 text-center"
-              :class="config.bgColor"
-            >
-              <p class="text-sm font-medium" :class="config.color">{{ config.label }}</p>
-              <p class="text-lg font-bold" :class="config.color">{{ config.chance }}%</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </template>
 
     <!-- Results Dialog -->
