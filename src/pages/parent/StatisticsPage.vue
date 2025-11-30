@@ -35,7 +35,12 @@ const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
 
 // Fetch data on mount
+// Note: linkedChildren is preloaded by parentRouteGuard in router/index.ts
 onMounted(async () => {
+  // Set default selected child (linkedChildren already loaded by route guard)
+  if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
+    selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
+  }
   await childStatisticsStore.fetchChildrenStatistics()
 })
 

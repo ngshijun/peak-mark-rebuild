@@ -1,6 +1,75 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useChildLinkStore } from '@/stores/child-link'
+import { useParentLinkStore } from '@/stores/parent-link'
+import { useCurriculumStore } from '@/stores/curriculum'
+import { usePetsStore } from '@/stores/pets'
+import { useQuestionsStore } from '@/stores/questions'
+
+/**
+ * Route guards for data preloading
+ * These ensure required store data is loaded before entering routes
+ */
+
+// Parent routes require linked children data
+async function parentRouteGuard() {
+  const childLinkStore = useChildLinkStore()
+  if (childLinkStore.linkedChildren.length === 0 && !childLinkStore.isLoading) {
+    await childLinkStore.fetchLinkedChildren()
+  }
+}
+
+// Student routes require curriculum and pets data
+async function studentRouteGuard() {
+  const curriculumStore = useCurriculumStore()
+  const petsStore = usePetsStore()
+  const parentLinkStore = useParentLinkStore()
+
+  const promises: Promise<unknown>[] = []
+
+  if (curriculumStore.gradeLevels.length === 0 && !curriculumStore.isLoading) {
+    promises.push(curriculumStore.fetchCurriculum())
+  }
+
+  if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
+    promises.push(petsStore.fetchAllPets())
+    promises.push(petsStore.fetchOwnedPets())
+  }
+
+  if (parentLinkStore.linkedParents.length === 0 && !parentLinkStore.isLoading) {
+    promises.push(parentLinkStore.fetchLinkedParents())
+  }
+
+  if (promises.length > 0) {
+    await Promise.all(promises)
+  }
+}
+
+// Admin routes require curriculum and questions data
+async function adminRouteGuard() {
+  const curriculumStore = useCurriculumStore()
+  const questionsStore = useQuestionsStore()
+  const petsStore = usePetsStore()
+
+  const promises: Promise<unknown>[] = []
+
+  if (curriculumStore.gradeLevels.length === 0 && !curriculumStore.isLoading) {
+    promises.push(curriculumStore.fetchCurriculum())
+  }
+
+  if (questionsStore.questions.length === 0 && !questionsStore.isLoading) {
+    promises.push(questionsStore.fetchQuestions())
+  }
+
+  if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
+    promises.push(petsStore.fetchAllPets())
+  }
+
+  if (promises.length > 0) {
+    await Promise.all(promises)
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +95,7 @@ const router = createRouter({
       component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true, allowedRoles: ['admin'] },
       redirect: '/admin/dashboard',
+      beforeEnter: adminRouteGuard,
       children: [
         {
           path: 'dashboard',
@@ -69,6 +139,7 @@ const router = createRouter({
       component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true, allowedRoles: ['student'] },
       redirect: '/student/dashboard',
+      beforeEnter: studentRouteGuard,
       children: [
         {
           path: 'dashboard',
@@ -137,6 +208,7 @@ const router = createRouter({
       component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true, allowedRoles: ['parent'] },
       redirect: '/parent/dashboard',
+      beforeEnter: parentRouteGuard,
       children: [
         {
           path: 'dashboard',

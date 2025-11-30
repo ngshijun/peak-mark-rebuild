@@ -3,8 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore } from '@/stores/curriculum'
-import { usePracticeStore } from '@/stores/practice'
-import { ChevronLeft, Loader2 } from 'lucide-vue-next'
+import { usePracticeStore, type SessionLimitStatus } from '@/stores/practice'
+import { ChevronLeft, Loader2, AlertCircle, Users } from 'lucide-vue-next'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'vue-sonner'
@@ -16,12 +17,17 @@ const practiceStore = usePracticeStore()
 
 const selectedSubjectId = ref<string | null>(null)
 const isStartingSession = ref(false)
+const sessionLimitStatus = ref<SessionLimitStatus | null>(null)
+const isLoadingLimit = ref(true)
 
-// Fetch curriculum on mount
+// Fetch curriculum and session limit on mount
 onMounted(async () => {
   if (curriculumStore.gradeLevels.length === 0) {
     await curriculumStore.fetchCurriculum()
   }
+  // Check session limit status
+  sessionLimitStatus.value = await practiceStore.checkSessionLimit()
+  isLoadingLimit.value = false
 })
 
 // Get student's grade level ID
@@ -120,6 +126,14 @@ function goBackToSubjects() {
 async function selectTopic(topicId: string) {
   if (!selectedSubject.value || isStartingSession.value) return
 
+  // Check limit before starting
+  if (sessionLimitStatus.value && !sessionLimitStatus.value.canStartSession) {
+    toast.error(
+      `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Upgrade your plan for more sessions!`,
+    )
+    return
+  }
+
   isStartingSession.value = true
 
   try {
@@ -127,6 +141,10 @@ async function selectTopic(topicId: string) {
 
     if (result.error) {
       toast.error(result.error)
+      // Refresh limit status if limit was reached
+      if (result.limitReached) {
+        sessionLimitStatus.value = await practiceStore.checkSessionLimit()
+      }
       return
     }
 
@@ -153,6 +171,34 @@ async function selectTopic(topicId: string) {
     </div>
 
     <template v-else>
+      <!-- Session Limit Alert -->
+      <Alert
+        v-if="!isLoadingLimit && sessionLimitStatus && !sessionLimitStatus.canStartSession"
+        variant="destructive"
+        class="mb-6"
+      >
+        <AlertCircle class="size-4" />
+        <AlertTitle>Daily Limit Reached</AlertTitle>
+        <AlertDescription>
+          You have used all {{ sessionLimitStatus.sessionLimit }} sessions for today. Come back
+          tomorrow or ask your parent to upgrade your subscription for more sessions.
+        </AlertDescription>
+      </Alert>
+
+      <!-- Session Counter -->
+      <div
+        v-else-if="!isLoadingLimit && sessionLimitStatus"
+        class="mb-6 flex items-center gap-2 text-sm text-muted-foreground"
+      >
+        <span>
+          Sessions today: {{ sessionLimitStatus.sessionsToday }} /
+          {{ sessionLimitStatus.sessionLimit }}
+        </span>
+        <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
+          ({{ sessionLimitStatus.remainingSessions }} remaining)
+        </span>
+      </div>
+
       <!-- Subject Selection -->
       <div v-if="!selectedSubject">
         <div class="mb-6">
@@ -205,7 +251,10 @@ async function selectTopic(topicId: string) {
             v-for="topic in selectedSubject.topics"
             :key="topic.id"
             class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
-            :class="{ 'opacity-50 pointer-events-none': isStartingSession }"
+            :class="{
+              'opacity-50 pointer-events-none':
+                isStartingSession || !sessionLimitStatus?.canStartSession,
+            }"
             @click="selectTopic(topic.id)"
           >
             <div class="aspect-video w-full overflow-hidden">

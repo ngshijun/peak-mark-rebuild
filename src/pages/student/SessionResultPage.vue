@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { usePracticeStore, type PracticeSession, type PracticeAnswer } from '@/stores/practice'
+import {
+  usePracticeStore,
+  type PracticeSession,
+  type PracticeAnswer,
+  type StudentSubscriptionStatus,
+} from '@/stores/practice'
 import { useQuestionsStore } from '@/stores/questions'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { Button } from '@/components/ui/button'
@@ -17,6 +22,8 @@ import {
   ArrowLeft,
   History,
   Loader2,
+  Lock,
+  Users,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -28,6 +35,8 @@ const dashboardStore = useStudentDashboardStore()
 const sessionId = computed(() => route.params.sessionId as string)
 const session = ref<PracticeSession | null>(null)
 const isLoading = ref(true)
+const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)
+const subscriptionRequired = ref(false)
 
 const summary = computed(() => {
   if (!session.value) return null
@@ -52,6 +61,16 @@ const summary = computed(() => {
 })
 
 onMounted(async () => {
+  // Check subscription status first
+  subscriptionStatus.value = await practiceStore.getStudentSubscriptionStatus()
+
+  // Check if student can view detailed results
+  if (!subscriptionStatus.value.canViewDetailedResults) {
+    subscriptionRequired.value = true
+    isLoading.value = false
+    return
+  }
+
   const result = await practiceStore.getSessionById(sessionId.value)
   if (result.session) {
     session.value = result.session
@@ -346,6 +365,34 @@ async function retryTopic() {
         </Card>
       </div>
     </template>
+
+    <!-- Subscription Required State -->
+    <div v-else-if="subscriptionRequired" class="py-12 text-center">
+      <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+        <Lock class="size-8 text-muted-foreground" />
+      </div>
+      <h2 class="text-xl font-semibold">Detailed Results Locked</h2>
+      <p class="mx-auto mt-2 max-w-md text-muted-foreground">
+        <template v-if="!subscriptionStatus?.isLinkedToParent">
+          Link your account to a parent to unlock detailed session results. Ask your parent to send
+          you an invitation.
+        </template>
+        <template v-else>
+          Detailed session results require a Pro or Max subscription. Ask your parent to upgrade
+          your plan.
+        </template>
+      </p>
+      <div class="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <Button
+          v-if="!subscriptionStatus?.isLinkedToParent"
+          @click="router.push('/student/family')"
+        >
+          <Users class="mr-2 size-4" />
+          Link to Parent
+        </Button>
+        <Button variant="outline" @click="goToHistory"> Back to History </Button>
+      </div>
+    </div>
 
     <!-- Empty State -->
     <div v-else class="py-12 text-center">

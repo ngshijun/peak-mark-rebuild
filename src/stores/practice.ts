@@ -8,6 +8,9 @@ import { useCurriculumStore } from './curriculum'
 
 type PracticeSessionRow = Database['public']['Tables']['practice_sessions']['Row']
 type PracticeAnswerRow = Database['public']['Tables']['practice_answers']['Row']
+type SubscriptionTier = Database['public']['Enums']['subscription_tier']
+
+const FALLBACK_SESSIONS_PER_DAY = 3 // Fallback if database fetch fails
 
 export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
 
@@ -40,6 +43,20 @@ export interface PracticeSession {
   // Loaded separately
   questions: Question[]
   answers: PracticeAnswer[]
+}
+
+export interface StudentSubscriptionStatus {
+  isLinkedToParent: boolean
+  tier: SubscriptionTier
+  sessionsPerDay: number
+  canViewDetailedResults: boolean // Pro and Max tiers only
+}
+
+export interface SessionLimitStatus {
+  canStartSession: boolean
+  sessionsToday: number
+  sessionLimit: number
+  remainingSessions: number
 }
 
 export function getDateRangeStart(filter: DateRangeFilter): Date | null {
@@ -124,22 +141,6 @@ export const usePracticeStore = defineStore('practice', () => {
   })
 
   /**
-   * Convert option id ('a', 'b', 'c', 'd') to option number (1, 2, 3, 4)
-   */
-  function optionIdToNumber(optionId: string): number {
-    const map: Record<string, number> = { a: 1, b: 2, c: 3, d: 4 }
-    return map[optionId] ?? 1
-  }
-
-  /**
-   * Convert option number (1, 2, 3, 4) to option id ('a', 'b', 'c', 'd')
-   */
-  function optionNumberToId(optionNumber: number): 'a' | 'b' | 'c' | 'd' {
-    const map: Record<number, 'a' | 'b' | 'c' | 'd'> = { 1: 'a', 2: 'b', 3: 'c', 4: 'd' }
-    return map[optionNumber] ?? 'a'
-  }
-
-  /**
    * Get curriculum names for a topic
    */
   function getCurriculumNames(
@@ -208,6 +209,173 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
+   * Get the basic tier's sessions per day from the database
+   */
+  async function getBasicTierSessionsPerDay(): Promise<number> {
+    try {
+      const { data } = await supabase
+        .from('subscription_plans')
+        .select('sessions_per_day')
+        .eq('id', 'basic')
+        .single()
+
+      return data?.sessions_per_day ?? FALLBACK_SESSIONS_PER_DAY
+    } catch {
+      return FALLBACK_SESSIONS_PER_DAY
+    }
+  }
+
+  /**
+   * Get student's subscription status - checks if linked to parent and their subscription tier
+   */
+  async function getStudentSubscriptionStatus(): Promise<StudentSubscriptionStatus> {
+    if (!authStore.user || authStore.user.userType !== 'student') {
+      const basicSessionsPerDay = await getBasicTierSessionsPerDay()
+      return {
+        isLinkedToParent: false,
+        tier: 'basic',
+        sessionsPerDay: basicSessionsPerDay,
+        canViewDetailedResults: false,
+      }
+    }
+
+    try {
+      // Check if student is linked to any parent
+      const { data: linksData, error: linksError } = await supabase
+        .from('parent_student_links')
+        .select('parent_id')
+        .eq('student_id', authStore.user.id)
+        .limit(1)
+
+      if (linksError) {
+        console.error('Error checking parent links:', linksError)
+        const basicSessionsPerDay = await getBasicTierSessionsPerDay()
+        return {
+          isLinkedToParent: false,
+          tier: 'basic',
+          sessionsPerDay: basicSessionsPerDay,
+          canViewDetailedResults: false,
+        }
+      }
+
+      const isLinkedToParent = (linksData?.length ?? 0) > 0
+
+      if (!isLinkedToParent) {
+        // Not linked to any parent - use basic tier limits from database
+        const basicSessionsPerDay = await getBasicTierSessionsPerDay()
+        return {
+          isLinkedToParent: false,
+          tier: 'basic',
+          sessionsPerDay: basicSessionsPerDay,
+          canViewDetailedResults: false,
+        }
+      }
+
+      // Get the subscription for this student (from any linked parent)
+      const { data: subscriptionData, error: subError } = await supabase
+        .from('child_subscriptions')
+        .select('tier')
+        .eq('student_id', authStore.user.id)
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (subError || !subscriptionData) {
+        // Linked but no active subscription - treat as basic
+        const basicSessionsPerDay = await getBasicTierSessionsPerDay()
+        return {
+          isLinkedToParent: true,
+          tier: 'basic',
+          sessionsPerDay: basicSessionsPerDay,
+          canViewDetailedResults: false,
+        }
+      }
+
+      const tier = subscriptionData.tier as SubscriptionTier
+
+      // Fetch sessions_per_day from subscription_plans
+      const { data: planData } = await supabase
+        .from('subscription_plans')
+        .select('sessions_per_day')
+        .eq('id', tier)
+        .single()
+
+      const sessionsPerDay = planData?.sessions_per_day ?? FALLBACK_SESSIONS_PER_DAY
+
+      // Pro and Max tiers can view detailed session results
+      const canViewDetailedResults = tier === 'pro' || tier === 'max'
+
+      return {
+        isLinkedToParent: true,
+        tier,
+        sessionsPerDay,
+        canViewDetailedResults,
+      }
+    } catch (err) {
+      console.error('Error getting subscription status:', err)
+      const basicSessionsPerDay = await getBasicTierSessionsPerDay()
+      return {
+        isLinkedToParent: false,
+        tier: 'basic',
+        sessionsPerDay: basicSessionsPerDay,
+        canViewDetailedResults: false,
+      }
+    }
+  }
+
+  /**
+   * Check session limit for current student
+   */
+  async function checkSessionLimit(): Promise<SessionLimitStatus> {
+    if (!authStore.user || authStore.user.userType !== 'student') {
+      return {
+        canStartSession: false,
+        sessionsToday: 0,
+        sessionLimit: 0,
+        remainingSessions: 0,
+      }
+    }
+
+    const subscriptionStatus = await getStudentSubscriptionStatus()
+
+    // Get today's date range
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const todayEnd = new Date()
+    todayEnd.setHours(23, 59, 59, 999)
+
+    // Count completed sessions today
+    const { count, error: countError } = await supabase
+      .from('practice_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', authStore.user.id)
+      .not('completed_at', 'is', null)
+      .gte('created_at', todayStart.toISOString())
+      .lte('created_at', todayEnd.toISOString())
+
+    if (countError) {
+      console.error('Error counting sessions:', countError)
+      return {
+        canStartSession: true, // Allow on error to not block users
+        sessionsToday: 0,
+        sessionLimit: subscriptionStatus.sessionsPerDay,
+        remainingSessions: subscriptionStatus.sessionsPerDay,
+      }
+    }
+
+    const sessionsToday = count ?? 0
+    const remainingSessions = Math.max(0, subscriptionStatus.sessionsPerDay - sessionsToday)
+
+    return {
+      canStartSession: sessionsToday < subscriptionStatus.sessionsPerDay,
+      sessionsToday,
+      sessionLimit: subscriptionStatus.sessionsPerDay,
+      remainingSessions,
+    }
+  }
+
+  /**
    * Fetch session history for the current student
    */
   async function fetchSessionHistory(): Promise<{ error: string | null }> {
@@ -252,7 +420,7 @@ export const usePracticeStore = defineStore('practice', () => {
   async function startSession(
     topicId: string,
     questionCount: number = 10,
-  ): Promise<{ session: PracticeSession | null; error: string | null }> {
+  ): Promise<{ session: PracticeSession | null; error: string | null; limitReached?: boolean }> {
     if (!authStore.user || authStore.user.userType !== 'student') {
       return { session: null, error: 'Only students can start practice sessions' }
     }
@@ -261,6 +429,16 @@ export const usePracticeStore = defineStore('practice', () => {
     error.value = null
 
     try {
+      // Check session limit before starting
+      const limitStatus = await checkSessionLimit()
+      if (!limitStatus.canStartSession) {
+        return {
+          session: null,
+          error: `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Upgrade your plan for more sessions!`,
+          limitReached: true,
+        }
+      }
+
       // Ensure curriculum is loaded
       if (curriculumStore.gradeLevels.length === 0) {
         await curriculumStore.fetchCurriculum()
@@ -778,5 +956,7 @@ export const usePracticeStore = defineStore('practice', () => {
     getSessionById,
     resumeSession,
     optionNumberToId,
+    getStudentSubscriptionStatus,
+    checkSessionLimit,
   }
 })

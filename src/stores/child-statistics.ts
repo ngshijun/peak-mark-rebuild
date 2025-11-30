@@ -8,6 +8,12 @@ import type { Database } from '@/types/database.types'
 export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
+type SubscriptionTier = Database['public']['Enums']['subscription_tier']
+
+export interface ChildSubscriptionStatus {
+  tier: SubscriptionTier
+  canViewDetailedResults: boolean // Pro and Max tiers only
+}
 
 // Options are stored directly in the questions table as columns
 export interface QuestionOption {
@@ -216,12 +222,48 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   }
 
   /**
+   * Get subscription status for a child
+   */
+  async function getChildSubscriptionStatus(childId: string): Promise<ChildSubscriptionStatus> {
+    if (!authStore.user || !authStore.isParent) {
+      return { tier: 'basic', canViewDetailedResults: false }
+    }
+
+    try {
+      // Get the subscription for this child from the current parent
+      const { data: subscriptionData, error: subError } = await supabase
+        .from('child_subscriptions')
+        .select('tier')
+        .eq('parent_id', authStore.user.id)
+        .eq('student_id', childId)
+        .eq('is_active', true)
+        .single()
+
+      if (subError || !subscriptionData) {
+        return { tier: 'basic', canViewDetailedResults: false }
+      }
+
+      const tier = subscriptionData.tier as SubscriptionTier
+      const canViewDetailedResults = tier === 'pro' || tier === 'max'
+
+      return { tier, canViewDetailedResults }
+    } catch (err) {
+      console.error('Error getting child subscription status:', err)
+      return { tier: 'basic', canViewDetailedResults: false }
+    }
+  }
+
+  /**
    * Fetch full session details by child ID and session ID
    */
   async function getSessionById(
     childId: string,
     sessionId: string,
-  ): Promise<{ session: ChildPracticeSessionFull | null; error: string | null }> {
+  ): Promise<{
+    session: ChildPracticeSessionFull | null
+    error: string | null
+    subscriptionRequired?: boolean
+  }> {
     if (!authStore.user || !authStore.isParent) {
       return { session: null, error: 'Not authenticated as parent' }
     }
@@ -230,6 +272,17 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     const isLinked = childLinkStore.linkedChildren.some((c) => c.id === childId)
     if (!isLinked) {
       return { session: null, error: 'Child is not linked to your account' }
+    }
+
+    // Check subscription status before fetching detailed results
+    const subscriptionStatus = await getChildSubscriptionStatus(childId)
+    if (!subscriptionStatus.canViewDetailedResults) {
+      return {
+        session: null,
+        error:
+          'Detailed session results require a Pro or Max subscription. Upgrade to view individual questions and answers.',
+        subscriptionRequired: true,
+      }
     }
 
     try {
@@ -577,5 +630,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     getTopics,
     getRecentSessions,
     getSessionById,
+    getChildSubscriptionStatus,
   }
 })

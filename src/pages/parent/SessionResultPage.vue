@@ -12,7 +12,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, XCircle, Clock, ArrowLeft, BarChart3, Loader2 } from 'lucide-vue-next'
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ArrowLeft,
+  BarChart3,
+  Loader2,
+  Lock,
+  Sparkles,
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +39,7 @@ const child = computed(() => {
 const session = ref<ChildPracticeSessionFull | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+const subscriptionRequired = ref(false)
 
 const summary = computed(() => {
   if (!session.value) return null
@@ -59,7 +69,11 @@ onMounted(async () => {
     session.value = result.session
   } else {
     error.value = result.error
-    router.push('/parent/statistics')
+    subscriptionRequired.value = result.subscriptionRequired ?? false
+    // Only redirect if not a subscription error
+    if (!result.subscriptionRequired) {
+      router.push('/parent/statistics')
+    }
   }
   isLoading.value = false
 })
@@ -321,6 +335,24 @@ function goToStatistics() {
         </Card>
       </div>
     </template>
+
+    <!-- Subscription Required State -->
+    <div v-else-if="subscriptionRequired" class="py-12 text-center">
+      <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+        <Lock class="size-8 text-muted-foreground" />
+      </div>
+      <h2 class="text-xl font-semibold">Upgrade Required</h2>
+      <p class="mx-auto mt-2 max-w-md text-muted-foreground">
+        {{ error }}
+      </p>
+      <div class="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <Button @click="router.push('/parent/subscription')">
+          <Sparkles class="mr-2 size-4" />
+          Upgrade Plan
+        </Button>
+        <Button variant="outline" @click="goToStatistics"> Back to Statistics </Button>
+      </div>
+    </div>
 
     <!-- Empty State -->
     <div v-else-if="!isLoading" class="py-12 text-center">

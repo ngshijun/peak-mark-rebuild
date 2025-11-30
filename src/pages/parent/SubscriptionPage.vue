@@ -36,18 +36,20 @@ const subscriptionStore = useSubscriptionStore()
 const childLinkStore = useChildLinkStore()
 
 const isUpgrading = ref(false)
+const selectedChildId = ref<string>('')
 
 // Fetch data on mount
+// Note: linkedChildren is preloaded by parentRouteGuard in router/index.ts
 onMounted(async () => {
+  // Set default selected child (linkedChildren already loaded by route guard)
+  if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
+    selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
+  }
   await Promise.all([
     subscriptionStore.fetchPlans(),
     subscriptionStore.fetchChildrenSubscriptions(),
   ])
 })
-
-const selectedChildId = ref<string>(
-  childLinkStore.linkedChildren.length > 0 ? (childLinkStore.linkedChildren[0]?.id ?? '') : '',
-)
 
 const selectedChild = computed(() => {
   return childLinkStore.linkedChildren.find((c) => c.id === selectedChildId.value)
