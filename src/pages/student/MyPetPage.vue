@@ -15,7 +15,7 @@ const authStore = useAuthStore()
 const petsStore = usePetsStore()
 
 const selectedPet = computed(() => petsStore.selectedPet)
-const currentFood = computed(() => authStore.studentUser?.food ?? 0)
+const currentFood = computed(() => authStore.studentProfile?.food ?? 0)
 
 // Pet stats (mock - could be stored per pet)
 const happiness = ref(70)

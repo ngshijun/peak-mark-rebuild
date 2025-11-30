@@ -8,9 +8,9 @@ import PixelMeat from '@/components/icons/PixelMeat.vue'
 
 const authStore = useAuthStore()
 
-const coins = computed(() => authStore.studentUser?.coins ?? 0)
-const food = computed(() => authStore.studentUser?.food ?? 0)
-const level = computed(() => authStore.studentUser?.level ?? 1)
+const coins = computed(() => authStore.studentProfile?.coins ?? 0)
+const food = computed(() => authStore.studentProfile?.food ?? 0)
+const level = computed(() => authStore.currentLevel)
 const currentXp = computed(() => authStore.currentLevelXp)
 const xpNeeded = computed(() => authStore.xpToNextLevel)
 const progress = computed(() => authStore.xpProgress)

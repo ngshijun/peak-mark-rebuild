@@ -26,7 +26,7 @@ const MULTI_PULL_COST = 900 // 10 pulls for price of 9
 const isRolling = ref(false)
 const showResultDialog = ref(false)
 const pullResults = ref<Pet[]>([])
-const currentCoins = computed(() => authStore.studentUser?.coins ?? 0)
+const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
 
 // Get random pet based on rarity chances
 function getRandomPet(): Pet {

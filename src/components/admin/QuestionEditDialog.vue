@@ -284,10 +284,12 @@ const saveButtonText = computed(() => (props.mode === 'add' ? 'Add Question' : '
           <Label>Grade Level</Label>
           <Select
             v-model="formGradeLevelId"
-            @update:model-value="() => {
-              formSubjectId = ''
-              formTopicId = ''
-            }"
+            @update:model-value="
+              () => {
+                formSubjectId = ''
+                formTopicId = ''
+              }
+            "
           >
             <SelectTrigger>
               <SelectValue placeholder="Select grade level" />

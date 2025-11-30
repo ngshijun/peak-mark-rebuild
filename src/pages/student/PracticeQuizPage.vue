@@ -295,11 +295,13 @@ function goHome() {
               !practiceStore.currentSession?.answers.find((a) => a.questionId === q.id)?.isCorrect,
             'hover:border-primary/50': index !== practiceStore.currentQuestionNumber - 1,
           }"
-          @click="() => {
-            practiceStore.goToQuestion(index)
-            selectedOptionId = ''
-            textAnswer = ''
-          }"
+          @click="
+            () => {
+              practiceStore.goToQuestion(index)
+              selectedOptionId = ''
+              textAnswer = ''
+            }
+          "
         >
           {{ index + 1 }}
         </button>

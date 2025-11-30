@@ -919,11 +919,11 @@ export const usePracticeStore = defineStore('practice', () => {
     topicId: string,
     topicName: string,
   ) {
-    if (!authStore.user || authStore.user.type !== 'student') return null
+    if (!authStore.user || authStore.user.userType !== 'student') return null
 
     // Get questions for the topic and student's grade level
-    const gradeLevelId = authStore.user.gradeLevelId
-    const gradeLevelName = authStore.user.gradeLevelName
+    const gradeLevelId = authStore.studentProfile?.gradeLevelId ?? null
+    const gradeLevelName = 'Grade Level' // TODO: fetch grade level name from DB
     const availableQuestions = questionsStore.questions.filter(
       (q) => q.gradeLevelId === gradeLevelId && q.topicId === topicId,
     )

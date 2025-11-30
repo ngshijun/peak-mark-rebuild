@@ -19,7 +19,7 @@ function getCollectionProgress(rarity: PetRarity) {
 }
 
 function isSelected(petId: string): boolean {
-  return authStore.studentUser?.selectedPetId === petId
+  return authStore.studentProfile?.selectedPetId === petId
 }
 
 function handleSelectPet(petId: string) {

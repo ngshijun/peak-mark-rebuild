@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,15 +13,18 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/pages/auth/LoginPage.vue'),
+      meta: { requiresGuest: true },
     },
     {
       path: '/signup',
       name: 'signup',
       component: () => import('@/pages/auth/SignupPage.vue'),
+      meta: { requiresGuest: true },
     },
     {
       path: '/admin',
       component: () => import('@/components/layout/AppLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['admin'] },
       redirect: '/admin/dashboard',
       children: [
         {
@@ -62,6 +67,7 @@ const router = createRouter({
     {
       path: '/student',
       component: () => import('@/components/layout/AppLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['student'] },
       redirect: '/student/dashboard',
       children: [
         {
@@ -129,6 +135,7 @@ const router = createRouter({
     {
       path: '/parent',
       component: () => import('@/components/layout/AppLayout.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['parent'] },
       redirect: '/parent/dashboard',
       children: [
         {
@@ -163,7 +170,68 @@ const router = createRouter({
         },
       ],
     },
+    // Catch-all route for 404
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/login',
+    },
   ],
 })
+
+// Navigation guard
+router.beforeEach(
+  async (
+    to: RouteLocationNormalized,
+    _from: RouteLocationNormalized,
+    next: NavigationGuardNext,
+  ) => {
+    const authStore = useAuthStore()
+
+    // Initialize auth if not already done
+    if (!authStore.isInitialized) {
+      await authStore.initialize()
+    }
+
+    const isAuthenticated = authStore.isAuthenticated
+    const userType = authStore.userType
+
+    // Check if route requires authentication
+    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+    const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
+    const allowedRoles = to.matched.find((record) => record.meta.allowedRoles)?.meta
+      .allowedRoles as string[] | undefined
+
+    // If route requires guest (login/signup) and user is authenticated
+    if (requiresGuest && isAuthenticated) {
+      // Redirect to appropriate dashboard
+      if (userType === 'admin') {
+        return next('/admin/dashboard')
+      } else if (userType === 'student') {
+        return next('/student/dashboard')
+      } else if (userType === 'parent') {
+        return next('/parent/dashboard')
+      }
+    }
+
+    // If route requires auth and user is not authenticated
+    if (requiresAuth && !isAuthenticated) {
+      return next('/login')
+    }
+
+    // If route requires specific role and user doesn't have it
+    if (requiresAuth && allowedRoles && userType && !allowedRoles.includes(userType)) {
+      // Redirect to user's own dashboard
+      if (userType === 'admin') {
+        return next('/admin/dashboard')
+      } else if (userType === 'student') {
+        return next('/student/dashboard')
+      } else if (userType === 'parent') {
+        return next('/parent/dashboard')
+      }
+    }
+
+    next()
+  },
+)
 
 export default router

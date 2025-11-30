@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useCurriculumStore } from '@/stores/curriculum'
-import { useParentLinkStore } from '@/stores/parent-link'
+import { supabase } from '@/lib/supabaseClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -34,18 +33,24 @@ import {
   Coins,
   Pencil,
   Camera,
-  Users,
-  Clock,
+  Loader2,
 } from 'lucide-vue-next'
+import type { Database } from '@/types/database.types'
+
+type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
 
 const authStore = useAuthStore()
-const curriculumStore = useCurriculumStore()
-const parentLinkStore = useParentLinkStore()
 
+// Grade levels
+const gradeLevels = ref<GradeLevel[]>([])
+const isLoadingGrades = ref(false)
+
+// Dialog states
 const showAvatarDialog = ref(false)
 const avatarUrl = ref('')
 const showEditNameDialog = ref(false)
 const newName = ref('')
+const isSaving = ref(false)
 
 const userInitials = computed(() => {
   if (!authStore.user?.name) return '?'
@@ -58,31 +63,86 @@ const userInitials = computed(() => {
 })
 
 const formattedDateJoined = computed(() => {
-  if (!authStore.user?.dateJoined) return 'N/A'
-  return new Date(authStore.user.dateJoined).toLocaleDateString('en-US', {
+  if (!authStore.user?.createdAt) return 'N/A'
+  return new Date(authStore.user.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
 })
 
-const age = computed(() => authStore.getAge())
+const age = computed(() => {
+  if (!authStore.user?.dateOfBirth) return null
+  const today = new Date()
+  const birthDate = new Date(authStore.user.dateOfBirth)
+  let years = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    years--
+  }
+  return years
+})
 
-const canChangeGrade = computed(() => authStore.canChangeGradeToday())
+const currentGradeName = computed(() => {
+  if (!authStore.studentProfile?.gradeLevelId) return 'Not set'
+  const grade = gradeLevels.value.find((g) => g.id === authStore.studentProfile?.gradeLevelId)
+  return grade?.name ?? 'Not set'
+})
+
+// Get avatar URL from storage path
+const userAvatarUrl = computed(() => {
+  if (!authStore.user?.avatarPath) return ''
+  const { data } = supabase.storage.from('avatars').getPublicUrl(authStore.user.avatarPath)
+  return data.publicUrl
+})
+
+onMounted(async () => {
+  await fetchGradeLevels()
+})
+
+async function fetchGradeLevels() {
+  isLoadingGrades.value = true
+  try {
+    const { data, error } = await supabase
+      .from('grade_levels')
+      .select('*')
+      .order('display_order', { ascending: true })
+
+    if (error) throw error
+    gradeLevels.value = data ?? []
+  } catch (err) {
+    console.error('Error fetching grade levels:', err)
+    toast.error('Failed to load grade levels')
+  } finally {
+    isLoadingGrades.value = false
+  }
+}
 
 function openAvatarDialog() {
-  avatarUrl.value = authStore.user?.avatar ?? ''
+  avatarUrl.value = ''
   showAvatarDialog.value = true
 }
 
-function saveAvatar() {
-  if (avatarUrl.value.trim()) {
-    authStore.updateAvatar(avatarUrl.value.trim())
-    toast.success('Avatar Updated', {
-      description: 'Your profile picture has been updated.',
-    })
+async function saveAvatar() {
+  if (!avatarUrl.value.trim()) {
+    showAvatarDialog.value = false
+    return
   }
-  showAvatarDialog.value = false
+
+  isSaving.value = true
+  try {
+    // For now, we just store the URL directly
+    // In a full implementation, we'd upload to storage and get a path
+    const result = await authStore.updateAvatar(avatarUrl.value.trim())
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Avatar updated successfully')
+    showAvatarDialog.value = false
+  } finally {
+    isSaving.value = false
+  }
 }
 
 function generateRandomAvatar() {
@@ -95,30 +155,39 @@ function openEditNameDialog() {
   showEditNameDialog.value = true
 }
 
-function saveName() {
-  if (newName.value.trim()) {
-    authStore.updateName(newName.value.trim())
-    toast.success('Name Updated', {
-      description: 'Your name has been updated.',
-    })
+async function saveName() {
+  if (!newName.value.trim()) {
+    showEditNameDialog.value = false
+    return
   }
-  showEditNameDialog.value = false
+
+  isSaving.value = true
+  try {
+    const result = await authStore.updateName(newName.value.trim())
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Name updated successfully')
+    showEditNameDialog.value = false
+  } finally {
+    isSaving.value = false
+  }
 }
 
-function handleGradeChange(value: unknown) {
-  if (typeof value !== 'string') return
-  const gradeLevel = curriculumStore.gradeLevels.find((g) => g.id === value)
-  if (!gradeLevel) return
+async function handleGradeChange(value: unknown) {
+  if (!value || typeof value !== 'string') return
 
-  const success = authStore.updateGradeLevel(value, gradeLevel.name)
-  if (success) {
-    toast.success('Grade Level Updated', {
-      description: `You are now in ${gradeLevel.name}.`,
-    })
-  } else {
-    toast.error('Cannot Change Grade', {
-      description: 'You can only change your grade level once per day.',
-    })
+  isSaving.value = true
+  try {
+    const result = await authStore.updateGradeLevel(value)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Grade level updated successfully')
+  } finally {
+    isSaving.value = false
   }
 }
 </script>
@@ -137,7 +206,7 @@ function handleGradeChange(value: unknown) {
         <CardHeader class="text-center">
           <div class="relative mx-auto">
             <Avatar class="size-24">
-              <AvatarImage :src="authStore.user?.avatar ?? ''" :alt="authStore.user?.name ?? ''" />
+              <AvatarImage :src="userAvatarUrl" :alt="authStore.user?.name ?? ''" />
               <AvatarFallback class="text-2xl">{{ userInitials }}</AvatarFallback>
             </Avatar>
             <Button
@@ -162,11 +231,11 @@ function handleGradeChange(value: unknown) {
           <div class="flex items-center justify-center gap-2">
             <Badge variant="secondary" class="text-sm">
               <Trophy class="mr-1 size-3" />
-              Level {{ authStore.studentUser?.level }}
+              Level {{ authStore.currentLevel }}
             </Badge>
             <Badge variant="outline" class="text-sm">
               <Coins class="mr-1 size-3" />
-              {{ authStore.studentUser?.coins }} Coins
+              {{ authStore.studentProfile?.coins ?? 0 }} Coins
             </Badge>
           </div>
 
@@ -224,31 +293,23 @@ function handleGradeChange(value: unknown) {
             </div>
             <div class="flex-1">
               <p class="text-sm text-muted-foreground">Grade Level</p>
-              <p class="font-medium">{{ authStore.studentUser?.gradeLevelName }}</p>
+              <p class="font-medium">{{ currentGradeName }}</p>
             </div>
             <Select
-              :model-value="authStore.studentUser?.gradeLevelId"
-              :disabled="!canChangeGrade"
+              :model-value="authStore.studentProfile?.gradeLevelId ?? undefined"
+              :disabled="isSaving || isLoadingGrades"
               @update:model-value="handleGradeChange"
             >
               <SelectTrigger class="w-[140px]">
-                <SelectValue placeholder="Change" />
+                <SelectValue placeholder="Select grade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem
-                  v-for="grade in curriculumStore.gradeLevels"
-                  :key="grade.id"
-                  :value="grade.id"
-                >
+                <SelectItem v-for="grade in gradeLevels" :key="grade.id" :value="grade.id">
                   {{ grade.name }}
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <p v-if="!canChangeGrade" class="ml-14 text-xs text-muted-foreground">
-            <Clock class="mr-1 inline size-3" />
-            Grade level can only be changed once per day
-          </p>
 
           <!-- Date Joined -->
           <div class="flex items-center gap-4">
@@ -258,29 +319,6 @@ function handleGradeChange(value: unknown) {
             <div class="flex-1">
               <p class="text-sm text-muted-foreground">Member Since</p>
               <p class="font-medium">{{ formattedDateJoined }}</p>
-            </div>
-          </div>
-
-          <!-- Linked Parents -->
-          <div class="flex items-center gap-4">
-            <div class="flex size-10 items-center justify-center rounded-lg bg-muted">
-              <Users class="size-5 text-muted-foreground" />
-            </div>
-            <div class="flex-1">
-              <p class="text-sm text-muted-foreground">Linked Parents</p>
-              <div
-                v-if="parentLinkStore.linkedParents.length > 0"
-                class="flex flex-wrap gap-2 mt-1"
-              >
-                <Badge
-                  v-for="parent in parentLinkStore.linkedParents"
-                  :key="parent.id"
-                  variant="secondary"
-                >
-                  {{ parent.name }}
-                </Badge>
-              </div>
-              <p v-else class="font-medium text-muted-foreground">No linked parents</p>
             </div>
           </div>
         </CardContent>
@@ -299,7 +337,7 @@ function handleGradeChange(value: unknown) {
         <div class="space-y-4">
           <div class="flex justify-center">
             <Avatar class="size-24">
-              <AvatarImage :src="avatarUrl" alt="Preview" />
+              <AvatarImage :src="avatarUrl || userAvatarUrl" alt="Preview" />
               <AvatarFallback class="text-2xl">{{ userInitials }}</AvatarFallback>
             </Avatar>
           </div>
@@ -309,15 +347,26 @@ function handleGradeChange(value: unknown) {
               id="avatar-url"
               v-model="avatarUrl"
               placeholder="https://example.com/avatar.png"
+              :disabled="isSaving"
             />
           </div>
-          <Button variant="outline" class="w-full" @click="generateRandomAvatar">
+          <Button
+            variant="outline"
+            class="w-full"
+            :disabled="isSaving"
+            @click="generateRandomAvatar"
+          >
             Generate Random Avatar
           </Button>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="showAvatarDialog = false">Cancel</Button>
-          <Button @click="saveAvatar">Save</Button>
+          <Button variant="outline" :disabled="isSaving" @click="showAvatarDialog = false">
+            Cancel
+          </Button>
+          <Button :disabled="isSaving" @click="saveAvatar">
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -327,15 +376,25 @@ function handleGradeChange(value: unknown) {
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Name</DialogTitle>
-          <DialogDescription> Enter your new display name. </DialogDescription>
+          <DialogDescription>Enter your new display name.</DialogDescription>
         </DialogHeader>
         <div class="space-y-2">
           <Label for="new-name">Name</Label>
-          <Input id="new-name" v-model="newName" placeholder="Enter your name" />
+          <Input
+            id="new-name"
+            v-model="newName"
+            placeholder="Enter your name"
+            :disabled="isSaving"
+          />
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="showEditNameDialog = false">Cancel</Button>
-          <Button @click="saveName">Save</Button>
+          <Button variant="outline" :disabled="isSaving" @click="showEditNameDialog = false">
+            Cancel
+          </Button>
+          <Button :disabled="isSaving" @click="saveName">
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

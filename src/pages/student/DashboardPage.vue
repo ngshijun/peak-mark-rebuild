@@ -21,7 +21,7 @@ function getGreeting(): string {
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold">
-        {{ getGreeting() }}, {{ authStore.studentUser?.name ?? 'Student' }}!
+        {{ getGreeting() }}, {{ authStore.user?.name ?? 'Student' }}!
       </h1>
       <p class="text-muted-foreground">Here's your daily overview</p>
     </div>

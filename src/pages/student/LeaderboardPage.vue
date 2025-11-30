@@ -56,7 +56,7 @@ function getRankColor(rank: number) {
             :key="student.id"
             class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
             :class="{
-              'bg-primary/5': authStore.studentUser?.id === student.id,
+              'bg-primary/5': authStore.user?.id === student.id,
             }"
           >
             <!-- Rank -->
@@ -82,11 +82,7 @@ function getRankColor(rank: number) {
             <div class="flex-1">
               <p class="font-medium">
                 {{ student.name }}
-                <Badge
-                  v-if="authStore.studentUser?.id === student.id"
-                  variant="secondary"
-                  class="ml-2"
-                >
+                <Badge v-if="authStore.user?.id === student.id" variant="secondary" class="ml-2">
                   You
                 </Badge>
               </p>
@@ -107,7 +103,11 @@ function getRankColor(rank: number) {
           </div>
 
           <!-- Current student row if not in top 20 -->
-          <template v-if="authStore.studentUser && !leaderboardStore.isCurrentStudentInTop20">
+          <template
+            v-if="
+              authStore.user && authStore.isStudent && !leaderboardStore.isCurrentStudentInTop20
+            "
+          >
             <div class="flex items-center gap-4 bg-primary/5 px-6 py-4">
               <!-- Rank -->
               <div class="flex w-12 items-center justify-center">
@@ -119,33 +119,33 @@ function getRankColor(rank: number) {
               <!-- Avatar -->
               <Avatar class="size-10">
                 <AvatarImage
-                  :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${authStore.studentUser.name}`"
-                  :alt="authStore.studentUser.name"
+                  :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${authStore.user.name}`"
+                  :alt="authStore.user.name"
                 />
-                <AvatarFallback>{{ getInitials(authStore.studentUser.name) }}</AvatarFallback>
+                <AvatarFallback>{{ getInitials(authStore.user.name) }}</AvatarFallback>
               </Avatar>
 
               <!-- Student Info -->
               <div class="flex-1">
                 <p class="font-medium">
-                  {{ authStore.studentUser.name }}
+                  {{ authStore.user.name }}
                   <Badge variant="secondary" class="ml-2">You</Badge>
                 </p>
-                <p class="text-sm text-muted-foreground">
-                  {{ authStore.studentUser.gradeLevelName }}
-                </p>
+                <p class="text-sm text-muted-foreground">Grade Level</p>
               </div>
 
               <!-- Level -->
               <div class="text-center">
                 <p class="text-sm text-muted-foreground">Level</p>
-                <p class="font-semibold">{{ authStore.studentUser.level }}</p>
+                <p class="font-semibold">{{ authStore.currentLevel }}</p>
               </div>
 
               <!-- XP -->
               <div class="w-24 text-right">
                 <p class="text-sm text-muted-foreground">XP</p>
-                <p class="font-semibold">{{ authStore.studentUser.xp.toLocaleString() }}</p>
+                <p class="font-semibold">
+                  {{ authStore.studentProfile?.xp?.toLocaleString() ?? 0 }}
+                </p>
               </div>
             </div>
           </template>

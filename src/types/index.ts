@@ -153,7 +153,7 @@ export interface PracticeAnswer {
 export interface PracticeSession {
   id: string
   studentId: string
-  gradeLevelId: string
+  gradeLevelId: string | null
   gradeLevelName: string
   subjectId: string
   subjectName: string

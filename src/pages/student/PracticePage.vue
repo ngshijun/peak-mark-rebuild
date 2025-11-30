@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { usePracticeStore } from '@/stores/practice'
-import type { StudentUser } from '@/types'
 import { ChevronLeft } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,18 +15,18 @@ const practiceStore = usePracticeStore()
 
 const selectedSubjectId = ref<string | null>(null)
 
-// Get student's grade level
-const studentUser = computed(() => {
-  if (authStore.user?.type === 'student') {
-    return authStore.user as StudentUser
+// Get student's grade level ID
+const studentGradeLevelId = computed(() => {
+  if (authStore.user?.userType === 'student') {
+    return authStore.studentProfile?.gradeLevelId ?? null
   }
   return null
 })
 
 // Get available subjects for student's grade level
 const availableSubjects = computed(() => {
-  if (!studentUser.value) return []
-  const grade = curriculumStore.gradeLevels.find((g) => g.id === studentUser.value!.gradeLevelId)
+  if (!studentGradeLevelId.value) return []
+  const grade = curriculumStore.gradeLevels.find((g) => g.id === studentGradeLevelId.value)
   return grade?.subjects ?? []
 })
 

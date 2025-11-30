@@ -43,10 +43,10 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
   // Get invitations sent to current student (from parents)
   const receivedInvitations = computed(() => {
-    if (!authStore.studentUser) return []
+    if (!authStore.user || !authStore.isStudent) return []
     return invitations.value.filter(
       (inv) =>
-        inv.studentId === authStore.studentUser!.id &&
+        inv.studentId === authStore.user!.id &&
         inv.direction === 'parent_to_student' &&
         inv.status === 'pending',
     )
@@ -54,10 +54,10 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
   // Get invitations sent by current student (to parents)
   const sentInvitations = computed(() => {
-    if (!authStore.studentUser) return []
+    if (!authStore.user || !authStore.isStudent) return []
     return invitations.value.filter(
       (inv) =>
-        inv.studentId === authStore.studentUser!.id &&
+        inv.studentId === authStore.user!.id &&
         inv.direction === 'student_to_parent' &&
         inv.status === 'pending',
     )
@@ -65,7 +65,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
   // Send invitation to parent
   function sendInvitation(parentEmail: string) {
-    if (!authStore.studentUser) return null
+    if (!authStore.user || !authStore.isStudent) return null
 
     // Check if already linked
     const alreadyLinked = linkedParents.value.some(
@@ -79,7 +79,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     const existingInvitation = invitations.value.find(
       (inv) =>
         inv.parentEmail.toLowerCase() === parentEmail.toLowerCase() &&
-        inv.studentId === authStore.studentUser!.id &&
+        inv.studentId === authStore.user!.id &&
         inv.status === 'pending',
     )
     if (existingInvitation) {
@@ -89,9 +89,9 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     const invitation: ParentStudentInvitation = {
       id: crypto.randomUUID(),
       parentEmail,
-      studentId: authStore.studentUser.id,
-      studentEmail: authStore.studentUser.email,
-      studentName: authStore.studentUser.name,
+      studentId: authStore.user.id,
+      studentEmail: authStore.user.email,
+      studentName: authStore.user.name,
       direction: 'student_to_parent',
       status: 'pending',
       createdAt: new Date().toISOString(),

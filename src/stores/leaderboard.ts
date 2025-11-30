@@ -224,18 +224,21 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     const allStudents = [...students.value]
 
     // Add current student if logged in and not already in list
-    if (authStore.studentUser) {
-      const currentStudent = authStore.studentUser
-      const existingIndex = allStudents.findIndex((s) => s.id === currentStudent.id)
+    if (authStore.user && authStore.isStudent && authStore.studentProfile) {
+      const currentUserId = authStore.user.id
+      const currentName = authStore.user.name
+      const currentXp = authStore.studentProfile.xp
+      const currentLevel = authStore.currentLevel
+      const existingIndex = allStudents.findIndex((s) => s.id === currentUserId)
 
       if (existingIndex === -1) {
         allStudents.push({
-          id: currentStudent.id,
-          name: currentStudent.name,
-          gradeLevelName: currentStudent.gradeLevelName,
-          xp: currentStudent.xp,
-          level: currentStudent.level,
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentStudent.name}`,
+          id: currentUserId,
+          name: currentName,
+          gradeLevelName: 'Grade Level', // TODO: Fetch grade level name
+          xp: currentXp,
+          level: currentLevel,
+          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentName}`,
         })
       } else {
         // Update existing entry with current XP
@@ -245,8 +248,8 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
           name: existing.name,
           gradeLevelName: existing.gradeLevelName,
           avatarUrl: existing.avatarUrl,
-          xp: currentStudent.xp,
-          level: currentStudent.level,
+          xp: currentXp,
+          level: currentLevel,
         }
       }
     }
@@ -262,9 +265,9 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
 
   // Get current student's rank
   const currentStudentRank = computed(() => {
-    if (!authStore.studentUser) return null
+    if (!authStore.user || !authStore.isStudent) return null
 
-    const index = rankedStudents.value.findIndex((s) => s.id === authStore.studentUser!.id)
+    const index = rankedStudents.value.findIndex((s) => s.id === authStore.user!.id)
     return index === -1 ? null : index + 1
   })
 

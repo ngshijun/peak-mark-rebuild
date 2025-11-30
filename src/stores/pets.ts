@@ -154,7 +154,7 @@ export const usePetsStore = defineStore('pets', () => {
 
   // Get selected pet
   const selectedPet = computed(() => {
-    const petId = authStore.studentUser?.selectedPetId
+    const petId = authStore.studentProfile?.selectedPetId
     if (!petId) return null
     return allPets.find((p) => p.id === petId) ?? null
   })
@@ -168,7 +168,7 @@ export const usePetsStore = defineStore('pets', () => {
 
   // Deselect pet
   function deselectPet() {
-    authStore.setSelectedPet(undefined)
+    authStore.setSelectedPet(null)
   }
 
   return {

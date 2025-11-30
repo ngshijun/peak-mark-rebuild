@@ -1,18 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ParentStudentInvitation, LinkedChild, ParentUser } from '@/types'
+import type { ParentStudentInvitation, LinkedChild } from '@/types'
 import { useAuthStore } from './auth'
 
 export const useChildLinkStore = defineStore('childLink', () => {
   const authStore = useAuthStore()
-
-  // Get current parent user
-  const parentUser = computed(() => {
-    if (authStore.user?.type === 'parent') {
-      return authStore.user as ParentUser
-    }
-    return null
-  })
 
   // Mock linked children for parent
   const linkedChildren = ref<LinkedChild[]>([
@@ -52,10 +44,10 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
   // Get invitations sent to current parent (from students)
   const receivedInvitations = computed(() => {
-    if (!parentUser.value) return []
+    if (!authStore.user || !authStore.isParent) return []
     return invitations.value.filter(
       (inv) =>
-        inv.parentId === parentUser.value!.id &&
+        inv.parentId === authStore.user!.id &&
         inv.direction === 'student_to_parent' &&
         inv.status === 'pending',
     )
@@ -63,10 +55,10 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
   // Get invitations sent by current parent (to students)
   const sentInvitations = computed(() => {
-    if (!parentUser.value) return []
+    if (!authStore.user || !authStore.isParent) return []
     return invitations.value.filter(
       (inv) =>
-        inv.parentId === parentUser.value!.id &&
+        inv.parentId === authStore.user!.id &&
         inv.direction === 'parent_to_student' &&
         inv.status === 'pending',
     )
@@ -74,7 +66,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
   // Send invitation to child (student)
   function sendInvitation(childEmail: string) {
-    if (!parentUser.value) return null
+    if (!authStore.user || !authStore.isParent) return null
 
     // Check if already linked
     const alreadyLinked = linkedChildren.value.some(
@@ -88,7 +80,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
     const existingInvitation = invitations.value.find(
       (inv) =>
         inv.studentEmail.toLowerCase() === childEmail.toLowerCase() &&
-        inv.parentId === parentUser.value!.id &&
+        inv.parentId === authStore.user!.id &&
         inv.status === 'pending',
     )
     if (existingInvitation) {
@@ -97,9 +89,9 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
     const invitation: ParentStudentInvitation = {
       id: crypto.randomUUID(),
-      parentId: parentUser.value.id,
-      parentEmail: parentUser.value.email,
-      parentName: parentUser.value.name,
+      parentId: authStore.user.id,
+      parentEmail: authStore.user.email,
+      parentName: authStore.user.name,
       studentEmail: childEmail,
       direction: 'parent_to_student',
       status: 'pending',

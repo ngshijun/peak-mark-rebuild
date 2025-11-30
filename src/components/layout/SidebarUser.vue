@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { supabase } from '@/lib/supabaseClient'
 import { ChevronsUpDown, LogOut, User } from 'lucide-vue-next'
 import {
   SidebarFooter,
@@ -18,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -39,10 +41,21 @@ const userInitials = computed(() => {
 
 const userName = computed(() => authStore.user?.name ?? '')
 const userEmail = computed(() => authStore.user?.email ?? '')
-const userAvatar = computed(() => authStore.user?.avatar ?? '')
 
-function handleLogout() {
-  authStore.clearUser()
+// Generate avatar URL from storage path
+const userAvatar = computed(() => {
+  if (!authStore.user?.avatarPath) return ''
+  const { data } = supabase.storage.from('avatars').getPublicUrl(authStore.user.avatarPath)
+  return data.publicUrl
+})
+
+async function handleLogout() {
+  const result = await authStore.signOut()
+  if (result.error) {
+    toast.error('Failed to log out')
+    return
+  }
+  toast.success('Logged out successfully')
   router.push('/login')
 }
 </script>

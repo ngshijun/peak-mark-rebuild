@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import type { UserType, User } from '@/types'
-import { Mountain } from 'lucide-vue-next'
+import { Mountain, Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -17,50 +17,56 @@ const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const dateOfBirth = ref('')
-const userType = ref<UserType>('student')
+const userType = ref<'student' | 'parent'>('student')
+const isSubmitting = ref(false)
 
-function handleSignup() {
-  let user: User
-  const userName = name.value || 'New User'
-  const userEmail = email.value || `${userType.value}@example.com`
-  const today = new Date().toISOString().split('T')[0] as string
+const passwordsMatch = computed(() => password.value === confirmPassword.value)
+const isFormValid = computed(() => {
+  return (
+    name.value.trim() !== '' &&
+    email.value.trim() !== '' &&
+    password.value.length >= 6 &&
+    passwordsMatch.value
+  )
+})
 
-  if (userType.value === 'admin') {
-    user = {
-      id: crypto.randomUUID(),
-      name: userName,
-      email: userEmail,
-      type: 'admin',
-      dateJoined: today,
+async function handleSignup() {
+  if (!isFormValid.value) {
+    if (!passwordsMatch.value) {
+      toast.error('Passwords do not match')
+    } else if (password.value.length < 6) {
+      toast.error('Password must be at least 6 characters')
+    } else {
+      toast.error('Please fill in all required fields')
     }
-  } else if (userType.value === 'student') {
-    user = {
-      id: crypto.randomUUID(),
-      name: userName,
-      email: userEmail,
-      type: 'student',
-      gradeLevelId: '1',
-      gradeLevelName: 'Grade 1',
-      xp: 0,
-      level: 1,
-      coins: 0,
-      food: 0,
-      dateJoined: today,
-      dateOfBirth: dateOfBirth.value || undefined,
-    }
-  } else {
-    user = {
-      id: crypto.randomUUID(),
-      name: userName,
-      email: userEmail,
-      type: 'parent',
-      childrenIds: [],
-      dateJoined: today,
-    }
+    return
   }
 
-  authStore.setUser(user)
-  router.push(`/${userType.value}/dashboard`)
+  isSubmitting.value = true
+
+  try {
+    const result = await authStore.signUp(
+      email.value,
+      password.value,
+      name.value,
+      userType.value,
+      userType.value === 'student' ? dateOfBirth.value || undefined : undefined,
+    )
+
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+
+    if (result.user) {
+      toast.success('Account created successfully! Please check your email to verify your account.')
+      router.push('/login')
+    }
+  } catch (err) {
+    toast.error('An unexpected error occurred')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -77,48 +83,65 @@ function handleSignup() {
       <CardContent>
         <form class="space-y-4" @submit.prevent="handleSignup">
           <div class="space-y-2">
-            <Label for="name">Name</Label>
-            <Input id="name" v-model="name" type="text" placeholder="Enter your name" />
+            <Label for="name">Name <span class="text-destructive">*</span></Label>
+            <Input
+              id="name"
+              v-model="name"
+              type="text"
+              placeholder="Enter your name"
+              required
+              :disabled="isSubmitting"
+            />
           </div>
           <div class="space-y-2">
-            <Label for="email">Email</Label>
-            <Input id="email" v-model="email" type="email" placeholder="Enter your email" />
+            <Label for="email">Email <span class="text-destructive">*</span></Label>
+            <Input
+              id="email"
+              v-model="email"
+              type="email"
+              placeholder="Enter your email"
+              required
+              :disabled="isSubmitting"
+            />
           </div>
           <div class="space-y-2">
-            <Label for="password">Password</Label>
+            <Label for="password">Password <span class="text-destructive">*</span></Label>
             <Input
               id="password"
               v-model="password"
               type="password"
-              placeholder="Create a password"
+              placeholder="Create a password (min 6 characters)"
+              required
+              minlength="6"
+              :disabled="isSubmitting"
             />
           </div>
           <div class="space-y-2">
-            <Label for="confirmPassword">Confirm Password</Label>
+            <Label for="confirmPassword"
+              >Confirm Password <span class="text-destructive">*</span></Label
+            >
             <Input
               id="confirmPassword"
               v-model="confirmPassword"
               type="password"
               placeholder="Confirm your password"
+              required
+              :disabled="isSubmitting"
+              :class="{ 'border-destructive': confirmPassword && !passwordsMatch }"
             />
+            <p v-if="confirmPassword && !passwordsMatch" class="text-sm text-destructive">
+              Passwords do not match
+            </p>
           </div>
           <div class="space-y-2">
-            <Label>Account Type</Label>
+            <Label>Account Type <span class="text-destructive">*</span></Label>
             <div class="flex gap-2">
-              <Button
-                type="button"
-                :variant="userType === 'admin' ? 'default' : 'outline'"
-                size="sm"
-                class="flex-1"
-                @click="userType = 'admin'"
-              >
-                Admin
-              </Button>
               <Button
                 type="button"
                 :variant="userType === 'student' ? 'default' : 'outline'"
                 size="sm"
                 class="flex-1"
+                :disabled="isSubmitting"
                 @click="userType = 'student'"
               >
                 Student
@@ -128,6 +151,7 @@ function handleSignup() {
                 :variant="userType === 'parent' ? 'default' : 'outline'"
                 size="sm"
                 class="flex-1"
+                :disabled="isSubmitting"
                 @click="userType = 'parent'"
               >
                 Parent
@@ -136,14 +160,12 @@ function handleSignup() {
           </div>
           <div v-if="userType === 'student'" class="space-y-2">
             <Label for="dateOfBirth">Date of Birth</Label>
-            <Input
-              id="dateOfBirth"
-              v-model="dateOfBirth"
-              type="date"
-              placeholder="Select your date of birth"
-            />
+            <Input id="dateOfBirth" v-model="dateOfBirth" type="date" :disabled="isSubmitting" />
           </div>
-          <Button type="submit" class="w-full">Sign Up</Button>
+          <Button type="submit" class="w-full" :disabled="isSubmitting || !isFormValid">
+            <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
+            {{ isSubmitting ? 'Creating Account...' : 'Sign Up' }}
+          </Button>
         </form>
 
         <div class="mt-4 text-center text-sm text-muted-foreground">

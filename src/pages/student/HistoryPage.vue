@@ -35,7 +35,8 @@ const dateRangeOptions = [
 ]
 
 // Get current student's grade level from profile
-const currentGradeLevel = computed(() => authStore.studentUser?.gradeLevelName)
+// TODO: gradeLevelName needs to be fetched or added to studentProfile
+const currentGradeLevel = computed(() => undefined)
 
 // Reset topic when subject changes
 watch(selectedSubject, () => {
