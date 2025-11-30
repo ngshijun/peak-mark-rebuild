@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useCurriculumStore } from '@/stores/curriculum'
-import type { GradeLevel, Subject } from '@/types'
-import { ChevronLeft, Plus, Trash2, Pencil, ImagePlus } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { useCurriculumStore, type Subject, type Topic } from '@/stores/curriculum'
+import { ChevronLeft, Plus, Trash2, ImagePlus, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,12 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { toast } from 'vue-sonner'
 
 const curriculumStore = useCurriculumStore()
 
 // Navigation state
 const selectedGradeLevelId = ref<string | null>(null)
 const selectedSubjectId = ref<string | null>(null)
+
+// Loading states
+const isSaving = ref(false)
+const isDeleting = ref(false)
 
 // Computed for navigation
 const selectedGradeLevel = computed(() => {
@@ -108,12 +112,33 @@ const topicImages: Record<string, string> = {
 }
 
 function getSubjectImage(subject: Subject): string {
-  return subject.coverImage || subjectImages[subject.name] || defaultSubjectImage
+  // If there's a stored image path, get the public URL
+  if (subject.coverImagePath) {
+    // Check if it's a full URL or a storage path
+    if (subject.coverImagePath.startsWith('http')) {
+      return subject.coverImagePath
+    }
+    return curriculumStore.getCurriculumImageUrl(subject.coverImagePath)
+  }
+  return subjectImages[subject.name] || defaultSubjectImage
 }
 
-function getTopicImage(topic: { name: string; coverImage?: string }): string {
-  return topic.coverImage || topicImages[topic.name] || defaultTopicImage
+function getTopicImage(topic: Topic): string {
+  // If there's a stored image path, get the public URL
+  if (topic.coverImagePath) {
+    // Check if it's a full URL or a storage path
+    if (topic.coverImagePath.startsWith('http')) {
+      return topic.coverImagePath
+    }
+    return curriculumStore.getCurriculumImageUrl(topic.coverImagePath)
+  }
+  return topicImages[topic.name] || defaultTopicImage
 }
+
+// Fetch curriculum on mount
+onMounted(async () => {
+  await curriculumStore.fetchCurriculum()
+})
 
 // Navigation functions
 function selectGradeLevel(gradeLevelId: string) {
@@ -148,27 +173,51 @@ function openAddDialog(
   showAddDialog.value = true
 }
 
-function handleAdd() {
+async function handleAdd() {
   if (!newItemName.value.trim()) return
 
+  isSaving.value = true
   const coverImage = newItemCoverImage.value.trim() || undefined
 
-  if (addType.value === 'grade') {
-    curriculumStore.addGradeLevel(newItemName.value.trim())
-  } else if (addType.value === 'subject' && dialogGradeLevelId.value) {
-    curriculumStore.addSubject(dialogGradeLevelId.value, newItemName.value.trim(), coverImage)
-  } else if (addType.value === 'topic' && dialogGradeLevelId.value && dialogSubjectId.value) {
-    curriculumStore.addTopic(
-      dialogGradeLevelId.value,
-      dialogSubjectId.value,
-      newItemName.value.trim(),
-      coverImage,
-    )
-  }
+  try {
+    if (addType.value === 'grade') {
+      const result = await curriculumStore.addGradeLevel(newItemName.value.trim())
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Grade level added successfully')
+    } else if (addType.value === 'subject' && dialogGradeLevelId.value) {
+      const result = await curriculumStore.addSubject(
+        dialogGradeLevelId.value,
+        newItemName.value.trim(),
+        coverImage,
+      )
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Subject added successfully')
+    } else if (addType.value === 'topic' && dialogGradeLevelId.value && dialogSubjectId.value) {
+      const result = await curriculumStore.addTopic(
+        dialogGradeLevelId.value,
+        dialogSubjectId.value,
+        newItemName.value.trim(),
+        coverImage,
+      )
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Topic added successfully')
+    }
 
-  showAddDialog.value = false
-  newItemName.value = ''
-  newItemCoverImage.value = ''
+    showAddDialog.value = false
+    newItemName.value = ''
+    newItemCoverImage.value = ''
+  } finally {
+    isSaving.value = false
+  }
 }
 
 function openEditImageDialog(
@@ -188,42 +237,88 @@ function openEditImageDialog(
   showEditImageDialog.value = true
 }
 
-function handleEditImage() {
+async function handleEditImage() {
   if (!editImageUrl.value.trim()) return
 
-  if (editImageType.value === 'subject') {
-    curriculumStore.updateSubjectCoverImage(
-      editImageGradeLevelId.value,
-      editImageSubjectId.value,
-      editImageUrl.value.trim(),
-    )
-  } else if (editImageType.value === 'topic') {
-    curriculumStore.updateTopicCoverImage(
-      editImageGradeLevelId.value,
-      editImageSubjectId.value,
-      editImageTopicId.value,
-      editImageUrl.value.trim(),
-    )
-  }
+  isSaving.value = true
 
-  showEditImageDialog.value = false
-  editImageUrl.value = ''
+  try {
+    if (editImageType.value === 'subject') {
+      const result = await curriculumStore.updateSubjectCoverImage(
+        editImageGradeLevelId.value,
+        editImageSubjectId.value,
+        editImageUrl.value.trim(),
+      )
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Cover image updated successfully')
+    } else if (editImageType.value === 'topic') {
+      const result = await curriculumStore.updateTopicCoverImage(
+        editImageGradeLevelId.value,
+        editImageSubjectId.value,
+        editImageTopicId.value,
+        editImageUrl.value.trim(),
+      )
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Cover image updated successfully')
+    }
+
+    showEditImageDialog.value = false
+    editImageUrl.value = ''
+  } finally {
+    isSaving.value = false
+  }
 }
 
 // Delete handlers
-function handleDeleteGradeLevel(gradeId: string) {
-  curriculumStore.deleteGradeLevel(gradeId)
-}
-
-function handleDeleteSubject(gradeLevelId: string, subjectId: string) {
-  curriculumStore.deleteSubject(gradeLevelId, subjectId)
-  if (selectedSubjectId.value === subjectId) {
-    selectedSubjectId.value = null
+async function handleDeleteGradeLevel(gradeId: string) {
+  isDeleting.value = true
+  try {
+    const result = await curriculumStore.deleteGradeLevel(gradeId)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Grade level deleted successfully')
+  } finally {
+    isDeleting.value = false
   }
 }
 
-function handleDeleteTopic(gradeLevelId: string, subjectId: string, topicId: string) {
-  curriculumStore.deleteTopic(gradeLevelId, subjectId, topicId)
+async function handleDeleteSubject(gradeLevelId: string, subjectId: string) {
+  isDeleting.value = true
+  try {
+    const result = await curriculumStore.deleteSubject(gradeLevelId, subjectId)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    if (selectedSubjectId.value === subjectId) {
+      selectedSubjectId.value = null
+    }
+    toast.success('Subject deleted successfully')
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+async function handleDeleteTopic(gradeLevelId: string, subjectId: string, topicId: string) {
+  isDeleting.value = true
+  try {
+    const result = await curriculumStore.deleteTopic(gradeLevelId, subjectId, topicId)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Topic deleted successfully')
+  } finally {
+    isDeleting.value = false
+  }
 }
 
 function getDialogTitle() {
@@ -262,8 +357,13 @@ function getInputLabel() {
 
 <template>
   <div class="p-6">
+    <!-- Loading State -->
+    <div v-if="curriculumStore.isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
+    </div>
+
     <!-- Grade Level Selection (Level 1) -->
-    <div v-if="!selectedGradeLevel">
+    <div v-else-if="!selectedGradeLevel">
       <div class="mb-6 flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold">Curriculum</h1>
@@ -302,6 +402,7 @@ function getInputLabel() {
             variant="destructive"
             size="icon"
             class="absolute right-2 top-2 size-8 opacity-0 transition-opacity group-hover:opacity-100"
+            :disabled="isDeleting"
             @click.stop="handleDeleteGradeLevel(grade.id)"
           >
             <Trash2 class="size-4" />
@@ -390,6 +491,7 @@ function getInputLabel() {
               variant="destructive"
               size="icon"
               class="size-8"
+              :disabled="isDeleting"
               @click.stop="handleDeleteSubject(selectedGradeLevel.id, subject.id)"
             >
               <Trash2 class="size-4" />
@@ -479,6 +581,7 @@ function getInputLabel() {
               variant="destructive"
               size="icon"
               class="size-8"
+              :disabled="isDeleting"
               @click.stop="handleDeleteTopic(selectedGradeLevel.id, selectedSubject.id, topic.id)"
             >
               <Trash2 class="size-4" />
@@ -562,6 +665,7 @@ function getInputLabel() {
               :id="addType + '-name'"
               v-model="newItemName"
               :placeholder="'Enter ' + getInputLabel().toLowerCase()"
+              :disabled="isSaving"
               @keyup.enter="handleAdd"
             />
           </div>
@@ -573,6 +677,7 @@ function getInputLabel() {
               id="cover-image"
               v-model="newItemCoverImage"
               placeholder="https://example.com/image.jpg"
+              :disabled="isSaving"
             />
             <p class="text-xs text-muted-foreground">
               Leave empty to use a default image based on the name.
@@ -581,8 +686,13 @@ function getInputLabel() {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="showAddDialog = false">Cancel</Button>
-          <Button @click="handleAdd" :disabled="!newItemName.trim()">Add</Button>
+          <Button variant="outline" :disabled="isSaving" @click="showAddDialog = false"
+            >Cancel</Button
+          >
+          <Button @click="handleAdd" :disabled="!newItemName.trim() || isSaving">
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Add
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -614,13 +724,19 @@ function getInputLabel() {
               id="edit-image-url"
               v-model="editImageUrl"
               placeholder="https://example.com/image.jpg"
+              :disabled="isSaving"
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="showEditImageDialog = false">Cancel</Button>
-          <Button @click="handleEditImage" :disabled="!editImageUrl.trim()">Save</Button>
+          <Button variant="outline" :disabled="isSaving" @click="showEditImageDialog = false"
+            >Cancel</Button
+          >
+          <Button @click="handleEditImage" :disabled="!editImageUrl.trim() || isSaving">
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

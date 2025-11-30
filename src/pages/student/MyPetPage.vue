@@ -137,13 +137,17 @@ function goToMarket() {
 
               <!-- Pet -->
               <div
-                class="text-9xl transition-transform duration-200"
+                class="transition-transform duration-200"
                 :class="{
                   'scale-110': isPetting,
                   'animate-bounce': isFeeding,
                 }"
               >
-                {{ selectedPet.image }}
+                <img
+                  :src="petsStore.getPetImageUrl(selectedPet.imagePath)"
+                  :alt="selectedPet.name"
+                  class="size-32 object-contain"
+                />
               </div>
             </div>
 

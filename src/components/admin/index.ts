@@ -1,1 +1,1 @@
-export { default as QuestionEditDialog } from './QuestionEditDialog.vue'
+export { default as QuestionAddDialog } from './QuestionAddDialog.vue'

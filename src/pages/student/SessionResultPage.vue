@@ -1,33 +1,39 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { usePracticeStore } from '@/stores/practice'
-import type { Question, PracticeAnswer } from '@/types'
+import { usePracticeStore, type PracticeSession, type PracticeAnswer } from '@/stores/practice'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, XCircle, Clock, Home, RotateCcw, ArrowLeft, History } from 'lucide-vue-next'
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Home,
+  RotateCcw,
+  ArrowLeft,
+  History,
+  Loader2,
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const practiceStore = usePracticeStore()
 
 const sessionId = computed(() => route.params.sessionId as string)
-
-const session = computed(() => {
-  return practiceStore.getSessionById(sessionId.value)
-})
+const session = ref<PracticeSession | null>(null)
+const isLoading = ref(true)
 
 const summary = computed(() => {
   if (!session.value) return null
-  const totalQuestions = session.value.questions.length
+  const totalQuestions = session.value.questions.length || session.value.totalQuestions
   const correctAnswers = session.value.answers.filter((a) => a.isCorrect).length
   const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
 
   let durationSeconds = 0
-  if (session.value.completedAt) {
-    const start = new Date(session.value.startedAt).getTime()
+  if (session.value.completedAt && session.value.createdAt) {
+    const start = new Date(session.value.createdAt).getTime()
     const end = new Date(session.value.completedAt).getTime()
     durationSeconds = Math.round((end - start) / 1000)
   }
@@ -41,10 +47,14 @@ const summary = computed(() => {
   }
 })
 
-onMounted(() => {
-  if (!session.value) {
+onMounted(async () => {
+  const result = await practiceStore.getSessionById(sessionId.value)
+  if (result.session) {
+    session.value = result.session
+  } else {
     router.push('/student/history')
   }
+  isLoading.value = false
 })
 
 function formatDuration(seconds: number): string {
@@ -74,6 +84,12 @@ function getAnswerForQuestion(questionId: string): PracticeAnswer | undefined {
   return session.value?.answers.find((a) => a.questionId === questionId)
 }
 
+// Convert selectedOption (number) to option id (letter)
+function getSelectedOptionId(answer: PracticeAnswer | undefined): string | undefined {
+  if (!answer?.selectedOption) return undefined
+  return practiceStore.optionNumberToId(answer.selectedOption)
+}
+
 function goBack() {
   router.back()
 }
@@ -86,35 +102,37 @@ function goToPractice() {
   router.push('/student/practice')
 }
 
-function retryTopic() {
+async function retryTopic() {
   if (session.value) {
-    practiceStore.startSession(
-      session.value.subjectId,
-      session.value.subjectName,
-      session.value.topicId,
-      session.value.topicName,
-    )
-    router.push('/student/practice/quiz')
+    const result = await practiceStore.startSession(session.value.topicId)
+    if (result.session) {
+      router.push('/student/practice/quiz')
+    }
   }
 }
 </script>
 
 <template>
   <div class="p-6">
-    <!-- Header -->
-    <div class="mb-6">
-      <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
-        <ArrowLeft class="mr-2 size-4" />
-        Back
-      </Button>
-
-      <h1 class="text-2xl font-bold">Session Results</h1>
-      <p v-if="session" class="text-muted-foreground">
-        {{ session.subjectName }} - {{ session.topicName }} | {{ session.gradeLevelName }}
-      </p>
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
     </div>
 
-    <template v-if="session && summary">
+    <template v-else-if="session && summary">
+      <!-- Header -->
+      <div class="mb-6">
+        <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
+          <ArrowLeft class="mr-2 size-4" />
+          Back
+        </Button>
+
+        <h1 class="text-2xl font-bold">Session Results</h1>
+        <p class="text-muted-foreground">
+          {{ session.subjectName }} - {{ session.topicName }} | {{ session.gradeLevelName }}
+        </p>
+      </div>
+
       <!-- Summary Cards -->
       <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
@@ -177,8 +195,8 @@ function retryTopic() {
         </Button>
       </div>
 
-      <div class="mb-4 text-sm text-muted-foreground">
-        Completed: {{ formatDate(session.completedAt!) }}
+      <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
+        Completed: {{ formatDate(session.completedAt) }}
       </div>
 
       <Separator class="mb-6" />
@@ -214,14 +232,14 @@ function retryTopic() {
 
             <!-- Question Image if exists -->
             <img
-              v-if="question.imageUrl"
-              :src="question.imageUrl"
+              v-if="question.imagePath"
+              :src="question.imagePath"
               :alt="`Question ${index + 1} image`"
               class="max-h-40 rounded-md object-contain"
             />
 
             <!-- MCQ Options -->
-            <div v-if="question.type === 'mcq'" class="space-y-2">
+            <div v-if="question.type === 'mcq' && question.options" class="space-y-2">
               <div
                 v-for="option in question.options"
                 :key="option.id"
@@ -230,14 +248,14 @@ function retryTopic() {
                   'border-green-500 bg-green-100 dark:bg-green-900/30': option.isCorrect,
                   'border-red-500 bg-red-100 dark:bg-red-900/30':
                     !option.isCorrect &&
-                    getAnswerForQuestion(question.id)?.selectedOptionId === option.id,
+                    getSelectedOptionId(getAnswerForQuestion(question.id)) === option.id,
                 }"
               >
                 <span v-if="option.isCorrect" class="text-green-600">
                   <CheckCircle2 class="size-4" />
                 </span>
                 <span
-                  v-else-if="getAnswerForQuestion(question.id)?.selectedOptionId === option.id"
+                  v-else-if="getSelectedOptionId(getAnswerForQuestion(question.id)) === option.id"
                   class="text-red-600"
                 >
                   <XCircle class="size-4" />

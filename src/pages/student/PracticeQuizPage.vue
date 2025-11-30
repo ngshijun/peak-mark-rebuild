@@ -2,8 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
-import type { MCQQuestion, ShortAnswerQuestion } from '@/types'
-import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Home, RotateCcw } from 'lucide-vue-next'
+import type { Question } from '@/stores/questions'
+import { CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -54,43 +54,48 @@ const allQuestionsAnswered = computed(() => {
 const correctAnswer = computed(() => {
   if (!currentQuestion.value) return ''
   if (currentQuestion.value.type === 'mcq') {
-    const mcq = currentQuestion.value as MCQQuestion
-    const correct = mcq.options.find((o) => o.isCorrect)
+    const correct = currentQuestion.value.options.find((o) => o.isCorrect)
     return correct?.text ?? ''
   }
-  return (currentQuestion.value as ShortAnswerQuestion).answer
+  return currentQuestion.value.answer ?? ''
 })
 
-function submitAnswer() {
+// Get the selected option id from the current answer (convert from number to letter)
+const answeredOptionId = computed(() => {
+  if (!currentAnswer.value?.selectedOption) return null
+  return practiceStore.optionNumberToId(currentAnswer.value.selectedOption)
+})
+
+async function submitAnswer() {
   if (!currentQuestion.value) return
 
   if (currentQuestion.value.type === 'mcq') {
     if (!selectedOptionId.value) return
-    practiceStore.submitAnswer(selectedOptionId.value)
+    await practiceStore.submitAnswer(selectedOptionId.value)
   } else {
     if (!textAnswer.value.trim()) return
-    practiceStore.submitAnswer(undefined, textAnswer.value.trim())
+    await practiceStore.submitAnswer(undefined, textAnswer.value.trim())
   }
 }
 
-function nextQuestion() {
+async function nextQuestion() {
   // Reset input state
   selectedOptionId.value = ''
   textAnswer.value = ''
-  practiceStore.nextQuestion()
+  await practiceStore.nextQuestion()
 }
 
-function previousQuestion() {
+async function previousQuestion() {
   // Reset input state
   selectedOptionId.value = ''
   textAnswer.value = ''
-  practiceStore.previousQuestion()
+  await practiceStore.previousQuestion()
 }
 
-function finishQuiz() {
-  const session = practiceStore.completeSession()
-  if (session) {
-    router.push(`/student/session/${session.id}`)
+async function finishQuiz() {
+  const result = await practiceStore.completeSession()
+  if (result.session) {
+    router.push(`/student/session/${result.session.id}`)
   }
 }
 
@@ -99,16 +104,11 @@ function exitQuiz() {
   router.push('/student/practice')
 }
 
-function restartQuiz() {
+async function restartQuiz() {
   const session = practiceStore.currentSession
   if (session) {
     practiceStore.endSession()
-    practiceStore.startSession(
-      session.subjectId,
-      session.subjectName,
-      session.topicId,
-      session.topicName,
-    )
+    await practiceStore.startSession(session.topicId)
     selectedOptionId.value = ''
     textAnswer.value = ''
   }
@@ -117,6 +117,12 @@ function restartQuiz() {
 function goHome() {
   practiceStore.endSession()
   router.push('/student/practice')
+}
+
+async function goToQuestion(index: number) {
+  await practiceStore.goToQuestion(index)
+  selectedOptionId.value = ''
+  textAnswer.value = ''
 }
 </script>
 
@@ -153,9 +159,9 @@ function goHome() {
 
         <CardContent class="space-y-4">
           <!-- Question Image -->
-          <div v-if="currentQuestion.imageUrl" class="flex justify-center">
+          <div v-if="currentQuestion.imagePath" class="flex justify-center">
             <img
-              :src="currentQuestion.imageUrl"
+              :src="currentQuestion.imagePath"
               alt="Question image"
               class="max-h-64 rounded-lg border object-contain"
             />
@@ -164,7 +170,7 @@ function goHome() {
           <!-- MCQ Options -->
           <div v-if="currentQuestion.type === 'mcq'" class="space-y-2">
             <button
-              v-for="option in (currentQuestion as MCQQuestion).options"
+              v-for="option in currentQuestion.options"
               :key="option.id"
               class="w-full rounded-lg border p-4 text-left transition-colors"
               :class="{
@@ -174,7 +180,7 @@ function goHome() {
                 'cursor-not-allowed': isAnswered,
                 'border-green-500 bg-green-50 dark:bg-green-950/20': isAnswered && option.isCorrect,
                 'border-red-500 bg-red-50 dark:bg-red-950/20':
-                  isAnswered && currentAnswer?.selectedOptionId === option.id && !option.isCorrect,
+                  isAnswered && answeredOptionId === option.id && !option.isCorrect,
               }"
               :disabled="isAnswered"
               @click="selectedOptionId = option.id"
@@ -187,9 +193,7 @@ function goHome() {
                       selectedOptionId === option.id && !isAnswered,
                     'border-green-500 bg-green-500 text-white': isAnswered && option.isCorrect,
                     'border-red-500 bg-red-500 text-white':
-                      isAnswered &&
-                      currentAnswer?.selectedOptionId === option.id &&
-                      !option.isCorrect,
+                      isAnswered && answeredOptionId === option.id && !option.isCorrect,
                   }"
                 >
                   {{ option.id.toUpperCase() }}
@@ -200,9 +204,7 @@ function goHome() {
                   class="ml-auto size-5 text-green-500"
                 />
                 <XCircle
-                  v-if="
-                    isAnswered && currentAnswer?.selectedOptionId === option.id && !option.isCorrect
-                  "
+                  v-if="isAnswered && answeredOptionId === option.id && !option.isCorrect"
                   class="ml-auto size-5 text-red-500"
                 />
               </div>
@@ -295,13 +297,7 @@ function goHome() {
               !practiceStore.currentSession?.answers.find((a) => a.questionId === q.id)?.isCorrect,
             'hover:border-primary/50': index !== practiceStore.currentQuestionNumber - 1,
           }"
-          @click="
-            () => {
-              practiceStore.goToQuestion(index)
-              selectedOptionId = ''
-              textAnswer = ''
-            }
-          "
+          @click="goToQuestion(index)"
         >
           {{ index + 1 }}
         </button>

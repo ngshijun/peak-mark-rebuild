@@ -96,8 +96,8 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     // Get unique dates with completed sessions (or sessions with answers)
     const practiceDates = new Set<string>()
     for (const session of sessions) {
-      if (session.answers.length > 0) {
-        const date = new Date(session.startedAt).toISOString().split('T')[0] as string
+      if (session.answers.length > 0 && session.createdAt) {
+        const date = new Date(session.createdAt).toISOString().split('T')[0] as string
         practiceDates.add(date)
       }
     }
@@ -143,7 +143,8 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
   const hasPracticedToday = computed(() => {
     const todayStr = getTodayString()
     return practiceStore.studentHistory.some((session) => {
-      const sessionDate = new Date(session.startedAt).toISOString().split('T')[0] as string
+      if (!session.createdAt) return false
+      const sessionDate = new Date(session.createdAt).toISOString().split('T')[0] as string
       return sessionDate === todayStr && session.answers.length > 0
     })
   })

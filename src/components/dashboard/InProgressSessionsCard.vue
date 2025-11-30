@@ -14,7 +14,7 @@ const router = useRouter()
 
 interface InProgressRow {
   id: string
-  startedAt: string
+  createdAt: string
   subjectName: string
   topicName: string
   answeredQuestions: number
@@ -31,7 +31,7 @@ const inProgressData = computed<InProgressRow[]>(() => {
 
       return {
         id: session.id,
-        startedAt: session.startedAt,
+        createdAt: session.createdAt ?? new Date().toISOString(),
         subjectName: session.subjectName,
         topicName: session.topicName,
         answeredQuestions: session.answers.length,
@@ -58,7 +58,7 @@ function handleContinue(sessionId: string) {
 
 const columns: ColumnDef<InProgressRow>[] = [
   {
-    accessorKey: 'startedAt',
+    accessorKey: 'createdAt',
     header: ({ column }) => {
       return h(
         Button,
@@ -70,7 +70,7 @@ const columns: ColumnDef<InProgressRow>[] = [
       )
     },
     cell: ({ row }) => {
-      return h('div', { class: 'text-sm' }, formatDate(row.original.startedAt))
+      return h('div', { class: 'text-sm' }, formatDate(row.original.createdAt))
     },
   },
   {

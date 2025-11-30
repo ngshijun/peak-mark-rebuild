@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, h, watch } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { useQuestionsStore } from '@/stores/questions'
-import type { QuestionWithStats } from '@/types'
+import { useQuestionsStore, type QuestionWithStats } from '@/stores/questions'
 import { Search, Clock, ArrowUpDown } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

@@ -88,9 +88,13 @@ function handleSelectPet(petId: string) {
               </div>
 
               <!-- Pet Image or Question Mark -->
-              <div class="flex size-12 items-center justify-center text-3xl">
+              <div class="flex size-12 items-center justify-center">
                 <template v-if="petsStore.isPetOwned(pet.id)">
-                  {{ pet.image }}
+                  <img
+                    :src="petsStore.getPetImageUrl(pet.imagePath)"
+                    :alt="pet.name"
+                    class="size-10 object-contain"
+                  />
                 </template>
                 <template v-else>
                   <HelpCircle class="size-8 text-gray-500" />

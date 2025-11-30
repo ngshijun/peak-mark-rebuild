@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, h, watch } from 'vue'
+import { ref, computed, watch, onMounted, h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { useQuestionsStore } from '@/stores/questions'
-import type { Question } from '@/types'
-import { Search, Plus, Upload, MoreHorizontal, Pencil, Trash2 } from 'lucide-vue-next'
+import { useQuestionsStore, type Question } from '@/stores/questions'
+import { Search, Plus, Upload, Trash2, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -17,19 +16,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { QuestionEditDialog } from '@/components/admin'
+import { QuestionAddDialog } from '@/components/admin'
+import { toast } from 'vue-sonner'
 
 const questionsStore = useQuestionsStore()
 
@@ -37,14 +31,19 @@ const ALL_VALUE = '__all__'
 
 const searchQuery = ref('')
 const showAddDialog = ref(false)
-const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const selectedQuestion = ref<Question | null>(null)
+const isDeleting = ref(false)
 
 // Filter state
 const selectedGradeLevel = ref<string>(ALL_VALUE)
 const selectedSubject = ref<string>(ALL_VALUE)
 const selectedTopic = ref<string>(ALL_VALUE)
+
+// Fetch questions on mount
+onMounted(async () => {
+  await questionsStore.fetchQuestions()
+})
 
 // Reset subject and topic when grade level changes
 watch(selectedGradeLevel, () => {
@@ -105,7 +104,7 @@ function getAnswerDisplay(question: Question): string {
     const correctOption = question.options.find((o) => o.isCorrect)
     return correctOption?.text ?? 'N/A'
   }
-  return question.answer
+  return question.answer ?? 'N/A'
 }
 
 // Column definitions
@@ -153,7 +152,7 @@ const columns: ColumnDef<Question>[] = [
     header: 'Explanation',
     cell: ({ row }) => {
       const explanation = row.original.explanation
-      return h('div', { class: 'max-w-[200px] truncate text-muted-foreground' }, explanation)
+      return h('div', { class: 'max-w-[200px] truncate text-muted-foreground' }, explanation ?? '')
     },
   },
   {
@@ -161,31 +160,14 @@ const columns: ColumnDef<Question>[] = [
     cell: ({ row }) => {
       const question = row.original
       return h(
-        DropdownMenu,
-        {},
+        Button,
         {
-          default: () => [
-            h(DropdownMenuTrigger, { asChild: true }, () =>
-              h(Button, { variant: 'ghost', class: 'size-4 p-0' }, () =>
-                h(MoreHorizontal, { class: 'size-4' }),
-              ),
-            ),
-            h(DropdownMenuContent, { align: 'end' }, () => [
-              h(DropdownMenuItem, { onClick: () => openEditDialog(question) }, () => [
-                h(Pencil, { class: 'mr-2 size-4' }),
-                'Edit',
-              ]),
-              h(
-                DropdownMenuItem,
-                {
-                  class: 'text-destructive focus:text-destructive',
-                  onClick: () => openDeleteDialog(question),
-                },
-                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete'],
-              ),
-            ]),
-          ],
+          variant: 'ghost',
+          size: 'icon',
+          class: 'size-8 text-destructive hover:text-destructive',
+          onClick: () => openDeleteDialog(question),
         },
+        () => h(Trash2, { class: 'size-4' }),
       )
     },
   },
@@ -196,28 +178,36 @@ function openAddDialog() {
   showAddDialog.value = true
 }
 
-function openEditDialog(question: Question) {
-  selectedQuestion.value = question
-  showEditDialog.value = true
-}
-
 function openDeleteDialog(question: Question) {
   selectedQuestion.value = question
   showDeleteDialog.value = true
 }
 
-function handleDelete() {
-  if (selectedQuestion.value) {
-    questionsStore.deleteQuestion(selectedQuestion.value.id)
+async function handleDelete() {
+  if (!selectedQuestion.value) return
+
+  isDeleting.value = true
+  try {
+    const result = await questionsStore.deleteQuestion(selectedQuestion.value.id)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Question deleted successfully')
+    showDeleteDialog.value = false
+    selectedQuestion.value = null
+    // Refresh questions list after delete
+    await questionsStore.fetchQuestions()
+  } finally {
+    isDeleting.value = false
   }
-  showDeleteDialog.value = false
-  selectedQuestion.value = null
 }
 
-function handleSave() {
+async function handleSave() {
   showAddDialog.value = false
-  showEditDialog.value = false
   selectedQuestion.value = null
+  // Refresh questions list after add
+  await questionsStore.fetchQuestions()
 }
 </script>
 
@@ -240,72 +230,82 @@ function handleSave() {
       </div>
     </div>
 
-    <!-- Filters Row -->
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <!-- Search Bar -->
-      <div class="relative w-[250px]">
-        <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input v-model="searchQuery" placeholder="Search questions..." class="pl-9" />
-      </div>
-
-      <!-- Grade Level Selector -->
-      <Select v-model="selectedGradeLevel">
-        <SelectTrigger class="w-[130px]">
-          <SelectValue placeholder="All Grades" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Grades</SelectItem>
-          <SelectItem v-for="grade in availableGradeLevels" :key="grade" :value="grade">
-            {{ grade }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-
-      <!-- Subject Selector -->
-      <Select v-model="selectedSubject" :disabled="selectedGradeLevel === ALL_VALUE">
-        <SelectTrigger class="w-[140px]">
-          <SelectValue placeholder="All Subjects" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
-          <SelectItem v-for="subject in availableSubjects" :key="subject" :value="subject">
-            {{ subject }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-
-      <!-- Topic Selector -->
-      <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
-        <SelectTrigger class="w-[140px]">
-          <SelectValue placeholder="All Topics" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
-          <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
-            {{ topic }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
+    <!-- Loading State -->
+    <div v-if="questionsStore.isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
     </div>
 
-    <!-- Data Table -->
-    <DataTable :columns="columns" :data="filteredQuestions" />
+    <template v-else>
+      <!-- Filters Row -->
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <!-- Search Bar -->
+        <div class="relative w-[250px]">
+          <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input v-model="searchQuery" placeholder="Search questions..." class="pl-9" />
+        </div>
+
+        <!-- Grade Level Selector -->
+        <Select v-model="selectedGradeLevel">
+          <SelectTrigger class="w-[130px]">
+            <SelectValue placeholder="All Grades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Grades</SelectItem>
+            <SelectItem v-for="grade in availableGradeLevels" :key="grade" :value="grade">
+              {{ grade }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <!-- Subject Selector -->
+        <Select v-model="selectedSubject" :disabled="selectedGradeLevel === ALL_VALUE">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All Subjects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
+            <SelectItem v-for="subject in availableSubjects" :key="subject" :value="subject">
+              {{ subject }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <!-- Topic Selector -->
+        <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All Topics" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
+            <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
+              {{ topic }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <!-- Data Table -->
+      <DataTable :columns="columns" :data="filteredQuestions" />
+
+      <!-- Empty State -->
+      <div
+        v-if="filteredQuestions.length === 0 && !searchQuery"
+        class="rounded-lg border border-dashed p-12 text-center"
+      >
+        <div class="mx-auto size-12 rounded-full bg-muted flex items-center justify-center">
+          <Plus class="size-6 text-muted-foreground" />
+        </div>
+        <h3 class="mt-4 text-lg font-medium">No questions yet</h3>
+        <p class="mt-2 text-sm text-muted-foreground">Get started by adding your first question.</p>
+        <Button class="mt-4" @click="openAddDialog">
+          <Plus class="mr-2 size-4" />
+          Add Question
+        </Button>
+      </div>
+    </template>
 
     <!-- Add Question Dialog -->
-    <QuestionEditDialog
-      v-model:open="showAddDialog"
-      :question="null"
-      mode="add"
-      @save="handleSave"
-    />
-
-    <!-- Edit Question Dialog -->
-    <QuestionEditDialog
-      v-model:open="showEditDialog"
-      :question="selectedQuestion"
-      mode="edit"
-      @save="handleSave"
-    />
+    <QuestionAddDialog v-model:open="showAddDialog" @save="handleSave" />
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:open="showDeleteDialog">
@@ -322,8 +322,13 @@ function handleSave() {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="showDeleteDialog = false">Cancel</Button>
-          <Button variant="destructive" @click="handleDelete">Delete</Button>
+          <Button variant="outline" :disabled="isDeleting" @click="showDeleteDialog = false"
+            >Cancel</Button
+          >
+          <Button variant="destructive" :disabled="isDeleting" @click="handleDelete">
+            <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
+            Delete
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

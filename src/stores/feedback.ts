@@ -1,73 +1,134 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { QuestionFeedback } from '@/types'
+import { supabase } from '@/lib/supabaseClient'
+import type { Database } from '@/types/database.types'
+
+type FeedbackCategory = Database['public']['Enums']['feedback_category']
+
+export interface QuestionFeedback {
+  id: string
+  questionId: string
+  question: string // Denormalized for display
+  category: FeedbackCategory
+  comments: string | null
+  reportedAt: string
+  reportedBy: string
+  reportedByName?: string
+}
 
 export const useFeedbackStore = defineStore('feedback', () => {
-  const feedbacks = ref<QuestionFeedback[]>([
-    {
-      id: '1',
-      questionId: '1',
-      question: 'What is 2 + 2?',
-      category: 'option_error',
-      comments: 'Option C shows "5" but should show a different number to avoid confusion.',
-      reportedAt: '2024-01-20T10:30:00',
-      reportedBy: 'student1@example.com',
-    },
-    {
-      id: '2',
-      questionId: '3',
-      question: 'What is the first letter of the alphabet?',
-      category: 'question_error',
-      comments: 'The question could be more specific - should it be uppercase or lowercase?',
-      reportedAt: '2024-01-21T14:15:00',
-      reportedBy: 'parent2@example.com',
-    },
-    {
-      id: '3',
-      questionId: '4',
-      question: 'What is 3 × 4?',
-      category: 'explanation_error',
-      comments:
-        'The explanation says "3 multiplied by 4" but could show the step-by-step calculation.',
-      reportedAt: '2024-01-22T09:45:00',
-      reportedBy: 'student3@example.com',
-    },
-    {
-      id: '4',
-      questionId: '5',
-      question: 'What do plants need to grow?',
-      category: 'answer_error',
-      comments:
-        'The answer should also include "air" or "carbon dioxide" as plants need these too.',
-      reportedAt: '2024-01-23T16:20:00',
-      reportedBy: 'student4@example.com',
-    },
-    {
-      id: '5',
-      questionId: '6',
-      question: 'Which animal is a mammal?',
-      category: 'image_error',
-      comments:
-        'There is no image attached to this question. Would be helpful to have animal pictures.',
-      reportedAt: '2024-01-24T11:00:00',
-      reportedBy: 'parent5@example.com',
-    },
-    {
-      id: '6',
-      questionId: '2',
-      question: 'What is 5 - 3?',
-      category: 'other',
-      comments:
-        'This question seems too easy for Grade 1 students who have been learning for a while.',
-      reportedAt: '2024-01-25T08:30:00',
-      reportedBy: 'parent1@example.com',
-    },
-  ])
+  const feedbacks = ref<QuestionFeedback[]>([])
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
 
-  function deleteFeedback(id: string) {
-    const index = feedbacks.value.findIndex((f) => f.id === id)
-    if (index !== -1) {
-      feedbacks.value.splice(index, 1)
+  // Fetch all feedbacks with question text joined
+  async function fetchFeedbacks(): Promise<{ error: string | null }> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('question_feedback')
+        .select(
+          `
+          id,
+          question_id,
+          category,
+          comments,
+          created_at,
+          reported_by,
+          questions!inner (
+            question
+          ),
+          profiles!question_feedback_reported_by_fkey (
+            name
+          )
+        `,
+        )
+        .order('created_at', { ascending: false })
+
+      if (fetchError) {
+        error.value = fetchError.message
+        return { error: fetchError.message }
+      }
+
+      type FeedbackRow = {
+        id: string
+        question_id: string
+        category: FeedbackCategory
+        comments: string | null
+        created_at: string | null
+        reported_by: string
+        questions: { question: string } | null
+        profiles: { name: string } | null
+      }
+
+      feedbacks.value = ((data || []) as FeedbackRow[]).map((item) => ({
+        id: item.id,
+        questionId: item.question_id,
+        question: item.questions?.question || 'Question not available',
+        category: item.category,
+        comments: item.comments,
+        reportedAt: item.created_at || new Date().toISOString(),
+        reportedBy: item.reported_by,
+        reportedByName: item.profiles?.name || 'Unknown',
+      }))
+
+      return { error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch feedbacks'
+      error.value = message
+      return { error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Delete a feedback
+  async function deleteFeedback(id: string): Promise<{ error: string | null }> {
+    try {
+      const { error: deleteError } = await supabase.from('question_feedback').delete().eq('id', id)
+
+      if (deleteError) {
+        return { error: deleteError.message }
+      }
+
+      // Remove from local state
+      const index = feedbacks.value.findIndex((f) => f.id === id)
+      if (index !== -1) {
+        feedbacks.value.splice(index, 1)
+      }
+
+      return { error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete feedback'
+      return { error: message }
+    }
+  }
+
+  // Submit feedback (for students/parents)
+  async function submitFeedback(
+    questionId: string,
+    category: FeedbackCategory,
+    comments: string,
+    reportedBy: string,
+  ): Promise<{ error: string | null }> {
+    try {
+      const { error: insertError } = await supabase.from('question_feedback').insert({
+        question_id: questionId,
+        category,
+        comments: comments || null,
+        reported_by: reportedBy,
+      })
+
+      if (insertError) {
+        return { error: insertError.message }
+      }
+
+      return { error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to submit feedback'
+      return { error: message }
     }
   }
 
@@ -77,7 +138,11 @@ export const useFeedbackStore = defineStore('feedback', () => {
 
   return {
     feedbacks,
+    isLoading,
+    error,
+    fetchFeedbacks,
     deleteFeedback,
+    submitFeedback,
     getFeedbackById,
   }
 })

@@ -64,7 +64,7 @@ const availableTopics = computed(() => {
 // Helper type for table row
 interface HistoryRow {
   id: string
-  startedAt: string
+  createdAt: string
   gradeLevelName: string
   subjectName: string
   topicName: string
@@ -91,15 +91,15 @@ const historyData = computed<HistoryRow[]>(() => {
     const score = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : null
 
     let timeUsedSeconds: number | null = null
-    if (session.completedAt) {
-      const start = new Date(session.startedAt).getTime()
+    if (session.completedAt && session.createdAt) {
+      const start = new Date(session.createdAt).getTime()
       const end = new Date(session.completedAt).getTime()
       timeUsedSeconds = Math.round((end - start) / 1000)
     }
 
     return {
       id: session.id,
-      startedAt: session.startedAt,
+      createdAt: session.createdAt ?? new Date().toISOString(),
       gradeLevelName: session.gradeLevelName,
       subjectName: session.subjectName,
       topicName: session.topicName,
@@ -140,7 +140,7 @@ function formatDuration(seconds: number): string {
 // Column definitions
 const columns: ColumnDef<HistoryRow>[] = [
   {
-    accessorKey: 'startedAt',
+    accessorKey: 'createdAt',
     header: ({ column }) => {
       return h(
         Button,
@@ -152,7 +152,7 @@ const columns: ColumnDef<HistoryRow>[] = [
       )
     },
     cell: ({ row }) => {
-      return h('div', { class: 'text-sm' }, formatDate(row.original.startedAt))
+      return h('div', { class: 'text-sm' }, formatDate(row.original.createdAt))
     },
   },
   {

@@ -1,20 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { useFeedbackStore } from '@/stores/feedback'
-import { useQuestionsStore } from '@/stores/questions'
-import type { QuestionFeedback, FeedbackCategory, Question } from '@/types'
-import { Search, MoreHorizontal, Pencil, Trash2, ArrowUpDown } from 'lucide-vue-next'
+import { useFeedbackStore, type QuestionFeedback } from '@/stores/feedback'
+import type { Database } from '@/types/database.types'
+import { Search, Trash2, ArrowUpDown, Loader2 } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +18,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { QuestionEditDialog } from '@/components/admin'
+import { toast } from 'vue-sonner'
+
+type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
 const feedbackStore = useFeedbackStore()
-const questionsStore = useQuestionsStore()
 
 const searchQuery = ref('')
+const isDeleting = ref(false)
+
+// Fetch feedbacks on mount
+onMounted(async () => {
+  await feedbackStore.fetchFeedbacks()
+})
 
 // Filter feedbacks based on search
 const filteredFeedbacks = computed(() => {
@@ -39,7 +39,7 @@ const filteredFeedbacks = computed(() => {
   return feedbackStore.feedbacks.filter(
     (f) =>
       f.question.toLowerCase().includes(query) ||
-      f.comments.toLowerCase().includes(query) ||
+      (f.comments?.toLowerCase().includes(query) ?? false) ||
       getCategoryLabel(f.category).toLowerCase().includes(query),
   )
 })
@@ -83,23 +83,6 @@ function formatDate(dateString: string): string {
   })
 }
 
-// Edit Question Dialog
-const showEditDialog = ref(false)
-const editingQuestion = ref<Question | null>(null)
-
-function openEditDialog(feedback: QuestionFeedback) {
-  const question = questionsStore.getQuestionById(feedback.questionId)
-  if (question) {
-    editingQuestion.value = question
-    showEditDialog.value = true
-  }
-}
-
-function handleSave() {
-  showEditDialog.value = false
-  editingQuestion.value = null
-}
-
 // Delete Feedback Dialog
 const showDeleteDialog = ref(false)
 const deletingFeedback = ref<QuestionFeedback | null>(null)
@@ -109,12 +92,22 @@ function openDeleteDialog(feedback: QuestionFeedback) {
   showDeleteDialog.value = true
 }
 
-function confirmDelete() {
-  if (deletingFeedback.value) {
-    feedbackStore.deleteFeedback(deletingFeedback.value.id)
+async function confirmDelete() {
+  if (!deletingFeedback.value) return
+
+  isDeleting.value = true
+  try {
+    const result = await feedbackStore.deleteFeedback(deletingFeedback.value.id)
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      toast.success('Feedback deleted successfully')
+    }
+  } finally {
+    isDeleting.value = false
+    showDeleteDialog.value = false
+    deletingFeedback.value = null
   }
-  showDeleteDialog.value = false
-  deletingFeedback.value = null
 }
 
 // Column definitions
@@ -158,36 +151,30 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     accessorKey: 'comments',
     header: 'Comments',
     cell: ({ row }) => {
-      return h('div', { class: 'text-sm whitespace-nowrap' }, row.original.comments)
+      return h('div', { class: 'max-w-[300px] truncate text-sm' }, row.original.comments || '-')
+    },
+  },
+  {
+    accessorKey: 'reportedByName',
+    header: 'Reported By',
+    cell: ({ row }) => {
+      return h('div', { class: 'text-sm' }, row.original.reportedByName || 'Unknown')
     },
   },
   {
     id: 'actions',
+    header: '',
     cell: ({ row }) => {
       const feedback = row.original
       return h(
-        DropdownMenu,
-        {},
+        Button,
         {
-          default: () => [
-            h(DropdownMenuTrigger, { asChild: true }, () =>
-              h(Button, { variant: 'ghost', class: 'size-4 p-0' }, () =>
-                h(MoreHorizontal, { class: 'size-4' }),
-              ),
-            ),
-            h(DropdownMenuContent, { align: 'end' }, () => [
-              h(DropdownMenuItem, { onClick: () => openEditDialog(feedback) }, () => [
-                h(Pencil, { class: 'mr-2 size-4' }),
-                'Edit Question',
-              ]),
-              h(
-                DropdownMenuItem,
-                { class: 'text-destructive', onClick: () => openDeleteDialog(feedback) },
-                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete Feedback'],
-              ),
-            ]),
-          ],
+          variant: 'ghost',
+          size: 'icon',
+          class: 'size-8 text-destructive hover:text-destructive',
+          onClick: () => openDeleteDialog(feedback),
         },
+        () => h(Trash2, { class: 'size-4' }),
       )
     },
   },
@@ -201,26 +188,28 @@ const columns: ColumnDef<QuestionFeedback>[] = [
       <p class="text-muted-foreground">Review and manage feedback reports from users.</p>
     </div>
 
-    <!-- Search Bar -->
-    <div class="mb-4 flex items-center gap-2">
-      <div class="relative flex-1 max-w-sm">
-        <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input v-model="searchQuery" placeholder="Search feedback..." class="pl-9" />
-      </div>
+    <!-- Loading State -->
+    <div v-if="feedbackStore.isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
     </div>
 
-    <!-- Data Table -->
-    <DataTable :columns="columns" :data="filteredFeedbacks" />
+    <template v-else>
+      <!-- Search Bar -->
+      <div class="mb-4 flex items-center gap-2">
+        <div class="relative flex-1 max-w-sm">
+          <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input v-model="searchQuery" placeholder="Search feedback..." class="pl-9" />
+        </div>
+      </div>
 
-    <!-- Edit Question Dialog -->
-    <QuestionEditDialog
-      v-model:open="showEditDialog"
-      :question="editingQuestion"
-      mode="edit"
-      title="Edit Question"
-      description="Make changes to the question based on the feedback."
-      @save="handleSave"
-    />
+      <!-- Data Table -->
+      <DataTable :columns="columns" :data="filteredFeedbacks" />
+
+      <!-- Empty State -->
+      <div v-if="filteredFeedbacks.length === 0 && !searchQuery" class="py-12 text-center">
+        <p class="text-muted-foreground">No feedback reports yet.</p>
+      </div>
+    </template>
 
     <!-- Delete Feedback Confirmation -->
     <AlertDialog v-model:open="showDeleteDialog">
@@ -232,8 +221,11 @@ const columns: ColumnDef<QuestionFeedback>[] = [
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction @click="confirmDelete">Delete</AlertDialogAction>
+          <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
+          <AlertDialogAction :disabled="isDeleting" @click="confirmDelete">
+            <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
+            Delete
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

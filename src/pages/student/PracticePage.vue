@@ -108,17 +108,12 @@ function goBackToSubjects() {
   selectedSubjectId.value = null
 }
 
-function selectTopic(topicId: string, topicName: string) {
+async function selectTopic(topicId: string) {
   if (!selectedSubject.value) return
 
-  const session = practiceStore.startSession(
-    selectedSubject.value.id,
-    selectedSubject.value.name,
-    topicId,
-    topicName,
-  )
+  const result = await practiceStore.startSession(topicId)
 
-  if (session) {
+  if (result.session) {
     router.push('/student/practice/quiz')
   }
 }
@@ -178,7 +173,7 @@ function selectTopic(topicId: string, topicName: string) {
           v-for="topic in selectedSubject.topics"
           :key="topic.id"
           class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
-          @click="selectTopic(topic.id, topic.name)"
+          @click="selectTopic(topic.id)"
         >
           <div class="aspect-video w-full overflow-hidden">
             <img

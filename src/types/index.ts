@@ -64,52 +64,36 @@ export interface GradeLevel {
 }
 
 // Question types
+// These are defined here for compatibility with mock data stores
+// The questions store also exports its own types that are used for Supabase integration
 export type QuestionType = 'mcq' | 'short_answer'
 
 export interface MCQOption {
   id: string
-  text: string
+  text: string | null
+  imagePath?: string | null
   isCorrect: boolean
 }
 
-export interface BaseQuestion {
+export interface Question {
   id: string
   type: QuestionType
   question: string
-  imageUrl?: string
-  gradeLevelId: string
+  imagePath?: string | null
+  imageUrl?: string // Legacy support
+  gradeLevelId: string | null
   gradeLevelName: string
-  subjectId: string
+  subjectId: string | null
   subjectName: string
   topicId: string
   topicName: string
-  explanation: string
-  createdAt: string
-  updatedAt: string
+  explanation: string | null
+  answer?: string | null // For short_answer type
+  options?: MCQOption[] // For MCQ type (optional for short_answer)
+  createdAt?: string | null
+  updatedAt?: string // Legacy support
 }
 
-export interface MCQQuestion extends BaseQuestion {
-  type: 'mcq'
-  options: MCQOption[]
-}
-
-export interface ShortAnswerQuestion extends BaseQuestion {
-  type: 'short_answer'
-  answer: string
-}
-
-export type Question = MCQQuestion | ShortAnswerQuestion
-
-// Input types for creating/updating questions
-export type CreateMCQQuestion = Omit<MCQQuestion, 'id' | 'createdAt' | 'updatedAt'>
-export type CreateShortAnswerQuestion = Omit<ShortAnswerQuestion, 'id' | 'createdAt' | 'updatedAt'>
-export type CreateQuestion = CreateMCQQuestion | CreateShortAnswerQuestion
-
-export type UpdateMCQQuestion = Partial<Omit<MCQQuestion, 'id' | 'createdAt'>>
-export type UpdateShortAnswerQuestion = Partial<Omit<ShortAnswerQuestion, 'id' | 'createdAt'>>
-export type UpdateQuestion = UpdateMCQQuestion | UpdateShortAnswerQuestion
-
-// Question statistics
 export interface QuestionStatistics {
   questionId: string
   attempts: number
@@ -118,7 +102,7 @@ export interface QuestionStatistics {
   averageTimeSeconds: number
 }
 
-export type QuestionWithStats = Question & {
+export interface QuestionWithStats extends Question {
   stats: QuestionStatistics
 }
 
@@ -142,12 +126,16 @@ export interface QuestionFeedback {
 }
 
 // Practice session types
+// These are defined here for compatibility with mock data stores
 export interface PracticeAnswer {
-  questionId: string
-  selectedOptionId?: string // For MCQ
-  textAnswer?: string // For short answer
+  id?: string
+  questionId: string | null
+  selectedOptionId?: string // Legacy support (letter: a, b, c, d)
+  selectedOption?: number | null // New format (number: 1, 2, 3, 4)
+  textAnswer?: string | null
   isCorrect: boolean
-  answeredAt: string
+  answeredAt: string | null
+  timeSpentSeconds?: number | null
 }
 
 export interface PracticeSession {
@@ -155,15 +143,20 @@ export interface PracticeSession {
   studentId: string
   gradeLevelId: string | null
   gradeLevelName: string
-  subjectId: string
+  subjectId: string | null
   subjectName: string
   topicId: string
   topicName: string
+  totalQuestions: number
+  currentQuestionIndex: number
+  correctCount?: number
+  xpEarned?: number | null
+  coinsEarned?: number | null
+  createdAt?: string | null
+  startedAt?: string // Legacy support
+  completedAt?: string | null
   questions: Question[]
   answers: PracticeAnswer[]
-  currentQuestionIndex: number
-  startedAt: string
-  completedAt?: string
 }
 
 // Parent-Student linking types

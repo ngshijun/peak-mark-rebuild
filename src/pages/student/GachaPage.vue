@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, allPets, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Gift, Star, Sparkles } from 'lucide-vue-next'
+import { Gift, Star, Sparkles, Loader2 } from 'lucide-vue-next'
 import PixelCoin from '@/components/icons/PixelCoin.vue'
 
 const authStore = useAuthStore()
@@ -28,6 +28,14 @@ const showResultDialog = ref(false)
 const pullResults = ref<Pet[]>([])
 const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
 
+// Fetch pets on mount
+onMounted(async () => {
+  if (petsStore.allPets.length === 0) {
+    await petsStore.fetchAllPets()
+  }
+  await petsStore.fetchOwnedPets()
+})
+
 // Get random pet based on rarity chances
 function getRandomPet(): Pet {
   const roll = Math.random() * 100
@@ -36,7 +44,7 @@ function getRandomPet(): Pet {
 
   for (const [rarity, config] of Object.entries(rarityConfig) as [
     PetRarity,
-    typeof rarityConfig.common,
+    (typeof rarityConfig)['common'],
   ][]) {
     cumulative += config.chance
     if (roll < cumulative) {
@@ -45,41 +53,43 @@ function getRandomPet(): Pet {
     }
   }
 
-  const petsOfRarity = allPets.filter((pet) => pet.rarity === selectedRarity)
+  const petsOfRarity = petsStore.allPets.filter((pet) => pet.rarity === selectedRarity)
   const randomPet = petsOfRarity[Math.floor(Math.random() * petsOfRarity.length)]
   if (!randomPet) {
-    return allPets[0] as Pet
+    return petsStore.allPets[0] as Pet
   }
   return randomPet
 }
 
 // Single pull
-function singlePull() {
+async function singlePull() {
   if (currentCoins.value < SINGLE_PULL_COST) return
 
   isRolling.value = true
   authStore.spendCoins(SINGLE_PULL_COST)
 
-  setTimeout(() => {
+  setTimeout(async () => {
     const pet = getRandomPet()
     pullResults.value = [pet]
-    petsStore.addPet(pet.id)
+    await petsStore.addPet(pet.id)
     isRolling.value = false
     showResultDialog.value = true
   }, 1500)
 }
 
 // Multi pull (10x)
-function multiPull() {
+async function multiPull() {
   if (currentCoins.value < MULTI_PULL_COST) return
 
   isRolling.value = true
   authStore.spendCoins(MULTI_PULL_COST)
 
-  setTimeout(() => {
+  setTimeout(async () => {
     const pets = Array.from({ length: 10 }, () => getRandomPet())
     pullResults.value = pets
-    pets.forEach((pet) => petsStore.addPet(pet.id))
+    for (const pet of pets) {
+      await petsStore.addPet(pet.id)
+    }
     isRolling.value = false
     showResultDialog.value = true
   }, 2000)
@@ -104,89 +114,96 @@ function closeResults() {
       </div>
     </div>
 
-    <!-- Gacha Machine -->
-    <Card class="overflow-hidden">
-      <CardHeader class="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-        <CardTitle class="flex items-center gap-2">
-          <Gift class="size-6" />
-          Lucky Draw
-        </CardTitle>
-        <CardDescription class="text-white/80"
-          >Try your luck and win amazing items!</CardDescription
-        >
-      </CardHeader>
-      <CardContent class="p-6">
-        <div class="flex flex-col items-center gap-6">
-          <!-- Gacha Animation Area -->
-          <div
-            class="flex size-48 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100"
+    <!-- Loading State -->
+    <div v-if="petsStore.isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
+    </div>
+
+    <template v-else>
+      <!-- Gacha Machine -->
+      <Card class="overflow-hidden">
+        <CardHeader class="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+          <CardTitle class="flex items-center gap-2">
+            <Gift class="size-6" />
+            Lucky Draw
+          </CardTitle>
+          <CardDescription class="text-white/80"
+            >Try your luck and win amazing items!</CardDescription
           >
+        </CardHeader>
+        <CardContent class="p-6">
+          <div class="flex flex-col items-center gap-6">
+            <!-- Gacha Animation Area -->
             <div
-              class="flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-purple-200 to-pink-200"
-              :class="{ 'animate-pulse': isRolling }"
+              class="flex size-48 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100"
             >
-              <Gift v-if="!isRolling" class="size-16 text-purple-500" />
-              <Sparkles v-else class="size-16 animate-spin text-pink-500" />
+              <div
+                class="flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-purple-200 to-pink-200"
+                :class="{ 'animate-pulse': isRolling }"
+              >
+                <Gift v-if="!isRolling" class="size-16 text-purple-500" />
+                <Sparkles v-else class="size-16 animate-spin text-pink-500" />
+              </div>
+            </div>
+
+            <!-- Pull Buttons -->
+            <div class="flex flex-col gap-4 sm:flex-row">
+              <Button
+                size="lg"
+                class="min-w-40 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                :disabled="isRolling || currentCoins < SINGLE_PULL_COST"
+                @click="singlePull"
+              >
+                <Star class="mr-2 size-5" />
+                Single Pull
+                <Badge variant="secondary" class="ml-2 gap-1">
+                  <PixelCoin :size="12" />
+                  {{ SINGLE_PULL_COST }}
+                </Badge>
+              </Button>
+              <Button
+                size="lg"
+                class="min-w-40 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                :disabled="isRolling || currentCoins < MULTI_PULL_COST"
+                @click="multiPull"
+              >
+                <Sparkles class="mr-2 size-5" />
+                10x Pull
+                <Badge variant="secondary" class="ml-2 gap-1">
+                  <PixelCoin :size="12" />
+                  {{ MULTI_PULL_COST }}
+                </Badge>
+              </Button>
+            </div>
+
+            <p v-if="currentCoins < SINGLE_PULL_COST" class="text-sm text-muted-foreground">
+              Not enough coins! Complete practice sessions to earn more.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Rarity Info -->
+      <Card>
+        <CardHeader>
+          <CardTitle>Drop Rates</CardTitle>
+          <CardDescription>Chances of getting each rarity</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div
+              v-for="(config, rarity) in rarityConfig"
+              :key="rarity"
+              class="rounded-lg p-3 text-center"
+              :class="config.bgColor"
+            >
+              <p class="text-sm font-medium" :class="config.color">{{ config.label }}</p>
+              <p class="text-lg font-bold" :class="config.color">{{ config.chance }}%</p>
             </div>
           </div>
-
-          <!-- Pull Buttons -->
-          <div class="flex flex-col gap-4 sm:flex-row">
-            <Button
-              size="lg"
-              class="min-w-40 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-              :disabled="isRolling || currentCoins < SINGLE_PULL_COST"
-              @click="singlePull"
-            >
-              <Star class="mr-2 size-5" />
-              Single Pull
-              <Badge variant="secondary" class="ml-2 gap-1">
-                <PixelCoin :size="12" />
-                {{ SINGLE_PULL_COST }}
-              </Badge>
-            </Button>
-            <Button
-              size="lg"
-              class="min-w-40 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-              :disabled="isRolling || currentCoins < MULTI_PULL_COST"
-              @click="multiPull"
-            >
-              <Sparkles class="mr-2 size-5" />
-              10x Pull
-              <Badge variant="secondary" class="ml-2 gap-1">
-                <PixelCoin :size="12" />
-                {{ MULTI_PULL_COST }}
-              </Badge>
-            </Button>
-          </div>
-
-          <p v-if="currentCoins < SINGLE_PULL_COST" class="text-sm text-muted-foreground">
-            Not enough coins! Complete practice sessions to earn more.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Rarity Info -->
-    <Card>
-      <CardHeader>
-        <CardTitle>Drop Rates</CardTitle>
-        <CardDescription>Chances of getting each rarity</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div
-            v-for="(config, rarity) in rarityConfig"
-            :key="rarity"
-            class="rounded-lg p-3 text-center"
-            :class="config.bgColor"
-          >
-            <p class="text-sm font-medium" :class="config.color">{{ config.label }}</p>
-            <p class="text-lg font-bold" :class="config.color">{{ config.chance }}%</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </template>
 
     <!-- Results Dialog -->
     <Dialog :open="showResultDialog" @update:open="closeResults">
@@ -208,7 +225,11 @@ function closeResults() {
             class="flex flex-col items-center rounded-lg border p-4"
             :class="rarityConfig[pet.rarity].bgColor"
           >
-            <span class="text-4xl">{{ pet.image }}</span>
+            <img
+              :src="petsStore.getPetImageUrl(pet.imagePath)"
+              :alt="pet.name"
+              class="size-16 object-contain"
+            />
             <p class="mt-2 text-center text-sm font-medium">{{ pet.name }}</p>
             <Badge :class="rarityConfig[pet.rarity].color" variant="outline" class="mt-1">
               {{ rarityConfig[pet.rarity].label }}

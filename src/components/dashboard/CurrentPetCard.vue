@@ -25,14 +25,18 @@ function goToCollections() {
       <template v-if="petsStore.selectedPet">
         <div class="flex items-center gap-3">
           <div
-            class="flex size-14 items-center justify-center rounded-lg text-4xl"
+            class="flex size-14 items-center justify-center rounded-lg"
             :class="[
               rarityConfig[petsStore.selectedPet.rarity].bgColor,
               rarityConfig[petsStore.selectedPet.rarity].borderColor,
               'border',
             ]"
           >
-            {{ petsStore.selectedPet.image }}
+            <img
+              :src="petsStore.getPetImageUrl(petsStore.selectedPet.imagePath)"
+              :alt="petsStore.selectedPet.name"
+              class="size-12 object-contain"
+            />
           </div>
           <div>
             <p class="font-medium">{{ petsStore.selectedPet.name }}</p>
