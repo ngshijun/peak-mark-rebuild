@@ -401,44 +401,25 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   /**
-   * Fetch question statistics
+   * Fetch question statistics from the materialized view
    */
   async function fetchQuestionStatistics(): Promise<void> {
     try {
-      // Get statistics from practice_answers table
       const { data, error: fetchError } = await supabase
-        .from('practice_answers')
-        .select('question_id, is_correct, time_spent_seconds')
+        .from('question_statistics')
+        .select('question_id, attempts, correct_count, correctness_rate, avg_time_seconds')
 
       if (fetchError) throw fetchError
 
-      // Aggregate statistics by question
-      const statsMap = new Map<string, { attempts: number; correct: number; totalTime: number }>()
-
-      for (const answer of data ?? []) {
-        if (!answer.question_id) continue
-
-        const existing = statsMap.get(answer.question_id) ?? {
-          attempts: 0,
-          correct: 0,
-          totalTime: 0,
-        }
-
-        existing.attempts++
-        if (answer.is_correct) existing.correct++
-        existing.totalTime += answer.time_spent_seconds ?? 0
-
-        statsMap.set(answer.question_id, existing)
-      }
-
-      questionStatistics.value = Array.from(statsMap.entries()).map(([questionId, stats]) => ({
-        questionId,
-        attempts: stats.attempts,
-        correctCount: stats.correct,
-        correctnessRate:
-          stats.attempts > 0 ? Math.round((stats.correct / stats.attempts) * 100) : 0,
-        averageTimeSeconds: stats.attempts > 0 ? Math.round(stats.totalTime / stats.attempts) : 0,
-      }))
+      questionStatistics.value = (data ?? [])
+        .filter((row) => row.question_id !== null)
+        .map((row) => ({
+          questionId: row.question_id!,
+          attempts: row.attempts ?? 0,
+          correctCount: row.correct_count ?? 0,
+          correctnessRate: row.correctness_rate ?? 0,
+          averageTimeSeconds: row.avg_time_seconds ?? 0,
+        }))
     } catch (err) {
       console.error('Error fetching question statistics:', err)
     }

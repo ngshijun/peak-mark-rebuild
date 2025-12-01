@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, h, watch } from 'vue'
+import { ref, computed, h, watch, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useQuestionsStore, type QuestionWithStats } from '@/stores/questions'
-import { Search, Clock, ArrowUpDown } from 'lucide-vue-next'
+import { supabase } from '@/lib/supabaseClient'
+import { toast } from 'vue-sonner'
+import { Search, Clock, ArrowUpDown, RefreshCw } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +18,31 @@ import {
 } from '@/components/ui/select'
 
 const questionsStore = useQuestionsStore()
+
+// Fetch statistics on mount
+onMounted(async () => {
+  await questionsStore.fetchQuestionStatistics()
+})
+
+// Refresh statistics state
+const isRefreshing = ref(false)
+
+async function refreshStatistics(): Promise<void> {
+  isRefreshing.value = true
+  try {
+    const { error } = await supabase.rpc('refresh_all_materialized_views')
+    if (error) throw error
+
+    // Re-fetch the statistics after refresh
+    await questionsStore.fetchQuestionStatistics()
+    toast.success('Statistics refreshed successfully')
+  } catch (err) {
+    console.error('Error refreshing statistics:', err)
+    toast.error('Failed to refresh statistics')
+  } finally {
+    isRefreshing.value = false
+  }
+}
 
 const ALL_VALUE = '__all__'
 
@@ -204,9 +231,15 @@ const columns: ColumnDef<QuestionWithStats>[] = [
 
 <template>
   <div class="p-6">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold">Question Statistics</h1>
-      <p class="text-muted-foreground">View performance metrics for all questions.</p>
+    <div class="mb-6 flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Question Statistics</h1>
+        <p class="text-muted-foreground">View performance metrics for all questions.</p>
+      </div>
+      <Button variant="outline" :disabled="isRefreshing" @click="refreshStatistics">
+        <RefreshCw :class="['size-4 mr-2', { 'animate-spin': isRefreshing }]" />
+        {{ isRefreshing ? 'Refreshing...' : 'Refresh Statistics' }}
+      </Button>
     </div>
 
     <!-- Filters Row -->
