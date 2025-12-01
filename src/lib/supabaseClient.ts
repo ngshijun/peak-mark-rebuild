@@ -4,4 +4,10 @@ import type { Database } from '../types/database.types.ts'
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+})

@@ -82,21 +82,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     // Listen for auth state changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // IMPORTANT: Callback must NOT be async to avoid deadlock
+    // See: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
+    supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        // Ensure profile exists on sign in
-        await ensureProfileExists(session.user)
-        const profile = await fetchUserProfile(session.user.id)
-        if (profile) {
-          user.value = profile
-        }
+        // Defer Supabase calls to avoid deadlock
+        setTimeout(async () => {
+          await ensureProfileExists(session.user)
+          const profile = await fetchUserProfile(session.user.id)
+          if (profile) {
+            user.value = profile
+          }
+        }, 0)
       } else if (event === 'SIGNED_OUT') {
         user.value = null
       } else if (event === 'USER_UPDATED' && session?.user) {
-        const profile = await fetchUserProfile(session.user.id)
-        if (profile) {
-          user.value = profile
-        }
+        // Defer Supabase calls to avoid deadlock
+        setTimeout(async () => {
+          const profile = await fetchUserProfile(session.user.id)
+          if (profile) {
+            user.value = profile
+          }
+        }, 0)
       }
     })
   }
