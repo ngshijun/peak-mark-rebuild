@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
 import { useQuestionsStore, type Question } from '@/stores/questions'
-import { CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Flag } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import QuestionFeedbackDialog from '@/components/practice/QuestionFeedbackDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -28,6 +29,7 @@ const questionsStore = useQuestionsStore()
 const selectedOptionId = ref('')
 const textAnswer = ref('')
 const showExitDialog = ref(false)
+const showFeedbackDialog = ref(false)
 const isResuming = ref(false)
 
 // Time tracking for current question
@@ -193,11 +195,22 @@ async function goToQuestion(index: number) {
       <div v-if="currentQuestion">
         <Card>
           <CardHeader>
-            <div class="flex items-start justify-between">
+            <div class="flex items-start justify-between gap-4">
               <CardTitle class="text-lg">{{ currentQuestion.question }}</CardTitle>
-              <Badge variant="secondary">
-                {{ currentQuestion.type === 'mcq' ? 'Multiple Choice' : 'Short Answer' }}
-              </Badge>
+              <div class="flex shrink-0 items-center gap-2">
+                <Badge variant="secondary">
+                  {{ currentQuestion.type === 'mcq' ? 'Multiple Choice' : 'Short Answer' }}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8 text-muted-foreground hover:text-destructive"
+                  title="Report an issue with this question"
+                  @click="showFeedbackDialog = true"
+                >
+                  <Flag class="size-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
 
@@ -374,5 +387,12 @@ async function goToQuestion(index: number) {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <!-- Question Feedback Dialog -->
+    <QuestionFeedbackDialog
+      v-if="currentQuestion"
+      v-model:open="showFeedbackDialog"
+      :question-id="currentQuestion.id"
+    />
   </div>
 </template>

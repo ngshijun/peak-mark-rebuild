@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { QuestionPreviewDialog } from '@/components/admin'
 
 const questionsStore = useQuestionsStore()
 
@@ -47,6 +48,8 @@ async function refreshStatistics(): Promise<void> {
 const ALL_VALUE = '__all__'
 
 const searchQuery = ref('')
+const showPreviewDialog = ref(false)
+const previewQuestion = ref<QuestionWithStats | null>(null)
 
 // Filter state
 const selectedGradeLevel = ref<string>(ALL_VALUE)
@@ -136,7 +139,11 @@ const columns: ColumnDef<QuestionWithStats>[] = [
     header: 'Question',
     cell: ({ row }) => {
       const question = row.original.question
-      return h('div', { class: 'max-w-[250px] truncate font-medium' }, question)
+      return h(
+        'div',
+        { class: 'max-w-[10rem] lg:max-w-[30rem] truncate font-medium', title: question },
+        question,
+      )
     },
   },
   {
@@ -227,6 +234,11 @@ const columns: ColumnDef<QuestionWithStats>[] = [
     },
   },
 ]
+
+function handleRowClick(question: QuestionWithStats) {
+  previewQuestion.value = question
+  showPreviewDialog.value = true
+}
 </script>
 
 <template>
@@ -291,6 +303,9 @@ const columns: ColumnDef<QuestionWithStats>[] = [
     </div>
 
     <!-- Data Table -->
-    <DataTable :columns="columns" :data="filteredQuestions" />
+    <DataTable :columns="columns" :data="filteredQuestions" :on-row-click="handleRowClick" />
+
+    <!-- Question Preview Dialog -->
+    <QuestionPreviewDialog v-model:open="showPreviewDialog" :question="previewQuestion" />
   </div>
 </template>

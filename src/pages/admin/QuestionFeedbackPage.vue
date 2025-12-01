@@ -2,6 +2,7 @@
 import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useFeedbackStore, type QuestionFeedback } from '@/stores/feedback'
+import { useQuestionsStore, type Question } from '@/stores/questions'
 import type { Database } from '@/types/database.types'
 import { Search, Trash2, ArrowUpDown, Loader2 } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
@@ -19,17 +20,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'vue-sonner'
+import { QuestionPreviewDialog } from '@/components/admin'
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
 const feedbackStore = useFeedbackStore()
+const questionsStore = useQuestionsStore()
 
 const searchQuery = ref('')
 const isDeleting = ref(false)
+const showPreviewDialog = ref(false)
+const previewQuestion = ref<Question | null>(null)
 
-// Fetch feedbacks on mount
+// Fetch feedbacks and questions on mount
 onMounted(async () => {
-  await feedbackStore.fetchFeedbacks()
+  await Promise.all([feedbackStore.fetchFeedbacks(), questionsStore.fetchQuestions()])
 })
 
 // Filter feedbacks based on search
@@ -87,9 +92,22 @@ function formatDate(dateString: string): string {
 const showDeleteDialog = ref(false)
 const deletingFeedback = ref<QuestionFeedback | null>(null)
 
-function openDeleteDialog(feedback: QuestionFeedback) {
+function openDeleteDialog(feedback: QuestionFeedback, event: Event) {
+  event.stopPropagation()
   deletingFeedback.value = feedback
   showDeleteDialog.value = true
+}
+
+function handleRowClick(feedback: QuestionFeedback) {
+  const question = questionsStore.getQuestionById(feedback.questionId)
+  if (question) {
+    previewQuestion.value = question
+    showPreviewDialog.value = true
+  } else {
+    toast.error('Question not found', {
+      description: 'The question may have been deleted.',
+    })
+  }
 }
 
 async function confirmDelete() {
@@ -113,6 +131,42 @@ async function confirmDelete() {
 // Column definitions
 const columns: ColumnDef<QuestionFeedback>[] = [
   {
+    accessorKey: 'question',
+    header: 'Question',
+    cell: ({ row }) => {
+      return h(
+        'div',
+        {
+          class: 'max-w-[20rem] lg:max-w-[40rem] truncate font-medium',
+          title: row.original.question,
+        },
+        row.original.question,
+      )
+    },
+  },
+  {
+    accessorKey: 'category',
+    header: 'Category',
+    cell: ({ row }) => {
+      const category = row.original.category
+      return h(Badge, { variant: getCategoryVariant(category) }, () => getCategoryLabel(category))
+    },
+  },
+  {
+    accessorKey: 'comments',
+    header: 'Comments',
+    cell: ({ row }) => {
+      return h('div', { class: 'max-w-[300px] text-wrap text-sm' }, row.original.comments || '-')
+    },
+  },
+  {
+    accessorKey: 'reportedByName',
+    header: 'Reported By',
+    cell: ({ row }) => {
+      return h('div', { class: 'text-sm' }, row.original.reportedByName || 'Unknown')
+    },
+  },
+  {
     accessorKey: 'reportedAt',
     header: ({ column }) => {
       return h(
@@ -133,35 +187,6 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     },
   },
   {
-    accessorKey: 'question',
-    header: 'Question',
-    cell: ({ row }) => {
-      return h('div', { class: 'max-w-[200px] truncate font-medium' }, row.original.question)
-    },
-  },
-  {
-    accessorKey: 'category',
-    header: 'Category',
-    cell: ({ row }) => {
-      const category = row.original.category
-      return h(Badge, { variant: getCategoryVariant(category) }, () => getCategoryLabel(category))
-    },
-  },
-  {
-    accessorKey: 'comments',
-    header: 'Comments',
-    cell: ({ row }) => {
-      return h('div', { class: 'max-w-[300px] truncate text-sm' }, row.original.comments || '-')
-    },
-  },
-  {
-    accessorKey: 'reportedByName',
-    header: 'Reported By',
-    cell: ({ row }) => {
-      return h('div', { class: 'text-sm' }, row.original.reportedByName || 'Unknown')
-    },
-  },
-  {
     id: 'actions',
     header: '',
     cell: ({ row }) => {
@@ -172,7 +197,7 @@ const columns: ColumnDef<QuestionFeedback>[] = [
           variant: 'ghost',
           size: 'icon',
           class: 'size-8 text-destructive hover:text-destructive',
-          onClick: () => openDeleteDialog(feedback),
+          onClick: (event: Event) => openDeleteDialog(feedback, event),
         },
         () => h(Trash2, { class: 'size-4' }),
       )
@@ -203,8 +228,11 @@ const columns: ColumnDef<QuestionFeedback>[] = [
       </div>
 
       <!-- Data Table -->
-      <DataTable :columns="columns" :data="filteredFeedbacks" />
+      <DataTable :columns="columns" :data="filteredFeedbacks" :on-row-click="handleRowClick" />
     </template>
+
+    <!-- Question Preview Dialog -->
+    <QuestionPreviewDialog v-model:open="showPreviewDialog" :question="previewQuestion" />
 
     <!-- Delete Feedback Confirmation -->
     <AlertDialog v-model:open="showDeleteDialog">

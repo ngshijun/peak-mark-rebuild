@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { QuestionAddDialog } from '@/components/admin'
+import { QuestionAddDialog, QuestionPreviewDialog } from '@/components/admin'
 import { toast } from 'vue-sonner'
 
 const questionsStore = useQuestionsStore()
@@ -32,7 +32,9 @@ const ALL_VALUE = '__all__'
 const searchQuery = ref('')
 const showAddDialog = ref(false)
 const showDeleteDialog = ref(false)
+const showPreviewDialog = ref(false)
 const selectedQuestion = ref<Question | null>(null)
+const previewQuestion = ref<Question | null>(null)
 const isDeleting = ref(false)
 
 // Filter state
@@ -98,15 +100,6 @@ const filteredQuestions = computed(() => {
   return filtered
 })
 
-// Helper to get answer display
-function getAnswerDisplay(question: Question): string {
-  if (question.type === 'mcq') {
-    const correctOption = question.options.find((o) => o.isCorrect)
-    return correctOption?.text ?? 'N/A'
-  }
-  return question.answer ?? 'N/A'
-}
-
 // Column definitions
 const columns: ColumnDef<Question>[] = [
   {
@@ -114,7 +107,11 @@ const columns: ColumnDef<Question>[] = [
     header: 'Question',
     cell: ({ row }) => {
       const question = row.original.question
-      return h('div', { class: 'max-w-[300px] truncate font-medium' }, question)
+      return h(
+        'div',
+        { class: 'max-w-[20rem] lg:max-w-[40rem] truncate font-medium', title: question },
+        question,
+      )
     },
   },
   {
@@ -140,22 +137,6 @@ const columns: ColumnDef<Question>[] = [
     header: 'Topic',
   },
   {
-    id: 'answer',
-    header: 'Answer',
-    cell: ({ row }) => {
-      const answer = getAnswerDisplay(row.original)
-      return h('div', { class: 'max-w-[150px] truncate' }, answer)
-    },
-  },
-  {
-    accessorKey: 'explanation',
-    header: 'Explanation',
-    cell: ({ row }) => {
-      const explanation = row.original.explanation
-      return h('div', { class: 'max-w-[200px] truncate text-muted-foreground' }, explanation ?? '')
-    },
-  },
-  {
     id: 'actions',
     cell: ({ row }) => {
       const question = row.original
@@ -165,7 +146,7 @@ const columns: ColumnDef<Question>[] = [
           variant: 'ghost',
           size: 'icon',
           class: 'size-8 text-destructive hover:text-destructive',
-          onClick: () => openDeleteDialog(question),
+          onClick: (event: Event) => openDeleteDialog(question, event),
         },
         () => h(Trash2, { class: 'size-4' }),
       )
@@ -178,9 +159,15 @@ function openAddDialog() {
   showAddDialog.value = true
 }
 
-function openDeleteDialog(question: Question) {
+function openDeleteDialog(question: Question, event: Event) {
+  event.stopPropagation()
   selectedQuestion.value = question
   showDeleteDialog.value = true
+}
+
+function handleRowClick(question: Question) {
+  previewQuestion.value = question
+  showPreviewDialog.value = true
 }
 
 async function handleDelete() {
@@ -285,11 +272,14 @@ async function handleSave() {
       </div>
 
       <!-- Data Table -->
-      <DataTable :columns="columns" :data="filteredQuestions" />
+      <DataTable :columns="columns" :data="filteredQuestions" :on-row-click="handleRowClick" />
     </template>
 
     <!-- Add Question Dialog -->
     <QuestionAddDialog v-model:open="showAddDialog" @save="handleSave" />
+
+    <!-- Question Preview Dialog -->
+    <QuestionPreviewDialog v-model:open="showPreviewDialog" :question="previewQuestion" />
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:open="showDeleteDialog">

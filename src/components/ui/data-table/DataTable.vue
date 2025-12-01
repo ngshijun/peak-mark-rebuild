@@ -77,7 +77,21 @@ defineExpose({ table })
       <Table>
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-            <TableHead v-for="header in headerGroup.headers" :key="header.id">
+            <TableHead
+              v-for="header in headerGroup.headers"
+              :key="header.id"
+              :style="{
+                width: header.column.columnDef.size
+                  ? `${header.column.columnDef.size}px`
+                  : undefined,
+                minWidth: header.column.columnDef.minSize
+                  ? `${header.column.columnDef.minSize}px`
+                  : undefined,
+                maxWidth: header.column.columnDef.maxSize
+                  ? `${header.column.columnDef.maxSize}px`
+                  : undefined,
+              }"
+            >
               <FlexRender
                 v-if="!header.isPlaceholder"
                 :render="header.column.columnDef.header"
