@@ -2,7 +2,8 @@
 import { ref, computed, watch, onMounted, h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useQuestionsStore, type Question } from '@/stores/questions'
-import { Search, Plus, Upload, Trash2, Loader2 } from 'lucide-vue-next'
+import { useCurriculumStore } from '@/stores/curriculum'
+import { Search, Plus, Upload, Trash2, Loader2, Download, FileDown } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -22,10 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { QuestionAddDialog, QuestionPreviewDialog } from '@/components/admin'
+import { QuestionAddDialog, QuestionPreviewDialog, QuestionBulkUploadDialog } from '@/components/admin'
 import { toast } from 'vue-sonner'
+import { generateQuestionTemplate, exportQuestionsToExcel } from '@/lib/excel/questionExcel'
 
 const questionsStore = useQuestionsStore()
+const curriculumStore = useCurriculumStore()
 
 const ALL_VALUE = '__all__'
 
@@ -33,9 +36,11 @@ const searchQuery = ref('')
 const showAddDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showPreviewDialog = ref(false)
+const showBulkUploadDialog = ref(false)
 const selectedQuestion = ref<Question | null>(null)
 const previewQuestion = ref<Question | null>(null)
 const isDeleting = ref(false)
+const isExporting = ref(false)
 
 // Filter state
 const selectedGradeLevel = ref<string>(ALL_VALUE)
@@ -196,6 +201,68 @@ async function handleSave() {
   // Refresh questions list after add
   await questionsStore.fetchQuestions()
 }
+
+async function handleBulkUploadComplete() {
+  // Refresh questions list after bulk upload
+  await questionsStore.fetchQuestions()
+  toast.success('Questions uploaded successfully')
+}
+
+async function downloadTemplate() {
+  try {
+    // Ensure curriculum is loaded
+    if (curriculumStore.gradeLevels.length === 0) {
+      await curriculumStore.fetchCurriculum()
+    }
+    await generateQuestionTemplate(curriculumStore.gradeLevels)
+    toast.success('Template downloaded')
+  } catch (error) {
+    console.error('Error downloading template:', error)
+    toast.error('Failed to download template')
+  }
+}
+
+async function exportQuestions() {
+  if (filteredQuestions.value.length === 0) {
+    toast.error('No questions to export')
+    return
+  }
+
+  isExporting.value = true
+  try {
+    await exportQuestionsToExcel(filteredQuestions.value, async (imagePath: string) => {
+      // Fetch image from Supabase storage and convert to base64
+      try {
+        const url = questionsStore.getQuestionImageUrl(imagePath)
+        if (!url) return null
+
+        const response = await fetch(url)
+        if (!response.ok) return null
+
+        const blob = await response.blob()
+        return new Promise<string | null>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            const base64 = reader.result as string
+            // Remove data URL prefix to get just the base64 data
+            const base64Data = base64.split(',')[1]
+            resolve(base64Data || null)
+          }
+          reader.onerror = () => resolve(null)
+          reader.readAsDataURL(blob)
+        })
+      } catch {
+        return null
+      }
+    })
+    toast.success(`Exported ${filteredQuestions.value.length} questions`)
+  } catch (error) {
+    console.error('Error exporting questions:', error)
+    toast.error('Failed to export questions')
+  } finally {
+    isExporting.value = false
+  }
+}
 </script>
 
 <template>
@@ -206,7 +273,16 @@ async function handleSave() {
         <p class="text-muted-foreground">Manage your question library.</p>
       </div>
       <div class="flex gap-2">
-        <Button variant="outline">
+        <Button variant="outline" @click="downloadTemplate">
+          <Download class="mr-2 size-4" />
+          Template
+        </Button>
+        <Button variant="outline" :disabled="isExporting || filteredQuestions.length === 0" @click="exportQuestions">
+          <Loader2 v-if="isExporting" class="mr-2 size-4 animate-spin" />
+          <FileDown v-else class="mr-2 size-4" />
+          Export
+        </Button>
+        <Button variant="outline" @click="showBulkUploadDialog = true">
           <Upload class="mr-2 size-4" />
           Bulk Upload
         </Button>
@@ -280,6 +356,12 @@ async function handleSave() {
 
     <!-- Question Preview Dialog -->
     <QuestionPreviewDialog v-model:open="showPreviewDialog" :question="previewQuestion" />
+
+    <!-- Bulk Upload Dialog -->
+    <QuestionBulkUploadDialog
+      v-model:open="showBulkUploadDialog"
+      @uploaded="handleBulkUploadComplete"
+    />
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:open="showDeleteDialog">

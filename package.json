@@ -24,6 +24,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "embla-carousel-vue": "^8.6.0",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
     "lucide-vue-next": "^0.555.0",
     "pinia": "^3.0.4",
     "reka-ui": "^2.6.1",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.3",
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vue/eslint-config-prettier": "^10.2.0",
