@@ -474,14 +474,68 @@ export const usePracticeStore = defineStore('practice', () => {
         return { session: null, error: questionsResult.error }
       }
 
-      const availableQuestions = questionsResult.questions
-      if (availableQuestions.length === 0) {
+      const allQuestions = questionsResult.questions
+      if (allQuestions.length === 0) {
         return { session: null, error: 'No questions available for this topic' }
       }
 
-      // Shuffle and select questions
-      const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5)
-      const selectedQuestions = shuffled.slice(0, Math.min(questionCount, shuffled.length))
+      // Get current cycle and answered questions for this student+topic
+      const { data: progressData } = await supabase
+        .from('student_question_progress')
+        .select('question_id, cycle_number')
+        .eq('student_id', authStore.user.id)
+        .eq('topic_id', topicId)
+        .order('cycle_number', { ascending: false })
+
+      // Determine current cycle (highest cycle number, or 1 if no progress)
+      let currentCycle = 1
+      const answeredQuestionIds = new Set<string>()
+
+      if (progressData && progressData.length > 0) {
+        const firstRow = progressData[0]
+        if (firstRow) {
+          currentCycle = firstRow.cycle_number
+          // Get all question IDs answered in current cycle
+          for (const row of progressData) {
+            if (row.cycle_number === currentCycle) {
+              answeredQuestionIds.add(row.question_id)
+            }
+          }
+        }
+      }
+
+      // Filter out answered questions from current cycle
+      let unansweredQuestions = allQuestions.filter((q) => !answeredQuestionIds.has(q.id))
+
+      // If not enough unanswered questions, start a new cycle
+      let selectedQuestions: Question[] = []
+      let questionsFromNewCycle = 0
+
+      if (unansweredQuestions.length >= questionCount) {
+        // Enough unanswered questions - select randomly from them
+        const shuffled = [...unansweredQuestions].sort(() => Math.random() - 0.5)
+        selectedQuestions = shuffled.slice(0, questionCount)
+      } else {
+        // Not enough - use all remaining + start new cycle for the rest
+        selectedQuestions = [...unansweredQuestions]
+        questionsFromNewCycle = questionCount - unansweredQuestions.length
+
+        if (questionsFromNewCycle > 0) {
+          currentCycle++ // Move to new cycle
+          // Select additional questions from the full pool (excluding already selected)
+          const selectedIds = new Set(selectedQuestions.map((q) => q.id))
+          const remainingPool = allQuestions.filter((q) => !selectedIds.has(q.id))
+          const shuffledRemaining = [...remainingPool].sort(() => Math.random() - 0.5)
+          const additionalQuestions = shuffledRemaining.slice(
+            0,
+            Math.min(questionsFromNewCycle, shuffledRemaining.length),
+          )
+          selectedQuestions = [...selectedQuestions, ...additionalQuestions]
+        }
+
+        // Shuffle final selection so old/new cycle questions are mixed
+        selectedQuestions = selectedQuestions.sort(() => Math.random() - 0.5)
+      }
 
       // Create session in database
       const { data: sessionData, error: insertError } = await supabase
@@ -518,6 +572,19 @@ export const usePracticeStore = defineStore('practice', () => {
         await supabase.from('practice_sessions').delete().eq('id', sessionData.id)
         return { session: null, error: questionsInsertError.message }
       }
+
+      // Record question progress for cycling - mark all selected questions as "used" in current cycle
+      const progressInsertData = selectedQuestions.map((question) => ({
+        student_id: authStore.user!.id,
+        topic_id: topicId,
+        question_id: question.id,
+        cycle_number: currentCycle,
+      }))
+
+      // Use upsert to handle any edge cases where a question might already be recorded
+      await supabase
+        .from('student_question_progress')
+        .upsert(progressInsertData, { onConflict: 'student_id,topic_id,question_id,cycle_number' })
 
       const session: PracticeSession = {
         id: sessionData.id,

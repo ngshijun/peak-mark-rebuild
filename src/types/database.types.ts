@@ -833,6 +833,69 @@ export type Database = {
           },
         ]
       }
+      student_question_progress: {
+        Row: {
+          created_at: string
+          cycle_number: number
+          id: string
+          question_id: string
+          student_id: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          question_id: string
+          student_id: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          question_id?: string
+          student_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'student_question_progress_question_id_fkey'
+            columns: ['question_id']
+            isOneToOne: false
+            referencedRelation: 'question_statistics'
+            referencedColumns: ['question_id']
+          },
+          {
+            foreignKeyName: 'student_question_progress_question_id_fkey'
+            columns: ['question_id']
+            isOneToOne: false
+            referencedRelation: 'questions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_question_progress_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'leaderboard'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_question_progress_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_question_progress_topic_id_fkey'
+            columns: ['topic_id']
+            isOneToOne: false
+            referencedRelation: 'topics'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       subjects: {
         Row: {
           cover_image_path: string | null
