@@ -23,7 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { QuestionAddDialog, QuestionPreviewDialog, QuestionBulkUploadDialog } from '@/components/admin'
+import {
+  QuestionAddDialog,
+  QuestionPreviewDialog,
+  QuestionBulkUploadDialog,
+} from '@/components/admin'
 import { toast } from 'vue-sonner'
 import { generateQuestionTemplate, exportQuestionsToExcel } from '@/lib/excel/questionExcel'
 
@@ -277,7 +281,11 @@ async function exportQuestions() {
           <Download class="mr-2 size-4" />
           Template
         </Button>
-        <Button variant="outline" :disabled="isExporting || filteredQuestions.length === 0" @click="exportQuestions">
+        <Button
+          variant="outline"
+          :disabled="isExporting || filteredQuestions.length === 0"
+          @click="exportQuestions"
+        >
           <Loader2 v-if="isExporting" class="mr-2 size-4 animate-spin" />
           <FileDown v-else class="mr-2 size-4" />
           Export

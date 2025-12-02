@@ -653,7 +653,12 @@ function buildImageMap(
       let col: number | undefined
 
       if (image.range && typeof image.range === 'object' && 'tl' in image.range) {
-        const tl = image.range.tl as { row?: number; col?: number; nativeRow?: number; nativeCol?: number }
+        const tl = image.range.tl as {
+          row?: number
+          col?: number
+          nativeRow?: number
+          nativeCol?: number
+        }
         row = Math.floor(tl.nativeRow ?? tl.row ?? 0) + 1 // Convert to 1-based
         col = Math.floor(tl.nativeCol ?? tl.col ?? 0)
       }

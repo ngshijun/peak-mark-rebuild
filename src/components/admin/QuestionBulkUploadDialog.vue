@@ -25,11 +25,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Upload,
   FileSpreadsheet,
@@ -76,8 +72,7 @@ const canUpload = computed(() => {
 
 const totalErrors = computed(() => {
   return (
-    (parseResult.value?.errors.length || 0) +
-    (validationResult.value?.curriculumErrors.length || 0)
+    (parseResult.value?.errors.length || 0) + (validationResult.value?.curriculumErrors.length || 0)
   )
 })
 
@@ -213,9 +208,7 @@ const progressPercent = computed(() => {
     <DialogContent class="max-h-[85vh] max-w-2xl overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Bulk Upload Questions</DialogTitle>
-        <DialogDescription>
-          Upload multiple questions from an Excel file
-        </DialogDescription>
+        <DialogDescription> Upload multiple questions from an Excel file </DialogDescription>
       </DialogHeader>
 
       <!-- Step 1: Upload -->

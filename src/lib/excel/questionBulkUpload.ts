@@ -61,9 +61,7 @@ function getQuestionKey(
 // VALIDATION
 // ============================================
 
-export async function validateQuestions(
-  parsed: ParsedQuestion[],
-): Promise<UploadValidationResult> {
+export async function validateQuestions(parsed: ParsedQuestion[]): Promise<UploadValidationResult> {
   const questionsStore = useQuestionsStore()
   const curriculumStore = useCurriculumStore()
 

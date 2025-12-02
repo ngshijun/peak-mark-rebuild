@@ -2,17 +2,49 @@
 import { computed } from 'vue'
 import type { Question } from '@/stores/questions'
 import { useQuestionsStore } from '@/stores/questions'
-import { CheckCircle2 } from 'lucide-vue-next'
+import type { QuestionFeedback } from '@/stores/feedback'
+import type { Database } from '@/types/database.types'
+import { CheckCircle2, AlertTriangle } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 
+type FeedbackCategory = Database['public']['Enums']['feedback_category']
+
 const props = defineProps<{
   question: Question | null
+  feedback?: QuestionFeedback | null
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
 
 const questionsStore = useQuestionsStore()
+
+// Category labels
+function getCategoryLabel(category: FeedbackCategory): string {
+  const labels: Record<FeedbackCategory, string> = {
+    question_error: 'Question Error',
+    image_error: 'Image Error',
+    option_error: 'Option Error',
+    answer_error: 'Answer Error',
+    explanation_error: 'Explanation Error',
+    other: 'Other',
+  }
+  return labels[category]
+}
+
+function getCategoryVariant(
+  category: FeedbackCategory,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const variants: Record<FeedbackCategory, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    question_error: 'destructive',
+    image_error: 'secondary',
+    option_error: 'default',
+    answer_error: 'destructive',
+    explanation_error: 'secondary',
+    other: 'outline',
+  }
+  return variants[category]
+}
 
 const correctAnswer = computed(() => {
   if (!props.question) return ''
@@ -37,6 +69,34 @@ const correctAnswer = computed(() => {
       </DialogHeader>
 
       <div v-if="question" class="space-y-6">
+        <!-- Feedback Info (when viewing from feedback page) -->
+        <div
+          v-if="feedback"
+          class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/20"
+        >
+          <div class="mb-2 flex items-center gap-2">
+            <AlertTriangle class="size-5 text-red-600" />
+            <h3 class="font-semibold text-red-700 dark:text-red-400">Reported Issue</h3>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-muted-foreground">Category:</span>
+              <Badge :variant="getCategoryVariant(feedback.category)">
+                {{ getCategoryLabel(feedback.category) }}
+              </Badge>
+            </div>
+            <div v-if="feedback.comments">
+              <span class="text-sm text-muted-foreground">Comments:</span>
+              <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ feedback.comments }}</p>
+            </div>
+            <div v-else>
+              <span class="text-sm italic text-muted-foreground"
+                >No additional comments provided.</span
+              >
+            </div>
+          </div>
+        </div>
+
         <!-- Question Metadata -->
         <div class="flex flex-wrap gap-2 text-sm text-muted-foreground">
           <Badge variant="outline">{{ question.gradeLevelName }}</Badge>

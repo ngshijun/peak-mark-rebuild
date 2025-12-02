@@ -31,6 +31,7 @@ const searchQuery = ref('')
 const isDeleting = ref(false)
 const showPreviewDialog = ref(false)
 const previewQuestion = ref<Question | null>(null)
+const previewFeedback = ref<QuestionFeedback | null>(null)
 
 // Fetch feedbacks and questions on mount
 onMounted(async () => {
@@ -102,6 +103,7 @@ function handleRowClick(feedback: QuestionFeedback) {
   const question = questionsStore.getQuestionById(feedback.questionId)
   if (question) {
     previewQuestion.value = question
+    previewFeedback.value = feedback
     showPreviewDialog.value = true
   } else {
     toast.error('Question not found', {
@@ -137,7 +139,7 @@ const columns: ColumnDef<QuestionFeedback>[] = [
       return h(
         'div',
         {
-          class: 'max-w-[20rem] lg:max-w-[40rem] truncate font-medium',
+          class: 'max-w-[20rem] lg:max-w-[30rem] truncate font-medium',
           title: row.original.question,
         },
         row.original.question,
@@ -156,7 +158,7 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     accessorKey: 'comments',
     header: 'Comments',
     cell: ({ row }) => {
-      return h('div', { class: 'max-w-[300px] text-wrap text-sm' }, row.original.comments || '-')
+      return h('div', { class: 'max-w-[20rem] truncate text-sm' }, row.original.comments || '-')
     },
   },
   {
@@ -232,7 +234,11 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     </template>
 
     <!-- Question Preview Dialog -->
-    <QuestionPreviewDialog v-model:open="showPreviewDialog" :question="previewQuestion" />
+    <QuestionPreviewDialog
+      v-model:open="showPreviewDialog"
+      :question="previewQuestion"
+      :feedback="previewFeedback"
+    />
 
     <!-- Delete Feedback Confirmation -->
     <AlertDialog v-model:open="showDeleteDialog">
