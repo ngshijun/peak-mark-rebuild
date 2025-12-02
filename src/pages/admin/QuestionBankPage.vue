@@ -145,7 +145,7 @@ const columns: ColumnDef<Question>[] = [
         {
           variant: 'ghost',
           size: 'icon',
-          class: 'size-8 text-destructive hover:text-destructive',
+          class: 'size-4 text-destructive hover:text-destructive',
           onClick: (event: Event) => openDeleteDialog(question, event),
         },
         () => h(Trash2, { class: 'size-4' }),

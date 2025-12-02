@@ -113,6 +113,11 @@ function getAnswerByIndex(index: number): PracticeAnswer | undefined {
   return session.value?.answers[index]
 }
 
+// Helper to check if an option is filled (has text or image)
+function isOptionFilled(opt: { text?: string | null; imagePath?: string | null }): boolean {
+  return !!(opt.text && opt.text.trim()) || !!opt.imagePath
+}
+
 function goBack() {
   router.back()
 }
@@ -258,10 +263,10 @@ function goToHistory() {
                 class="max-h-40 rounded-md object-contain"
               />
 
-              <!-- MCQ Options -->
+              <!-- MCQ Options (filtered to show only non-empty options) -->
               <div v-if="question.type === 'mcq' && question.options" class="space-y-2">
                 <div
-                  v-for="option in question.options"
+                  v-for="option in question.options.filter(isOptionFilled)"
                   :key="option.id"
                   class="flex items-center gap-2 rounded-md border p-2 text-sm"
                   :class="{

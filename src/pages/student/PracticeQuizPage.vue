@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
-import { useQuestionsStore, type Question } from '@/stores/questions'
+import { useQuestionsStore, type Question, type MCQOption } from '@/stores/questions'
 import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Flag } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -34,6 +34,46 @@ const isResuming = ref(false)
 
 // Time tracking for current question
 const questionStartTime = ref<number>(Date.now())
+
+// Store shuffled options per question (keyed by question ID)
+const shuffledOptionsMap = ref<Map<string, MCQOption[]>>(new Map())
+
+// Fisher-Yates shuffle algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = shuffled[i]!
+    shuffled[i] = shuffled[j]!
+    shuffled[j] = temp
+  }
+  return shuffled
+}
+
+// Get filtered and shuffled options for current question
+const displayOptions = computed(() => {
+  if (!currentQuestion.value || currentQuestion.value.type !== 'mcq') return []
+
+  const questionId = currentQuestion.value.id
+
+  // Check if we already have shuffled options for this question
+  if (shuffledOptionsMap.value.has(questionId)) {
+    return shuffledOptionsMap.value.get(questionId)!
+  }
+
+  // Filter out empty options (no text and no image)
+  const nonEmptyOptions = currentQuestion.value.options.filter(
+    (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
+  )
+
+  // Shuffle the options
+  const shuffled = shuffleArray(nonEmptyOptions)
+
+  // Store for consistent display when navigating back
+  shuffledOptionsMap.value.set(questionId, shuffled)
+
+  return shuffled
+})
 
 // Reset timer when question changes (track by question index)
 watch(
@@ -224,10 +264,10 @@ async function goToQuestion(index: number) {
               />
             </div>
 
-            <!-- MCQ Options -->
+            <!-- MCQ Options (shuffled and filtered) -->
             <div v-if="currentQuestion.type === 'mcq'" class="space-y-2">
               <button
-                v-for="option in currentQuestion.options"
+                v-for="(option, index) in displayOptions"
                 :key="option.id"
                 class="w-full rounded-lg border p-4 text-left transition-colors"
                 :class="{
@@ -254,14 +294,14 @@ async function goToQuestion(index: number) {
                         isAnswered && answeredOptionId === option.id && !option.isCorrect,
                     }"
                   >
-                    {{ option.id.toUpperCase() }}
+                    {{ String.fromCharCode(65 + index) }}
                   </span>
                   <div class="flex flex-1 items-center gap-2">
                     <span v-if="option.text">{{ option.text }}</span>
                     <img
                       v-if="option.imagePath"
                       :src="questionsStore.getQuestionImageUrl(option.imagePath)"
-                      :alt="`Option ${option.id.toUpperCase()}`"
+                      :alt="`Option ${String.fromCharCode(65 + index)}`"
                       class="max-h-16 rounded border object-contain"
                     />
                   </div>
