@@ -1,10 +1,85 @@
 <script setup lang="ts">
-const pageTitle = 'Dashboard'
+import { onMounted } from 'vue'
+import { useAdminDashboardStore } from '@/stores/adminDashboard'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DollarSign, Users, Activity, BookOpen, Loader2 } from 'lucide-vue-next'
+
+const dashboardStore = useAdminDashboardStore()
+
+onMounted(() => {
+  dashboardStore.fetchStats()
+})
 </script>
 
 <template>
   <div class="p-6">
-    <h1 class="text-2xl font-bold">{{ pageTitle }}</h1>
-    <p class="mt-2 text-muted-foreground">This page is under construction.</p>
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold">Dashboard</h1>
+      <p class="text-muted-foreground">Overview of your platform metrics.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="dashboardStore.isLoading" class="flex items-center justify-center py-12">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
+    </div>
+
+    <!-- Stats Cards -->
+    <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <!-- Revenue Card -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Total Revenue</CardTitle>
+          <DollarSign class="size-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">
+            ${{ dashboardStore.stats.revenue.total.toLocaleString() }}
+          </div>
+          <p class="text-xs text-muted-foreground">
+            <span class="text-green-600">{{ dashboardStore.stats.revenue.change }}</span> from last
+            month
+          </p>
+        </CardContent>
+      </Card>
+
+      <!-- Total Users Card -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Total Users</CardTitle>
+          <Users class="size-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{{ dashboardStore.stats.users.total }}</div>
+          <p class="text-xs text-muted-foreground">
+            {{ dashboardStore.stats.users.students }} students,
+            {{ dashboardStore.stats.users.parents }} parents
+          </p>
+        </CardContent>
+      </Card>
+
+      <!-- Active Students Today Card -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Active Students Today</CardTitle>
+          <Activity class="size-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{{ dashboardStore.stats.activeStudentsToday }}</div>
+          <p class="text-xs text-muted-foreground">Students who logged in today</p>
+        </CardContent>
+      </Card>
+
+      <!-- Practice Sessions Today Card -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Practice Sessions Today</CardTitle>
+          <BookOpen class="size-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{{ dashboardStore.stats.practiceSessionsToday }}</div>
+          <p class="text-xs text-muted-foreground">Sessions started today</p>
+        </CardContent>
+      </Card>
+    </div>
   </div>
 </template>
