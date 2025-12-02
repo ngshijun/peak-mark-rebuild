@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRouter } from 'vue-router'
+import { Flame } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
 
 const dashboardStore = useStudentDashboardStore()
@@ -27,13 +28,10 @@ function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
 </script>
 
 <template>
-  <Card
-    class="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
-    @click="goToPractice"
-  >
-    <CardHeader class="pb-2">
-      <CardTitle class="text-base">Practice Streak</CardTitle>
-      <CardDescription>Consecutive practice days</CardDescription>
+  <Card class="cursor-pointer" @click="goToPractice">
+    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle class="text-sm font-medium">Practice Streak</CardTitle>
+      <Flame class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
       <div class="flex items-center gap-3">
@@ -49,20 +47,19 @@ function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
           <p class="text-xs text-muted-foreground">
             {{ getStreakMessage(dashboardStore.currentStreak, dashboardStore.hasPracticedToday) }}
           </p>
+          <!-- Today's status indicator -->
+          <div class="mt-1 flex items-center gap-1.5 text-xs">
+            <div
+              class="size-2 rounded-full"
+              :class="dashboardStore.hasPracticedToday ? 'bg-green-500' : 'bg-gray-300'"
+            />
+            <span
+              :class="dashboardStore.hasPracticedToday ? 'text-green-600' : 'text-muted-foreground'"
+            >
+              {{ dashboardStore.hasPracticedToday ? 'Practiced today' : 'Not yet practiced today' }}
+            </span>
+          </div>
         </div>
-      </div>
-
-      <!-- Today's status indicator -->
-      <div class="mt-3 flex items-center gap-2 text-xs">
-        <div
-          class="size-2 rounded-full"
-          :class="dashboardStore.hasPracticedToday ? 'bg-green-500' : 'bg-gray-300'"
-        />
-        <span
-          :class="dashboardStore.hasPracticedToday ? 'text-green-600' : 'text-muted-foreground'"
-        >
-          {{ dashboardStore.hasPracticedToday ? 'Practiced today' : 'Not yet practiced today' }}
-        </span>
       </div>
     </CardContent>
   </Card>

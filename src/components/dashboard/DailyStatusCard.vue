@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useStudentDashboardStore, type MoodType } from '@/stores/studentDashboard'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-vue-next'
+import { Smile } from 'lucide-vue-next'
 
 const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
@@ -47,17 +47,13 @@ async function selectMood(mood: MoodType) {
 <template>
   <Dialog v-model:open="isOpen">
     <DialogTrigger as-child>
-      <Card class="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
-        <CardHeader class="pb-2">
-          <CardTitle class="text-base">Daily Status</CardTitle>
-          <CardDescription>How are you feeling today?</CardDescription>
+      <Card class="cursor-pointer">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Daily Status</CardTitle>
+          <Smile class="size-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div v-if="dashboardStore.isLoading" class="flex items-center gap-3">
-            <Loader2 class="size-8 animate-spin text-muted-foreground" />
-            <span class="text-muted-foreground">Loading...</span>
-          </div>
-          <div v-else class="flex items-center gap-3">
+          <div class="flex items-center gap-3">
             <span class="text-4xl">{{ getMoodEmoji(dashboardStore.todayStatus?.mood) }}</span>
             <div>
               <p class="font-medium">{{ getMoodLabel(dashboardStore.todayStatus?.mood) }}</p>

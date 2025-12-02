@@ -128,7 +128,7 @@ function resetInviteForm() {
       </div>
       <Dialog v-model:open="inviteDialogOpen" @update:open="resetInviteForm">
         <DialogTrigger as-child>
-          <Button>
+          <Button :disabled="childLinkStore.isLoading">
             <UserPlus class="mr-2 size-4" />
             Invite Child
           </Button>

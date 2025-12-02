@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Gift } from 'lucide-vue-next'
 import PixelCoin from '@/components/icons/PixelCoin.vue'
 
 const dashboardStore = useStudentDashboardStore()
@@ -68,10 +69,10 @@ function closeDialog() {
 <template>
   <Dialog v-model:open="isOpen">
     <DialogTrigger as-child>
-      <Card class="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
-        <CardHeader class="pb-2">
-          <CardTitle class="text-base">Daily Spin</CardTitle>
-          <CardDescription>Check in for a reward!</CardDescription>
+      <Card class="cursor-pointer">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Daily Spin</CardTitle>
+          <Gift class="size-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div class="flex items-center gap-3">

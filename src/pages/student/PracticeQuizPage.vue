@@ -418,7 +418,7 @@ async function goToQuestion(index: number) {
         <AlertDialogHeader>
           <AlertDialogTitle>Exit Quiz?</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to exit? Your progress will be lost.
+            Are you sure you want to exit? Your progress is saved and you can continue later.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

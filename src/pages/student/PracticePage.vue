@@ -4,9 +4,27 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { usePracticeStore, type SessionLimitStatus } from '@/stores/practice'
-import { ChevronLeft, Loader2, AlertCircle, Users } from 'lucide-vue-next'
+import { Loader2, AlertCircle } from 'lucide-vue-next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'vue-sonner'
 
@@ -19,6 +37,10 @@ const selectedSubjectId = ref<string | null>(null)
 const isStartingSession = ref(false)
 const sessionLimitStatus = ref<SessionLimitStatus | null>(null)
 const isLoadingLimit = ref(true)
+
+// Confirmation dialog state
+const showConfirmDialog = ref(false)
+const pendingTopicId = ref<string | null>(null)
 
 // Fetch curriculum and session limit on mount
 onMounted(async () => {
@@ -49,6 +71,12 @@ const availableSubjects = computed(() => {
 const selectedSubject = computed(() => {
   if (!selectedSubjectId.value) return null
   return availableSubjects.value.find((s) => s.id === selectedSubjectId.value) ?? null
+})
+
+// Get pending topic for confirmation dialog
+const pendingTopic = computed(() => {
+  if (!selectedSubject.value || !pendingTopicId.value) return null
+  return selectedSubject.value.topics.find((t) => t.id === pendingTopicId.value) ?? null
 })
 
 // Subject images mapping
@@ -123,10 +151,10 @@ function goBackToSubjects() {
   selectedSubjectId.value = null
 }
 
-async function selectTopic(topicId: string) {
+function selectTopic(topicId: string) {
   if (!selectedSubject.value || isStartingSession.value) return
 
-  // Check limit before starting
+  // Check limit before showing dialog
   if (sessionLimitStatus.value && !sessionLimitStatus.value.canStartSession) {
     toast.error(
       `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Upgrade your plan for more sessions!`,
@@ -134,10 +162,19 @@ async function selectTopic(topicId: string) {
     return
   }
 
+  // Show confirmation dialog
+  pendingTopicId.value = topicId
+  showConfirmDialog.value = true
+}
+
+async function confirmStartSession() {
+  if (!pendingTopicId.value) return
+
+  showConfirmDialog.value = false
   isStartingSession.value = true
 
   try {
-    const result = await practiceStore.startSession(topicId)
+    const result = await practiceStore.startSession(pendingTopicId.value)
 
     if (result.error) {
       toast.error(result.error)
@@ -153,12 +190,62 @@ async function selectTopic(topicId: string) {
     }
   } finally {
     isStartingSession.value = false
+    pendingTopicId.value = null
   }
 }
 </script>
 
 <template>
   <div class="p-6">
+    <!-- Header -->
+    <div class="mb-6 flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold">Practice</h1>
+        <p class="text-muted-foreground">
+          {{
+            selectedSubject
+              ? 'Select a topic to start practicing'
+              : 'Select a subject to start practicing'
+          }}
+        </p>
+        <!-- Breadcrumb Navigation -->
+        <Breadcrumb class="mt-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink v-if="selectedSubject" as-child>
+                <button @click="goBackToSubjects">Subjects</button>
+              </BreadcrumbLink>
+              <BreadcrumbPage v-else>Subjects</BreadcrumbPage>
+            </BreadcrumbItem>
+            <template v-if="selectedSubject">
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{{ selectedSubject.name }}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </template>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      <!-- Session Counter -->
+      <div
+        v-if="
+          !curriculumStore.isLoading &&
+          !isLoadingLimit &&
+          sessionLimitStatus &&
+          sessionLimitStatus.canStartSession
+        "
+        class="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
+      >
+        <span>
+          Sessions today: {{ sessionLimitStatus.sessionsToday }} /
+          {{ sessionLimitStatus.sessionLimit }}
+        </span>
+        <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
+          ({{ sessionLimitStatus.remainingSessions }} remaining)
+        </span>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="curriculumStore.isLoading" class="flex items-center justify-center py-12">
       <Loader2 class="size-8 animate-spin text-muted-foreground" />
@@ -187,31 +274,11 @@ async function selectTopic(topicId: string) {
 
       <!-- Subject Selection -->
       <div v-if="!selectedSubject">
-        <div class="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 class="text-2xl font-bold">Practice</h1>
-            <p class="text-muted-foreground">Select a subject to start practicing</p>
-          </div>
-          <!-- Session Counter -->
-          <div
-            v-if="!isLoadingLimit && sessionLimitStatus && sessionLimitStatus.canStartSession"
-            class="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
-          >
-            <span>
-              Sessions today: {{ sessionLimitStatus.sessionsToday }} /
-              {{ sessionLimitStatus.sessionLimit }}
-            </span>
-            <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
-              ({{ sessionLimitStatus.remainingSessions }} remaining)
-            </span>
-          </div>
-        </div>
-
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Card
             v-for="subject in availableSubjects"
             :key="subject.id"
-            class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
+            class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
             @click="selectSubject(subject.id)"
           >
             <div class="aspect-video w-full overflow-hidden">
@@ -238,37 +305,11 @@ async function selectTopic(topicId: string) {
 
       <!-- Topic Selection -->
       <div v-else>
-        <div class="mb-6">
-          <Button variant="ghost" size="sm" class="mb-2 -ml-2" @click="goBackToSubjects">
-            <ChevronLeft class="mr-1 size-4" />
-            Back to Subjects
-          </Button>
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h1 class="text-2xl font-bold">{{ selectedSubject.name }}</h1>
-              <p class="text-muted-foreground">Select a topic to start practicing</p>
-            </div>
-            <!-- Session Counter -->
-            <div
-              v-if="!isLoadingLimit && sessionLimitStatus && sessionLimitStatus.canStartSession"
-              class="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
-            >
-              <span>
-                Sessions today: {{ sessionLimitStatus.sessionsToday }} /
-                {{ sessionLimitStatus.sessionLimit }}
-              </span>
-              <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
-                ({{ sessionLimitStatus.remainingSessions }} remaining)
-              </span>
-            </div>
-          </div>
-        </div>
-
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Card
             v-for="topic in selectedSubject.topics"
             :key="topic.id"
-            class="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
+            class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
             :class="{
               'opacity-50 pointer-events-none':
                 isStartingSession || !sessionLimitStatus?.canStartSession,
@@ -305,5 +346,23 @@ async function selectTopic(topicId: string) {
         <p class="text-lg font-medium">Starting practice session...</p>
       </div>
     </div>
+
+    <!-- Start Session Confirmation Dialog -->
+    <AlertDialog v-model:open="showConfirmDialog">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Start Practice Session?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You are about to start a practice session for
+            <span class="font-medium text-foreground">{{ pendingTopic?.name }}</span
+            >. This will use 1 of your daily sessions.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction @click="confirmStartSession">Start Session</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

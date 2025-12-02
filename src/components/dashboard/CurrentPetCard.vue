@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { usePetsStore, rarityConfig } from '@/stores/pets'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'vue-router'
+import { PawPrint } from 'lucide-vue-next'
 
 const petsStore = usePetsStore()
 const router = useRouter()
@@ -13,13 +14,10 @@ function goToCollections() {
 </script>
 
 <template>
-  <Card
-    class="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
-    @click="goToCollections"
-  >
-    <CardHeader class="pb-2">
-      <CardTitle class="text-base">My Pet</CardTitle>
-      <CardDescription>Your current companion</CardDescription>
+  <Card class="cursor-pointer" @click="goToCollections">
+    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle class="text-sm font-medium">My Pet</CardTitle>
+      <PawPrint class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
       <template v-if="petsStore.selectedPet">

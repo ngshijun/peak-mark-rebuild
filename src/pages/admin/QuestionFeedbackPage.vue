@@ -251,7 +251,11 @@ const columns: ColumnDef<QuestionFeedback>[] = [
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
-          <AlertDialogAction :disabled="isDeleting" @click="confirmDelete">
+          <AlertDialogAction
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            :disabled="isDeleting"
+            @click="confirmDelete"
+          >
             <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
             Delete
           </AlertDialogAction>

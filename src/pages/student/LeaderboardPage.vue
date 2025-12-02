@@ -124,7 +124,7 @@ function getRankBg(rank: number): string {
       </div>
 
       <!-- Grade Level Filter -->
-      <Select v-model="selectedGradeLevel">
+      <Select v-model="selectedGradeLevel" :disabled="leaderboardStore.isLoading">
         <SelectTrigger class="w-[180px]">
           <SelectValue placeholder="All Grade Levels" />
         </SelectTrigger>

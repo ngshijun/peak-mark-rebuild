@@ -3,8 +3,16 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useCurriculumStore, type Subject, type Topic } from '@/stores/curriculum'
 import { addCurriculumItemFormSchema } from '@/lib/validations'
-import { ChevronLeft, Plus, Trash2, ImagePlus, Loader2, X } from 'lucide-vue-next'
+import { Plus, Trash2, ImagePlus, Loader2, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Field, FieldLabel, FieldError } from '@/components/ui/field'
@@ -62,6 +70,24 @@ const selectedGradeLevel = computed(() => {
 const selectedSubject = computed(() => {
   if (!selectedGradeLevel.value || !selectedSubjectId.value) return null
   return selectedGradeLevel.value.subjects.find((s) => s.id === selectedSubjectId.value) ?? null
+})
+
+// Computed for dynamic add button
+const currentAddType = computed<'grade' | 'subject' | 'topic'>(() => {
+  if (!selectedGradeLevel.value) return 'grade'
+  if (!selectedSubject.value) return 'subject'
+  return 'topic'
+})
+
+const addButtonLabel = computed(() => {
+  switch (currentAddType.value) {
+    case 'grade':
+      return 'Add Grade Level'
+    case 'subject':
+      return 'Add Subject'
+    case 'topic':
+      return 'Add Topic'
+  }
 })
 
 // Dialog state
@@ -501,6 +527,45 @@ function getInputLabel() {
 
 <template>
   <div class="p-6">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Curriculum</h1>
+        <p class="text-muted-foreground">Manage grade levels, subjects, and topics</p>
+        <!-- Breadcrumb Navigation -->
+        <Breadcrumb class="mt-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink v-if="selectedGradeLevel" as-child>
+                <button @click="goBackToGradeLevels">Grade Levels</button>
+              </BreadcrumbLink>
+              <BreadcrumbPage v-else>Grade Levels</BreadcrumbPage>
+            </BreadcrumbItem>
+            <template v-if="selectedGradeLevel">
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink v-if="selectedSubject" as-child>
+                  <button @click="goBackToSubjects">{{ selectedGradeLevel.name }}</button>
+                </BreadcrumbLink>
+                <BreadcrumbPage v-else>{{ selectedGradeLevel.name }}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </template>
+            <template v-if="selectedSubject">
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{{ selectedSubject.name }}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </template>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      <!-- Dynamic Add Button -->
+      <Button :disabled="curriculumStore.isLoading" @click="openAddDialog(currentAddType)">
+        <Plus class="mr-2 size-4" />
+        {{ addButtonLabel }}
+      </Button>
+    </div>
+
     <!-- Loading State -->
     <div v-if="curriculumStore.isLoading" class="flex items-center justify-center py-12">
       <Loader2 class="size-8 animate-spin text-muted-foreground" />
@@ -508,22 +573,11 @@ function getInputLabel() {
 
     <!-- Grade Level Selection (Level 1) -->
     <div v-else-if="!selectedGradeLevel">
-      <div class="mb-6 flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Curriculum</h1>
-          <p class="text-muted-foreground">Select a grade level to manage subjects and topics</p>
-        </div>
-        <Button @click="openAddDialog('grade')">
-          <Plus class="mr-2 size-4" />
-          Add Grade Level
-        </Button>
-      </div>
-
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card
           v-for="grade in curriculumStore.gradeLevels"
           :key="grade.id"
-          class="group relative cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
+          class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
           @click="selectGradeLevel(grade.id)"
         >
           <div
@@ -574,28 +628,11 @@ function getInputLabel() {
 
     <!-- Subject Selection (Level 2) -->
     <div v-else-if="!selectedSubject">
-      <div class="mb-6">
-        <Button variant="ghost" size="sm" class="mb-2 -ml-2" @click="goBackToGradeLevels">
-          <ChevronLeft class="mr-1 size-4" />
-          Back to Grade Levels
-        </Button>
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold">{{ selectedGradeLevel.name }}</h1>
-            <p class="text-muted-foreground">Manage subjects for this grade level</p>
-          </div>
-          <Button @click="openAddDialog('subject')">
-            <Plus class="mr-2 size-4" />
-            Add Subject
-          </Button>
-        </div>
-      </div>
-
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card
           v-for="subject in selectedGradeLevel.subjects"
           :key="subject.id"
-          class="group relative cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
+          class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
           @click="selectSubject(subject.id)"
         >
           <div class="aspect-video w-full overflow-hidden">
@@ -666,30 +703,11 @@ function getInputLabel() {
 
     <!-- Topic Selection (Level 3) -->
     <div v-else>
-      <div class="mb-6">
-        <Button variant="ghost" size="sm" class="mb-2 -ml-2" @click="goBackToSubjects">
-          <ChevronLeft class="mr-1 size-4" />
-          Back to Subjects
-        </Button>
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold">{{ selectedSubject.name }}</h1>
-            <p class="text-muted-foreground">
-              Manage topics for {{ selectedGradeLevel.name }} - {{ selectedSubject.name }}
-            </p>
-          </div>
-          <Button @click="openAddDialog('topic')">
-            <Plus class="mr-2 size-4" />
-            Add Topic
-          </Button>
-        </div>
-      </div>
-
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card
           v-for="topic in selectedSubject.topics"
           :key="topic.id"
-          class="group relative overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
+          class="group relative overflow-hidden transition-shadow hover:shadow-lg"
         >
           <div class="aspect-video w-full overflow-hidden">
             <img

@@ -277,24 +277,28 @@ async function exportQuestions() {
         <p class="text-muted-foreground">Manage your question library.</p>
       </div>
       <div class="flex gap-2">
-        <Button variant="outline" @click="downloadTemplate">
+        <Button variant="outline" :disabled="questionsStore.isLoading" @click="downloadTemplate">
           <Download class="mr-2 size-4" />
           Template
         </Button>
         <Button
           variant="outline"
-          :disabled="isExporting || filteredQuestions.length === 0"
+          :disabled="questionsStore.isLoading || isExporting || filteredQuestions.length === 0"
           @click="exportQuestions"
         >
           <Loader2 v-if="isExporting" class="mr-2 size-4 animate-spin" />
           <FileDown v-else class="mr-2 size-4" />
           Export
         </Button>
-        <Button variant="outline" @click="showBulkUploadDialog = true">
+        <Button
+          variant="outline"
+          :disabled="questionsStore.isLoading"
+          @click="showBulkUploadDialog = true"
+        >
           <Upload class="mr-2 size-4" />
           Bulk Upload
         </Button>
-        <Button @click="openAddDialog">
+        <Button :disabled="questionsStore.isLoading" @click="openAddDialog">
           <Plus class="mr-2 size-4" />
           Add Question
         </Button>
