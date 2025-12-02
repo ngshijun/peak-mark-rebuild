@@ -178,7 +178,7 @@ function goBack() {
               <Clock class="size-6 text-muted-foreground" />
               {{ formatDuration(summary.durationSeconds) }}
             </div>
-            <div class="text-sm text-muted-foreground">Duration</div>
+            <div class="text-sm text-muted-foreground">Time Used</div>
           </CardContent>
         </Card>
       </div>
@@ -210,16 +210,25 @@ function goBack() {
           <CardHeader class="pb-2">
             <div class="flex items-start justify-between gap-2">
               <CardTitle class="text-sm font-medium"> Question {{ index + 1 }} </CardTitle>
-              <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
-                Deleted
-              </Badge>
-              <Badge
-                v-else
-                :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
-                class="shrink-0"
-              >
-                {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
-              </Badge>
+              <div class="flex items-center gap-2">
+                <span
+                  v-if="getAnswerByIndex(index)?.timeSpentSeconds != null"
+                  class="flex items-center gap-1 text-xs text-muted-foreground"
+                >
+                  <Clock class="size-3" />
+                  {{ formatDuration(getAnswerByIndex(index)?.timeSpentSeconds ?? 0) }}
+                </span>
+                <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
+                  Deleted
+                </Badge>
+                <Badge
+                  v-else
+                  :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
+                  class="shrink-0"
+                >
+                  {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent class="space-y-3">

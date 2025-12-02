@@ -13,7 +13,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2, Lock, Users } from 'lucide-vue-next'
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ArrowLeft,
+  Loader2,
+  Lock,
+  Users,
+  Sparkles,
+  Coins,
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -142,10 +152,24 @@ function goToHistory() {
           Back
         </Button>
 
-        <h1 class="text-2xl font-bold">Session Results</h1>
-        <p class="text-muted-foreground">
-          {{ session.subjectName }} - {{ session.topicName }} | {{ session.gradeLevelName }}
-        </p>
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-bold">Session Results</h1>
+            <p class="text-muted-foreground">
+              {{ session.subjectName }} - {{ session.topicName }} | {{ session.gradeLevelName }}
+            </p>
+          </div>
+          <div class="flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-1.5 text-purple-600">
+              <Sparkles class="size-4" />
+              <span class="font-medium">+{{ session.xpEarned ?? 0 }} XP</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-yellow-600">
+              <Coins class="size-4" />
+              <span class="font-medium">+{{ session.coinsEarned ?? 0 }} Coins</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Summary Cards -->
@@ -189,7 +213,7 @@ function goToHistory() {
               <Clock class="size-6 text-muted-foreground" />
               {{ formatDuration(summary.durationSeconds) }}
             </div>
-            <div class="text-sm text-muted-foreground">Duration</div>
+            <div class="text-sm text-muted-foreground">Time Used</div>
           </CardContent>
         </Card>
       </div>
@@ -221,16 +245,25 @@ function goToHistory() {
           <CardHeader class="pb-2">
             <div class="flex items-start justify-between gap-2">
               <CardTitle class="text-sm font-medium"> Question {{ index + 1 }} </CardTitle>
-              <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
-                Deleted
-              </Badge>
-              <Badge
-                v-else
-                :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
-                class="shrink-0"
-              >
-                {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
-              </Badge>
+              <div class="flex items-center gap-2">
+                <span
+                  v-if="getAnswerByIndex(index)?.timeSpentSeconds != null"
+                  class="flex items-center gap-1 text-xs text-muted-foreground"
+                >
+                  <Clock class="size-3" />
+                  {{ formatDuration(getAnswerByIndex(index)?.timeSpentSeconds ?? 0) }}
+                </span>
+                <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
+                  Deleted
+                </Badge>
+                <Badge
+                  v-else
+                  :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
+                  class="shrink-0"
+                >
+                  {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent class="space-y-3">
