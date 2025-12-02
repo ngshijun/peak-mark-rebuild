@@ -38,6 +38,10 @@ const mcqOptionSchema = z.object({
   isCorrect: z.boolean(),
 })
 
+// Helper to check if an option is filled
+const isOptionFilled = (opt: { text: string | null; imagePath: string | null }) =>
+  (opt.text && opt.text.trim()) || opt.imagePath
+
 // Dynamic validation schema based on question type
 const questionFormSchema = toTypedSchema(
   z
@@ -53,9 +57,7 @@ const questionFormSchema = toTypedSchema(
     })
     .superRefine((data, ctx) => {
       if (data.type === 'mcq' && data.options) {
-        const filledOptions = data.options.filter(
-          (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
-        )
+        const filledOptions = data.options.filter(isOptionFilled)
         if (filledOptions.length < 2) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -63,6 +65,24 @@ const questionFormSchema = toTypedSchema(
             path: ['options'],
           })
         }
+
+        // Check that options are filled consecutively from the beginning (A, B, C, D order)
+        let foundEmpty = false
+        for (const opt of data.options) {
+          const isFilled = isOptionFilled(opt)
+          if (foundEmpty && isFilled) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Options must be filled consecutively from Option A',
+              path: ['options'],
+            })
+            break
+          }
+          if (!isFilled) {
+            foundEmpty = true
+          }
+        }
+
         if (!data.options.some((opt) => opt.isCorrect)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

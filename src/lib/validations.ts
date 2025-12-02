@@ -118,6 +118,10 @@ export const mcqOptionSchema = z.object({
   isCorrect: z.boolean(),
 })
 
+// Helper to check if an option is filled
+const isOptionFilled = (opt: { text: string | null; imagePath: string | null }) =>
+  (opt.text && opt.text.trim()) || opt.imagePath
+
 // For MCQ questions
 export const mcqQuestionFormSchema = questionFormSchemaBase.extend({
   type: z.literal('mcq'),
@@ -126,12 +130,29 @@ export const mcqQuestionFormSchema = questionFormSchemaBase.extend({
     .length(4)
     .refine(
       (options) => {
-        const filledOptions = options.filter(
-          (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
-        )
-        return filledOptions.length >= 2
+        const filledCount = options.filter(isOptionFilled).length
+        return filledCount >= 2
       },
       { message: 'At least 2 options must have text or an image' },
+    )
+    .refine(
+      (options) => {
+        // Options must be filled consecutively from the beginning (A, B, C, D order)
+        // E.g., if 3 options are filled, they must be A, B, C (not A, C, D)
+        let foundEmpty = false
+        for (const opt of options) {
+          const isFilled = isOptionFilled(opt)
+          if (foundEmpty && isFilled) {
+            // Found a filled option after an empty one - invalid
+            return false
+          }
+          if (!isFilled) {
+            foundEmpty = true
+          }
+        }
+        return true
+      },
+      { message: 'Options must be filled consecutively from Option A' },
     )
     .refine((options) => options.some((opt) => opt.isCorrect), {
       message: 'Please select the correct answer',
