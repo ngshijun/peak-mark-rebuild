@@ -1,31 +1,34 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
+import { loginFormSchema } from '@/lib/validations'
 import { Mountain, Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const email = ref('')
-const password = ref('')
 const isSubmitting = ref(false)
 
-async function handleLogin() {
-  if (!email.value || !password.value) {
-    toast.error('Please enter your email and password')
-    return
-  }
+const { handleSubmit } = useForm({
+  validationSchema: loginFormSchema,
+  initialValues: {
+    email: '',
+    password: '',
+  },
+})
 
+const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true
 
   try {
-    const result = await authStore.signIn(email.value, password.value)
+    const result = await authStore.signIn(values.email, values.password)
 
     if (result.error) {
       toast.error(result.error)
@@ -51,7 +54,7 @@ async function handleLogin() {
   } finally {
     isSubmitting.value = false
   }
-}
+})
 </script>
 
 <template>
@@ -65,29 +68,37 @@ async function handleLogin() {
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
-        <form class="space-y-4" @submit.prevent="handleLogin">
-          <div class="space-y-2">
-            <Label for="email">Email</Label>
-            <Input
-              id="email"
-              v-model="email"
-              type="email"
-              placeholder="Enter your email"
-              required
-              :disabled="isSubmitting"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="password">Password</Label>
-            <Input
-              id="password"
-              v-model="password"
-              type="password"
-              placeholder="Enter your password"
-              required
-              :disabled="isSubmitting"
-            />
-          </div>
+        <form class="space-y-4" @submit="onSubmit">
+          <VeeField v-slot="{ field, errors }" name="email">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="email">Email</FieldLabel>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                :disabled="isSubmitting"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+
+          <VeeField v-slot="{ field, errors }" name="password">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="password">Password</FieldLabel>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                :disabled="isSubmitting"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+
           <Button type="submit" class="w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
             {{ isSubmitting ? 'Signing in...' : 'Login' }}

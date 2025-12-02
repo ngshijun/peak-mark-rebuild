@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useForm, Field as VeeField } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { z } from 'zod'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { useQuestionsStore, type MCQOption } from '@/stores/questions'
 import type { Database } from '@/types/database.types'
 import { ImagePlus, X, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +30,57 @@ import { toast } from 'vue-sonner'
 
 type QuestionType = Database['public']['Enums']['question_type']
 
+// Define MCQ option schema
+const mcqOptionSchema = z.object({
+  id: z.enum(['a', 'b', 'c', 'd']),
+  text: z.string().nullable(),
+  imagePath: z.string().nullable(),
+  isCorrect: z.boolean(),
+})
+
+// Dynamic validation schema based on question type
+const questionFormSchema = toTypedSchema(
+  z
+    .object({
+      type: z.enum(['mcq', 'short_answer']),
+      gradeLevelId: z.string().min(1, 'Grade level is required'),
+      subjectId: z.string().min(1, 'Subject is required'),
+      topicId: z.string().min(1, 'Topic is required'),
+      question: z.string().min(1, 'Question text is required'),
+      explanation: z.string().optional(),
+      answer: z.string().optional(),
+      options: z.array(mcqOptionSchema).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.type === 'mcq' && data.options) {
+        const filledOptions = data.options.filter(
+          (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
+        )
+        if (filledOptions.length < 2) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'At least 2 options must have text or an image',
+            path: ['options'],
+          })
+        }
+        if (!data.options.some((opt) => opt.isCorrect)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Please select the correct answer',
+            path: ['options'],
+          })
+        }
+      }
+      if (data.type === 'short_answer' && (!data.answer || !data.answer.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Answer is required',
+          path: ['answer'],
+        })
+      }
+    }),
+)
+
 const props = defineProps<{
   open: boolean
 }>()
@@ -42,22 +96,29 @@ const questionsStore = useQuestionsStore()
 // Loading state
 const isSaving = ref(false)
 
-// Form state
-const formType = ref<QuestionType>('mcq')
-const formQuestion = ref('')
-const formGradeLevelId = ref('')
-const formSubjectId = ref('')
-const formTopicId = ref('')
-const formExplanation = ref('')
-const formAnswer = ref('')
-const formImageUrl = ref('')
-const formOptions = ref<MCQOption[]>([
+const defaultOptions: MCQOption[] = [
   { id: 'a', text: '', imagePath: null, isCorrect: false },
   { id: 'b', text: '', imagePath: null, isCorrect: false },
   { id: 'c', text: '', imagePath: null, isCorrect: false },
   { id: 'd', text: '', imagePath: null, isCorrect: false },
-])
+]
 
+const { handleSubmit, values, setFieldValue, resetForm, errors, setFieldTouched } = useForm({
+  validationSchema: questionFormSchema,
+  initialValues: {
+    type: 'mcq' as QuestionType,
+    gradeLevelId: '',
+    subjectId: '',
+    topicId: '',
+    question: '',
+    explanation: '',
+    answer: '',
+    options: [...defaultOptions],
+  },
+})
+
+// Image handling refs (not part of validation)
+const formImageUrl = ref('')
 const imageInputRef = ref<HTMLInputElement | null>(null)
 const optionImageInputRefs = ref<Record<string, HTMLInputElement | null>>({
   a: null,
@@ -84,13 +145,13 @@ onMounted(async () => {
 
 // Computed for cascading selects
 const availableSubjects = computed(() => {
-  const grade = curriculumStore.gradeLevels.find((g) => g.id === formGradeLevelId.value)
+  const grade = curriculumStore.gradeLevels.find((g) => g.id === values.gradeLevelId)
   return grade?.subjects ?? []
 })
 
 const availableTopics = computed(() => {
-  const grade = curriculumStore.gradeLevels.find((g) => g.id === formGradeLevelId.value)
-  const subject = grade?.subjects.find((s) => s.id === formSubjectId.value)
+  const grade = curriculumStore.gradeLevels.find((g) => g.id === values.gradeLevelId)
+  const subject = grade?.subjects.find((s) => s.id === values.subjectId)
   return subject?.topics ?? []
 })
 
@@ -99,38 +160,31 @@ watch(
   () => props.open,
   (open) => {
     if (open) {
-      resetForm()
+      resetForm({
+        values: {
+          type: 'mcq',
+          gradeLevelId: '',
+          subjectId: '',
+          topicId: '',
+          question: '',
+          explanation: '',
+          answer: '',
+          options: [...defaultOptions.map((o) => ({ ...o }))],
+        },
+      })
+      // Clear image state
+      formImageUrl.value = ''
+      questionImageFile.value = null
+      optionImageFiles.value = { a: null, b: null, c: null, d: null }
     }
   },
 )
-
-function resetForm() {
-  formType.value = 'mcq'
-  formQuestion.value = ''
-  formGradeLevelId.value = ''
-  formSubjectId.value = ''
-  formTopicId.value = ''
-  formExplanation.value = ''
-  formAnswer.value = ''
-  formImageUrl.value = ''
-  formOptions.value = [
-    { id: 'a', text: '', imagePath: null, isCorrect: false },
-    { id: 'b', text: '', imagePath: null, isCorrect: false },
-    { id: 'c', text: '', imagePath: null, isCorrect: false },
-    { id: 'd', text: '', imagePath: null, isCorrect: false },
-  ]
-  // Clear file objects
-  questionImageFile.value = null
-  optionImageFiles.value = { a: null, b: null, c: null, d: null }
-}
 
 function handleImageUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
-    // Store the file for later upload
     questionImageFile.value = file
-    // Create preview URL
     const reader = new FileReader()
     reader.onload = (e) => {
       formImageUrl.value = e.target?.result as string
@@ -151,25 +205,25 @@ function handleOptionImageUpload(event: Event, optionId: 'a' | 'b' | 'c' | 'd') 
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
-    // Store the file for later upload
     optionImageFiles.value[optionId] = file
-    // Create preview URL
     const reader = new FileReader()
     reader.onload = (e) => {
-      const option = formOptions.value.find((o) => o.id === optionId)
-      if (option) {
-        option.imagePath = e.target?.result as string
-      }
+      const currentOptions = values.options || []
+      const options = currentOptions.map((opt) =>
+        opt.id === optionId ? { ...opt, imagePath: e.target?.result as string } : opt,
+      )
+      setFieldValue('options', options)
     }
     reader.readAsDataURL(file)
   }
 }
 
 function removeOptionImage(optionId: 'a' | 'b' | 'c' | 'd') {
-  const option = formOptions.value.find((o) => o.id === optionId)
-  if (option) {
-    option.imagePath = null
-  }
+  const currentOptions = values.options || []
+  const options = currentOptions.map((opt) =>
+    opt.id === optionId ? { ...opt, imagePath: null } : opt,
+  )
+  setFieldValue('options', options)
   optionImageFiles.value[optionId] = null
   const inputRef = optionImageInputRefs.value[optionId]
   if (inputRef) {
@@ -178,34 +232,44 @@ function removeOptionImage(optionId: 'a' | 'b' | 'c' | 'd') {
 }
 
 function setCorrectOption(optionId: string) {
-  formOptions.value = formOptions.value.map((opt) => ({
+  const options = (values.options || []).map((opt) => ({
     ...opt,
     isCorrect: opt.id === optionId,
   }))
+  setFieldValue('options', options)
+  setFieldTouched('options', true)
 }
 
-async function handleSave() {
+function updateOptionText(optionId: string, text: string) {
+  const currentOptions = values.options || []
+  const options = currentOptions.map((opt) =>
+    opt.id === optionId ? { ...opt, text: text || null } : opt,
+  )
+  setFieldValue('options', options)
+}
+
+const onSubmit = handleSubmit(async (formValues) => {
   isSaving.value = true
 
   try {
     // Get hierarchy info for grade_level_id and subject_id
-    const hierarchy = curriculumStore.getTopicWithHierarchy(formTopicId.value)
-    const gradeLevelId = hierarchy?.gradeLevel.id ?? formGradeLevelId.value
-    const subjectId = hierarchy?.subject.id ?? formSubjectId.value
+    const hierarchy = curriculumStore.getTopicWithHierarchy(formValues.topicId)
+    const gradeLevelId = hierarchy?.gradeLevel.id ?? formValues.gradeLevelId
+    const subjectId = hierarchy?.subject.id ?? formValues.subjectId
 
     // First, create the question without images
     const result = await questionsStore.addQuestion({
-      type: formType.value,
-      question: formQuestion.value,
-      imagePath: null, // Will be updated after upload
-      topicId: formTopicId.value,
+      type: formValues.type,
+      question: formValues.question,
+      imagePath: null,
+      topicId: formValues.topicId,
       gradeLevelId,
       subjectId,
-      explanation: formExplanation.value || null,
-      answer: formType.value === 'short_answer' ? formAnswer.value : null,
+      explanation: formValues.explanation || null,
+      answer: formValues.type === 'short_answer' ? formValues.answer || null : null,
       options:
-        formType.value === 'mcq'
-          ? formOptions.value.map((opt) => ({ ...opt, imagePath: null })) // Clear image paths for initial creation
+        formValues.type === 'mcq'
+          ? (formValues.options || []).map((opt) => ({ ...opt, imagePath: null }))
           : undefined,
     })
 
@@ -232,7 +296,7 @@ async function handleSave() {
     }
 
     // Upload option images if present (for MCQ)
-    if (formType.value === 'mcq') {
+    if (formValues.type === 'mcq') {
       for (const optionId of ['a', 'b', 'c', 'd'] as const) {
         const file = optionImageFiles.value[optionId]
         if (file) {
@@ -252,8 +316,8 @@ async function handleSave() {
 
     if (hasImages) {
       const updateOptions =
-        formType.value === 'mcq'
-          ? formOptions.value.map((opt) => ({
+        formValues.type === 'mcq'
+          ? (formValues.options || []).map((opt) => ({
               ...opt,
               imagePath: optionImagePaths[opt.id] ?? null,
             }))
@@ -269,11 +333,10 @@ async function handleSave() {
 
     emit('save')
     emit('update:open', false)
-    resetForm()
   } finally {
     isSaving.value = false
   }
-}
+})
 
 function handleCancel() {
   emit('update:open', false)
@@ -288,104 +351,139 @@ function handleCancel() {
         <DialogDescription>Create a new question for the question bank.</DialogDescription>
       </DialogHeader>
 
-      <div class="space-y-4 py-4">
+      <form class="space-y-4 py-4" @submit="onSubmit">
         <!-- Question Type -->
-        <div class="space-y-2">
-          <Label>Question Type</Label>
-          <Select v-model="formType" :disabled="isSaving">
-            <SelectTrigger class="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mcq">Multiple Choice</SelectItem>
-              <SelectItem value="short_answer">Short Answer</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <VeeField v-slot="{ handleChange, value }" name="type">
+          <Field>
+            <FieldLabel>Question Type</FieldLabel>
+            <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
+              <SelectTrigger class="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mcq">Multiple Choice</SelectItem>
+                <SelectItem value="short_answer">Short Answer</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </VeeField>
 
         <!-- Grade Level, Subject, Topic Row -->
         <div class="grid grid-cols-3 gap-4">
           <!-- Grade Level -->
-          <div class="space-y-2">
-            <Label>Grade Level</Label>
-            <Select
-              v-model="formGradeLevelId"
-              :disabled="isSaving"
-              @update:model-value="
-                () => {
-                  formSubjectId = ''
-                  formTopicId = ''
-                }
-              "
-            >
-              <SelectTrigger class="w-full">
-                <SelectValue placeholder="Select grade level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="grade in curriculumStore.gradeLevels"
-                  :key="grade.id"
-                  :value="grade.id"
+          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="gradeLevelId">
+            <Field :data-invalid="!!fieldErrors.length">
+              <FieldLabel> Grade Level <span class="text-destructive">*</span> </FieldLabel>
+              <Select
+                :model-value="value"
+                :disabled="isSaving"
+                @update:model-value="
+                  (val) => {
+                    handleChange(val)
+                    setFieldValue('subjectId', '')
+                    setFieldValue('topicId', '')
+                  }
+                "
+              >
+                <SelectTrigger
+                  class="w-full"
+                  :class="{ 'border-destructive': !!fieldErrors.length }"
                 >
-                  {{ grade.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                  <SelectValue placeholder="Select grade level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="grade in curriculumStore.gradeLevels"
+                    :key="grade.id"
+                    :value="grade.id"
+                  >
+                    {{ grade.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError :errors="fieldErrors" />
+            </Field>
+          </VeeField>
 
           <!-- Subject -->
-          <div class="space-y-2">
-            <Label>Subject</Label>
-            <Select
-              v-model="formSubjectId"
-              :disabled="!formGradeLevelId || isSaving"
-              @update:model-value="formTopicId = ''"
-            >
-              <SelectTrigger class="w-full">
-                <SelectValue placeholder="Select subject" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="subject in availableSubjects"
-                  :key="subject.id"
-                  :value="subject.id"
+          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="subjectId">
+            <Field :data-invalid="!!fieldErrors.length">
+              <FieldLabel> Subject <span class="text-destructive">*</span> </FieldLabel>
+              <Select
+                :model-value="value"
+                :disabled="!values.gradeLevelId || isSaving"
+                @update:model-value="
+                  (val) => {
+                    handleChange(val)
+                    setFieldValue('topicId', '')
+                  }
+                "
+              >
+                <SelectTrigger
+                  class="w-full"
+                  :class="{ 'border-destructive': !!fieldErrors.length }"
                 >
-                  {{ subject.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="subject in availableSubjects"
+                    :key="subject.id"
+                    :value="subject.id"
+                  >
+                    {{ subject.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError :errors="fieldErrors" />
+            </Field>
+          </VeeField>
 
           <!-- Topic -->
-          <div class="space-y-2">
-            <Label>Topic</Label>
-            <Select v-model="formTopicId" :disabled="!formSubjectId || isSaving">
-              <SelectTrigger class="w-full">
-                <SelectValue placeholder="Select topic" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="topic in availableTopics" :key="topic.id" :value="topic.id">
-                  {{ topic.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="topicId">
+            <Field :data-invalid="!!fieldErrors.length">
+              <FieldLabel> Topic <span class="text-destructive">*</span> </FieldLabel>
+              <Select
+                :model-value="value"
+                :disabled="!values.subjectId || isSaving"
+                @update:model-value="handleChange"
+              >
+                <SelectTrigger
+                  class="w-full"
+                  :class="{ 'border-destructive': !!fieldErrors.length }"
+                >
+                  <SelectValue placeholder="Select topic" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="topic in availableTopics" :key="topic.id" :value="topic.id">
+                    {{ topic.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError :errors="fieldErrors" />
+            </Field>
+          </VeeField>
         </div>
 
         <!-- Question -->
-        <div class="space-y-2">
-          <Label>Question</Label>
-          <Textarea
-            v-model="formQuestion"
-            placeholder="Enter the question"
-            rows="3"
-            :disabled="isSaving"
-          />
-        </div>
+        <VeeField v-slot="{ field, errors: fieldErrors }" name="question">
+          <Field :data-invalid="!!fieldErrors.length">
+            <FieldLabel> Question <span class="text-destructive">*</span> </FieldLabel>
+            <Textarea
+              v-bind="field"
+              placeholder="Enter the question"
+              rows="3"
+              :disabled="isSaving"
+              :aria-invalid="!!fieldErrors.length"
+              :class="{ 'border-destructive': !!fieldErrors.length }"
+            />
+            <FieldError :errors="fieldErrors" />
+          </Field>
+        </VeeField>
 
         <!-- Question Image -->
-        <div class="space-y-2">
-          <Label>Question Image (Optional)</Label>
+        <Field>
+          <FieldLabel>Question Image (Optional)</FieldLabel>
           <div v-if="formImageUrl" class="relative inline-block">
             <img
               :src="formImageUrl"
@@ -422,13 +520,24 @@ function handleCancel() {
               Add Image
             </Button>
           </div>
-        </div>
+        </Field>
 
         <!-- MCQ Options -->
-        <div v-if="formType === 'mcq'" class="space-y-3">
-          <Label>Options (select the correct answer)</Label>
-          <p class="text-xs text-muted-foreground">Each option can have text, an image, or both.</p>
-          <div v-for="option in formOptions" :key="option.id" class="space-y-2">
+        <div v-if="values.type === 'mcq'" class="space-y-3">
+          <Field :data-invalid="!!errors.options">
+            <FieldLabel>
+              Options <span class="text-destructive">*</span>
+              <span class="ml-1 text-xs font-normal text-muted-foreground">
+                (select the correct answer)
+              </span>
+            </FieldLabel>
+            <p class="text-xs text-muted-foreground">
+              Each option can have text, an image, or both.
+            </p>
+            <FieldError v-if="errors.options" :errors="[errors.options]" />
+          </Field>
+
+          <div v-for="option in values.options" :key="option.id" class="space-y-2">
             <div class="flex items-start gap-2">
               <Button
                 type="button"
@@ -445,7 +554,7 @@ function handleCancel() {
                   :model-value="option.text ?? ''"
                   :placeholder="`Option ${option.id.toUpperCase()} text`"
                   :disabled="isSaving"
-                  @update:model-value="option.text = ($event as string) || null"
+                  @update:model-value="updateOptionText(option.id, $event as string)"
                 />
                 <!-- Option Image -->
                 <div v-if="option.imagePath" class="relative inline-block">
@@ -490,30 +599,43 @@ function handleCancel() {
         </div>
 
         <!-- Short Answer -->
-        <div v-else class="space-y-2">
-          <Label>Answer</Label>
-          <Input v-model="formAnswer" placeholder="Enter the correct answer" :disabled="isSaving" />
-        </div>
+        <VeeField v-else v-slot="{ field, errors: fieldErrors }" name="answer">
+          <Field :data-invalid="!!fieldErrors.length">
+            <FieldLabel> Answer <span class="text-destructive">*</span> </FieldLabel>
+            <Input
+              v-bind="field"
+              placeholder="Enter the correct answer"
+              :disabled="isSaving"
+              :aria-invalid="!!fieldErrors.length"
+              :class="{ 'border-destructive': !!fieldErrors.length }"
+            />
+            <FieldError :errors="fieldErrors" />
+          </Field>
+        </VeeField>
 
         <!-- Explanation -->
-        <div class="space-y-2">
-          <Label>Explanation</Label>
-          <Textarea
-            v-model="formExplanation"
-            placeholder="Explain the answer"
-            rows="2"
-            :disabled="isSaving"
-          />
-        </div>
-      </div>
+        <VeeField v-slot="{ field }" name="explanation">
+          <Field>
+            <FieldLabel>Explanation</FieldLabel>
+            <Textarea
+              v-bind="field"
+              placeholder="Explain the answer"
+              rows="2"
+              :disabled="isSaving"
+            />
+          </Field>
+        </VeeField>
 
-      <DialogFooter>
-        <Button variant="outline" :disabled="isSaving" @click="handleCancel">Cancel</Button>
-        <Button @click="handleSave" :disabled="!formQuestion || !formTopicId || isSaving">
-          <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-          Add Question
-        </Button>
-      </DialogFooter>
+        <DialogFooter>
+          <Button type="button" variant="outline" :disabled="isSaving" @click="handleCancel">
+            Cancel
+          </Button>
+          <Button type="submit" :disabled="isSaving">
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Add Question
+          </Button>
+        </DialogFooter>
+      </form>
     </DialogContent>
   </Dialog>
 </template>

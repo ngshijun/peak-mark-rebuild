@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabaseClient'
+import { editNameFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Select,
   SelectContent,
@@ -52,8 +54,26 @@ const showAvatarDialog = ref(false)
 const avatarPreviewUrl = ref('')
 const avatarFile = ref<File | null>(null)
 const showEditNameDialog = ref(false)
-const newName = ref('')
 const isSaving = ref(false)
+
+// Edit name form
+const {
+  handleSubmit: handleNameSubmit,
+  resetForm: resetNameForm,
+  setValues: setNameValues,
+} = useForm({
+  validationSchema: editNameFormSchema,
+  initialValues: {
+    name: '',
+  },
+})
+
+// Reset form when dialog opens
+watch(showEditNameDialog, (open) => {
+  if (open) {
+    setNameValues({ name: authStore.user?.name ?? '' })
+  }
+})
 
 // Avatar file input ref
 const avatarInputRef = ref<HTMLInputElement | null>(null)
@@ -178,29 +198,24 @@ async function saveAvatar() {
 }
 
 function openEditNameDialog() {
-  newName.value = authStore.user?.name ?? ''
   showEditNameDialog.value = true
 }
 
-async function saveName() {
-  if (!newName.value.trim()) {
-    showEditNameDialog.value = false
-    return
-  }
-
+const saveName = handleNameSubmit(async (values) => {
   isSaving.value = true
   try {
-    const result = await authStore.updateName(newName.value.trim())
+    const result = await authStore.updateName(values.name.trim())
     if (result.error) {
       toast.error(result.error)
       return
     }
     toast.success('Name updated successfully')
     showEditNameDialog.value = false
+    resetNameForm()
   } finally {
     isSaving.value = false
   }
-}
+})
 
 async function handleGradeChange(value: unknown) {
   if (!value || typeof value !== 'string') return
@@ -413,24 +428,35 @@ async function handleGradeChange(value: unknown) {
           <DialogTitle>Edit Name</DialogTitle>
           <DialogDescription>Enter your new display name.</DialogDescription>
         </DialogHeader>
-        <div class="space-y-2">
-          <Label for="new-name">Name</Label>
-          <Input
-            id="new-name"
-            v-model="newName"
-            placeholder="Enter your name"
-            :disabled="isSaving"
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" :disabled="isSaving" @click="showEditNameDialog = false">
-            Cancel
-          </Button>
-          <Button :disabled="isSaving" @click="saveName">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Save
-          </Button>
-        </DialogFooter>
+        <form @submit="saveName">
+          <VeeField v-slot="{ field, errors }" name="name">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="new-name">Name</FieldLabel>
+              <Input
+                id="new-name"
+                placeholder="Enter your name"
+                :disabled="isSaving"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+          <DialogFooter class="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="isSaving"
+              @click="showEditNameDialog = false"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="isSaving">
+              <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   </div>

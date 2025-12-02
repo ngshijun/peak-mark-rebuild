@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { useForm, Field as VeeField } from 'vee-validate'
 import { useFeedbackStore } from '@/stores/feedback'
 import { useAuthStore } from '@/stores/auth'
+import { questionFeedbackFormSchema } from '@/lib/validations'
 import { toast } from 'vue-sonner'
 import {
   Dialog,
@@ -12,8 +14,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Select,
   SelectContent,
@@ -34,8 +36,6 @@ const open = defineModel<boolean>('open', { required: true })
 const feedbackStore = useFeedbackStore()
 const authStore = useAuthStore()
 
-const selectedCategory = ref<FeedbackCategory | ''>('')
-const comments = ref('')
 const isSubmitting = ref(false)
 
 const feedbackCategories: { value: FeedbackCategory; label: string }[] = [
@@ -46,22 +46,23 @@ const feedbackCategories: { value: FeedbackCategory; label: string }[] = [
   { value: 'explanation_error', label: 'Explanation is incorrect' },
 ]
 
-const canSubmit = computed(() => selectedCategory.value !== '' && !isSubmitting.value)
+const { handleSubmit, resetForm } = useForm({
+  validationSchema: questionFeedbackFormSchema,
+  initialValues: {
+    category: undefined as FeedbackCategory | undefined,
+    details: '',
+  },
+})
 
-function resetForm() {
-  selectedCategory.value = ''
-  comments.value = ''
-}
-
-async function handleSubmit() {
-  if (!selectedCategory.value || !authStore.user?.id) return
+const onSubmit = handleSubmit(async (values) => {
+  if (!authStore.user?.id) return
 
   isSubmitting.value = true
 
   const result = await feedbackStore.submitFeedback(
     props.questionId,
-    selectedCategory.value,
-    comments.value,
+    values.category,
+    values.details || '',
     authStore.user.id,
   )
 
@@ -80,7 +81,7 @@ async function handleSubmit() {
 
   resetForm()
   open.value = false
-}
+})
 
 function handleOpenChange(value: boolean) {
   if (!value) {
@@ -100,42 +101,51 @@ function handleOpenChange(value: boolean) {
         </DialogDescription>
       </DialogHeader>
 
-      <div class="space-y-4 py-4">
-        <div class="space-y-2">
-          <Label for="category">Issue Type</Label>
-          <Select v-model="selectedCategory">
-            <SelectTrigger id="category">
-              <SelectValue placeholder="Select an issue type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="category in feedbackCategories"
-                :key="category.value"
-                :value="category.value"
+      <form class="space-y-4 py-4" @submit="onSubmit">
+        <VeeField v-slot="{ handleChange, value, errors }" name="category">
+          <Field :data-invalid="!!errors.length">
+            <FieldLabel for="category">Issue Type</FieldLabel>
+            <Select :model-value="value" @update:model-value="handleChange">
+              <SelectTrigger
+                id="category"
+                :class="{ 'border-destructive': !!errors.length }"
+                :aria-invalid="!!errors.length"
               >
-                {{ category.label }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+                <SelectValue placeholder="Select an issue type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="category in feedbackCategories"
+                  :key="category.value"
+                  :value="category.value"
+                >
+                  {{ category.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError :errors="errors" />
+          </Field>
+        </VeeField>
 
-        <div class="space-y-2">
-          <Label for="comments">Additional Details (optional)</Label>
-          <Textarea
-            id="comments"
-            v-model="comments"
-            placeholder="Describe the issue in more detail..."
-            rows="3"
-          />
-        </div>
-      </div>
+        <VeeField v-slot="{ field }" name="details">
+          <Field>
+            <FieldLabel for="comments">Additional Details (optional)</FieldLabel>
+            <Textarea
+              id="comments"
+              v-bind="field"
+              placeholder="Describe the issue in more detail..."
+              rows="3"
+            />
+          </Field>
+        </VeeField>
 
-      <DialogFooter>
-        <Button variant="outline" @click="open = false">Cancel</Button>
-        <Button :disabled="!canSubmit" @click="handleSubmit">
-          {{ isSubmitting ? 'Submitting...' : 'Submit Feedback' }}
-        </Button>
-      </DialogFooter>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="open = false">Cancel</Button>
+          <Button type="submit" :disabled="isSubmitting">
+            {{ isSubmitting ? 'Submitting...' : 'Submit Feedback' }}
+          </Button>
+        </DialogFooter>
+      </form>
     </DialogContent>
   </Dialog>
 </template>

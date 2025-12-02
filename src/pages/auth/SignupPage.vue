@@ -1,56 +1,43 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
+import { signupFormSchema } from '@/lib/validations'
 import { Mountain, Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const name = ref('')
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const dateOfBirth = ref('')
-const userType = ref<'student' | 'parent'>('student')
 const isSubmitting = ref(false)
 
-const passwordsMatch = computed(() => password.value === confirmPassword.value)
-const isFormValid = computed(() => {
-  return (
-    name.value.trim() !== '' &&
-    email.value.trim() !== '' &&
-    password.value.length >= 6 &&
-    passwordsMatch.value
-  )
+const { handleSubmit, values, setFieldValue } = useForm({
+  validationSchema: signupFormSchema,
+  initialValues: {
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    userType: 'student' as 'student' | 'parent',
+    dateOfBirth: '',
+  },
 })
 
-async function handleSignup() {
-  if (!isFormValid.value) {
-    if (!passwordsMatch.value) {
-      toast.error('Passwords do not match')
-    } else if (password.value.length < 6) {
-      toast.error('Password must be at least 6 characters')
-    } else {
-      toast.error('Please fill in all required fields')
-    }
-    return
-  }
-
+const onSubmit = handleSubmit(async (formValues) => {
   isSubmitting.value = true
 
   try {
     const result = await authStore.signUp(
-      email.value,
-      password.value,
-      name.value,
-      userType.value,
-      userType.value === 'student' ? dateOfBirth.value || undefined : undefined,
+      formValues.email,
+      formValues.password,
+      formValues.name,
+      formValues.userType,
+      formValues.userType === 'student' ? formValues.dateOfBirth || undefined : undefined,
     )
 
     if (result.error) {
@@ -67,7 +54,7 @@ async function handleSignup() {
   } finally {
     isSubmitting.value = false
   }
-}
+})
 </script>
 
 <template>
@@ -81,88 +68,108 @@ async function handleSignup() {
         <CardDescription>Create a new account</CardDescription>
       </CardHeader>
       <CardContent>
-        <form class="space-y-4" @submit.prevent="handleSignup">
-          <div class="space-y-2">
-            <Label for="name">Name <span class="text-destructive">*</span></Label>
-            <Input
-              id="name"
-              v-model="name"
-              type="text"
-              placeholder="Enter your name"
-              required
-              :disabled="isSubmitting"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="email">Email <span class="text-destructive">*</span></Label>
-            <Input
-              id="email"
-              v-model="email"
-              type="email"
-              placeholder="Enter your email"
-              required
-              :disabled="isSubmitting"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="password">Password <span class="text-destructive">*</span></Label>
-            <Input
-              id="password"
-              v-model="password"
-              type="password"
-              placeholder="Create a password (min 6 characters)"
-              required
-              minlength="6"
-              :disabled="isSubmitting"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="confirmPassword"
-              >Confirm Password <span class="text-destructive">*</span></Label
-            >
-            <Input
-              id="confirmPassword"
-              v-model="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              required
-              :disabled="isSubmitting"
-              :class="{ 'border-destructive': confirmPassword && !passwordsMatch }"
-            />
-            <p v-if="confirmPassword && !passwordsMatch" class="text-sm text-destructive">
-              Passwords do not match
-            </p>
-          </div>
-          <div class="space-y-2">
-            <Label>Account Type <span class="text-destructive">*</span></Label>
-            <div class="flex gap-2">
-              <Button
-                type="button"
-                :variant="userType === 'student' ? 'default' : 'outline'"
-                size="sm"
-                class="flex-1"
+        <form class="space-y-4" @submit="onSubmit">
+          <VeeField v-slot="{ field, errors }" name="name">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="name">Name <span class="text-destructive">*</span></FieldLabel>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Enter your name"
                 :disabled="isSubmitting"
-                @click="userType = 'student'"
-              >
-                Student
-              </Button>
-              <Button
-                type="button"
-                :variant="userType === 'parent' ? 'default' : 'outline'"
-                size="sm"
-                class="flex-1"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+
+          <VeeField v-slot="{ field, errors }" name="email">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="email">Email <span class="text-destructive">*</span></FieldLabel>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
                 :disabled="isSubmitting"
-                @click="userType = 'parent'"
-              >
-                Parent
-              </Button>
-            </div>
-          </div>
-          <div v-if="userType === 'student'" class="space-y-2">
-            <Label for="dateOfBirth">Date of Birth</Label>
-            <Input id="dateOfBirth" v-model="dateOfBirth" type="date" :disabled="isSubmitting" />
-          </div>
-          <Button type="submit" class="w-full" :disabled="isSubmitting || !isFormValid">
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+
+          <VeeField v-slot="{ field, errors }" name="password">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="password">
+                Password <span class="text-destructive">*</span>
+              </FieldLabel>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Create a password (min 6 characters)"
+                :disabled="isSubmitting"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+
+          <VeeField v-slot="{ field, errors }" name="confirmPassword">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="confirmPassword">
+                Confirm Password <span class="text-destructive">*</span>
+              </FieldLabel>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                :disabled="isSubmitting"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+
+          <VeeField v-slot="{ errors }" name="userType">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel>Account Type <span class="text-destructive">*</span></FieldLabel>
+              <div class="flex gap-2">
+                <Button
+                  type="button"
+                  :variant="values.userType === 'student' ? 'default' : 'outline'"
+                  size="sm"
+                  class="flex-1"
+                  :disabled="isSubmitting"
+                  @click="setFieldValue('userType', 'student')"
+                >
+                  Student
+                </Button>
+                <Button
+                  type="button"
+                  :variant="values.userType === 'parent' ? 'default' : 'outline'"
+                  size="sm"
+                  class="flex-1"
+                  :disabled="isSubmitting"
+                  @click="setFieldValue('userType', 'parent')"
+                >
+                  Parent
+                </Button>
+              </div>
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
+
+          <VeeField v-if="values.userType === 'student'" v-slot="{ field }" name="dateOfBirth">
+            <Field>
+              <FieldLabel for="dateOfBirth">Date of Birth</FieldLabel>
+              <Input id="dateOfBirth" type="date" :disabled="isSubmitting" v-bind="field" />
+            </Field>
+          </VeeField>
+
+          <Button type="submit" class="w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
             {{ isSubmitting ? 'Creating Account...' : 'Sign Up' }}
           </Button>

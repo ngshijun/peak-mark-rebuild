@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useForm, Field as VeeField } from 'vee-validate'
 import { useChildLinkStore } from '@/stores/child-link'
+import { inviteEmailFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Dialog,
   DialogContent,
@@ -28,15 +30,21 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Users, Mail, Send, Check, X, Trash2, Clock, UserPlus, Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 const childLinkStore = useChildLinkStore()
 
 const inviteDialogOpen = ref(false)
-const inviteEmail = ref('')
-const inviteError = ref('')
 const inviteSuccess = ref(false)
 const isSending = ref(false)
 const actionInProgress = ref<string | null>(null)
+
+const { handleSubmit, resetForm, setFieldError } = useForm({
+  validationSchema: inviteEmailFormSchema,
+  initialValues: {
+    email: '',
+  },
+})
 
 onMounted(async () => {
   await childLinkStore.fetchAll()
@@ -58,36 +66,27 @@ function formatDate(dateString: string) {
   })
 }
 
-async function handleSendInvitation() {
-  inviteError.value = ''
+const onSubmit = handleSubmit(async (values) => {
   inviteSuccess.value = false
-
-  if (!inviteEmail.value.trim()) {
-    inviteError.value = 'Please enter an email address'
-    return
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(inviteEmail.value)) {
-    inviteError.value = 'Please enter a valid email address'
-    return
-  }
-
   isSending.value = true
-  const result = await childLinkStore.sendInvitation(inviteEmail.value.trim())
-  isSending.value = false
 
-  if (result.error) {
-    inviteError.value = result.error
-  } else {
-    inviteSuccess.value = true
-    inviteEmail.value = ''
-    setTimeout(() => {
-      inviteSuccess.value = false
-      inviteDialogOpen.value = false
-    }, 1500)
+  try {
+    const result = await childLinkStore.sendInvitation(values.email.trim())
+    if (result.error) {
+      setFieldError('email', result.error)
+    } else {
+      inviteSuccess.value = true
+      toast.success('Invitation sent successfully!')
+      setTimeout(() => {
+        inviteSuccess.value = false
+        inviteDialogOpen.value = false
+        resetForm()
+      }, 1500)
+    }
+  } finally {
+    isSending.value = false
   }
-}
+})
 
 async function handleAcceptInvitation(invitationId: string) {
   actionInProgress.value = invitationId
@@ -114,8 +113,7 @@ async function handleRemoveChild(childId: string) {
 }
 
 function resetInviteForm() {
-  inviteEmail.value = ''
-  inviteError.value = ''
+  resetForm()
   inviteSuccess.value = false
 }
 </script>
@@ -142,21 +140,24 @@ function resetInviteForm() {
               Send an invitation to link a child's account. You will be able to view their progress.
             </DialogDescription>
           </DialogHeader>
-          <form class="space-y-4" @submit.prevent="handleSendInvitation">
-            <div class="space-y-2">
-              <Label for="childEmail">Child's Email</Label>
-              <Input
-                id="childEmail"
-                v-model="inviteEmail"
-                type="email"
-                placeholder="Enter child's email address"
-                :disabled="isSending"
-              />
-              <p v-if="inviteError" class="text-sm text-destructive">{{ inviteError }}</p>
-              <p v-if="inviteSuccess" class="text-sm text-green-600">
-                Invitation sent successfully!
-              </p>
-            </div>
+          <form class="space-y-4" @submit="onSubmit">
+            <VeeField v-slot="{ field, errors }" name="email">
+              <Field :data-invalid="!!errors.length">
+                <FieldLabel for="childEmail">Child's Email</FieldLabel>
+                <Input
+                  id="childEmail"
+                  type="email"
+                  placeholder="Enter child's email address"
+                  :disabled="isSending"
+                  :aria-invalid="!!errors.length"
+                  v-bind="field"
+                />
+                <FieldError :errors="errors" />
+                <p v-if="inviteSuccess" class="text-sm text-green-600">
+                  Invitation sent successfully!
+                </p>
+              </Field>
+            </VeeField>
             <DialogFooter>
               <Button type="submit" :disabled="isSending || inviteSuccess">
                 <Loader2 v-if="isSending" class="mr-2 size-4 animate-spin" />

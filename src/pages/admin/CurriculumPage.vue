@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useForm, Field as VeeField } from 'vee-validate'
 import { useCurriculumStore, type Subject, type Topic } from '@/stores/curriculum'
+import { addCurriculumItemFormSchema } from '@/lib/validations'
 import { ChevronLeft, Plus, Trash2, ImagePlus, Loader2, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,14 @@ import { toast } from 'vue-sonner'
 
 const curriculumStore = useCurriculumStore()
 
+// Add item form
+const { handleSubmit: handleAddSubmit, resetForm: resetAddForm } = useForm({
+  validationSchema: addCurriculumItemFormSchema,
+  initialValues: {
+    name: '',
+  },
+})
+
 // Navigation state
 const selectedGradeLevelId = ref<string | null>(null)
 const selectedSubjectId = ref<string | null>(null)
@@ -57,7 +67,6 @@ const selectedSubject = computed(() => {
 // Dialog state
 const showAddDialog = ref(false)
 const addType = ref<'grade' | 'subject' | 'topic'>('grade')
-const newItemName = ref('')
 const newItemCoverImagePreview = ref('')
 const newItemCoverImageFile = ref<File | null>(null)
 const dialogGradeLevelId = ref('')
@@ -188,7 +197,7 @@ function openAddDialog(
   subjectId?: string,
 ) {
   addType.value = type
-  newItemName.value = ''
+  resetAddForm()
   newItemCoverImagePreview.value = ''
   newItemCoverImageFile.value = null
   dialogGradeLevelId.value = gradeLevelId ?? selectedGradeLevelId.value ?? ''
@@ -217,16 +226,14 @@ function removeAddImage() {
   }
 }
 
-async function handleAdd() {
-  if (!newItemName.value.trim()) return
-
+const handleAdd = handleAddSubmit(async (values) => {
   isSaving.value = true
 
   try {
     let itemId: string | undefined
 
     if (addType.value === 'grade') {
-      const result = await curriculumStore.addGradeLevel(newItemName.value.trim())
+      const result = await curriculumStore.addGradeLevel(values.name.trim())
       if (result.error) {
         toast.error(result.error)
         return
@@ -234,10 +241,7 @@ async function handleAdd() {
       toast.success('Grade level added successfully')
     } else if (addType.value === 'subject' && dialogGradeLevelId.value) {
       // First create the subject without image
-      const result = await curriculumStore.addSubject(
-        dialogGradeLevelId.value,
-        newItemName.value.trim(),
-      )
+      const result = await curriculumStore.addSubject(dialogGradeLevelId.value, values.name.trim())
       if (result.error) {
         toast.error(result.error)
         return
@@ -265,7 +269,7 @@ async function handleAdd() {
       const result = await curriculumStore.addTopic(
         dialogGradeLevelId.value,
         dialogSubjectId.value,
-        newItemName.value.trim(),
+        values.name.trim(),
       )
       if (result.error) {
         toast.error(result.error)
@@ -293,13 +297,13 @@ async function handleAdd() {
     }
 
     showAddDialog.value = false
-    newItemName.value = ''
+    resetAddForm()
     newItemCoverImagePreview.value = ''
     newItemCoverImageFile.value = null
   } finally {
     isSaving.value = false
   }
-}
+})
 
 function openEditImageDialog(
   type: 'subject' | 'topic',
@@ -764,10 +768,10 @@ function getInputLabel() {
           <DialogDescription>{{ getDialogDescription() }}</DialogDescription>
         </DialogHeader>
 
-        <div class="space-y-4 py-4">
+        <form class="space-y-4 py-4" @submit="handleAdd">
           <!-- Grade Level Select (for subject when not in context) -->
           <div v-if="addType === 'subject' && !dialogGradeLevelId" class="space-y-2">
-            <Label>Grade Level</Label>
+            <FieldLabel>Grade Level</FieldLabel>
             <Select v-model="dialogGradeLevelId">
               <SelectTrigger>
                 <SelectValue placeholder="Select a grade level" />
@@ -789,7 +793,7 @@ function getInputLabel() {
             v-if="addType === 'topic' && dialogGradeLevelId && !dialogSubjectId"
             class="space-y-2"
           >
-            <Label>Subject</Label>
+            <FieldLabel>Subject</FieldLabel>
             <Select v-model="dialogSubjectId">
               <SelectTrigger>
                 <SelectValue placeholder="Select a subject" />
@@ -809,20 +813,23 @@ function getInputLabel() {
           </div>
 
           <!-- Name Input -->
-          <div class="space-y-2">
-            <Label :for="addType + '-name'">{{ getInputLabel() }}</Label>
-            <Input
-              :id="addType + '-name'"
-              v-model="newItemName"
-              :placeholder="'Enter ' + getInputLabel().toLowerCase()"
-              :disabled="isSaving"
-              @keyup.enter="handleAdd"
-            />
-          </div>
+          <VeeField v-slot="{ field, errors }" name="name">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel :for="addType + '-name'">{{ getInputLabel() }}</FieldLabel>
+              <Input
+                :id="addType + '-name'"
+                :placeholder="'Enter ' + getInputLabel().toLowerCase()"
+                :disabled="isSaving"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
 
           <!-- Cover Image (for subject/topic) -->
           <div v-if="addType !== 'grade'" class="space-y-2">
-            <Label>Cover Image (optional)</Label>
+            <FieldLabel>Cover Image (optional)</FieldLabel>
             <div v-if="newItemCoverImagePreview" class="relative">
               <div class="aspect-video w-full overflow-hidden rounded-lg border">
                 <img
@@ -863,17 +870,22 @@ function getInputLabel() {
               <p class="mt-1 text-xs text-muted-foreground">Leave empty to use a default image.</p>
             </div>
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" :disabled="isSaving" @click="showAddDialog = false"
-            >Cancel</Button
-          >
-          <Button @click="handleAdd" :disabled="!newItemName.trim() || isSaving">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Add
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="isSaving"
+              @click="showAddDialog = false"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="isSaving">
+              <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+              Add
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
 

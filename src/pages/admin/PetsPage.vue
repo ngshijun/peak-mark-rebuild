@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, h, onMounted } from 'vue'
+import { useForm, Field as VeeField } from 'vee-validate'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
+import { petFormSchema } from '@/lib/validations'
 import { Search, Plus, Trash2, Edit, ArrowUpDown, Loader2, ImagePlus, X } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
@@ -37,6 +39,20 @@ import { toast } from 'vue-sonner'
 
 const petsStore = usePetsStore()
 
+// Pet form
+const {
+  handleSubmit: handlePetSubmit,
+  resetForm: resetPetForm,
+  setValues: setPetValues,
+} = useForm({
+  validationSchema: petFormSchema,
+  initialValues: {
+    name: '',
+    rarity: 'common' as PetRarity,
+    gachaWeight: 100,
+  },
+})
+
 const searchQuery = ref('')
 const isLoading = ref(false)
 
@@ -61,9 +77,6 @@ const filteredPets = computed(() => {
 // Add/Edit Dialog
 const showPetDialog = ref(false)
 const editingPet = ref<Pet | null>(null)
-const formName = ref('')
-const formRarity = ref<PetRarity>('common')
-const formGachaWeight = ref(100)
 const formImagePath = ref('')
 const formImageFile = ref<File | null>(null)
 const imageInputRef = ref<HTMLInputElement | null>(null)
@@ -71,9 +84,7 @@ const isSaving = ref(false)
 
 function openAddDialog() {
   editingPet.value = null
-  formName.value = ''
-  formRarity.value = 'common'
-  formGachaWeight.value = 100
+  resetPetForm()
   formImagePath.value = ''
   formImageFile.value = null
   showPetDialog.value = true
@@ -81,9 +92,11 @@ function openAddDialog() {
 
 function openEditDialog(pet: Pet) {
   editingPet.value = pet
-  formName.value = pet.name
-  formRarity.value = pet.rarity
-  formGachaWeight.value = pet.gachaWeight
+  setPetValues({
+    name: pet.name,
+    rarity: pet.rarity,
+    gachaWeight: pet.gachaWeight,
+  })
   formImagePath.value = pet.imagePath
   formImageFile.value = null
   showPetDialog.value = true
@@ -111,12 +124,7 @@ function removeImage() {
   }
 }
 
-async function handleSave() {
-  if (!formName.value.trim()) {
-    toast.error('Pet name is required')
-    return
-  }
-
+const handleSave = handlePetSubmit(async (values) => {
   isSaving.value = true
 
   try {
@@ -138,9 +146,9 @@ async function handleSave() {
     if (editingPet.value) {
       // Update existing pet
       const { error } = await petsStore.updatePet(editingPet.value.id, {
-        name: formName.value,
-        rarity: formRarity.value,
-        gachaWeight: formGachaWeight.value,
+        name: values.name,
+        rarity: values.rarity,
+        gachaWeight: values.gachaWeight,
         imagePath,
       })
       if (error) {
@@ -155,9 +163,9 @@ async function handleSave() {
         return
       }
       const { error } = await petsStore.createPet({
-        name: formName.value,
-        rarity: formRarity.value,
-        gachaWeight: formGachaWeight.value,
+        name: values.name,
+        rarity: values.rarity,
+        gachaWeight: values.gachaWeight,
         imagePath,
       })
       if (error) {
@@ -172,7 +180,7 @@ async function handleSave() {
   } finally {
     isSaving.value = false
   }
-}
+})
 
 // Delete Dialog
 const showDeleteDialog = ref(false)
@@ -339,46 +347,67 @@ const columns: ColumnDef<Pet>[] = [
           </DialogDescription>
         </DialogHeader>
 
-        <div class="space-y-4 py-4">
+        <form class="space-y-4 py-4" @submit="handleSave">
           <!-- Pet Name -->
-          <div class="space-y-2">
-            <Label>Name</Label>
-            <Input v-model="formName" placeholder="Enter pet name" :disabled="isSaving" />
-          </div>
+          <VeeField v-slot="{ field, errors }" name="name">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel for="pet-name">Name</FieldLabel>
+              <Input
+                id="pet-name"
+                placeholder="Enter pet name"
+                :disabled="isSaving"
+                :aria-invalid="!!errors.length"
+                v-bind="field"
+              />
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
 
           <!-- Rarity and Gacha Weight Row -->
           <div class="grid grid-cols-2 gap-4">
             <!-- Rarity -->
-            <div class="space-y-2">
-              <Label>Rarity</Label>
-              <Select v-model="formRarity" :disabled="isSaving">
-                <SelectTrigger class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="(config, rarity) in rarityConfig"
-                    :key="rarity"
-                    :value="rarity"
-                  >
-                    <span :class="config.color">{{ config.label }}</span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <VeeField v-slot="{ handleChange, value, errors }" name="rarity">
+              <Field :data-invalid="!!errors.length">
+                <FieldLabel>Rarity</FieldLabel>
+                <Select
+                  :model-value="value"
+                  :disabled="isSaving"
+                  @update:model-value="handleChange"
+                >
+                  <SelectTrigger class="w-full" :class="{ 'border-destructive': !!errors.length }">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="(config, rarity) in rarityConfig"
+                      :key="rarity"
+                      :value="rarity"
+                    >
+                      <span :class="config.color">{{ config.label }}</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError :errors="errors" />
+              </Field>
+            </VeeField>
 
             <!-- Gacha Weight -->
-            <div class="space-y-2">
-              <Label>Gacha Weight</Label>
-              <Input
-                v-model.number="formGachaWeight"
-                type="number"
-                min="1"
-                placeholder="100"
-                class="w-full"
-                :disabled="isSaving"
-              />
-            </div>
+            <VeeField v-slot="{ field, errors }" name="gachaWeight">
+              <Field :data-invalid="!!errors.length">
+                <FieldLabel for="gacha-weight">Gacha Weight</FieldLabel>
+                <Input
+                  id="gacha-weight"
+                  type="number"
+                  min="0"
+                  placeholder="100"
+                  class="w-full"
+                  :disabled="isSaving"
+                  :aria-invalid="!!errors.length"
+                  v-bind="field"
+                />
+                <FieldError :errors="errors" />
+              </Field>
+            </VeeField>
           </div>
           <p class="text-xs text-muted-foreground">
             Higher weight = more likely to be pulled within its rarity tier.
@@ -386,7 +415,7 @@ const columns: ColumnDef<Pet>[] = [
 
           <!-- Pet Image -->
           <div class="space-y-2">
-            <Label>Image</Label>
+            <FieldLabel>Image</FieldLabel>
             <div v-if="formImagePath" class="relative inline-block">
               <img
                 :src="formImageFile ? formImagePath : petsStore.getPetImageUrl(formImagePath)"
@@ -424,17 +453,22 @@ const columns: ColumnDef<Pet>[] = [
               </Button>
             </div>
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" :disabled="isSaving" @click="showPetDialog = false">
-            Cancel
-          </Button>
-          <Button :disabled="!formName || isSaving" @click="handleSave">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            {{ editingPet ? 'Update' : 'Create' }}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="isSaving"
+              @click="showPetDialog = false"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="isSaving">
+              <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+              {{ editingPet ? 'Update' : 'Create' }}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
 

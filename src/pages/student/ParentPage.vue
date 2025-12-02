@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useForm, Field as VeeField } from 'vee-validate'
 import { useParentLinkStore } from '@/stores/parent-link'
+import { inviteEmailFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Dialog,
   DialogContent,
@@ -33,12 +35,17 @@ import { toast } from 'vue-sonner'
 const parentLinkStore = useParentLinkStore()
 
 const inviteDialogOpen = ref(false)
-const inviteEmail = ref('')
-const inviteError = ref('')
 const inviteSuccess = ref(false)
 const isSending = ref(false)
 const processingInvitationId = ref<string | null>(null)
 const removingParentId = ref<string | null>(null)
+
+const { handleSubmit, resetForm, setFieldError } = useForm({
+  validationSchema: inviteEmailFormSchema,
+  initialValues: {
+    email: '',
+  },
+})
 
 // Fetch data on mount
 onMounted(async () => {
@@ -61,40 +68,27 @@ function formatDate(dateString: string): string {
   })
 }
 
-async function handleSendInvitation() {
-  inviteError.value = ''
+const onSubmit = handleSubmit(async (values) => {
   inviteSuccess.value = false
-
-  if (!inviteEmail.value.trim()) {
-    inviteError.value = 'Please enter an email address'
-    return
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(inviteEmail.value)) {
-    inviteError.value = 'Please enter a valid email address'
-    return
-  }
-
   isSending.value = true
 
   try {
-    const result = await parentLinkStore.sendInvitation(inviteEmail.value.trim())
+    const result = await parentLinkStore.sendInvitation(values.email.trim())
     if (result.error) {
-      inviteError.value = result.error
+      setFieldError('email', result.error)
     } else {
       inviteSuccess.value = true
-      inviteEmail.value = ''
       toast.success('Invitation sent successfully!')
       setTimeout(() => {
         inviteSuccess.value = false
         inviteDialogOpen.value = false
+        resetForm()
       }, 1500)
     }
   } finally {
     isSending.value = false
   }
-}
+})
 
 async function handleAcceptInvitation(invitationId: string) {
   processingInvitationId.value = invitationId
@@ -153,8 +147,7 @@ async function handleRemoveParent(parentId: string) {
 }
 
 function resetInviteForm() {
-  inviteEmail.value = ''
-  inviteError.value = ''
+  resetForm()
   inviteSuccess.value = false
 }
 </script>
@@ -181,21 +174,24 @@ function resetInviteForm() {
               Send an invitation to link a parent account. They will be able to view your progress.
             </DialogDescription>
           </DialogHeader>
-          <form class="space-y-4" @submit.prevent="handleSendInvitation">
-            <div class="space-y-2">
-              <Label for="parentEmail">Parent's Email</Label>
-              <Input
-                id="parentEmail"
-                v-model="inviteEmail"
-                type="email"
-                placeholder="Enter parent's email address"
-                :disabled="isSending"
-              />
-              <p v-if="inviteError" class="text-sm text-destructive">{{ inviteError }}</p>
-              <p v-if="inviteSuccess" class="text-sm text-green-600">
-                Invitation sent successfully!
-              </p>
-            </div>
+          <form class="space-y-4" @submit="onSubmit">
+            <VeeField v-slot="{ field, errors }" name="email">
+              <Field :data-invalid="!!errors.length">
+                <FieldLabel for="parentEmail">Parent's Email</FieldLabel>
+                <Input
+                  id="parentEmail"
+                  type="email"
+                  placeholder="Enter parent's email address"
+                  :disabled="isSending"
+                  :aria-invalid="!!errors.length"
+                  v-bind="field"
+                />
+                <FieldError :errors="errors" />
+                <p v-if="inviteSuccess" class="text-sm text-green-600">
+                  Invitation sent successfully!
+                </p>
+              </Field>
+            </VeeField>
             <DialogFooter>
               <Button type="submit" :disabled="isSending || inviteSuccess">
                 <Loader2 v-if="isSending" class="mr-2 size-4 animate-spin" />
