@@ -26,7 +26,6 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const selectedGradeLevelId = ref<string | null>(null)
-  let realtimeSubscription: ReturnType<typeof supabase.channel> | null = null
 
   /**
    * Fetch leaderboard data from Supabase

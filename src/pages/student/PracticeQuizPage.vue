@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
 import { useQuestionsStore, type Question, type MCQOption } from '@/stores/questions'
 import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Flag } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -95,6 +96,7 @@ onMounted(async () => {
 
     if (result.error || !result.session) {
       // Failed to resume - redirect to practice page
+      toast.error('Failed to resume session')
       router.push('/student/practice')
       return
     }
@@ -171,7 +173,10 @@ async function previousQuestion() {
 async function finishQuiz() {
   const result = await practiceStore.completeSession()
   if (result.session) {
+    toast.success('Quiz completed!')
     router.push(`/student/session/${result.session.id}`)
+  } else if (result.error) {
+    toast.error('Failed to complete quiz')
   }
 }
 

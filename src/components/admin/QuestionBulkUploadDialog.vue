@@ -190,7 +190,7 @@ async function downloadTemplate() {
       await curriculumStore.fetchCurriculum()
     }
     await generateQuestionTemplate(curriculumStore.gradeLevels)
-    toast.success('Template downloaded')
+    toast.info('Template downloaded')
   } catch (error) {
     console.error('Error downloading template:', error)
     toast.error('Failed to download template')

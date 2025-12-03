@@ -3,11 +3,16 @@ import { onMounted } from 'vue'
 import { useAdminDashboardStore } from '@/stores/adminDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Users, Activity, BookOpen, Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 const dashboardStore = useAdminDashboardStore()
 
-onMounted(() => {
-  dashboardStore.fetchStats()
+onMounted(async () => {
+  try {
+    await dashboardStore.fetchStats()
+  } catch {
+    toast.error('Failed to load dashboard data')
+  }
 })
 </script>
 

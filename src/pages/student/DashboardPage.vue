@@ -4,6 +4,7 @@ import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { usePracticeStore } from '@/stores/practice'
 import { usePetsStore } from '@/stores/pets'
 import { Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import DailyStatusCard from '@/components/dashboard/DailyStatusCard.vue'
 import CurrentPetCard from '@/components/dashboard/CurrentPetCard.vue'
 import SpinWheelCard from '@/components/dashboard/SpinWheelCard.vue'
@@ -26,6 +27,8 @@ onMounted(async () => {
       petsStore.allPets.length === 0 ? petsStore.fetchAllPets() : Promise.resolve(),
       petsStore.fetchOwnedPets(),
     ])
+  } catch {
+    toast.error('Failed to load dashboard data')
   } finally {
     isLoading.value = false
   }

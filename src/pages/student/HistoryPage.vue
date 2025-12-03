@@ -5,6 +5,7 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import { usePracticeStore, type DateRangeFilter } from '@/stores/practice'
 import { useAuthStore } from '@/stores/auth'
 import { ArrowUpDown, Calendar, Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
@@ -41,8 +42,13 @@ const isLoading = ref(true)
 
 // Fetch session history on mount
 onMounted(async () => {
-  await practiceStore.fetchSessionHistory()
-  isLoading.value = false
+  try {
+    await practiceStore.fetchSessionHistory()
+  } catch {
+    toast.error('Failed to load practice history')
+  } finally {
+    isLoading.value = false
+  }
 })
 
 // Reset topic when subject changes

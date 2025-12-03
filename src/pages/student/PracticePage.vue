@@ -156,7 +156,7 @@ function selectTopic(topicId: string) {
 
   // Check limit before showing dialog
   if (sessionLimitStatus.value && !sessionLimitStatus.value.canStartSession) {
-    toast.error(
+    toast.warning(
       `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Upgrade your plan for more sessions!`,
     )
     return

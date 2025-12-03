@@ -52,7 +52,7 @@ async function handleLogout() {
     toast.error('Failed to log out')
     return
   }
-  toast.success('Logged out successfully')
+  toast.info('Logged out successfully')
   router.push('/login')
 }
 </script>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { HelpCircle, Check } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
@@ -22,11 +23,14 @@ function isSelected(petId: string): boolean {
   return authStore.studentProfile?.selectedPetId === petId
 }
 
-function handleSelectPet(petId: string) {
+async function handleSelectPet(petId: string) {
+  const pet = petsStore.allPets.find((p) => p.id === petId)
   if (isSelected(petId)) {
-    petsStore.deselectPet()
+    await petsStore.deselectPet()
+    toast.info('Pet deselected')
   } else {
-    petsStore.selectPet(petId)
+    await petsStore.selectPet(petId)
+    toast.success(`${pet?.name ?? 'Pet'} selected!`)
   }
 }
 </script>

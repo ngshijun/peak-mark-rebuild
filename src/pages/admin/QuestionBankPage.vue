@@ -219,7 +219,7 @@ async function downloadTemplate() {
       await curriculumStore.fetchCurriculum()
     }
     await generateQuestionTemplate(curriculumStore.gradeLevels)
-    toast.success('Template downloaded')
+    toast.info('Template downloaded')
   } catch (error) {
     console.error('Error downloading template:', error)
     toast.error('Failed to download template')
@@ -228,7 +228,7 @@ async function downloadTemplate() {
 
 async function exportQuestions() {
   if (filteredQuestions.value.length === 0) {
-    toast.error('No questions to export')
+    toast.warning('No questions to export')
     return
   }
 
@@ -259,7 +259,7 @@ async function exportQuestions() {
         return null
       }
     })
-    toast.success(`Exported ${filteredQuestions.value.length} questions`)
+    toast.info(`Exported ${filteredQuestions.value.length} questions`)
   } catch (error) {
     console.error('Error exporting questions:', error)
     toast.error('Failed to export questions')

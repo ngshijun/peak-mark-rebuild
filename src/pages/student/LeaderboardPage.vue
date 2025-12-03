@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Trophy, Medal, Award, Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import fireGif from '@/assets/icons/fire.gif'
 
 const leaderboardStore = useLeaderboardStore()
@@ -76,13 +77,17 @@ const currentStudentInfo = computed(() => {
 
 // Fetch data on mount
 onMounted(async () => {
-  // Fetch curriculum for grade level filter
-  if (curriculumStore.gradeLevels.length === 0) {
-    await curriculumStore.fetchCurriculum()
-  }
+  try {
+    // Fetch curriculum for grade level filter
+    if (curriculumStore.gradeLevels.length === 0) {
+      await curriculumStore.fetchCurriculum()
+    }
 
-  // Fetch leaderboard
-  await leaderboardStore.fetchLeaderboard()
+    // Fetch leaderboard
+    await leaderboardStore.fetchLeaderboard()
+  } catch {
+    toast.error('Failed to load leaderboard')
+  }
 })
 
 function getInitials(name: string): string {

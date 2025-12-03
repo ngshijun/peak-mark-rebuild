@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Heart, Sparkles, Hand, Cookie } from 'lucide-vue-next'
 import PixelMeat from '@/components/icons/PixelMeat.vue'
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -45,16 +46,25 @@ function petPet() {
 }
 
 // Feed the pet
-function feedPet() {
-  if (isFeeding.value || currentFood.value <= 0) return
+async function feedPet() {
+  if (isFeeding.value) return
 
-  const success = authStore.useFood(1)
-  if (!success) return
+  if (currentFood.value <= 0) {
+    toast.warning('No food available! Buy some from the Market.')
+    return
+  }
+
+  const success = await authStore.useFood(1)
+  if (!success) {
+    toast.error('Failed to feed pet')
+    return
+  }
 
   isFeeding.value = true
   showSparkles.value = true
   hunger.value = Math.min(100, hunger.value + 20)
   happiness.value = Math.min(100, happiness.value + 10)
+  toast.success('Your pet enjoyed the food!')
 
   setTimeout(() => {
     isFeeding.value = false

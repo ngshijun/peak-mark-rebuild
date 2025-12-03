@@ -111,7 +111,7 @@ async function handleRejectInvitation(invitationId: string) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success('Invitation declined')
+      toast.info('Invitation declined')
     }
   } finally {
     processingInvitationId.value = null
@@ -125,7 +125,7 @@ async function handleCancelInvitation(invitationId: string) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success('Invitation cancelled')
+      toast.info('Invitation cancelled')
     }
   } finally {
     processingInvitationId.value = null
@@ -139,7 +139,7 @@ async function handleRemoveParent(parentId: string) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success('Parent removed')
+      toast.info('Parent removed')
     }
   } finally {
     removingParentId.value = null

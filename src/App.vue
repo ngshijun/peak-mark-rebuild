@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
+import 'vue-sonner/style.css'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -35,5 +36,5 @@ watch(
 
 <template>
   <router-view />
-  <Toaster />
+  <Toaster rich-colors />
 </template>

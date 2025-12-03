@@ -9,6 +9,7 @@ import {
 } from '@/stores/child-statistics'
 import { useChildLinkStore } from '@/stores/child-link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { toast } from 'vue-sonner'
 import {
   Select,
   SelectContent,
@@ -37,11 +38,15 @@ const childLinkStore = useChildLinkStore()
 // Fetch data on mount
 // Note: linkedChildren is preloaded by parentRouteGuard in router/index.ts
 onMounted(async () => {
-  // Set default selected child (linkedChildren already loaded by route guard)
-  if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
-    selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
+  try {
+    // Set default selected child (linkedChildren already loaded by route guard)
+    if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
+      selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
+    }
+    await childStatisticsStore.fetchChildrenStatistics()
+  } catch {
+    toast.error('Failed to load statistics')
   }
-  await childStatisticsStore.fetchChildrenStatistics()
 })
 
 const ALL_VALUE = '__all__'

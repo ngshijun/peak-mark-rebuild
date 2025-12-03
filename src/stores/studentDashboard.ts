@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import { usePracticeStore } from './practice'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
 
@@ -19,13 +18,15 @@ export interface DailyStatus {
 }
 
 export const useStudentDashboardStore = defineStore('studentDashboard', () => {
-  const practiceStore = usePracticeStore()
   const authStore = useAuthStore()
 
   // Current day's status
   const todayStatus = ref<DailyStatus | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+
+  // Streak from database (single source of truth)
+  const currentStreak = ref<number>(0)
 
   // Get today's date string in local timezone
   function getTodayString(): string {
@@ -97,6 +98,17 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
           spinReward: newData.spin_reward,
           createdAt: newData.created_at,
         }
+      }
+
+      // Fetch current streak from student_profiles
+      const { data: profileData } = await supabase
+        .from('student_profiles')
+        .select('current_streak')
+        .eq('id', studentId)
+        .single()
+
+      if (profileData) {
+        currentStreak.value = profileData.current_streak ?? 0
       }
 
       return { error: null }
@@ -197,110 +209,21 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
   }
 
-  // Calculate streak from daily statuses
-  async function calculateStreak(): Promise<number> {
+  // Refresh streak from database (call after practice completion)
+  async function refreshStreak(): Promise<void> {
     const studentId = authStore.user?.id
-    if (!studentId) return 0
+    if (!studentId) return
 
-    try {
-      // Fetch recent daily statuses ordered by date descending
-      const { data, error: fetchError } = await supabase
-        .from('daily_statuses')
-        .select('date, has_practiced')
-        .eq('student_id', studentId)
-        .eq('has_practiced', true)
-        .order('date', { ascending: false })
-        .limit(100)
+    const { data } = await supabase
+      .from('student_profiles')
+      .select('current_streak')
+      .eq('id', studentId)
+      .single()
 
-      if (fetchError || !data || data.length === 0) {
-        return 0
-      }
-
-      const today = getTodayString()
-      const yesterday = new Date()
-      yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
-
-      // If no practice today or yesterday, streak is broken
-      const mostRecentDate = data[0]?.date
-      if (mostRecentDate !== today && mostRecentDate !== yesterdayStr) {
-        return 0
-      }
-
-      // Count consecutive days
-      let streak = 1
-      let currentDate = new Date(mostRecentDate)
-
-      for (let i = 1; i < data.length; i++) {
-        const expectedPrevDate = new Date(currentDate)
-        expectedPrevDate.setDate(expectedPrevDate.getDate() - 1)
-        const expectedPrevStr = `${expectedPrevDate.getFullYear()}-${String(expectedPrevDate.getMonth() + 1).padStart(2, '0')}-${String(expectedPrevDate.getDate()).padStart(2, '0')}`
-
-        if (data[i]?.date === expectedPrevStr) {
-          streak++
-          currentDate = expectedPrevDate
-        } else {
-          break
-        }
-      }
-
-      return streak
-    } catch {
-      return 0
+    if (data) {
+      currentStreak.value = data.current_streak ?? 0
     }
   }
-
-  // Current streak (computed from practice history for now, will be replaced with DB call)
-  const currentStreak = computed(() => {
-    const sessions = practiceStore.studentHistory
-    if (sessions.length === 0) return 0
-
-    // Get unique dates with sessions that have progress (answered at least one question)
-    const practiceDates = new Set<string>()
-    for (const session of sessions) {
-      // Check currentQuestionIndex > 0 since answers array is not populated in history fetch
-      if (session.currentQuestionIndex > 0 && session.createdAt) {
-        const date = new Date(session.createdAt)
-        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-        practiceDates.add(dateStr)
-      }
-    }
-
-    if (practiceDates.size === 0) return 0
-
-    // Sort dates in descending order
-    const sortedDates = Array.from(practiceDates).sort((a, b) => b.localeCompare(a))
-
-    // Check if practiced today or yesterday (streak is still valid)
-    const today = getTodayString()
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
-
-    // If no practice today or yesterday, streak is broken
-    if (sortedDates[0] !== today && sortedDates[0] !== yesterdayStr) {
-      return 0
-    }
-
-    // Count consecutive days
-    let streak = 1
-    let currentDate = new Date(sortedDates[0] as string)
-
-    for (let i = 1; i < sortedDates.length; i++) {
-      const expectedPrevDate = new Date(currentDate)
-      expectedPrevDate.setDate(expectedPrevDate.getDate() - 1)
-      const expectedPrevStr = `${expectedPrevDate.getFullYear()}-${String(expectedPrevDate.getMonth() + 1).padStart(2, '0')}-${String(expectedPrevDate.getDate()).padStart(2, '0')}`
-
-      if (sortedDates[i] === expectedPrevStr) {
-        streak++
-        currentDate = expectedPrevDate
-      } else {
-        break
-      }
-    }
-
-    return streak
-  })
 
   // Check if practiced today
   const hasPracticedToday = computed(() => {
@@ -350,7 +273,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     fetchTodayStatus,
     setMood,
     spinWheel,
-    calculateStreak,
+    refreshStreak,
     markPracticedToday,
     getTodayString,
   }

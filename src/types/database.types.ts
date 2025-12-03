@@ -1028,6 +1028,10 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_display_streak: {
+        Args: { p_student_id: string }
+        Returns: number
+      }
       complete_practice_session: {
         Args: {
           p_correct_count: number
