@@ -39,17 +39,22 @@ onMounted(async () => {
   await petsStore.fetchOwnedPets()
 })
 
-// Get random pet based on rarity chances
+// Fixed rarity percentages (order matters for cumulative calculation)
+const RARITY_CHANCES: { rarity: PetRarity; chance: number }[] = [
+  { rarity: 'legendary', chance: 1 }, // 0-1%
+  { rarity: 'epic', chance: 9 }, // 1-10%
+  { rarity: 'rare', chance: 30 }, // 10-40%
+  { rarity: 'common', chance: 60 }, // 40-100%
+]
+
+// Get random pet based on fixed rarity percentages
 function getRandomPet(): Pet {
   const roll = Math.random() * 100
   let cumulative = 0
   let selectedRarity: PetRarity = 'common'
 
-  for (const [rarity, config] of Object.entries(rarityConfig) as [
-    PetRarity,
-    (typeof rarityConfig)['common'],
-  ][]) {
-    cumulative += config.chance
+  for (const { rarity, chance } of RARITY_CHANCES) {
+    cumulative += chance
     if (roll < cumulative) {
       selectedRarity = rarity
       break

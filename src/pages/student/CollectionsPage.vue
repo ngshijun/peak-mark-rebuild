@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, type PetRarity, type Pet } from '@/stores/pets'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { HelpCircle, Check } from 'lucide-vue-next'
+import { HelpCircle, Check, Star } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
@@ -21,6 +21,18 @@ function getCollectionProgress(rarity: PetRarity) {
 
 function isSelected(petId: string): boolean {
   return authStore.studentProfile?.selectedPetId === petId
+}
+
+// Get pet image for display (shows current tier image)
+function getPetDisplayImage(pet: Pet): string {
+  const ownedPet = petsStore.getOwnedPet(pet.id)
+  if (!ownedPet) return petsStore.getPetImageUrl(pet.imagePath)
+  return petsStore.getPetImageUrlForTier(pet, ownedPet.tier)
+}
+
+// Get pet tier for display
+function getPetTier(petId: string): number {
+  return petsStore.getOwnedPet(petId)?.tier ?? 1
 }
 
 async function handleSelectPet(petId: string) {
@@ -92,16 +104,16 @@ async function handleSelectPet(petId: string) {
               </div>
 
               <!-- Pet Image or Question Mark -->
-              <div class="flex size-12 items-center justify-center">
+              <div class="flex size-16 items-center justify-center">
                 <template v-if="petsStore.isPetOwned(pet.id)">
                   <img
-                    :src="petsStore.getPetImageUrl(pet.imagePath)"
+                    :src="getPetDisplayImage(pet)"
                     :alt="pet.name"
-                    class="size-10 object-contain"
+                    class="size-14 object-contain"
                   />
                 </template>
                 <template v-else>
-                  <HelpCircle class="size-8 text-gray-500" />
+                  <HelpCircle class="size-10 text-gray-500" />
                 </template>
               </div>
 
@@ -113,15 +125,10 @@ async function handleSelectPet(petId: string) {
                 {{ petsStore.isPetOwned(pet.id) ? pet.name : '???' }}
               </p>
 
-              <!-- Count if owned multiple -->
-              <Badge
-                v-if="
-                  petsStore.isPetOwned(pet.id) && (petsStore.getOwnedPet(pet.id)?.count ?? 0) > 1
-                "
-                variant="secondary"
-                class="mt-1 text-xs"
-              >
-                x{{ petsStore.getOwnedPet(pet.id)?.count }}
+              <!-- Tier Badge -->
+              <Badge v-if="petsStore.isPetOwned(pet.id)" variant="secondary" class="mt-1 text-xs">
+                <Star class="mr-0.5 size-2.5" />
+                T{{ getPetTier(pet.id) }}
               </Badge>
             </div>
           </div>

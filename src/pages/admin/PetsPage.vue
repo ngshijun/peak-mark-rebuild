@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h, onMounted } from 'vue'
+import { ref, computed, h, onMounted, nextTick } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
@@ -79,7 +79,13 @@ const showPetDialog = ref(false)
 const editingPet = ref<Pet | null>(null)
 const formImagePath = ref('')
 const formImageFile = ref<File | null>(null)
+const formTier2ImagePath = ref<string | null>(null)
+const formTier2ImageFile = ref<File | null>(null)
+const formTier3ImagePath = ref<string | null>(null)
+const formTier3ImageFile = ref<File | null>(null)
 const imageInputRef = ref<HTMLInputElement | null>(null)
+const tier2ImageInputRef = ref<HTMLInputElement | null>(null)
+const tier3ImageInputRef = ref<HTMLInputElement | null>(null)
 const isSaving = ref(false)
 
 function openAddDialog() {
@@ -87,40 +93,65 @@ function openAddDialog() {
   resetPetForm()
   formImagePath.value = ''
   formImageFile.value = null
+  formTier2ImagePath.value = null
+  formTier2ImageFile.value = null
+  formTier3ImagePath.value = null
+  formTier3ImageFile.value = null
   showPetDialog.value = true
 }
 
-function openEditDialog(pet: Pet) {
+async function openEditDialog(pet: Pet) {
   editingPet.value = pet
+  formImagePath.value = pet.imagePath
+  formImageFile.value = null
+  formTier2ImagePath.value = pet.tier2ImagePath
+  formTier2ImageFile.value = null
+  formTier3ImagePath.value = pet.tier3ImagePath
+  formTier3ImageFile.value = null
+  showPetDialog.value = true
+  await nextTick()
   setPetValues({
     name: pet.name,
     rarity: pet.rarity,
     gachaWeight: pet.gachaWeight,
   })
-  formImagePath.value = pet.imagePath
-  formImageFile.value = null
-  showPetDialog.value = true
 }
 
-function handleImageUpload(event: Event) {
+function handleImageUpload(event: Event, tier: 1 | 2 | 3 = 1) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
-    formImageFile.value = file
-    // Create preview URL
     const reader = new FileReader()
     reader.onload = (e) => {
-      formImagePath.value = e.target?.result as string
+      const result = e.target?.result as string
+      if (tier === 1) {
+        formImageFile.value = file
+        formImagePath.value = result
+      } else if (tier === 2) {
+        formTier2ImageFile.value = file
+        formTier2ImagePath.value = result
+      } else {
+        formTier3ImageFile.value = file
+        formTier3ImagePath.value = result
+      }
     }
     reader.readAsDataURL(file)
   }
 }
 
-function removeImage() {
-  formImagePath.value = ''
-  formImageFile.value = null
-  if (imageInputRef.value) {
-    imageInputRef.value.value = ''
+function removeImage(tier: 1 | 2 | 3 = 1) {
+  if (tier === 1) {
+    formImagePath.value = ''
+    formImageFile.value = null
+    if (imageInputRef.value) imageInputRef.value.value = ''
+  } else if (tier === 2) {
+    formTier2ImagePath.value = null
+    formTier2ImageFile.value = null
+    if (tier2ImageInputRef.value) tier2ImageInputRef.value.value = ''
+  } else {
+    formTier3ImagePath.value = null
+    formTier3ImageFile.value = null
+    if (tier3ImageInputRef.value) tier3ImageInputRef.value.value = ''
   }
 }
 
@@ -129,8 +160,10 @@ const handleSave = handlePetSubmit(async (values) => {
 
   try {
     let imagePath = formImagePath.value
+    let tier2ImagePath = formTier2ImagePath.value
+    let tier3ImagePath = formTier3ImagePath.value
 
-    // Upload image if new file selected
+    // Upload tier 1 image if new file selected
     if (formImageFile.value) {
       const { path, error: uploadError } = await petsStore.uploadPetImage(
         formImageFile.value,
@@ -143,6 +176,32 @@ const handleSave = handlePetSubmit(async (values) => {
       imagePath = path || ''
     }
 
+    // Upload tier 2 image if new file selected
+    if (formTier2ImageFile.value) {
+      const { path, error: uploadError } = await petsStore.uploadPetImage(
+        formTier2ImageFile.value,
+        editingPet.value?.id ? `${editingPet.value.id}_tier2` : undefined,
+      )
+      if (uploadError) {
+        toast.error(uploadError)
+        return
+      }
+      tier2ImagePath = path || null
+    }
+
+    // Upload tier 3 image if new file selected
+    if (formTier3ImageFile.value) {
+      const { path, error: uploadError } = await petsStore.uploadPetImage(
+        formTier3ImageFile.value,
+        editingPet.value?.id ? `${editingPet.value.id}_tier3` : undefined,
+      )
+      if (uploadError) {
+        toast.error(uploadError)
+        return
+      }
+      tier3ImagePath = path || null
+    }
+
     if (editingPet.value) {
       // Update existing pet
       const { error } = await petsStore.updatePet(editingPet.value.id, {
@@ -150,6 +209,8 @@ const handleSave = handlePetSubmit(async (values) => {
         rarity: values.rarity,
         gachaWeight: values.gachaWeight,
         imagePath,
+        tier2ImagePath,
+        tier3ImagePath,
       })
       if (error) {
         toast.error(error)
@@ -159,7 +220,7 @@ const handleSave = handlePetSubmit(async (values) => {
     } else {
       // Create new pet
       if (!imagePath) {
-        toast.error('Pet image is required')
+        toast.error('Tier 1 image is required')
         return
       }
       const { error } = await petsStore.createPet({
@@ -167,6 +228,8 @@ const handleSave = handlePetSubmit(async (values) => {
         rarity: values.rarity,
         gachaWeight: values.gachaWeight,
         imagePath,
+        tier2ImagePath,
+        tier3ImagePath,
       })
       if (error) {
         toast.error(error)
@@ -219,7 +282,7 @@ const columns: ColumnDef<Pet>[] = [
     cell: ({ row }) => {
       const pet = row.original
       return h('img', {
-        src: petsStore.getPetImageUrl(pet.imagePath),
+        src: petsStore.getPetImageUrl(pet.imagePath, pet.updatedAt),
         alt: pet.name,
         class: 'size-12 object-contain rounded-lg border',
       })
@@ -413,45 +476,151 @@ const columns: ColumnDef<Pet>[] = [
             Higher weight = more likely to be pulled within its rarity tier.
           </p>
 
-          <!-- Pet Image -->
-          <div class="space-y-2">
-            <FieldLabel>Image</FieldLabel>
-            <div v-if="formImagePath" class="relative inline-block">
-              <img
-                :src="formImageFile ? formImagePath : petsStore.getPetImageUrl(formImagePath)"
-                alt="Pet preview"
-                class="max-h-32 rounded-lg border object-contain"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                class="absolute -right-2 -top-2 size-6"
-                :disabled="isSaving"
-                @click="removeImage"
-              >
-                <X class="size-4" />
-              </Button>
+          <!-- Pet Images (3 Tiers) -->
+          <div class="space-y-4">
+            <FieldLabel>Evolution Images</FieldLabel>
+            <div class="grid grid-cols-3 gap-3">
+              <!-- Tier 1 Image -->
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-muted-foreground">Tier 1 (Required)</p>
+                <div v-if="formImagePath" class="relative">
+                  <img
+                    :src="
+                      formImageFile
+                        ? formImagePath
+                        : petsStore.getPetImageUrl(formImagePath, editingPet?.updatedAt)
+                    "
+                    alt="Tier 1 preview"
+                    class="h-20 w-full rounded-lg border object-contain"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    class="absolute -right-1 -top-1 size-5"
+                    :disabled="isSaving"
+                    @click="removeImage(1)"
+                  >
+                    <X class="size-3" />
+                  </Button>
+                </div>
+                <div v-else>
+                  <input
+                    ref="imageInputRef"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="(e) => handleImageUpload(e, 1)"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="w-full"
+                    :disabled="isSaving"
+                    @click="imageInputRef?.click()"
+                  >
+                    <ImagePlus class="mr-1 size-3" />
+                    T1
+                  </Button>
+                </div>
+              </div>
+
+              <!-- Tier 2 Image -->
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-muted-foreground">Tier 2 (Optional)</p>
+                <div v-if="formTier2ImagePath" class="relative">
+                  <img
+                    :src="
+                      formTier2ImageFile
+                        ? formTier2ImagePath
+                        : petsStore.getPetImageUrl(formTier2ImagePath, editingPet?.updatedAt)
+                    "
+                    alt="Tier 2 preview"
+                    class="h-20 w-full rounded-lg border object-contain"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    class="absolute -right-1 -top-1 size-5"
+                    :disabled="isSaving"
+                    @click="removeImage(2)"
+                  >
+                    <X class="size-3" />
+                  </Button>
+                </div>
+                <div v-else>
+                  <input
+                    ref="tier2ImageInputRef"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="(e) => handleImageUpload(e, 2)"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="w-full"
+                    :disabled="isSaving"
+                    @click="tier2ImageInputRef?.click()"
+                  >
+                    <ImagePlus class="mr-1 size-3" />
+                    T2
+                  </Button>
+                </div>
+              </div>
+
+              <!-- Tier 3 Image -->
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-muted-foreground">Tier 3 (Optional)</p>
+                <div v-if="formTier3ImagePath" class="relative">
+                  <img
+                    :src="
+                      formTier3ImageFile
+                        ? formTier3ImagePath
+                        : petsStore.getPetImageUrl(formTier3ImagePath, editingPet?.updatedAt)
+                    "
+                    alt="Tier 3 preview"
+                    class="h-20 w-full rounded-lg border object-contain"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    class="absolute -right-1 -top-1 size-5"
+                    :disabled="isSaving"
+                    @click="removeImage(3)"
+                  >
+                    <X class="size-3" />
+                  </Button>
+                </div>
+                <div v-else>
+                  <input
+                    ref="tier3ImageInputRef"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="(e) => handleImageUpload(e, 3)"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="w-full"
+                    :disabled="isSaving"
+                    @click="tier3ImageInputRef?.click()"
+                  >
+                    <ImagePlus class="mr-1 size-3" />
+                    T3
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div v-else>
-              <input
-                ref="imageInputRef"
-                type="file"
-                accept="image/*"
-                class="hidden"
-                @change="handleImageUpload"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                class="w-full"
-                :disabled="isSaving"
-                @click="imageInputRef?.click()"
-              >
-                <ImagePlus class="mr-2 size-4" />
-                Upload Image
-              </Button>
-            </div>
+            <p class="text-xs text-muted-foreground">
+              If tier images are not provided, the previous tier's image will be used.
+            </p>
           </div>
 
           <DialogFooter>

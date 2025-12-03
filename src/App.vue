@@ -36,5 +36,5 @@ watch(
 
 <template>
   <router-view />
-  <Toaster rich-colors />
+  <Toaster rich-colors position="top-center" />
 </template>

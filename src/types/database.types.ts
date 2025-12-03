@@ -177,25 +177,31 @@ export type Database = {
         Row: {
           count: number | null
           created_at: string | null
+          food_fed: number
           id: string
           pet_id: string
           student_id: string
+          tier: number
           updated_at: string | null
         }
         Insert: {
           count?: number | null
           created_at?: string | null
+          food_fed?: number
           id?: string
           pet_id: string
           student_id: string
+          tier?: number
           updated_at?: string | null
         }
         Update: {
           count?: number | null
           created_at?: string | null
+          food_fed?: number
           id?: string
           pet_id?: string
           student_id?: string
+          tier?: number
           updated_at?: string | null
         }
         Relationships: [
@@ -378,6 +384,8 @@ export type Database = {
           image_path: string
           name: string
           rarity: Database['public']['Enums']['pet_rarity']
+          tier2_image_path: string | null
+          tier3_image_path: string | null
           updated_at: string | null
         }
         Insert: {
@@ -387,6 +395,8 @@ export type Database = {
           image_path: string
           name: string
           rarity: Database['public']['Enums']['pet_rarity']
+          tier2_image_path?: string | null
+          tier3_image_path?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -396,6 +406,8 @@ export type Database = {
           image_path?: string
           name?: string
           rarity?: Database['public']['Enums']['pet_rarity']
+          tier2_image_path?: string | null
+          tier3_image_path?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1039,6 +1051,18 @@ export type Database = {
           p_total_questions: number
         }
         Returns: undefined
+      }
+      evolve_pet: {
+        Args: { p_owned_pet_id: string; p_student_id: string }
+        Returns: Json
+      }
+      feed_pet_for_evolution: {
+        Args: {
+          p_food_amount: number
+          p_owned_pet_id: string
+          p_student_id: string
+        }
+        Returns: Json
       }
       gacha_pull: {
         Args: { p_cost?: number; p_student_id: string }

@@ -11,8 +11,11 @@ export interface Pet {
   name: string
   rarity: PetRarity
   imagePath: string
+  tier2ImagePath: string | null
+  tier3ImagePath: string | null
   gachaWeight: number
   createdAt: string | null
+  updatedAt: string | null
 }
 
 export interface OwnedPet {
@@ -20,8 +23,16 @@ export interface OwnedPet {
   petId: string
   studentId: string
   count: number
+  tier: number
+  foodFed: number
   createdAt: string | null
 }
+
+// Evolution costs (progressive)
+export const EVOLUTION_COSTS = {
+  tier1to2: 10,
+  tier2to3: 25,
+} as const
 
 export const rarityConfig: Record<
   PetRarity,
@@ -88,8 +99,11 @@ export const usePetsStore = defineStore('pets', () => {
         name: pet.name,
         rarity: pet.rarity,
         imagePath: pet.image_path,
+        tier2ImagePath: pet.tier2_image_path,
+        tier3ImagePath: pet.tier3_image_path,
         gachaWeight: pet.gacha_weight ?? 100,
         createdAt: pet.created_at,
+        updatedAt: pet.updated_at,
       }))
 
       return { error: null }
@@ -124,6 +138,8 @@ export const usePetsStore = defineStore('pets', () => {
         petId: op.pet_id,
         studentId: op.student_id,
         count: op.count ?? 1,
+        tier: op.tier ?? 1,
+        foodFed: op.food_fed ?? 0,
         createdAt: op.created_at,
       }))
 
@@ -135,10 +151,14 @@ export const usePetsStore = defineStore('pets', () => {
   }
 
   // Get pet image URL from storage path
-  function getPetImageUrl(imagePath: string): string {
+  function getPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
     if (!imagePath) return ''
-    // If it's already a full URL, return as-is
+    // If it's already a full URL, return as-is (with cache bust if needed)
     if (imagePath.startsWith('http')) {
+      if (updatedAt) {
+        const separator = imagePath.includes('?') ? '&' : '?'
+        return `${imagePath}${separator}v=${new Date(updatedAt).getTime()}`
+      }
       return imagePath
     }
     // If it's a data URL (preview), return as-is
@@ -147,7 +167,49 @@ export const usePetsStore = defineStore('pets', () => {
     }
     // Otherwise, get the public URL from storage
     const { data } = supabase.storage.from('pet-images').getPublicUrl(imagePath)
+    // Add cache-busting query param if updatedAt is provided
+    if (updatedAt) {
+      return `${data.publicUrl}?v=${new Date(updatedAt).getTime()}`
+    }
     return data.publicUrl
+  }
+
+  // Get pet image URL based on tier
+  function getPetImageUrlForTier(pet: Pet, tier: number): string {
+    let imagePath: string | null = pet.imagePath
+    if (tier === 2 && pet.tier2ImagePath) {
+      imagePath = pet.tier2ImagePath
+    } else if (tier === 3 && pet.tier3ImagePath) {
+      imagePath = pet.tier3ImagePath
+    }
+    return getPetImageUrl(imagePath, pet.updatedAt)
+  }
+
+  // Get evolution progress for an owned pet
+  function getEvolutionProgress(ownedPet: OwnedPet): {
+    currentTier: number
+    foodFed: number
+    requiredFood: number
+    canEvolve: boolean
+    isMaxTier: boolean
+  } {
+    const currentTier = ownedPet.tier
+    const isMaxTier = currentTier >= 3
+
+    let requiredFood = 0
+    if (currentTier === 1) {
+      requiredFood = EVOLUTION_COSTS.tier1to2
+    } else if (currentTier === 2) {
+      requiredFood = EVOLUTION_COSTS.tier2to3
+    }
+
+    return {
+      currentTier,
+      foodFed: ownedPet.foodFed,
+      requiredFood,
+      canEvolve: !isMaxTier && ownedPet.foodFed >= requiredFood,
+      isMaxTier,
+    }
   }
 
   // Get pets grouped by rarity
@@ -225,6 +287,8 @@ export const usePetsStore = defineStore('pets', () => {
           petId: data.pet_id,
           studentId: data.student_id,
           count: data.count ?? 1,
+          tier: data.tier ?? 1,
+          foodFed: data.food_fed ?? 0,
           createdAt: data.created_at,
         })
       }
@@ -286,6 +350,122 @@ export const usePetsStore = defineStore('pets', () => {
     return result
   }
 
+  // Feed a pet to accumulate food for evolution
+  async function feedPetForEvolution(
+    ownedPetId: string,
+    foodAmount: number = 1,
+  ): Promise<{
+    success: boolean
+    foodFed?: number
+    requiredFood?: number
+    canEvolve?: boolean
+    error?: string
+  }> {
+    const studentId = authStore.user?.id
+    if (!studentId) {
+      return { success: false, error: 'Not logged in' }
+    }
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('feed_pet_for_evolution', {
+        p_owned_pet_id: ownedPetId,
+        p_student_id: studentId,
+        p_food_amount: foodAmount,
+      })
+
+      if (rpcError) {
+        return { success: false, error: rpcError.message }
+      }
+
+      const result = data as {
+        success: boolean
+        error?: string
+        food_fed?: number
+        required_food?: number
+        can_evolve?: boolean
+      }
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      // Update local state
+      const ownedPet = ownedPets.value.find((op) => op.id === ownedPetId)
+      if (ownedPet) {
+        ownedPet.foodFed = result.food_fed ?? ownedPet.foodFed
+      }
+
+      // Refresh auth store to get updated food count
+      await authStore.refreshProfile()
+
+      return {
+        success: true,
+        foodFed: result.food_fed,
+        requiredFood: result.required_food,
+        canEvolve: result.can_evolve,
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to feed pet'
+      return { success: false, error: message }
+    }
+  }
+
+  // Evolve a pet to the next tier
+  async function evolvePet(ownedPetId: string): Promise<{
+    success: boolean
+    newTier?: number
+    error?: string
+  }> {
+    const studentId = authStore.user?.id
+    if (!studentId) {
+      return { success: false, error: 'Not logged in' }
+    }
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('evolve_pet', {
+        p_owned_pet_id: ownedPetId,
+        p_student_id: studentId,
+      })
+
+      if (rpcError) {
+        return { success: false, error: rpcError.message }
+      }
+
+      const result = data as {
+        success: boolean
+        error?: string
+        new_tier?: number
+        pet_id?: string
+      }
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      // Update local state
+      const ownedPet = ownedPets.value.find((op) => op.id === ownedPetId)
+      if (ownedPet) {
+        ownedPet.tier = result.new_tier ?? ownedPet.tier
+        ownedPet.foodFed = 0
+      }
+
+      return {
+        success: true,
+        newTier: result.new_tier,
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to evolve pet'
+      return { success: false, error: message }
+    }
+  }
+
+  // Get the selected pet's owned data (including tier)
+  const selectedOwnedPet = computed(() => {
+    const petId = authStore.studentProfile?.selectedPetId
+    if (!petId) return null
+    return ownedPets.value.find((op) => op.petId === petId) ?? null
+  })
+
   // ========== ADMIN FUNCTIONS ==========
 
   // Add a new pet (admin only)
@@ -293,6 +473,8 @@ export const usePetsStore = defineStore('pets', () => {
     name: string
     rarity: PetRarity
     imagePath: string
+    tier2ImagePath?: string | null
+    tier3ImagePath?: string | null
     gachaWeight?: number
   }): Promise<{ pet: Pet | null; error: string | null }> {
     try {
@@ -302,6 +484,8 @@ export const usePetsStore = defineStore('pets', () => {
           name: pet.name,
           rarity: pet.rarity,
           image_path: pet.imagePath,
+          tier2_image_path: pet.tier2ImagePath ?? null,
+          tier3_image_path: pet.tier3ImagePath ?? null,
           gacha_weight: pet.gachaWeight ?? 100,
         })
         .select()
@@ -316,8 +500,11 @@ export const usePetsStore = defineStore('pets', () => {
         name: data.name,
         rarity: data.rarity,
         imagePath: data.image_path,
+        tier2ImagePath: data.tier2_image_path,
+        tier3ImagePath: data.tier3_image_path,
         gachaWeight: data.gacha_weight ?? 100,
         createdAt: data.created_at,
+        updatedAt: data.updated_at,
       }
 
       allPets.value.push(newPet)
@@ -335,6 +522,8 @@ export const usePetsStore = defineStore('pets', () => {
       name?: string
       rarity?: PetRarity
       imagePath?: string
+      tier2ImagePath?: string | null
+      tier3ImagePath?: string | null
       gachaWeight?: number
     },
   ): Promise<{ error: string | null }> {
@@ -343,9 +532,16 @@ export const usePetsStore = defineStore('pets', () => {
       if (updates.name !== undefined) updateData.name = updates.name
       if (updates.rarity !== undefined) updateData.rarity = updates.rarity
       if (updates.imagePath !== undefined) updateData.image_path = updates.imagePath
+      if (updates.tier2ImagePath !== undefined) updateData.tier2_image_path = updates.tier2ImagePath
+      if (updates.tier3ImagePath !== undefined) updateData.tier3_image_path = updates.tier3ImagePath
       if (updates.gachaWeight !== undefined) updateData.gacha_weight = updates.gachaWeight
 
-      const { error: updateError } = await supabase.from('pets').update(updateData).eq('id', petId)
+      const { data: updatedData, error: updateError } = await supabase
+        .from('pets')
+        .update(updateData)
+        .eq('id', petId)
+        .select('updated_at')
+        .single()
 
       if (updateError) {
         return { error: updateError.message }
@@ -359,7 +555,11 @@ export const usePetsStore = defineStore('pets', () => {
           if (updates.name !== undefined) pet.name = updates.name
           if (updates.rarity !== undefined) pet.rarity = updates.rarity
           if (updates.imagePath !== undefined) pet.imagePath = updates.imagePath
+          if (updates.tier2ImagePath !== undefined) pet.tier2ImagePath = updates.tier2ImagePath
+          if (updates.tier3ImagePath !== undefined) pet.tier3ImagePath = updates.tier3ImagePath
           if (updates.gachaWeight !== undefined) pet.gachaWeight = updates.gachaWeight
+          // Update the updatedAt for cache busting
+          pet.updatedAt = updatedData?.updated_at ?? new Date().toISOString()
         }
       }
 
@@ -434,9 +634,12 @@ export const usePetsStore = defineStore('pets', () => {
     totalOwned,
     totalPets,
     selectedPet,
+    selectedOwnedPet,
 
     // Helper functions
     getPetImageUrl,
+    getPetImageUrlForTier,
+    getEvolutionProgress,
     isPetOwned,
     getOwnedPet,
     getPetById,
@@ -445,6 +648,8 @@ export const usePetsStore = defineStore('pets', () => {
     addPet,
     selectPet,
     deselectPet,
+    feedPetForEvolution,
+    evolvePet,
 
     // Admin actions
     createPet,
