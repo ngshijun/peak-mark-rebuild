@@ -401,13 +401,11 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   /**
-   * Fetch question statistics from the materialized view
+   * Fetch question statistics via admin-only RPC function
    */
   async function fetchQuestionStatistics(): Promise<void> {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('question_statistics')
-        .select('question_id, attempts, correct_count, correctness_rate, avg_time_seconds')
+      const { data, error: fetchError } = await supabase.rpc('get_question_statistics')
 
       if (fetchError) throw fetchError
 

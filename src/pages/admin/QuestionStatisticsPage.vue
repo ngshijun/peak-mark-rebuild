@@ -31,7 +31,7 @@ const isRefreshing = ref(false)
 async function refreshStatistics(): Promise<void> {
   isRefreshing.value = true
   try {
-    const { error } = await supabase.rpc('refresh_all_materialized_views')
+    const { error } = await supabase.rpc('refresh_question_statistics')
     if (error) throw error
 
     // Re-fetch the statistics after refresh
