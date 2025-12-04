@@ -77,15 +77,18 @@ export async function generateQuestionTemplate(gradeLevels: GradeLevel[]): Promi
   const questionsSheet = workbook.addWorksheet('Questions')
   setupQuestionsSheet(questionsSheet, gradeLevels)
 
-  // 2. Create Instructions worksheet
+  // 2. Create hidden DropdownData worksheet for cascading dropdowns
+  const dropdownDataSheet = workbook.addWorksheet('DropdownData')
+  setupDropdownDataSheet(dropdownDataSheet, gradeLevels)
+
+  // 3. Apply cascading data validations to Questions sheet
+  applyCascadingValidations(questionsSheet, gradeLevels)
+
+  // 4. Create Instructions worksheet
   const instructionsSheet = workbook.addWorksheet('Instructions')
   setupInstructionsSheet(instructionsSheet)
 
-  // 3. Create Reference Data worksheet
-  const refSheet = workbook.addWorksheet('Reference Data')
-  setupReferenceSheet(refSheet, gradeLevels)
-
-  // 4. Download
+  // 5. Download
   const buffer = await workbook.xlsx.writeBuffer()
   const blob = new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -125,44 +128,7 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
   headerRow.height = 25
 
-  // Add data validation for Type column (A2:A500)
-  for (let i = 2; i <= 500; i++) {
-    sheet.getCell(`A${i}`).dataValidation = {
-      type: 'list',
-      allowBlank: false,
-      formulae: ['"mcq,short_answer"'],
-      showErrorMessage: true,
-      errorTitle: 'Invalid Type',
-      error: 'Please select mcq or short_answer',
-    }
-  }
-
-  // Add data validation for Grade Level (B2:B500)
-  const gradeNames = gradeLevels.map((g) => g.name).join(',')
-  if (gradeNames) {
-    for (let i = 2; i <= 500; i++) {
-      sheet.getCell(`B${i}`).dataValidation = {
-        type: 'list',
-        allowBlank: false,
-        formulae: [`"${gradeNames}"`],
-        showErrorMessage: true,
-        errorTitle: 'Invalid Grade Level',
-        error: 'Please select a valid grade level',
-      }
-    }
-  }
-
-  // Add data validation for Correct Answer (O2:O500)
-  for (let i = 2; i <= 500; i++) {
-    sheet.getCell(`O${i}`).dataValidation = {
-      type: 'list',
-      allowBlank: true,
-      formulae: ['"A,B,C,D"'],
-      showErrorMessage: true,
-      errorTitle: 'Invalid Answer',
-      error: 'For MCQ, select A, B, C, or D. For short answer, type the answer.',
-    }
-  }
+  // Note: Data validations are applied separately in applyCascadingValidations()
 
   // Add placeholder rows with proper height for images
   for (let i = 2; i <= 11; i++) {
@@ -191,6 +157,169 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
   sheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
 }
 
+// Helper function to sanitize names for Excel named ranges
+function sanitizeName(name: string): string {
+  // Replace spaces and special characters with underscores for named range compatibility
+  // Keep Chinese characters, alphanumeric, and replace others with underscores
+  return name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
+}
+
+// Helper function to get Excel column letter from column number (1-based)
+function getColumnLetter(colNum: number): string {
+  let letter = ''
+  while (colNum > 0) {
+    const mod = (colNum - 1) % 26
+    letter = String.fromCharCode(65 + mod) + letter
+    colNum = Math.floor((colNum - 1) / 26)
+  }
+  return letter
+}
+
+function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]) {
+  // Column A: Grade Levels list
+  // Columns B onwards: Subject lists per grade level (using grade name as header)
+  // After subjects: Topic lists per subject (using subject name as header)
+
+  // Write grade levels in column A
+  sheet.getCell('A1').value = 'GradeLevels'
+  sheet.getCell('A1').font = { bold: true }
+  gradeLevels.forEach((grade, index) => {
+    sheet.getCell(`A${index + 2}`).value = grade.name
+  })
+
+  // Define named range for grade levels
+  const gradeCount = gradeLevels.length
+  if (gradeCount > 0) {
+    sheet.workbook.definedNames.add(`'DropdownData'!$A$2:$A$${gradeCount + 1}`, 'GradeLevels')
+  }
+
+  let colIndex = 2 // Start from column B
+
+  // For each grade level, create a column for its subjects
+  for (const grade of gradeLevels) {
+    const colLetter = getColumnLetter(colIndex)
+
+    // Sanitize grade name for use as named range
+    const gradeSafeName = sanitizeName(grade.name)
+
+    // Header: Grade name (for reference)
+    sheet.getCell(`${colLetter}1`).value = `Subjects_${grade.name}`
+    sheet.getCell(`${colLetter}1`).font = { bold: true }
+
+    // Write subjects
+    grade.subjects.forEach((subject, idx) => {
+      sheet.getCell(`${colLetter}${idx + 2}`).value = subject.name
+    })
+
+    // Define named range for this grade's subjects
+    if (grade.subjects.length > 0) {
+      const endRow = grade.subjects.length + 1
+      // Named range: Grade_三年级 -> list of subjects
+      sheet.workbook.definedNames.add(
+        `'DropdownData'!$${colLetter}$2:$${colLetter}$${endRow}`,
+        `Grade_${gradeSafeName}`,
+      )
+    }
+
+    colIndex++
+  }
+
+  // For each subject, create a column for its topics
+  for (const grade of gradeLevels) {
+    for (const subject of grade.subjects) {
+      const colLetter = getColumnLetter(colIndex)
+
+      // Sanitize subject name
+      const subjectSafeName = sanitizeName(subject.name)
+
+      // Header: Subject name (for reference)
+      sheet.getCell(`${colLetter}1`).value = `Topics_${subject.name}`
+      sheet.getCell(`${colLetter}1`).font = { bold: true }
+
+      // Write topics
+      subject.topics.forEach((topic, idx) => {
+        sheet.getCell(`${colLetter}${idx + 2}`).value = topic.name
+      })
+
+      // Define named range for this subject's topics
+      if (subject.topics.length > 0) {
+        const endRow = subject.topics.length + 1
+        // Named range: Subject_数学 -> list of topics
+        sheet.workbook.definedNames.add(
+          `'DropdownData'!$${colLetter}$2:$${colLetter}$${endRow}`,
+          `Subject_${subjectSafeName}`,
+        )
+      }
+
+      colIndex++
+    }
+  }
+
+  // Hide the data sheet
+  sheet.state = 'hidden'
+}
+
+function applyCascadingValidations(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]) {
+  const gradeNames = gradeLevels.map((g) => g.name).join(',')
+
+  // Apply validations for rows 2-500
+  for (let row = 2; row <= 500; row++) {
+    // Column A: Type dropdown
+    sheet.getCell(`A${row}`).dataValidation = {
+      type: 'list',
+      allowBlank: false,
+      formulae: ['"mcq,short_answer"'],
+      showErrorMessage: true,
+      errorTitle: 'Invalid Type',
+      error: 'Please select mcq or short_answer',
+    }
+
+    // Column B: Grade Level dropdown (static list)
+    if (gradeNames) {
+      sheet.getCell(`B${row}`).dataValidation = {
+        type: 'list',
+        allowBlank: false,
+        formulae: [`"${gradeNames}"`],
+        showErrorMessage: true,
+        errorTitle: 'Invalid Grade Level',
+        error: 'Please select a valid grade level',
+      }
+    }
+
+    // Column C: Subject dropdown (dependent on Grade Level in column B)
+    // Uses INDIRECT to reference a named range based on column B value
+    sheet.getCell(`C${row}`).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: [`INDIRECT("Grade_"&SUBSTITUTE(B${row}," ","_"))`],
+      showErrorMessage: true,
+      errorTitle: 'Invalid Subject',
+      error: 'Please select a valid subject for the chosen grade level',
+    }
+
+    // Column D: Topic dropdown (dependent on Subject in column C)
+    // Uses INDIRECT to reference a named range based on column C value
+    sheet.getCell(`D${row}`).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: [`INDIRECT("Subject_"&SUBSTITUTE(C${row}," ","_"))`],
+      showErrorMessage: true,
+      errorTitle: 'Invalid Topic',
+      error: 'Please select a valid topic for the chosen subject',
+    }
+
+    // Column O: Correct Answer dropdown
+    sheet.getCell(`O${row}`).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: ['"A,B,C,D"'],
+      showErrorMessage: true,
+      errorTitle: 'Invalid Answer',
+      error: 'For MCQ, select A, B, C, or D. For short answer, type the answer.',
+    }
+  }
+}
+
 function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
   sheet.columns = [{ width: 100 }]
 
@@ -199,8 +328,15 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     [''],
     ['HOW TO USE THIS TEMPLATE:'],
     ['1. Fill in your questions in the "Questions" sheet'],
-    ['2. Use the "Reference Data" sheet to see available Grade Levels, Subjects, and Topics'],
+    ['2. Use cascading dropdowns: Select Grade Level first, then Subject, then Topic'],
     ['3. Save the file and upload it to the system'],
+    [''],
+    ['CASCADING DROPDOWNS:'],
+    ['This template uses cascading (dependent) dropdowns:'],
+    ['  1. Select a Grade Level from the dropdown'],
+    ['  2. The Subject dropdown will show only subjects for that grade'],
+    ['  3. The Topic dropdown will show only topics for that subject'],
+    ['  Note: You must select Grade Level before Subject, and Subject before Topic'],
     [''],
     ['COLUMN DESCRIPTIONS:'],
     [''],
@@ -209,15 +345,15 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     ['  - short_answer: Question with a text answer'],
     [''],
     ['Grade Level* (Required)'],
-    ['  - Select from the dropdown or see Reference Data sheet'],
+    ['  - Select from the dropdown'],
     [''],
     ['Subject* (Required)'],
-    ['  - Must be a subject under the selected Grade Level'],
-    ['  - See Reference Data sheet for valid combinations'],
+    ['  - Select from the dropdown (depends on Grade Level selection)'],
+    ['  - Must select Grade Level first'],
     [''],
     ['Topic* (Required)'],
-    ['  - Must be a topic under the selected Subject'],
-    ['  - See Reference Data sheet for valid combinations'],
+    ['  - Select from the dropdown (depends on Subject selection)'],
+    ['  - Must select Subject first'],
     [''],
     ['Question Text* (Required)'],
     ['  - The question to be asked'],
@@ -246,6 +382,7 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     ['- To paste an image: Copy the image, then paste into the cell'],
     ['- To insert an image: Insert > Picture, then position in the cell'],
     ['- Maximum 500 questions per upload'],
+    ['- This template works best in Microsoft Excel'],
   ]
 
   instructions.forEach((row, index) => {
@@ -261,56 +398,6 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
       excelRow.font = { bold: true, size: 12 }
     }
   })
-}
-
-function setupReferenceSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]) {
-  sheet.columns = [
-    { header: 'Grade Level', key: 'gradeLevel', width: 20 },
-    { header: 'Subject', key: 'subject', width: 25 },
-    { header: 'Topic', key: 'topic', width: 30 },
-  ]
-
-  // Style header row
-  const headerRow = sheet.getRow(1)
-  headerRow.font = { bold: true }
-  headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' },
-  }
-
-  // Populate with curriculum data
-  let rowIndex = 2
-  for (const gradeLevel of gradeLevels) {
-    for (const subject of gradeLevel.subjects) {
-      for (const topic of subject.topics) {
-        const row = sheet.getRow(rowIndex)
-        row.getCell(1).value = gradeLevel.name
-        row.getCell(2).value = subject.name
-        row.getCell(3).value = topic.name
-        rowIndex++
-      }
-      // If subject has no topics, still show grade level and subject
-      if (subject.topics.length === 0) {
-        const row = sheet.getRow(rowIndex)
-        row.getCell(1).value = gradeLevel.name
-        row.getCell(2).value = subject.name
-        row.getCell(3).value = '(no topics)'
-        rowIndex++
-      }
-    }
-    // If grade level has no subjects, still show grade level
-    if (gradeLevel.subjects.length === 0) {
-      const row = sheet.getRow(rowIndex)
-      row.getCell(1).value = gradeLevel.name
-      row.getCell(2).value = '(no subjects)'
-      row.getCell(3).value = ''
-      rowIndex++
-    }
-  }
-
-  // Freeze header row
-  sheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
 }
 
 // ============================================
