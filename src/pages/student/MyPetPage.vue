@@ -201,7 +201,7 @@ function getTierLabel(tier: number): string {
           <CardContent>
             <!-- Pet Display Area -->
             <div
-              class="relative flex h-64 items-center justify-center rounded-xl bg-gradient-to-b from-sky-100 to-green-100 dark:from-sky-900/30 dark:to-green-900/30"
+              class="relative flex h-80 items-center justify-center rounded-xl bg-gradient-to-b from-sky-100 to-green-100 dark:from-sky-900/30 dark:to-green-900/30"
               :class="rarityConfig[selectedPet.rarity].bgColor"
             >
               <!-- Floating hearts animation -->
@@ -231,7 +231,7 @@ function getTierLabel(tier: number): string {
                 <img
                   :src="currentTierImage"
                   :alt="selectedPet.name"
-                  class="size-40 object-contain"
+                  class="size-80 object-contain"
                 />
               </div>
             </div>

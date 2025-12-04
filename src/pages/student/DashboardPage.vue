@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { usePracticeStore } from '@/stores/practice'
 import { usePetsStore } from '@/stores/pets'
@@ -16,6 +16,21 @@ const practiceStore = usePracticeStore()
 const petsStore = usePetsStore()
 
 const isLoading = ref(true)
+const dailyStatusCardRef = ref<InstanceType<typeof DailyStatusCard> | null>(null)
+
+// LocalStorage key for "don't show again today"
+const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
+
+function shouldShowMoodReminder(): boolean {
+  // Check if user has already set mood today
+  if (dashboardStore.hasMoodToday) return false
+
+  // Check if user dismissed the reminder today
+  const dismissedDate = localStorage.getItem(MOOD_REMINDER_DISMISSED_KEY)
+  if (dismissedDate === dashboardStore.getTodayString()) return false
+
+  return true
+}
 
 // Fetch dashboard data on mount
 onMounted(async () => {
@@ -31,6 +46,16 @@ onMounted(async () => {
     toast.error('Failed to load dashboard data')
   } finally {
     isLoading.value = false
+  }
+})
+
+// Show mood reminder dialog after loading completes
+watch(isLoading, async (loading) => {
+  if (!loading && shouldShowMoodReminder()) {
+    // Wait for Vue to finish rendering the v-else content
+    await nextTick()
+    // Open the DailyStatusCard dialog with "don't show again" option
+    dailyStatusCardRef.value?.openDialog(true)
   }
 })
 </script>
@@ -51,7 +76,7 @@ onMounted(async () => {
     <div v-else class="space-y-6">
       <!-- Dashboard Cards Grid -->
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DailyStatusCard />
+        <DailyStatusCard ref="dailyStatusCardRef" />
         <CurrentPetCard />
         <SpinWheelCard />
         <StreakCard />

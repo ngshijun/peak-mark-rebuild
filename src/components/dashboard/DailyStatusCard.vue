@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useStudentDashboardStore, type MoodType } from '@/stores/studentDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,11 @@ import { Smile } from 'lucide-vue-next'
 const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
 const isSaving = ref(false)
+const showDontShowAgain = ref(false)
+const dontShowAgainToday = ref(false)
+
+// LocalStorage key for "don't show again today"
+const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
 
 const moods: { type: MoodType; emoji: string; label: string }[] = [
   { type: 'sad', emoji: '😢', label: 'Sad' },
@@ -37,11 +43,40 @@ async function selectMood(mood: MoodType) {
   isSaving.value = true
   try {
     await dashboardStore.setMood(mood)
+
+    // If "don't show again" is checked, save to localStorage
+    if (dontShowAgainToday.value) {
+      localStorage.setItem(MOOD_REMINDER_DISMISSED_KEY, dashboardStore.getTodayString())
+    }
+
     isOpen.value = false
+    showDontShowAgain.value = false
+    dontShowAgainToday.value = false
   } finally {
     isSaving.value = false
   }
 }
+
+// Open dialog programmatically (called from parent)
+function openDialog(withDontShowAgain = false) {
+  showDontShowAgain.value = withDontShowAgain
+  dontShowAgainToday.value = false
+  isOpen.value = true
+}
+
+// Save "don't show again" preference when dialog is closed (dismissed without selecting mood)
+watch(isOpen, (open) => {
+  if (!open && dontShowAgainToday.value && showDontShowAgain.value) {
+    localStorage.setItem(MOOD_REMINDER_DISMISSED_KEY, dashboardStore.getTodayString())
+    showDontShowAgain.value = false
+    dontShowAgainToday.value = false
+  }
+})
+
+// Expose for parent component
+defineExpose({
+  openDialog,
+})
 </script>
 
 <template>
@@ -83,6 +118,12 @@ async function selectMood(mood: MoodType) {
           <span class="text-5xl">{{ mood.emoji }}</span>
           <span class="text-sm font-medium">{{ mood.label }}</span>
         </Button>
+      </div>
+      <div v-if="showDontShowAgain" class="flex items-center gap-2 border-t pt-4">
+        <Checkbox id="dontShowAgain" v-model="dontShowAgainToday" :disabled="isSaving" />
+        <label for="dontShowAgain" class="cursor-pointer select-none text-sm text-muted-foreground">
+          Don't show again today
+        </label>
       </div>
     </DialogContent>
   </Dialog>

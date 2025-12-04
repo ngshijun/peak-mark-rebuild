@@ -13,7 +13,8 @@
       "mcp__chrome-devtools__list_console_messages",
       "mcp__chrome-devtools__fill",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "mcp__chrome-devtools__wait_for"
     ],
     "deny": [],
     "ask": []
