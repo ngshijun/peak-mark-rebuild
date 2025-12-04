@@ -26,6 +26,7 @@ export interface Question {
   answer: string | null // For short_answer type
   options: MCQOption[] // For MCQ type
   createdAt: string | null
+  updatedAt: string | null
   // Denormalized names for display
   gradeLevelName: string
   subjectName: string
@@ -126,6 +127,7 @@ function rowToQuestion(
     answer: row.answer,
     options,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
     gradeLevelName,
     subjectName,
     topicName,
@@ -390,6 +392,25 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   /**
+   * Delete a question image from storage
+   */
+  async function deleteQuestionImage(
+    path: string,
+  ): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const { error: deleteError } = await supabase.storage.from('question-images').remove([path])
+
+      if (deleteError) throw deleteError
+
+      return { success: true, error: null }
+    } catch (err) {
+      console.error('Error deleting image:', err)
+      const message = err instanceof Error ? err.message : 'Failed to delete image'
+      return { success: false, error: message }
+    }
+  }
+
+  /**
    * Get public URL for a question image
    */
   function getQuestionImageUrl(path: string | null): string {
@@ -524,6 +545,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     deleteQuestion,
     getQuestionById,
     uploadQuestionImage,
+    deleteQuestionImage,
     getQuestionImageUrl,
     fetchQuestionStatistics,
     getStatsByQuestionId,

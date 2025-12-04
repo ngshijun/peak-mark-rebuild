@@ -664,6 +664,7 @@ export type Database = {
           subject_id: string | null
           topic_id: string
           type: Database['public']['Enums']['question_type']
+          updated_at: string
         }
         Insert: {
           answer?: string | null
@@ -688,6 +689,7 @@ export type Database = {
           subject_id?: string | null
           topic_id: string
           type: Database['public']['Enums']['question_type']
+          updated_at?: string
         }
         Update: {
           answer?: string | null
@@ -712,6 +714,7 @@ export type Database = {
           subject_id?: string | null
           topic_id?: string
           type?: Database['public']['Enums']['question_type']
+          updated_at?: string
         }
         Relationships: [
           {

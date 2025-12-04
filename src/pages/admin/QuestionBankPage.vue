@@ -3,7 +3,17 @@ import { ref, computed, watch, onMounted, h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useQuestionsStore, type Question } from '@/stores/questions'
 import { useCurriculumStore } from '@/stores/curriculum'
-import { Search, Plus, Upload, Trash2, Loader2, Download, FileDown } from 'lucide-vue-next'
+import {
+  Search,
+  Plus,
+  Upload,
+  Trash2,
+  Loader2,
+  Download,
+  FileDown,
+  MoreHorizontal,
+  Pencil,
+} from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +34,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   QuestionAddDialog,
+  QuestionEditDialog,
   QuestionPreviewDialog,
   QuestionBulkUploadDialog,
 } from '@/components/admin'
@@ -38,11 +55,13 @@ const ALL_VALUE = '__all__'
 
 const searchQuery = ref('')
 const showAddDialog = ref(false)
+const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showPreviewDialog = ref(false)
 const showBulkUploadDialog = ref(false)
 const showExportDialog = ref(false)
 const selectedQuestion = ref<Question | null>(null)
+const editingQuestion = ref<Question | null>(null)
 const previewQuestion = ref<Question | null>(null)
 const isDeleting = ref(false)
 const isExporting = ref(false)
@@ -151,14 +170,41 @@ const columns: ColumnDef<Question>[] = [
     cell: ({ row }) => {
       const question = row.original
       return h(
-        Button,
+        DropdownMenu,
+        {},
         {
-          variant: 'ghost',
-          size: 'icon',
-          class: 'size-4 text-destructive hover:text-destructive',
-          onClick: (event: Event) => openDeleteDialog(question, event),
+          default: () => [
+            h(DropdownMenuTrigger, { asChild: true }, () =>
+              h(
+                Button,
+                {
+                  variant: 'ghost',
+                  size: 'icon',
+                  class: 'size-8',
+                  onClick: (event: Event) => event.stopPropagation(),
+                },
+                () => h(MoreHorizontal, { class: 'size-4' }),
+              ),
+            ),
+            h(DropdownMenuContent, { align: 'end' }, () => [
+              h(
+                DropdownMenuItem,
+                {
+                  onClick: (event: Event) => openEditDialog(question, event),
+                },
+                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit'],
+              ),
+              h(
+                DropdownMenuItem,
+                {
+                  class: 'text-destructive focus:text-destructive',
+                  onClick: (event: Event) => openDeleteDialog(question, event),
+                },
+                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete'],
+              ),
+            ]),
+          ],
         },
-        () => h(Trash2, { class: 'size-4' }),
       )
     },
   },
@@ -167,6 +213,12 @@ const columns: ColumnDef<Question>[] = [
 function openAddDialog() {
   selectedQuestion.value = null
   showAddDialog.value = true
+}
+
+function openEditDialog(question: Question, event: Event) {
+  event.stopPropagation()
+  editingQuestion.value = question
+  showEditDialog.value = true
 }
 
 function openDeleteDialog(question: Question, event: Event) {
@@ -204,6 +256,13 @@ async function handleSave() {
   showAddDialog.value = false
   selectedQuestion.value = null
   // Refresh questions list after add
+  await questionsStore.fetchQuestions()
+}
+
+async function handleEditSave() {
+  showEditDialog.value = false
+  editingQuestion.value = null
+  // Refresh questions list after edit
   await questionsStore.fetchQuestions()
 }
 
@@ -384,6 +443,13 @@ async function confirmExport() {
 
     <!-- Add Question Dialog -->
     <QuestionAddDialog v-model:open="showAddDialog" @save="handleSave" />
+
+    <!-- Edit Question Dialog -->
+    <QuestionEditDialog
+      v-model:open="showEditDialog"
+      :question="editingQuestion"
+      @save="handleEditSave"
+    />
 
     <!-- Question Preview Dialog -->
     <QuestionPreviewDialog v-model:open="showPreviewDialog" :question="previewQuestion" />

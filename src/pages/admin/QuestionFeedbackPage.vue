@@ -4,7 +4,7 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import { useFeedbackStore, type QuestionFeedback } from '@/stores/feedback'
 import { useQuestionsStore, type Question } from '@/stores/questions'
 import type { Database } from '@/types/database.types'
-import { Search, Trash2, ArrowUpDown, Loader2 } from 'lucide-vue-next'
+import { Search, Trash2, ArrowUpDown, Loader2, MoreHorizontal, Pencil } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,8 +19,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { toast } from 'vue-sonner'
-import { QuestionPreviewDialog } from '@/components/admin'
+import { QuestionPreviewDialog, QuestionEditDialog } from '@/components/admin'
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
@@ -30,8 +36,10 @@ const questionsStore = useQuestionsStore()
 const searchQuery = ref('')
 const isDeleting = ref(false)
 const showPreviewDialog = ref(false)
+const showEditDialog = ref(false)
 const previewQuestion = ref<Question | null>(null)
 const previewFeedback = ref<QuestionFeedback | null>(null)
+const editingQuestion = ref<Question | null>(null)
 
 // Fetch feedbacks and questions on mount
 onMounted(async () => {
@@ -97,6 +105,26 @@ function openDeleteDialog(feedback: QuestionFeedback, event: Event) {
   event.stopPropagation()
   deletingFeedback.value = feedback
   showDeleteDialog.value = true
+}
+
+function openEditDialog(feedback: QuestionFeedback, event: Event) {
+  event.stopPropagation()
+  const question = questionsStore.getQuestionById(feedback.questionId)
+  if (question) {
+    editingQuestion.value = question
+    showEditDialog.value = true
+  } else {
+    toast.error('Question not found', {
+      description: 'The question may have been deleted.',
+    })
+  }
+}
+
+async function handleEditSave() {
+  showEditDialog.value = false
+  editingQuestion.value = null
+  // Refresh questions list after edit
+  await questionsStore.fetchQuestions()
 }
 
 function handleRowClick(feedback: QuestionFeedback) {
@@ -194,14 +222,41 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     cell: ({ row }) => {
       const feedback = row.original
       return h(
-        Button,
+        DropdownMenu,
+        {},
         {
-          variant: 'ghost',
-          size: 'icon',
-          class: 'size-8 text-destructive hover:text-destructive',
-          onClick: (event: Event) => openDeleteDialog(feedback, event),
+          default: () => [
+            h(DropdownMenuTrigger, { asChild: true }, () =>
+              h(
+                Button,
+                {
+                  variant: 'ghost',
+                  size: 'icon',
+                  class: 'size-8',
+                  onClick: (event: Event) => event.stopPropagation(),
+                },
+                () => h(MoreHorizontal, { class: 'size-4' }),
+              ),
+            ),
+            h(DropdownMenuContent, { align: 'end' }, () => [
+              h(
+                DropdownMenuItem,
+                {
+                  onClick: (event: Event) => openEditDialog(feedback, event),
+                },
+                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit Question'],
+              ),
+              h(
+                DropdownMenuItem,
+                {
+                  class: 'text-destructive focus:text-destructive',
+                  onClick: (event: Event) => openDeleteDialog(feedback, event),
+                },
+                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete Feedback'],
+              ),
+            ]),
+          ],
         },
-        () => h(Trash2, { class: 'size-4' }),
       )
     },
   },
@@ -238,6 +293,13 @@ const columns: ColumnDef<QuestionFeedback>[] = [
       v-model:open="showPreviewDialog"
       :question="previewQuestion"
       :feedback="previewFeedback"
+    />
+
+    <!-- Edit Question Dialog -->
+    <QuestionEditDialog
+      v-model:open="showEditDialog"
+      :question="editingQuestion"
+      @save="handleEditSave"
     />
 
     <!-- Delete Feedback Confirmation -->
