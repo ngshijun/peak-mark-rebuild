@@ -3,6 +3,7 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { usePracticeStore } from '@/stores/practice'
 import { usePetsStore } from '@/stores/pets'
+import { useAuthStore } from '@/stores/auth'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DailyStatusCard from '@/components/dashboard/DailyStatusCard.vue'
@@ -14,6 +15,7 @@ import InProgressSessionsCard from '@/components/dashboard/InProgressSessionsCar
 const dashboardStore = useStudentDashboardStore()
 const practiceStore = usePracticeStore()
 const petsStore = usePetsStore()
+const authStore = useAuthStore()
 
 const isLoading = ref(true)
 const dailyStatusCardRef = ref<InstanceType<typeof DailyStatusCard> | null>(null)
@@ -22,6 +24,9 @@ const dailyStatusCardRef = ref<InstanceType<typeof DailyStatusCard> | null>(null
 const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
 
 function shouldShowMoodReminder(): boolean {
+  // Don't show mood reminder if grade level is not set (grade dialog takes priority)
+  if (!authStore.studentProfile?.gradeLevelId) return false
+
   // Check if user has already set mood today
   if (dashboardStore.hasMoodToday) return false
 
