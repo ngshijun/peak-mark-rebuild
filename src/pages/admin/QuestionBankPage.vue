@@ -41,6 +41,7 @@ const showAddDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showPreviewDialog = ref(false)
 const showBulkUploadDialog = ref(false)
+const showExportDialog = ref(false)
 const selectedQuestion = ref<Question | null>(null)
 const previewQuestion = ref<Question | null>(null)
 const isDeleting = ref(false)
@@ -226,12 +227,30 @@ async function downloadTemplate() {
   }
 }
 
-async function exportQuestions() {
+// Get export summary for confirmation dialog
+const exportSummary = computed(() => {
+  const filters: string[] = []
+  if (gradeLevelFilter.value) filters.push(`Grade: ${gradeLevelFilter.value}`)
+  if (subjectFilter.value) filters.push(`Subject: ${subjectFilter.value}`)
+  if (topicFilter.value) filters.push(`Topic: ${topicFilter.value}`)
+  if (searchQuery.value) filters.push(`Search: "${searchQuery.value}"`)
+  return {
+    filters: filters.length > 0 ? filters : ['All questions (no filters applied)'],
+    count: filteredQuestions.value.length,
+    isFiltered: filters.length > 0,
+  }
+})
+
+function openExportDialog() {
   if (filteredQuestions.value.length === 0) {
     toast.warning('No questions to export')
     return
   }
+  showExportDialog.value = true
+}
 
+async function confirmExport() {
+  showExportDialog.value = false
   isExporting.value = true
   try {
     await exportQuestionsToExcel(filteredQuestions.value, async (imagePath: string) => {
@@ -284,7 +303,7 @@ async function exportQuestions() {
         <Button
           variant="outline"
           :disabled="questionsStore.isLoading || isExporting || filteredQuestions.length === 0"
-          @click="exportQuestions"
+          @click="openExportDialog"
         >
           <Loader2 v-if="isExporting" class="mr-2 size-4 animate-spin" />
           <FileDown v-else class="mr-2 size-4" />
@@ -396,6 +415,38 @@ async function exportQuestions() {
           <Button variant="destructive" :disabled="isDeleting" @click="handleDelete">
             <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
             Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Export Confirmation Dialog -->
+    <Dialog v-model:open="showExportDialog">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Export Questions</DialogTitle>
+          <DialogDescription>
+            You are about to export the following questions to an Excel file.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-3 py-4">
+          <div class="rounded-lg border bg-muted/50 p-3">
+            <p class="text-sm font-medium">Filters Applied:</p>
+            <ul class="mt-1 list-inside list-disc text-sm text-muted-foreground">
+              <li v-for="filter in exportSummary.filters" :key="filter">{{ filter }}</li>
+            </ul>
+          </div>
+          <p class="text-sm">
+            <span class="font-medium">{{ exportSummary.count }}</span> question(s) will be exported.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="showExportDialog = false">Cancel</Button>
+          <Button @click="confirmExport">
+            <FileDown class="mr-2 size-4" />
+            Export
           </Button>
         </DialogFooter>
       </DialogContent>
