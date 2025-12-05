@@ -39,9 +39,9 @@ const childLinkStore = useChildLinkStore()
 // Note: linkedChildren is preloaded by parentRouteGuard in router/index.ts
 onMounted(async () => {
   try {
-    // Set default selected child (linkedChildren already loaded by route guard)
+    // Set selected child from localStorage or default to first child
     if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
-      selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
+      selectedChildId.value = getInitialChildId()
     }
     await childStatisticsStore.fetchChildrenStatistics()
   } catch {
@@ -50,10 +50,19 @@ onMounted(async () => {
 })
 
 const ALL_VALUE = '__all__'
+const SELECTED_CHILD_KEY = 'parent_selected_child_id'
 
-const selectedChildId = ref<string>(
-  childLinkStore.linkedChildren.length > 0 ? (childLinkStore.linkedChildren[0]?.id ?? '') : '',
-)
+// Get initial child ID from localStorage or default to first child
+function getInitialChildId(): string {
+  const savedChildId = localStorage.getItem(SELECTED_CHILD_KEY)
+  // Verify saved child is still in linked children list
+  if (savedChildId && childLinkStore.linkedChildren.some((c) => c.id === savedChildId)) {
+    return savedChildId
+  }
+  return childLinkStore.linkedChildren[0]?.id ?? ''
+}
+
+const selectedChildId = ref<string>(getInitialChildId())
 const selectedDateRange = ref<DateRangeFilter>('today')
 const selectedGradeLevel = ref<string>(ALL_VALUE)
 const selectedSubject = ref<string>(ALL_VALUE)
@@ -66,12 +75,17 @@ const dateRangeOptions = [
   { value: 'alltime' as DateRangeFilter, label: 'All Time' },
 ]
 
-// Reset filters when child changes
-watch(selectedChildId, () => {
+// Reset filters when child changes and save to localStorage
+watch(selectedChildId, (newChildId) => {
   selectedDateRange.value = 'today'
   selectedGradeLevel.value = ALL_VALUE
   selectedSubject.value = ALL_VALUE
   selectedTopic.value = ALL_VALUE
+
+  // Persist selected child to localStorage
+  if (newChildId) {
+    localStorage.setItem(SELECTED_CHILD_KEY, newChildId)
+  }
 })
 
 // Reset subject and topic when grade level changes
