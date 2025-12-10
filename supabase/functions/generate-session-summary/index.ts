@@ -10,23 +10,36 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+interface QuestionData {
+  question: string
+  type: 'mcq' | 'short_answer'
+  isCorrect: boolean
+  studentAnswer: string | null
+  correctAnswer: string | null
+  questionImageUrl: string | null
+  options: {
+    label: string
+    text: string | null
+    imageUrl: string | null
+    isCorrect: boolean
+    isStudentAnswer: boolean
+  }[]
+}
+
 interface SessionData {
-  sessionId: string
-  studentId: string
   gradeLevelName: string
   subjectName: string
   topicName: string
   totalQuestions: number
   correctCount: number
   totalTimeSeconds: number
-  questions: {
-    question: string
-    type: 'mcq' | 'short_answer'
-    isCorrect: boolean
-    timeSpentSeconds: number
-    studentAnswer: string | null
-    correctAnswer: string | null
-  }[]
+  questions: QuestionData[]
+}
+
+function getImagePublicUrl(path: string | null): string | null {
+  if (!path) return null
+  if (path.startsWith('http')) return path
+  return `${supabaseUrl}/storage/v1/object/public/question-images/${path}`
 }
 
 Deno.serve(async (req: Request) => {
@@ -84,22 +97,26 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Fetch answers with questions
+    // Fetch answers with questions (including image paths)
     const { data: answers, error: answersError } = await supabase
       .from('practice_answers')
       .select(`
         is_correct,
-        time_spent_seconds,
         selected_option,
         text_answer,
         questions!inner(
           question,
           type,
           answer,
+          image_path,
           option_1_text,
           option_2_text,
           option_3_text,
           option_4_text,
+          option_1_image_path,
+          option_2_image_path,
+          option_3_image_path,
+          option_4_image_path,
           option_1_is_correct,
           option_2_is_correct,
           option_3_is_correct,
@@ -113,21 +130,37 @@ Deno.serve(async (req: Request) => {
     }
 
     // Build session data for prompt
-    const questionsData = (answers || []).map((a: any) => {
+    const questionsData: QuestionData[] = (answers || []).map((a: any) => {
       const q = a.questions
       let studentAnswer: string | null = null
       let correctAnswer: string | null = null
 
+      const options: QuestionData['options'] = []
+
       if (q.type === 'mcq') {
-        // Convert selected_option (1-4) to letter (A-D)
-        if (a.selected_option) {
-          studentAnswer = String.fromCharCode(64 + a.selected_option) // 1->A, 2->B, etc.
-        }
-        // Find correct option
-        if (q.option_1_is_correct) correctAnswer = 'A'
-        else if (q.option_2_is_correct) correctAnswer = 'B'
-        else if (q.option_3_is_correct) correctAnswer = 'C'
-        else if (q.option_4_is_correct) correctAnswer = 'D'
+        // Build options array
+        const optionLabels = ['A', 'B', 'C', 'D']
+        const optionData = [
+          { text: q.option_1_text, imagePath: q.option_1_image_path, isCorrect: q.option_1_is_correct },
+          { text: q.option_2_text, imagePath: q.option_2_image_path, isCorrect: q.option_2_is_correct },
+          { text: q.option_3_text, imagePath: q.option_3_image_path, isCorrect: q.option_3_is_correct },
+          { text: q.option_4_text, imagePath: q.option_4_image_path, isCorrect: q.option_4_is_correct },
+        ]
+
+        optionData.forEach((opt, index) => {
+          if (opt.text || opt.imagePath) {
+            const label = optionLabels[index]
+            options.push({
+              label,
+              text: opt.text,
+              imageUrl: getImagePublicUrl(opt.imagePath),
+              isCorrect: opt.isCorrect ?? false,
+              isStudentAnswer: a.selected_option === index + 1,
+            })
+            if (opt.isCorrect) correctAnswer = label
+            if (a.selected_option === index + 1) studentAnswer = label
+          }
+        })
       } else {
         studentAnswer = a.text_answer
         correctAnswer = q.answer
@@ -137,9 +170,10 @@ Deno.serve(async (req: Request) => {
         question: q.question,
         type: q.type,
         isCorrect: a.is_correct,
-        timeSpentSeconds: a.time_spent_seconds || 0,
         studentAnswer,
         correctAnswer,
+        questionImageUrl: getImagePublicUrl(q.image_path),
+        options,
       }
     })
 
@@ -149,10 +183,8 @@ Deno.serve(async (req: Request) => {
     const subjectName = topic?.subjects?.name || 'Unknown'
     const gradeLevelName = topic?.subjects?.grade_levels?.name || 'Unknown'
 
-    // Build the prompt
-    const prompt = buildPrompt({
-      sessionId,
-      studentId: session.student_id,
+    // Build the messages for OpenAI
+    const messages = buildMessages({
       gradeLevelName,
       subjectName,
       topicName,
@@ -171,24 +203,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: 'gpt-5-nano',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a friendly and encouraging educational tutor providing feedback to students.
-Your task is to write a short, personalized summary (2-3 sentences) of a practice session.
-The summary should:
-1. Acknowledge what the student did well
-2. Gently mention one area for improvement if applicable
-3. End with encouragement
-Keep the tone warm, supportive, and age-appropriate for students.
-Write in second person ("You did great...").
-Do not use bullet points or lists - write flowing sentences.`,
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+        messages,
         reasoning_effort: 'minimal',
       }),
     })
@@ -226,7 +241,7 @@ Do not use bullet points or lists - write flowing sentences.`,
   }
 })
 
-function buildPrompt(data: SessionData): string {
+function buildMessages(data: SessionData): any[] {
   const score = data.totalQuestions > 0
     ? Math.round((data.correctCount / data.totalQuestions) * 100)
     : 0
@@ -235,32 +250,84 @@ function buildPrompt(data: SessionData): string {
   const seconds = data.totalTimeSeconds % 60
   const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
 
-  const incorrectQuestions = data.questions
-    .filter((q) => !q.isCorrect)
-    .map((q) => `- "${q.question.substring(0, 50)}${q.question.length > 50 ? '...' : ''}"`)
-    .slice(0, 3) // Limit to 3 examples
+  const incorrectQuestions = data.questions.filter((q) => !q.isCorrect)
 
-  let prompt = `Practice Session Summary:
+  // Build system message
+  const systemMessage = {
+    role: 'system',
+    content: `You are a friendly and encouraging educational tutor providing feedback to students.
+Your task is to write a short, personalized summary (2-3 sentences) of a practice session.
+The summary should:
+1. Acknowledge what the student did well
+2. Gently mention one area for improvement if applicable
+3. End with encouragement
+Keep the tone warm, supportive, and age-appropriate for students.
+Write in second person ("You did great...").
+Do not use bullet points or lists - write flowing sentences.`,
+  }
+
+  // Build user message content (can include text and images)
+  const userContent: any[] = []
+
+  // Add session summary text
+  let summaryText = `Practice Session Summary:
 - Subject: ${data.subjectName}
 - Topic: ${data.topicName}
 - Grade Level: ${data.gradeLevelName}
 - Score: ${data.correctCount}/${data.totalQuestions} (${score}%)
-- Time: ${timeStr}
-`
-
-  if (incorrectQuestions.length > 0) {
-    prompt += `\nQuestions answered incorrectly:\n${incorrectQuestions.join('\n')}`
-  }
+- Time: ${timeStr}`
 
   if (score === 100) {
-    prompt += '\n\nThe student got a perfect score!'
+    summaryText += '\n\nThe student got a perfect score!'
   } else if (score >= 80) {
-    prompt += '\n\nThe student performed very well.'
+    summaryText += '\n\nThe student performed very well.'
   } else if (score >= 60) {
-    prompt += '\n\nThe student showed good effort but has room for improvement.'
+    summaryText += '\n\nThe student showed good effort but has room for improvement.'
   } else {
-    prompt += '\n\nThe student struggled with this topic and may need additional practice.'
+    summaryText += '\n\nThe student struggled with this topic and may need additional practice.'
   }
 
-  return prompt
+  userContent.push({ type: 'text', text: summaryText })
+
+  // Add incorrect questions with images
+  if (incorrectQuestions.length > 0) {
+    userContent.push({ type: 'text', text: '\n\nQuestions answered incorrectly:' })
+
+    incorrectQuestions.forEach((q, index) => {
+      // Add question text
+      userContent.push({
+        type: 'text',
+        text: `\n${index + 1}. Question: ${q.question}\n   Student's answer: ${q.studentAnswer || 'No answer'}\n   Correct answer: ${q.correctAnswer || 'N/A'}`,
+      })
+
+      // Add question image if exists
+      if (q.questionImageUrl) {
+        userContent.push({
+          type: 'image_url',
+          image_url: { url: q.questionImageUrl },
+        })
+      }
+
+      // Add option images for MCQ (only for options that have images)
+      if (q.type === 'mcq' && q.options.length > 0) {
+        const optionsWithImages = q.options.filter((opt) => opt.imageUrl)
+        if (optionsWithImages.length > 0) {
+          userContent.push({ type: 'text', text: '   Options:' })
+          optionsWithImages.forEach((opt) => {
+            const marker = opt.isCorrect ? '(correct)' : opt.isStudentAnswer ? '(student chose)' : ''
+            userContent.push({ type: 'text', text: `   ${opt.label}${marker}:` })
+            userContent.push({
+              type: 'image_url',
+              image_url: { url: opt.imageUrl! },
+            })
+          })
+        }
+      }
+    })
+  }
+
+  return [
+    systemMessage,
+    { role: 'user', content: userContent },
+  ]
 }
