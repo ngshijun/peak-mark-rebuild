@@ -76,8 +76,12 @@ onMounted(async () => {
     if (result.session.completedAt) {
       await dashboardStore.markPracticedToday()
     }
-    // Show loading state for AI summary if Max tier and no summary yet
-    if (subscriptionStatus.value?.tier === 'max' && !result.session.aiSummary) {
+    // Show loading state for AI summary only if:
+    // 1. Max tier subscription
+    // 2. No summary yet
+    // 3. This is the current session (just completed, not viewing from history)
+    const isCurrentSession = practiceStore.currentSession?.id === result.session.id
+    if (subscriptionStatus.value?.tier === 'max' && !result.session.aiSummary && isCurrentSession) {
       isGeneratingAiSummary.value = true
     }
   } else {
