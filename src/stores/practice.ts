@@ -41,6 +41,7 @@ export interface PracticeSession {
   coinsEarned: number | null
   createdAt: string | null
   completedAt: string | null
+  aiSummary: string | null
   // Loaded separately
   questions: Question[]
   answers: PracticeAnswer[]
@@ -221,6 +222,7 @@ export const usePracticeStore = defineStore('practice', () => {
       coinsEarned: row.coins_earned,
       createdAt: row.created_at,
       completedAt: row.completed_at,
+      aiSummary: row.ai_summary ?? null,
       questions: [],
       answers: [],
     }
@@ -601,6 +603,7 @@ export const usePracticeStore = defineStore('practice', () => {
         totalTimeSeconds: 0,
         xpEarned: null,
         coinsEarned: null,
+        aiSummary: null,
         createdAt: sessionData.created_at,
         completedAt: null,
         questions: selectedQuestions,
@@ -793,10 +796,44 @@ export const usePracticeStore = defineStore('practice', () => {
       authStore.addXp(totalXp)
       authStore.addCoins(totalCoins)
 
+      // Generate AI summary for Max tier subscribers (non-blocking)
+      generateAiSummary(currentSession.value.id)
+
       return { session: currentSession.value, error: null }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to complete session'
       return { session: null, error: message }
+    }
+  }
+
+  /**
+   * Generate AI summary for a session (Max tier only)
+   * This is called non-blocking after session completion
+   */
+  async function generateAiSummary(sessionId: string): Promise<void> {
+    try {
+      // Check subscription status
+      const subscriptionStatus = await getStudentSubscriptionStatus()
+      if (subscriptionStatus.tier !== 'max') {
+        return // Only Max tier gets AI summaries
+      }
+
+      // Call Edge Function to generate summary
+      const { data, error } = await supabase.functions.invoke('generate-session-summary', {
+        body: { sessionId },
+      })
+
+      if (error) {
+        console.error('Failed to generate AI summary:', error)
+        return
+      }
+
+      // Update current session if it's still loaded
+      if (currentSession.value?.id === sessionId && data?.summary) {
+        currentSession.value.aiSummary = data.summary
+      }
+    } catch (err) {
+      console.error('Error generating AI summary:', err)
     }
   }
 

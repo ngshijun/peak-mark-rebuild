@@ -469,6 +469,7 @@ export type Database = {
       }
       practice_sessions: {
         Row: {
+          ai_summary: string | null
           coins_earned: number | null
           completed_at: string | null
           correct_count: number | null
@@ -484,6 +485,7 @@ export type Database = {
           xp_earned: number | null
         }
         Insert: {
+          ai_summary?: string | null
           coins_earned?: number | null
           completed_at?: string | null
           correct_count?: number | null
@@ -499,6 +501,7 @@ export type Database = {
           xp_earned?: number | null
         }
         Update: {
+          ai_summary?: string | null
           coins_earned?: number | null
           completed_at?: string | null
           correct_count?: number | null

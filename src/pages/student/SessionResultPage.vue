@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   usePracticeStore,
@@ -23,6 +23,7 @@ import {
   Users,
   Sparkles,
   Coins,
+  BotMessageSquare,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -36,6 +37,7 @@ const session = ref<PracticeSession | null>(null)
 const isLoading = ref(true)
 const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)
 const subscriptionRequired = ref(false)
+const isGeneratingAiSummary = ref(false)
 
 const summary = computed(() => {
   if (!session.value) return null
@@ -74,11 +76,26 @@ onMounted(async () => {
     if (result.session.completedAt) {
       await dashboardStore.markPracticedToday()
     }
+    // Show loading state for AI summary if Max tier and no summary yet
+    if (subscriptionStatus.value?.tier === 'max' && !result.session.aiSummary) {
+      isGeneratingAiSummary.value = true
+    }
   } else {
     router.push('/student/history')
   }
   isLoading.value = false
 })
+
+// Watch for AI summary updates from the store (generated async after session completes)
+watch(
+  () => practiceStore.currentSession?.aiSummary,
+  (newSummary) => {
+    if (newSummary && session.value && practiceStore.currentSession?.id === session.value.id) {
+      session.value.aiSummary = newSummary
+      isGeneratingAiSummary.value = false
+    }
+  },
+)
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) {
@@ -221,6 +238,30 @@ function goToHistory() {
       <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
         Completed: {{ formatDate(session.completedAt) }}
       </div>
+
+      <!-- AI Summary (Max tier only) -->
+      <Card
+        v-if="session.aiSummary || isGeneratingAiSummary"
+        class="mb-6 border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20"
+      >
+        <CardHeader class="pb-2">
+          <CardTitle
+            class="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300"
+          >
+            <BotMessageSquare class="size-4" />
+            AI Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p v-if="session.aiSummary" class="text-sm leading-relaxed">
+            {{ session.aiSummary }}
+          </p>
+          <div v-else class="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 class="size-4 animate-spin" />
+            Generating summary...
+          </div>
+        </CardContent>
+      </Card>
 
       <Separator class="mb-6" />
 

@@ -12,7 +12,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2, Lock, Sparkles } from 'lucide-vue-next'
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ArrowLeft,
+  Loader2,
+  Lock,
+  Sparkles,
+  BotMessageSquare,
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -186,6 +195,24 @@ function goBack() {
       <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
         Completed: {{ formatDate(session.completedAt) }}
       </div>
+
+      <!-- AI Summary (Max tier only) -->
+      <Card
+        v-if="session.aiSummary"
+        class="mb-6 border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20"
+      >
+        <CardHeader class="pb-2">
+          <CardTitle
+            class="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300"
+          >
+            <BotMessageSquare class="size-4" />
+            AI Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p class="text-sm leading-relaxed">{{ session.aiSummary }}</p>
+        </CardContent>
+      </Card>
 
       <Separator class="mb-6" />
 

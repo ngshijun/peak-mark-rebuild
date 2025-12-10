@@ -80,6 +80,7 @@ export interface ChildPracticeSessionFull extends ChildPracticeSession {
   questions: Question[]
   answers: PracticeAnswer[]
   startedAt: string
+  aiSummary: string | null
 }
 
 export interface ChildStatistics {
@@ -294,6 +295,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           total_questions,
           created_at,
           completed_at,
+          ai_summary,
           topics (
             id,
             name,
@@ -444,6 +446,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         completedAt: sessionData.completed_at!,
         questions,
         answers,
+        aiSummary: sessionData.ai_summary ?? null,
       }
 
       return { session, error: null }
