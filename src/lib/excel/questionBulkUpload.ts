@@ -93,6 +93,8 @@ export async function validateQuestions(parsed: ParsedQuestion[]): Promise<Uploa
     const errors: string[] = []
 
     // Check curriculum hierarchy
+    // New hierarchy: grade_level -> subject -> topic -> sub_topic
+    // Excel topicName is treated as subTopicName (legacy naming)
     const gradeLevel = curriculumStore.gradeLevels.find(
       (g) => normalizeText(g.name) === normalizeText(q.gradeLevelName),
     )
@@ -105,10 +107,18 @@ export async function validateQuestions(parsed: ParsedQuestion[]): Promise<Uploa
       if (!subject) {
         errors.push(`Subject "${q.subjectName}" not found under "${q.gradeLevelName}"`)
       } else {
-        const topic = subject.topics.find(
-          (t) => normalizeText(t.name) === normalizeText(q.topicName),
-        )
-        if (!topic) {
+        // Find sub-topic by searching through all topics in the subject
+        let subTopic = null
+        for (const topic of subject.topics) {
+          const found = topic.subTopics.find(
+            (st) => normalizeText(st.name) === normalizeText(q.topicName),
+          )
+          if (found) {
+            subTopic = found
+            break
+          }
+        }
+        if (!subTopic) {
           errors.push(`Topic "${q.topicName}" not found under "${q.subjectName}"`)
         }
       }
@@ -176,17 +186,28 @@ export async function executeBulkUpload(options: BulkUploadOptions): Promise<Bul
   for (const [i, q] of questions.entries()) {
     try {
       // Resolve curriculum IDs
+      // New hierarchy: grade_level -> subject -> topic -> sub_topic
+      // Excel topicName is treated as subTopicName (legacy naming)
       const gradeLevel = curriculumStore.gradeLevels.find(
         (g) => normalizeText(g.name) === normalizeText(q.gradeLevelName),
       )
       const subject = gradeLevel?.subjects.find(
         (s) => normalizeText(s.name) === normalizeText(q.subjectName),
       )
-      const topic = subject?.topics.find(
-        (t) => normalizeText(t.name) === normalizeText(q.topicName),
-      )
 
-      if (!gradeLevel || !subject || !topic) {
+      // Find sub-topic by searching through all topics in the subject
+      let subTopic = null
+      for (const topic of subject?.topics || []) {
+        const found = topic.subTopics.find(
+          (st) => normalizeText(st.name) === normalizeText(q.topicName),
+        )
+        if (found) {
+          subTopic = found
+          break
+        }
+      }
+
+      if (!gradeLevel || !subject || !subTopic) {
         failed.push({ row: q.row, error: 'Curriculum hierarchy not found' })
         onProgress?.(i + 1, questions.length)
         continue
@@ -197,7 +218,7 @@ export async function executeBulkUpload(options: BulkUploadOptions): Promise<Bul
         type: q.type,
         gradeLevelId: gradeLevel.id,
         subjectId: subject.id,
-        topicId: topic.id,
+        subTopicId: subTopic.id, // topic_id column now references sub_topics
         question: q.question,
         explanation: q.explanation || undefined,
       }

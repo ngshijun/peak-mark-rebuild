@@ -31,8 +31,9 @@ export interface PracticeSession {
   gradeLevelName: string
   subjectId: string | null
   subjectName: string
-  topicId: string
+  subTopicId: string // topic_id column now references sub_topics
   topicName: string
+  subTopicName: string
   totalQuestions: number
   currentQuestionIndex: number
   correctCount: number
@@ -143,29 +144,33 @@ export const usePracticeStore = defineStore('practice', () => {
   })
 
   /**
-   * Get curriculum names for a topic
+   * Get curriculum names for a sub-topic
+   * Note: topic_id column in DB now references sub_topics table
    */
   function getCurriculumNames(
-    topicId: string,
+    subTopicId: string,
     gradeLevelId: string | null,
     subjectId: string | null,
   ): {
     gradeLevelName: string
     subjectName: string
     topicName: string
+    subTopicName: string
   } {
-    const hierarchy = curriculumStore.getTopicWithHierarchy(topicId)
+    const hierarchy = curriculumStore.getSubTopicWithHierarchy(subTopicId)
     if (hierarchy) {
       return {
         gradeLevelName: hierarchy.gradeLevel.name,
         subjectName: hierarchy.subject.name,
         topicName: hierarchy.topic.name,
+        subTopicName: hierarchy.subTopic.name,
       }
     }
     return {
       gradeLevelName: 'Unknown',
       subjectName: 'Unknown',
       topicName: 'Unknown',
+      subTopicName: 'Unknown',
     }
   }
 
@@ -202,6 +207,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   /**
    * Convert database row to PracticeSession (without questions/answers)
+   * Note: topic_id column in DB now references sub_topics table
    */
   function rowToSession(row: PracticeSessionRow): PracticeSession {
     const names = getCurriculumNames(row.topic_id, row.grade_level_id, row.subject_id)
@@ -212,8 +218,9 @@ export const usePracticeStore = defineStore('practice', () => {
       gradeLevelName: names.gradeLevelName,
       subjectId: row.subject_id,
       subjectName: names.subjectName,
-      topicId: row.topic_id,
+      subTopicId: row.topic_id, // topic_id column references sub_topics
       topicName: names.topicName,
+      subTopicName: names.subTopicName,
       totalQuestions: row.total_questions,
       currentQuestionIndex: row.current_question_index ?? 0,
       correctCount: row.correct_count ?? 0,
@@ -436,9 +443,10 @@ export const usePracticeStore = defineStore('practice', () => {
 
   /**
    * Start a new practice session
+   * Note: subTopicId parameter corresponds to topic_id column which now references sub_topics table
    */
   async function startSession(
-    topicId: string,
+    subTopicId: string,
     questionCount: number = 10,
   ): Promise<{ session: PracticeSession | null; error: string | null; limitReached?: boolean }> {
     if (!authStore.user || authStore.user.userType !== 'student') {
@@ -464,29 +472,29 @@ export const usePracticeStore = defineStore('practice', () => {
         await curriculumStore.fetchCurriculum()
       }
 
-      // Get topic hierarchy for grade_level_id and subject_id
-      const hierarchy = curriculumStore.getTopicWithHierarchy(topicId)
+      // Get sub-topic hierarchy for grade_level_id and subject_id
+      const hierarchy = curriculumStore.getSubTopicWithHierarchy(subTopicId)
       if (!hierarchy) {
-        return { session: null, error: 'Topic not found' }
+        return { session: null, error: 'Sub-topic not found' }
       }
 
-      // Fetch questions for this topic
-      const questionsResult = await questionsStore.fetchQuestionsByTopic(topicId)
+      // Fetch questions for this sub-topic
+      const questionsResult = await questionsStore.fetchQuestionsBySubTopic(subTopicId)
       if (questionsResult.error) {
         return { session: null, error: questionsResult.error }
       }
 
       const allQuestions = questionsResult.questions
       if (allQuestions.length === 0) {
-        return { session: null, error: 'No questions available for this topic' }
+        return { session: null, error: 'No questions available for this sub-topic' }
       }
 
-      // Get current cycle and answered questions for this student+topic
+      // Get current cycle and answered questions for this student+sub-topic
       const { data: progressData } = await supabase
         .from('student_question_progress')
         .select('question_id, cycle_number')
         .eq('student_id', authStore.user.id)
-        .eq('topic_id', topicId)
+        .eq('topic_id', subTopicId)
         .order('cycle_number', { ascending: false })
 
       // Determine current cycle (highest cycle number, or 1 if no progress)
@@ -544,7 +552,7 @@ export const usePracticeStore = defineStore('practice', () => {
         .from('practice_sessions')
         .insert({
           student_id: authStore.user.id,
-          topic_id: topicId,
+          topic_id: subTopicId, // topic_id column references sub_topics
           grade_level_id: hierarchy.gradeLevel.id,
           subject_id: hierarchy.subject.id,
           total_questions: selectedQuestions.length,
@@ -578,7 +586,7 @@ export const usePracticeStore = defineStore('practice', () => {
       // Record question progress for cycling - mark all selected questions as "used" in current cycle
       const progressInsertData = selectedQuestions.map((question) => ({
         student_id: authStore.user!.id,
-        topic_id: topicId,
+        topic_id: subTopicId, // topic_id column references sub_topics
         question_id: question.id,
         cycle_number: currentCycle,
       }))
@@ -595,8 +603,9 @@ export const usePracticeStore = defineStore('practice', () => {
         gradeLevelName: hierarchy.gradeLevel.name,
         subjectId: sessionData.subject_id,
         subjectName: hierarchy.subject.name,
-        topicId: sessionData.topic_id,
+        subTopicId: sessionData.topic_id, // topic_id column references sub_topics
         topicName: hierarchy.topic.name,
+        subTopicName: hierarchy.subTopic.name,
         totalQuestions: sessionData.total_questions,
         currentQuestionIndex: 0,
         correctCount: 0,
@@ -851,6 +860,7 @@ export const usePracticeStore = defineStore('practice', () => {
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
     dateRange?: DateRangeFilter,
   ): PracticeSession[] {
     if (!authStore.user) return []
@@ -863,6 +873,7 @@ export const usePracticeStore = defineStore('practice', () => {
         if (gradeLevelName && s.gradeLevelName !== gradeLevelName) return false
         if (subjectName && s.subjectName !== subjectName) return false
         if (topicName && s.topicName !== topicName) return false
+        if (subTopicName && s.subTopicName !== subTopicName) return false
         if (dateRangeStart && s.createdAt) {
           const sessionDate = new Date(s.createdAt)
           if (sessionDate < dateRangeStart) return false
@@ -919,6 +930,29 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
+   * Get unique sub-topics from student's history
+   */
+  function getHistorySubTopics(
+    gradeLevelName?: string,
+    subjectName?: string,
+    topicName?: string,
+  ): string[] {
+    if (!authStore.user) return []
+    let sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
+    if (gradeLevelName) {
+      sessions = sessions.filter((s) => s.gradeLevelName === gradeLevelName)
+    }
+    if (subjectName) {
+      sessions = sessions.filter((s) => s.subjectName === subjectName)
+    }
+    if (topicName) {
+      sessions = sessions.filter((s) => s.topicName === topicName)
+    }
+    const subTopics = new Set(sessions.map((s) => s.subTopicName))
+    return Array.from(subTopics).sort()
+  }
+
+  /**
    * Get a specific session by ID with full details
    */
   async function getSessionById(
@@ -971,14 +1005,14 @@ export const usePracticeStore = defineStore('practice', () => {
       const existingQuestions = new Map<string, Question>()
       if (questionsData) {
         for (const row of questionsData) {
-          // Get curriculum names for this question
-          const hierarchy = curriculumStore.getTopicWithHierarchy(row.topic_id)
+          // Get curriculum names for this question (topic_id references sub_topics)
+          const hierarchy = curriculumStore.getSubTopicWithHierarchy(row.topic_id)
           existingQuestions.set(row.id, {
             id: row.id,
             type: row.type,
             question: row.question,
             imagePath: row.image_path,
-            topicId: row.topic_id,
+            subTopicId: row.topic_id, // topic_id column references sub_topics
             gradeLevelId: row.grade_level_id,
             subjectId: row.subject_id,
             explanation: row.explanation,
@@ -1014,6 +1048,7 @@ export const usePracticeStore = defineStore('practice', () => {
             gradeLevelName: hierarchy?.gradeLevel.name ?? '',
             subjectName: hierarchy?.subject.name ?? '',
             topicName: hierarchy?.topic.name ?? '',
+            subTopicName: hierarchy?.subTopic.name ?? '',
           })
         }
       }
@@ -1029,7 +1064,7 @@ export const usePracticeStore = defineStore('practice', () => {
           type: 'mcq' as const,
           question: '[Question has been deleted]',
           imagePath: null,
-          topicId: session.topicId,
+          subTopicId: session.subTopicId,
           gradeLevelId: session.gradeLevelId,
           subjectId: session.subjectId,
           explanation: null,
@@ -1040,6 +1075,7 @@ export const usePracticeStore = defineStore('practice', () => {
           gradeLevelName: session.gradeLevelName,
           subjectName: session.subjectName,
           topicName: session.topicName,
+          subTopicName: session.subTopicName,
           isDeleted: true,
         } as Question & { isDeleted?: boolean }
       })
@@ -1097,13 +1133,13 @@ export const usePracticeStore = defineStore('practice', () => {
     const questionsMap = new Map<string, Question>()
     if (questionsData) {
       for (const row of questionsData) {
-        const hierarchy = curriculumStore.getTopicWithHierarchy(row.topic_id)
+        const hierarchy = curriculumStore.getSubTopicWithHierarchy(row.topic_id)
         questionsMap.set(row.id, {
           id: row.id,
           type: row.type,
           question: row.question,
           imagePath: row.image_path,
-          topicId: row.topic_id,
+          subTopicId: row.topic_id, // topic_id column references sub_topics
           gradeLevelId: row.grade_level_id,
           subjectId: row.subject_id,
           explanation: row.explanation,
@@ -1139,6 +1175,7 @@ export const usePracticeStore = defineStore('practice', () => {
           gradeLevelName: hierarchy?.gradeLevel.name ?? '',
           subjectName: hierarchy?.subject.name ?? '',
           topicName: hierarchy?.topic.name ?? '',
+          subTopicName: hierarchy?.subTopic.name ?? '',
         })
       }
     }
@@ -1178,6 +1215,7 @@ export const usePracticeStore = defineStore('practice', () => {
     getHistoryGradeLevels,
     getHistorySubjects,
     getHistoryTopics,
+    getHistorySubTopics,
     getSessionById,
     resumeSession,
     optionNumberToId,

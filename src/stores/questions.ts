@@ -19,7 +19,7 @@ export interface Question {
   type: QuestionType
   question: string
   imagePath: string | null
-  topicId: string
+  subTopicId: string // topic_id column now references sub_topics
   gradeLevelId: string | null
   subjectId: string | null
   explanation: string | null
@@ -31,6 +31,7 @@ export interface Question {
   gradeLevelName: string
   subjectName: string
   topicName: string
+  subTopicName: string
 }
 
 export interface QuestionStatistics {
@@ -49,7 +50,7 @@ export interface CreateQuestionInput {
   type: QuestionType
   question: string
   imagePath?: string | null
-  topicId: string
+  subTopicId: string // topic_id column now references sub_topics
   gradeLevelId?: string | null
   subjectId?: string | null
   explanation?: string | null
@@ -61,7 +62,7 @@ export interface UpdateQuestionInput {
   type?: QuestionType
   question?: string
   imagePath?: string | null
-  topicId?: string
+  subTopicId?: string // topic_id column now references sub_topics
   gradeLevelId?: string | null
   subjectId?: string | null
   explanation?: string | null
@@ -71,6 +72,7 @@ export interface UpdateQuestionInput {
 
 /**
  * Convert database row to Question interface
+ * Note: topic_id in DB now references sub_topics table
  */
 function rowToQuestion(
   row: QuestionRow,
@@ -103,16 +105,19 @@ function rowToQuestion(
     },
   ]
 
-  // Get names from curriculum store
+  // Get names from curriculum store using sub_topic hierarchy
   let gradeLevelName = ''
   let subjectName = ''
   let topicName = ''
+  let subTopicName = ''
 
-  const hierarchy = curriculumStore.getTopicWithHierarchy(row.topic_id)
+  // topic_id now references sub_topics, so use getSubTopicWithHierarchy
+  const hierarchy = curriculumStore.getSubTopicWithHierarchy(row.topic_id)
   if (hierarchy) {
     gradeLevelName = hierarchy.gradeLevel.name
     subjectName = hierarchy.subject.name
     topicName = hierarchy.topic.name
+    subTopicName = hierarchy.subTopic.name
   }
 
   return {
@@ -120,7 +125,7 @@ function rowToQuestion(
     type: row.type,
     question: row.question,
     imagePath: row.image_path,
-    topicId: row.topic_id,
+    subTopicId: row.topic_id, // topic_id column references sub_topics
     gradeLevelId: row.grade_level_id,
     subjectId: row.subject_id,
     explanation: row.explanation,
@@ -131,6 +136,7 @@ function rowToQuestion(
     gradeLevelName,
     subjectName,
     topicName,
+    subTopicName,
   }
 }
 
@@ -174,10 +180,11 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   /**
-   * Fetch questions for a specific topic
+   * Fetch questions for a specific sub-topic
+   * Note: topic_id column in DB now references sub_topics table
    */
-  async function fetchQuestionsByTopic(
-    topicId: string,
+  async function fetchQuestionsBySubTopic(
+    subTopicId: string,
   ): Promise<{ questions: Question[]; error: string | null }> {
     try {
       // Ensure curriculum is loaded
@@ -188,7 +195,7 @@ export const useQuestionsStore = defineStore('questions', () => {
       const { data, error: fetchError } = await supabase
         .from('questions')
         .select('*')
-        .eq('topic_id', topicId)
+        .eq('topic_id', subTopicId)
         .order('created_at', { ascending: false })
 
       if (fetchError) {
@@ -201,7 +208,7 @@ export const useQuestionsStore = defineStore('questions', () => {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch questions'
-      console.error('Error fetching questions by topic:', err)
+      console.error('Error fetching questions by sub-topic:', err)
       return { questions: [], error: message }
     }
   }
@@ -217,7 +224,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         type: input.type,
         question: input.question,
         image_path: input.imagePath ?? null,
-        topic_id: input.topicId,
+        topic_id: input.subTopicId,
         grade_level_id: input.gradeLevelId ?? null,
         subject_id: input.subjectId ?? null,
         explanation: input.explanation ?? null,
@@ -281,7 +288,7 @@ export const useQuestionsStore = defineStore('questions', () => {
       if (input.type !== undefined) updateData.type = input.type
       if (input.question !== undefined) updateData.question = input.question
       if (input.imagePath !== undefined) updateData.image_path = input.imagePath
-      if (input.topicId !== undefined) updateData.topic_id = input.topicId
+      if (input.subTopicId !== undefined) updateData.topic_id = input.subTopicId
       if (input.gradeLevelId !== undefined) updateData.grade_level_id = input.gradeLevelId
       if (input.subjectId !== undefined) updateData.subject_id = input.subjectId
       if (input.explanation !== undefined) updateData.explanation = input.explanation
@@ -493,10 +500,30 @@ export const useQuestionsStore = defineStore('questions', () => {
     return Array.from(topics).sort()
   }
 
+  function getSubTopics(
+    gradeLevelName?: string,
+    subjectName?: string,
+    topicName?: string,
+  ): string[] {
+    let filtered = questions.value
+    if (gradeLevelName) {
+      filtered = filtered.filter((q) => q.gradeLevelName === gradeLevelName)
+    }
+    if (subjectName) {
+      filtered = filtered.filter((q) => q.subjectName === subjectName)
+    }
+    if (topicName) {
+      filtered = filtered.filter((q) => q.topicName === topicName)
+    }
+    const subTopics = new Set(filtered.map((q) => q.subTopicName).filter(Boolean))
+    return Array.from(subTopics).sort()
+  }
+
   function getFilteredQuestions(
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
   ): Question[] {
     let filtered = questions.value
     if (gradeLevelName) {
@@ -508,6 +535,9 @@ export const useQuestionsStore = defineStore('questions', () => {
     if (topicName) {
       filtered = filtered.filter((q) => q.topicName === topicName)
     }
+    if (subTopicName) {
+      filtered = filtered.filter((q) => q.subTopicName === subTopicName)
+    }
     return filtered
   }
 
@@ -515,6 +545,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
   ): QuestionWithStats[] {
     let filtered = questionsWithStats.value
     if (gradeLevelName) {
@@ -525,6 +556,9 @@ export const useQuestionsStore = defineStore('questions', () => {
     }
     if (topicName) {
       filtered = filtered.filter((q) => q.topicName === topicName)
+    }
+    if (subTopicName) {
+      filtered = filtered.filter((q) => q.subTopicName === subTopicName)
     }
     return filtered
   }
@@ -539,7 +573,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
     // Actions
     fetchQuestions,
-    fetchQuestionsByTopic,
+    fetchQuestionsBySubTopic,
     addQuestion,
     updateQuestion,
     deleteQuestion,
@@ -554,6 +588,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     getGradeLevels,
     getSubjects,
     getTopics,
+    getSubTopics,
     getFilteredQuestions,
     getFilteredQuestionsWithStats,
   }

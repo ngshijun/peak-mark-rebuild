@@ -50,6 +50,7 @@ const questionFormSchema = toTypedSchema(
       gradeLevelId: z.string().min(1, 'Grade level is required'),
       subjectId: z.string().min(1, 'Subject is required'),
       topicId: z.string().min(1, 'Topic is required'),
+      subTopicId: z.string().min(1, 'Sub-topic is required'),
       question: z.string().min(1, 'Question text is required'),
       explanation: z.string().optional(),
       answer: z.string().optional(),
@@ -130,6 +131,7 @@ const { handleSubmit, values, setFieldValue, resetForm, errors, setFieldTouched 
     gradeLevelId: '',
     subjectId: '',
     topicId: '',
+    subTopicId: '',
     question: '',
     explanation: '',
     answer: '',
@@ -175,6 +177,13 @@ const availableTopics = computed(() => {
   return subject?.topics ?? []
 })
 
+const availableSubTopics = computed(() => {
+  const grade = curriculumStore.gradeLevels.find((g) => g.id === values.gradeLevelId)
+  const subject = grade?.subjects.find((s) => s.id === values.subjectId)
+  const topic = subject?.topics.find((t) => t.id === values.topicId)
+  return topic?.subTopics ?? []
+})
+
 // Watch for dialog open to reset form
 watch(
   () => props.open,
@@ -186,6 +195,7 @@ watch(
           gradeLevelId: '',
           subjectId: '',
           topicId: '',
+          subTopicId: '',
           question: '',
           explanation: '',
           answer: '',
@@ -273,7 +283,7 @@ const onSubmit = handleSubmit(async (formValues) => {
 
   try {
     // Get hierarchy info for grade_level_id and subject_id
-    const hierarchy = curriculumStore.getTopicWithHierarchy(formValues.topicId)
+    const hierarchy = curriculumStore.getSubTopicWithHierarchy(formValues.subTopicId)
     const gradeLevelId = hierarchy?.gradeLevel.id ?? formValues.gradeLevelId
     const subjectId = hierarchy?.subject.id ?? formValues.subjectId
 
@@ -282,7 +292,7 @@ const onSubmit = handleSubmit(async (formValues) => {
       type: formValues.type,
       question: formValues.question,
       imagePath: null,
-      topicId: formValues.topicId,
+      subTopicId: formValues.subTopicId,
       gradeLevelId,
       subjectId,
       explanation: formValues.explanation || null,
@@ -436,6 +446,7 @@ function handleCancel() {
                   (val) => {
                     handleChange(val)
                     setFieldValue('topicId', '')
+                    setFieldValue('subTopicId', '')
                   }
                 "
               >
@@ -466,7 +477,12 @@ function handleCancel() {
               <Select
                 :model-value="value"
                 :disabled="!values.subjectId || isSaving"
-                @update:model-value="handleChange"
+                @update:model-value="
+                  (val) => {
+                    handleChange(val)
+                    setFieldValue('subTopicId', '')
+                  }
+                "
               >
                 <SelectTrigger
                   class="w-full"
@@ -477,6 +493,35 @@ function handleCancel() {
                 <SelectContent>
                   <SelectItem v-for="topic in availableTopics" :key="topic.id" :value="topic.id">
                     {{ topic.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError :errors="fieldErrors" />
+            </Field>
+          </VeeField>
+
+          <!-- Sub-Topic -->
+          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="subTopicId">
+            <Field :data-invalid="!!fieldErrors.length">
+              <FieldLabel> Sub-Topic <span class="text-destructive">*</span> </FieldLabel>
+              <Select
+                :model-value="value"
+                :disabled="!values.topicId || isSaving"
+                @update:model-value="handleChange"
+              >
+                <SelectTrigger
+                  class="w-full"
+                  :class="{ 'border-destructive': !!fieldErrors.length }"
+                >
+                  <SelectValue placeholder="Select sub-topic" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="subTopic in availableSubTopics"
+                    :key="subTopic.id"
+                    :value="subTopic.id"
+                  >
+                    {{ subTopic.name }}
                   </SelectItem>
                 </SelectContent>
               </Select>

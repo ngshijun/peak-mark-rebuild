@@ -189,7 +189,7 @@ async function restartQuiz() {
   const session = practiceStore.currentSession
   if (session) {
     practiceStore.endSession()
-    await practiceStore.startSession(session.topicId)
+    await practiceStore.startSession(session.subTopicId)
     selectedOptionId.value = ''
     textAnswer.value = ''
   }

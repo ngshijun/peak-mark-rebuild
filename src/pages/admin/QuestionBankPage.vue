@@ -122,7 +122,8 @@ const filteredQuestions = computed(() => {
         q.question.toLowerCase().includes(query) ||
         q.gradeLevelName.toLowerCase().includes(query) ||
         q.subjectName.toLowerCase().includes(query) ||
-        q.topicName.toLowerCase().includes(query),
+        q.topicName.toLowerCase().includes(query) ||
+        q.subTopicName.toLowerCase().includes(query),
     )
   }
 
@@ -164,6 +165,10 @@ const columns: ColumnDef<Question>[] = [
   {
     accessorKey: 'topicName',
     header: 'Topic',
+  },
+  {
+    accessorKey: 'subTopicName',
+    header: 'Sub-Topic',
   },
   {
     id: 'actions',

@@ -6,6 +6,15 @@ import type { Database } from '@/types/database.types'
 type GradeLevelRow = Database['public']['Tables']['grade_levels']['Row']
 type SubjectRow = Database['public']['Tables']['subjects']['Row']
 type TopicRow = Database['public']['Tables']['topics']['Row']
+type SubTopicRow = Database['public']['Tables']['sub_topics']['Row']
+
+export interface SubTopic {
+  id: string
+  name: string
+  coverImagePath: string | null
+  displayOrder: number
+  topicId: string
+}
 
 export interface Topic {
   id: string
@@ -13,6 +22,7 @@ export interface Topic {
   coverImagePath: string | null
   displayOrder: number
   subjectId: string
+  subTopics: SubTopic[]
 }
 
 export interface Subject {
@@ -39,9 +49,10 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   // Flat lists for easier access
   const allSubjects = ref<SubjectRow[]>([])
   const allTopics = ref<TopicRow[]>([])
+  const allSubTopics = ref<SubTopicRow[]>([])
 
   /**
-   * Fetch all curriculum data (grade levels, subjects, topics)
+   * Fetch all curriculum data (grade levels, subjects, topics, sub_topics)
    */
   async function fetchCurriculum(): Promise<void> {
     isLoading.value = true
@@ -72,9 +83,18 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
       if (topicError) throw topicError
 
+      // Fetch all sub_topics
+      const { data: subTopicData, error: subTopicError } = await supabase
+        .from('sub_topics')
+        .select('*')
+        .order('display_order', { ascending: true })
+
+      if (subTopicError) throw subTopicError
+
       // Store flat lists
       allSubjects.value = subjectData ?? []
       allTopics.value = topicData ?? []
+      allSubTopics.value = subTopicData ?? []
 
       // Build hierarchical structure
       const gradeMap = new Map<string, GradeLevel>()
@@ -108,15 +128,33 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       }
 
       // Map topics to subjects
+      const topicMap = new Map<string, Topic>()
       for (const topic of topicData ?? []) {
         const subject = subjectMap.get(topic.subject_id)
         if (subject) {
-          subject.topics.push({
+          const topicObj: Topic = {
             id: topic.id,
             name: topic.name,
             coverImagePath: topic.cover_image_path,
             displayOrder: topic.display_order ?? 0,
             subjectId: topic.subject_id,
+            subTopics: [],
+          }
+          topicMap.set(topic.id, topicObj)
+          subject.topics.push(topicObj)
+        }
+      }
+
+      // Map sub_topics to topics
+      for (const subTopic of subTopicData ?? []) {
+        const topic = topicMap.get(subTopic.topic_id)
+        if (topic) {
+          topic.subTopics.push({
+            id: subTopic.id,
+            name: subTopic.name,
+            coverImagePath: subTopic.cover_image_path,
+            displayOrder: subTopic.display_order ?? 0,
+            topicId: subTopic.topic_id,
           })
         }
       }
@@ -382,6 +420,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
         coverImagePath: data.cover_image_path,
         displayOrder: data.display_order ?? 0,
         subjectId: data.subject_id,
+        subTopics: [],
       })
 
       return { success: true, error: null, id: data.id }
@@ -474,16 +513,155 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   }
 
   /**
+   * Add a new sub_topic
+   */
+  async function addSubTopic(
+    gradeLevelId: string,
+    subjectId: string,
+    topicId: string,
+    name: string,
+    coverImagePath?: string,
+  ): Promise<{ success: boolean; error: string | null; id?: string }> {
+    try {
+      const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
+      const subject = gradeLevel?.subjects.find((s) => s.id === subjectId)
+      const topic = subject?.topics.find((t) => t.id === topicId)
+      if (!topic) {
+        return { success: false, error: 'Topic not found' }
+      }
+
+      // Get max display order for this topic
+      const maxOrder = Math.max(0, ...topic.subTopics.map((st) => st.displayOrder))
+
+      const { data, error: insertError } = await supabase
+        .from('sub_topics')
+        .insert({
+          topic_id: topicId,
+          name,
+          cover_image_path: coverImagePath ?? null,
+          display_order: maxOrder + 1,
+        })
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+
+      // Add to local state
+      topic.subTopics.push({
+        id: data.id,
+        name: data.name,
+        coverImagePath: data.cover_image_path,
+        displayOrder: data.display_order ?? 0,
+        topicId: data.topic_id,
+      })
+
+      return { success: true, error: null, id: data.id }
+    } catch (err) {
+      console.error('Error adding sub_topic:', err)
+      const message = err instanceof Error ? err.message : 'Failed to add sub_topic'
+      return { success: false, error: message }
+    }
+  }
+
+  /**
+   * Update a sub_topic
+   */
+  async function updateSubTopic(
+    gradeLevelId: string,
+    subjectId: string,
+    topicId: string,
+    subTopicId: string,
+    updates: { name?: string; coverImagePath?: string },
+  ): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const updateData: { name?: string; cover_image_path?: string } = {}
+      if (updates.name !== undefined) updateData.name = updates.name
+      if (updates.coverImagePath !== undefined) updateData.cover_image_path = updates.coverImagePath
+
+      const { error: updateError } = await supabase
+        .from('sub_topics')
+        .update(updateData)
+        .eq('id', subTopicId)
+
+      if (updateError) throw updateError
+
+      // Update local state
+      const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
+      const subject = gradeLevel?.subjects.find((s) => s.id === subjectId)
+      const topic = subject?.topics.find((t) => t.id === topicId)
+      const subTopic = topic?.subTopics.find((st) => st.id === subTopicId)
+      if (subTopic) {
+        if (updates.name !== undefined) subTopic.name = updates.name
+        if (updates.coverImagePath !== undefined) subTopic.coverImagePath = updates.coverImagePath
+      }
+
+      return { success: true, error: null }
+    } catch (err) {
+      console.error('Error updating sub_topic:', err)
+      const message = err instanceof Error ? err.message : 'Failed to update sub_topic'
+      return { success: false, error: message }
+    }
+  }
+
+  /**
+   * Update sub_topic cover image (convenience method)
+   */
+  async function updateSubTopicCoverImage(
+    gradeLevelId: string,
+    subjectId: string,
+    topicId: string,
+    subTopicId: string,
+    coverImagePath: string,
+  ): Promise<{ success: boolean; error: string | null }> {
+    return updateSubTopic(gradeLevelId, subjectId, topicId, subTopicId, { coverImagePath })
+  }
+
+  /**
+   * Delete a sub_topic
+   */
+  async function deleteSubTopic(
+    gradeLevelId: string,
+    subjectId: string,
+    topicId: string,
+    subTopicId: string,
+  ): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const { error: deleteError } = await supabase.from('sub_topics').delete().eq('id', subTopicId)
+
+      if (deleteError) throw deleteError
+
+      // Remove from local state
+      const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
+      const subject = gradeLevel?.subjects.find((s) => s.id === subjectId)
+      const topic = subject?.topics.find((t) => t.id === topicId)
+      if (topic) {
+        const index = topic.subTopics.findIndex((st) => st.id === subTopicId)
+        if (index !== -1) {
+          topic.subTopics.splice(index, 1)
+        }
+      }
+
+      return { success: true, error: null }
+    } catch (err) {
+      console.error('Error deleting sub_topic:', err)
+      const message = err instanceof Error ? err.message : 'Failed to delete sub_topic'
+      return { success: false, error: message }
+    }
+  }
+
+  /**
    * Upload an image to Supabase storage
    */
   async function uploadCurriculumImage(
     file: File,
-    type: 'subject' | 'topic',
+    type: 'subject' | 'topic' | 'subtopic',
     id: string,
   ): Promise<{ success: boolean; path: string | null; error: string | null }> {
     try {
       const fileExt = file.name.split('.').pop()
-      const filePath = `${type}s/${id}.${fileExt}`
+      // For subtopic, store in subtopics folder
+      const folder = type === 'subtopic' ? 'subtopics' : `${type}s`
+      const filePath = `${folder}/${id}.${fileExt}`
 
       const { error: uploadError } = await supabase.storage
         .from('curriculum-images')
@@ -550,11 +728,45 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     return null
   }
 
+  // Helper to find a sub_topic by ID
+  function getSubTopicById(subTopicId: string): SubTopic | undefined {
+    for (const grade of gradeLevels.value) {
+      for (const subject of grade.subjects) {
+        for (const topic of subject.topics) {
+          const subTopic = topic.subTopics.find((st) => st.id === subTopicId)
+          if (subTopic) return subTopic
+        }
+      }
+    }
+    return undefined
+  }
+
+  // Get sub_topic with full hierarchy info (now used by questions/practice stores)
+  function getSubTopicWithHierarchy(subTopicId: string): {
+    subTopic: SubTopic
+    topic: Topic
+    subject: Subject
+    gradeLevel: GradeLevel
+  } | null {
+    for (const gradeLevel of gradeLevels.value) {
+      for (const subject of gradeLevel.subjects) {
+        for (const topic of subject.topics) {
+          const subTopic = topic.subTopics.find((st) => st.id === subTopicId)
+          if (subTopic) {
+            return { subTopic, topic, subject, gradeLevel }
+          }
+        }
+      }
+    }
+    return null
+  }
+
   return {
     // State
     gradeLevels,
     allSubjects,
     allTopics,
+    allSubTopics,
     isLoading,
     error,
 
@@ -571,6 +783,10 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     updateTopic,
     updateTopicCoverImage,
     deleteTopic,
+    addSubTopic,
+    updateSubTopic,
+    updateSubTopicCoverImage,
+    deleteSubTopic,
     uploadCurriculumImage,
     getCurriculumImageUrl,
 
@@ -579,5 +795,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     getSubjectById,
     getTopicById,
     getTopicWithHierarchy,
+    getSubTopicById,
+    getSubTopicWithHierarchy,
   }
 })

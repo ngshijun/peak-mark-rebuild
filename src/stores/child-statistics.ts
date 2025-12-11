@@ -46,6 +46,7 @@ export interface ChildPracticeSession {
   gradeLevelName: string
   subjectName: string
   topicName: string
+  subTopicName: string
   score: number
   totalQuestions: number
   correctAnswers: number
@@ -75,6 +76,7 @@ export interface Question {
 
 export interface ChildPracticeSessionFull extends ChildPracticeSession {
   subjectId: string
+  subTopicId: string // topic_id column now references sub_topics
   topicId: string
   gradeLevelId: string
   questions: Question[]
@@ -117,6 +119,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       const childIds = childLinkStore.linkedChildren.map((c) => c.id)
 
       // Fetch completed practice sessions for all linked children
+      // Note: topic_id column now references sub_topics table
       const { data: sessionsData, error: fetchError } = await supabase
         .from('practice_sessions')
         .select(
@@ -127,15 +130,19 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           total_questions,
           created_at,
           completed_at,
-          topics (
+          sub_topics (
             id,
             name,
-            subjects (
+            topics (
               id,
               name,
-              grade_levels (
+              subjects (
                 id,
-                name
+                name,
+                grade_levels (
+                  id,
+                  name
+                )
               )
             )
           )
@@ -159,13 +166,18 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         const correctAnswers = answersData?.filter((a) => a.is_correct).length ?? 0
         const totalQuestions = session.total_questions ?? answersData?.length ?? 0
 
-        const topic = session.topics as unknown as {
+        // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
+        const subTopic = session.sub_topics as unknown as {
           id: string
           name: string
-          subjects: {
+          topics: {
             id: string
             name: string
-            grade_levels: { id: string; name: string }
+            subjects: {
+              id: string
+              name: string
+              grade_levels: { id: string; name: string }
+            }
           }
         }
 
@@ -176,9 +188,10 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
         sessionsWithScores.push({
           id: session.id,
-          gradeLevelName: topic?.subjects?.grade_levels?.name ?? 'Unknown',
-          subjectName: topic?.subjects?.name ?? 'Unknown',
-          topicName: topic?.name ?? 'Unknown',
+          gradeLevelName: subTopic?.topics?.subjects?.grade_levels?.name ?? 'Unknown',
+          subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
+          topicName: subTopic?.topics?.name ?? 'Unknown',
+          subTopicName: subTopic?.name ?? 'Unknown',
           score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
           totalQuestions,
           correctAnswers,
@@ -285,6 +298,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
     try {
       // Fetch the session
+      // Note: topic_id column now references sub_topics table
       const { data: sessionData, error: sessionError } = await supabase
         .from('practice_sessions')
         .select(
@@ -296,15 +310,19 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           created_at,
           completed_at,
           ai_summary,
-          topics (
+          sub_topics (
             id,
             name,
-            subjects (
+            topics (
               id,
               name,
-              grade_levels (
+              subjects (
                 id,
-                name
+                name,
+                grade_levels (
+                  id,
+                  name
+                )
               )
             )
           )
@@ -415,13 +433,18 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         timeSpentSeconds: a.time_spent_seconds,
       }))
 
-      const topic = sessionData.topics as unknown as {
+      // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
+      const subTopic = sessionData.sub_topics as unknown as {
         id: string
         name: string
-        subjects: {
+        topics: {
           id: string
           name: string
-          grade_levels: { id: string; name: string }
+          subjects: {
+            id: string
+            name: string
+            grade_levels: { id: string; name: string }
+          }
         }
       }
 
@@ -432,12 +455,14 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       const session: ChildPracticeSessionFull = {
         id: sessionData.id,
-        gradeLevelId: topic?.subjects?.grade_levels?.id ?? '',
-        gradeLevelName: topic?.subjects?.grade_levels?.name ?? 'Unknown',
-        subjectId: topic?.subjects?.id ?? '',
-        subjectName: topic?.subjects?.name ?? 'Unknown',
-        topicId: topic?.id ?? '',
-        topicName: topic?.name ?? 'Unknown',
+        gradeLevelId: subTopic?.topics?.subjects?.grade_levels?.id ?? '',
+        gradeLevelName: subTopic?.topics?.subjects?.grade_levels?.name ?? 'Unknown',
+        subjectId: subTopic?.topics?.subjects?.id ?? '',
+        subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
+        topicId: subTopic?.topics?.id ?? '',
+        topicName: subTopic?.topics?.name ?? 'Unknown',
+        subTopicId: subTopic?.id ?? '',
+        subTopicName: subTopic?.name ?? 'Unknown',
         score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
         totalQuestions,
         correctAnswers,
@@ -474,6 +499,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
     dateRange?: DateRangeFilter,
   ): ChildPracticeSession[] {
     const stats = getChildStatistics(childId)
@@ -485,6 +511,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       if (gradeLevelName && s.gradeLevelName !== gradeLevelName) return false
       if (subjectName && s.subjectName !== subjectName) return false
       if (topicName && s.topicName !== topicName) return false
+      if (subTopicName && s.subTopicName !== subTopicName) return false
       if (dateRangeStart) {
         const sessionDate = new Date(s.completedAt)
         if (sessionDate < dateRangeStart) return false
@@ -499,9 +526,17 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
     dateRange?: DateRangeFilter,
   ): number {
-    const sessions = getFilteredSessions(childId, gradeLevelName, subjectName, topicName, dateRange)
+    const sessions = getFilteredSessions(
+      childId,
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
+    )
     if (sessions.length === 0) return 0
     const totalScore = sessions.reduce((sum, s) => sum + s.score, 0)
     return Math.round(totalScore / sessions.length)
@@ -513,9 +548,17 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
     dateRange?: DateRangeFilter,
   ): number {
-    return getFilteredSessions(childId, gradeLevelName, subjectName, topicName, dateRange).length
+    return getFilteredSessions(
+      childId,
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
+    ).length
   }
 
   // Get total study time in seconds for filtered sessions
@@ -524,33 +567,57 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
     dateRange?: DateRangeFilter,
   ): number {
-    const sessions = getFilteredSessions(childId, gradeLevelName, subjectName, topicName, dateRange)
+    const sessions = getFilteredSessions(
+      childId,
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
+    )
     return sessions.reduce((sum, s) => sum + s.durationSeconds, 0)
   }
 
-  // Get unique topics practiced by a child (from filtered sessions)
-  function getTopicsPracticed(
+  // Get unique sub-topics practiced by a child (from filtered sessions)
+  function getSubTopicsPracticed(
     childId: string,
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
     dateRange?: DateRangeFilter,
-  ): { topicName: string; subjectName: string; count: number }[] {
-    const sessions = getFilteredSessions(childId, gradeLevelName, subjectName, topicName, dateRange)
+  ): { subTopicName: string; topicName: string; subjectName: string; count: number }[] {
+    const sessions = getFilteredSessions(
+      childId,
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
+    )
 
-    const topicMap = new Map<string, { topicName: string; subjectName: string; count: number }>()
+    const subTopicMap = new Map<
+      string,
+      { subTopicName: string; topicName: string; subjectName: string; count: number }
+    >()
     sessions.forEach((s) => {
-      const key = `${s.subjectName}-${s.topicName}`
-      if (topicMap.has(key)) {
-        topicMap.get(key)!.count++
+      const key = `${s.subjectName}-${s.topicName}-${s.subTopicName}`
+      if (subTopicMap.has(key)) {
+        subTopicMap.get(key)!.count++
       } else {
-        topicMap.set(key, { topicName: s.topicName, subjectName: s.subjectName, count: 1 })
+        subTopicMap.set(key, {
+          subTopicName: s.subTopicName,
+          topicName: s.topicName,
+          subjectName: s.subjectName,
+          count: 1,
+        })
       }
     })
 
-    return Array.from(topicMap.values()).sort((a, b) => b.count - a.count)
+    return Array.from(subTopicMap.values()).sort((a, b) => b.count - a.count)
   }
 
   // Get unique grade levels for a child
@@ -587,16 +654,47 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     return Array.from(topics).sort()
   }
 
+  // Get unique sub-topics for a child (optionally filtered by grade level, subject, and topic)
+  function getSubTopics(
+    childId: string,
+    gradeLevelName?: string,
+    subjectName?: string,
+    topicName?: string,
+  ): string[] {
+    const stats = getChildStatistics(childId)
+    if (!stats) return []
+    let sessions = stats.sessions
+    if (gradeLevelName) {
+      sessions = sessions.filter((s) => s.gradeLevelName === gradeLevelName)
+    }
+    if (subjectName) {
+      sessions = sessions.filter((s) => s.subjectName === subjectName)
+    }
+    if (topicName) {
+      sessions = sessions.filter((s) => s.topicName === topicName)
+    }
+    const subTopics = new Set(sessions.map((s) => s.subTopicName))
+    return Array.from(subTopics).sort()
+  }
+
   // Get recent sessions for a child (sorted by date descending)
   function getRecentSessions(
     childId: string,
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
+    subTopicName?: string,
     dateRange?: DateRangeFilter,
     limit?: number,
   ): ChildPracticeSession[] {
-    const sessions = getFilteredSessions(childId, gradeLevelName, subjectName, topicName, dateRange)
+    const sessions = getFilteredSessions(
+      childId,
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
+    )
     const sorted = [...sessions].sort(
       (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
     )
@@ -619,10 +717,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     getAverageScore,
     getTotalSessions,
     getTotalStudyTime,
-    getTopicsPracticed,
+    getSubTopicsPracticed,
     getGradeLevels,
     getSubjects,
     getTopics,
+    getSubTopics,
     getRecentSessions,
     getSessionById,
     getChildSubscriptionStatus,

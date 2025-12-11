@@ -166,13 +166,14 @@ const totalStudyTime = computed(() => {
   )
 })
 
-const topicsPracticed = computed(() => {
+const subTopicsPracticed = computed(() => {
   if (!selectedChildId.value) return []
-  return childStatisticsStore.getTopicsPracticed(
+  return childStatisticsStore.getSubTopicsPracticed(
     selectedChildId.value,
     gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
+    undefined, // subTopicName filter
     selectedDateRange.value,
   )
 })
@@ -452,7 +453,7 @@ function handleRowClick(row: ChildPracticeSession) {
             <Layers class="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div class="text-3xl font-bold">{{ topicsPracticed.length }}</div>
+            <div class="text-3xl font-bold">{{ subTopicsPracticed.length }}</div>
           </CardContent>
         </Card>
       </div>

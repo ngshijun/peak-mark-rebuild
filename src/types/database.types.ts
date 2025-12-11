@@ -549,7 +549,7 @@ export type Database = {
             foreignKeyName: 'practice_sessions_topic_id_fkey'
             columns: ['topic_id']
             isOneToOne: false
-            referencedRelation: 'topics'
+            referencedRelation: 'sub_topics'
             referencedColumns: ['id']
           },
         ]
@@ -738,7 +738,7 @@ export type Database = {
             foreignKeyName: 'questions_topic_id_fkey'
             columns: ['topic_id']
             isOneToOne: false
-            referencedRelation: 'topics'
+            referencedRelation: 'sub_topics'
             referencedColumns: ['id']
           },
         ]
@@ -907,6 +907,44 @@ export type Database = {
           },
           {
             foreignKeyName: 'student_question_progress_topic_id_fkey'
+            columns: ['topic_id']
+            isOneToOne: false
+            referencedRelation: 'sub_topics'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      sub_topics: {
+        Row: {
+          cover_image_path: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          name: string
+          topic_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cover_image_path?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          name: string
+          topic_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          cover_image_path?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          name?: string
+          topic_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'sub_topics_topic_id_fkey'
             columns: ['topic_id']
             isOneToOne: false
             referencedRelation: 'topics'

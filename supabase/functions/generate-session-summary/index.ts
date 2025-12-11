@@ -30,6 +30,7 @@ interface SessionData {
   gradeLevelName: string
   subjectName: string
   topicName: string
+  subTopicName: string
   totalQuestions: number
   correctCount: number
   totalTimeSeconds: number
@@ -63,7 +64,8 @@ Deno.serve(async (req: Request) => {
     // Create Supabase client with service role for full access
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Fetch session with topic chain (topic -> subject -> grade_level)
+    // Fetch session with sub_topic chain (sub_topics -> topics -> subjects -> grade_levels)
+    // Note: topic_id column now references sub_topics table
     const { data: session, error: sessionError } = await supabase
       .from('practice_sessions')
       .select(`
@@ -73,12 +75,15 @@ Deno.serve(async (req: Request) => {
         correct_count,
         total_time_seconds,
         ai_summary,
-        topics (
+        sub_topics (
           name,
-          subjects (
+          topics (
             name,
-            grade_levels (
-              name
+            subjects (
+              name,
+              grade_levels (
+                name
+              )
             )
           )
         )
@@ -177,17 +182,20 @@ Deno.serve(async (req: Request) => {
       }
     })
 
-    // Extract names from nested topic structure
-    const topic = session.topics as any
-    const topicName = topic?.name || 'Unknown'
-    const subjectName = topic?.subjects?.name || 'Unknown'
-    const gradeLevelName = topic?.subjects?.grade_levels?.name || 'Unknown'
+    // Extract names from nested sub_topic structure
+    // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
+    const subTopic = session.sub_topics as any
+    const subTopicName = subTopic?.name || 'Unknown'
+    const topicName = subTopic?.topics?.name || 'Unknown'
+    const subjectName = subTopic?.topics?.subjects?.name || 'Unknown'
+    const gradeLevelName = subTopic?.topics?.subjects?.grade_levels?.name || 'Unknown'
 
     // Build the messages for OpenAI
     const messages = buildMessages({
       gradeLevelName,
       subjectName,
       topicName,
+      subTopicName,
       totalQuestions: session.total_questions,
       correctCount: session.correct_count || 0,
       totalTimeSeconds: session.total_time_seconds || 0,
@@ -273,6 +281,7 @@ Do not use bullet points or lists - write flowing sentences.`,
   let summaryText = `Practice Session Summary:
 - Subject: ${data.subjectName}
 - Topic: ${data.topicName}
+- Sub-Topic: ${data.subTopicName}
 - Grade Level: ${data.gradeLevelName}
 - Score: ${data.correctCount}/${data.totalQuestions} (${score}%)
 - Time: ${timeStr}`

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
-import { useCurriculumStore, type Subject, type Topic } from '@/stores/curriculum'
+import { useCurriculumStore, type Subject, type Topic, type SubTopic } from '@/stores/curriculum'
 import { addCurriculumItemFormSchema } from '@/lib/validations'
 import { Plus, Trash2, ImagePlus, Loader2, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,7 @@ const { handleSubmit: handleAddSubmit, resetForm: resetAddForm } = useForm({
 // Navigation state
 const selectedGradeLevelId = ref<string | null>(null)
 const selectedSubjectId = ref<string | null>(null)
+const selectedTopicId = ref<string | null>(null)
 
 // Loading states
 const isSaving = ref(false)
@@ -72,11 +73,17 @@ const selectedSubject = computed(() => {
   return selectedGradeLevel.value.subjects.find((s) => s.id === selectedSubjectId.value) ?? null
 })
 
+const selectedTopic = computed(() => {
+  if (!selectedSubject.value || !selectedTopicId.value) return null
+  return selectedSubject.value.topics.find((t) => t.id === selectedTopicId.value) ?? null
+})
+
 // Computed for dynamic add button
-const currentAddType = computed<'grade' | 'subject' | 'topic'>(() => {
+const currentAddType = computed<'grade' | 'subject' | 'topic' | 'subtopic'>(() => {
   if (!selectedGradeLevel.value) return 'grade'
   if (!selectedSubject.value) return 'subject'
-  return 'topic'
+  if (!selectedTopic.value) return 'topic'
+  return 'subtopic'
 })
 
 const addButtonLabel = computed(() => {
@@ -87,36 +94,41 @@ const addButtonLabel = computed(() => {
       return 'Add Subject'
     case 'topic':
       return 'Add Topic'
+    case 'subtopic':
+      return 'Add Sub-Topic'
   }
 })
 
 // Dialog state
 const showAddDialog = ref(false)
-const addType = ref<'grade' | 'subject' | 'topic'>('grade')
+const addType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
 const newItemCoverImagePreview = ref('')
 const newItemCoverImageFile = ref<File | null>(null)
 const dialogGradeLevelId = ref('')
 const dialogSubjectId = ref('')
+const dialogTopicId = ref('')
 const addImageInputRef = ref<HTMLInputElement | null>(null)
 
 // Edit cover image dialog
 const showEditImageDialog = ref(false)
-const editImageType = ref<'subject' | 'topic'>('subject')
+const editImageType = ref<'subject' | 'topic' | 'subtopic'>('subject')
 const editImagePreview = ref('')
 const editImageFile = ref<File | null>(null)
 const editImageGradeLevelId = ref('')
 const editImageSubjectId = ref('')
 const editImageTopicId = ref('')
+const editImageSubTopicId = ref('')
 const editImageItemName = ref('')
 const editImageInputRef = ref<HTMLInputElement | null>(null)
 
 // Delete confirmation dialog
 const showDeleteDialog = ref(false)
-const deleteType = ref<'grade' | 'subject' | 'topic'>('grade')
+const deleteType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
 const deleteItemName = ref('')
 const deleteGradeLevelId = ref('')
 const deleteSubjectId = ref('')
 const deleteTopicId = ref('')
+const deleteSubTopicId = ref('')
 
 // Default images
 const defaultSubjectImage =
@@ -192,6 +204,18 @@ function getTopicImage(topic: Topic): string {
   return topicImages[topic.name] || defaultTopicImage
 }
 
+function getSubTopicImage(subTopic: SubTopic): string {
+  // If there's a stored image path, get the public URL
+  if (subTopic.coverImagePath) {
+    // Check if it's a full URL or a storage path
+    if (subTopic.coverImagePath.startsWith('http')) {
+      return subTopic.coverImagePath
+    }
+    return curriculumStore.getCurriculumImageUrl(subTopic.coverImagePath)
+  }
+  return topicImages[subTopic.name] || defaultTopicImage
+}
+
 // Fetch curriculum on mount
 onMounted(async () => {
   await curriculumStore.fetchCurriculum()
@@ -201,26 +225,39 @@ onMounted(async () => {
 function selectGradeLevel(gradeLevelId: string) {
   selectedGradeLevelId.value = gradeLevelId
   selectedSubjectId.value = null
+  selectedTopicId.value = null
 }
 
 function selectSubject(subjectId: string) {
   selectedSubjectId.value = subjectId
+  selectedTopicId.value = null
+}
+
+function selectTopic(topicId: string) {
+  selectedTopicId.value = topicId
 }
 
 function goBackToGradeLevels() {
   selectedGradeLevelId.value = null
   selectedSubjectId.value = null
+  selectedTopicId.value = null
 }
 
 function goBackToSubjects() {
   selectedSubjectId.value = null
+  selectedTopicId.value = null
+}
+
+function goBackToTopics() {
+  selectedTopicId.value = null
 }
 
 // Dialog functions
 function openAddDialog(
-  type: 'grade' | 'subject' | 'topic',
+  type: 'grade' | 'subject' | 'topic' | 'subtopic',
   gradeLevelId?: string,
   subjectId?: string,
+  topicId?: string,
 ) {
   addType.value = type
   resetAddForm()
@@ -228,6 +265,7 @@ function openAddDialog(
   newItemCoverImageFile.value = null
   dialogGradeLevelId.value = gradeLevelId ?? selectedGradeLevelId.value ?? ''
   dialogSubjectId.value = subjectId ?? selectedSubjectId.value ?? ''
+  dialogTopicId.value = topicId ?? selectedTopicId.value ?? ''
   showAddDialog.value = true
 }
 
@@ -320,6 +358,43 @@ const handleAdd = handleAddSubmit(async (values) => {
         }
       }
       toast.success('Topic added successfully')
+    } else if (
+      addType.value === 'subtopic' &&
+      dialogGradeLevelId.value &&
+      dialogSubjectId.value &&
+      dialogTopicId.value
+    ) {
+      // First create the sub-topic without image
+      const result = await curriculumStore.addSubTopic(
+        dialogGradeLevelId.value,
+        dialogSubjectId.value,
+        dialogTopicId.value,
+        values.name.trim(),
+      )
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      itemId = result.id
+
+      // Upload image if provided
+      if (newItemCoverImageFile.value && itemId) {
+        const uploadResult = await curriculumStore.uploadCurriculumImage(
+          newItemCoverImageFile.value,
+          'subtopic',
+          itemId,
+        )
+        if (uploadResult.success && uploadResult.path) {
+          await curriculumStore.updateSubTopicCoverImage(
+            dialogGradeLevelId.value,
+            dialogSubjectId.value,
+            dialogTopicId.value,
+            itemId,
+            uploadResult.path,
+          )
+        }
+      }
+      toast.success('Sub-topic added successfully')
     }
 
     showAddDialog.value = false
@@ -332,17 +407,19 @@ const handleAdd = handleAddSubmit(async (values) => {
 })
 
 function openEditImageDialog(
-  type: 'subject' | 'topic',
+  type: 'subject' | 'topic' | 'subtopic',
   gradeLevelId: string,
   subjectId: string,
   itemName: string,
   currentImage: string,
   topicId?: string,
+  subTopicId?: string,
 ) {
   editImageType.value = type
   editImageGradeLevelId.value = gradeLevelId
   editImageSubjectId.value = subjectId
   editImageTopicId.value = topicId ?? ''
+  editImageSubTopicId.value = subTopicId ?? ''
   editImageItemName.value = itemName
   editImagePreview.value = currentImage
   editImageFile.value = null
@@ -371,8 +448,14 @@ async function handleEditImage() {
   isSaving.value = true
 
   try {
-    const itemId =
-      editImageType.value === 'subject' ? editImageSubjectId.value : editImageTopicId.value
+    let itemId: string
+    if (editImageType.value === 'subject') {
+      itemId = editImageSubjectId.value
+    } else if (editImageType.value === 'topic') {
+      itemId = editImageTopicId.value
+    } else {
+      itemId = editImageSubTopicId.value
+    }
 
     // Upload the image
     const uploadResult = await curriculumStore.uploadCurriculumImage(
@@ -408,6 +491,18 @@ async function handleEditImage() {
         toast.error(result.error)
         return
       }
+    } else if (editImageType.value === 'subtopic') {
+      const result = await curriculumStore.updateSubTopicCoverImage(
+        editImageGradeLevelId.value,
+        editImageSubjectId.value,
+        editImageTopicId.value,
+        editImageSubTopicId.value,
+        uploadResult.path,
+      )
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
     }
 
     toast.success('Cover image updated successfully')
@@ -421,28 +516,32 @@ async function handleEditImage() {
 
 // Delete dialog functions
 function openDeleteDialog(
-  type: 'grade' | 'subject' | 'topic',
+  type: 'grade' | 'subject' | 'topic' | 'subtopic',
   itemName: string,
   gradeLevelId: string,
   subjectId?: string,
   topicId?: string,
+  subTopicId?: string,
 ) {
   deleteType.value = type
   deleteItemName.value = itemName
   deleteGradeLevelId.value = gradeLevelId
   deleteSubjectId.value = subjectId ?? ''
   deleteTopicId.value = topicId ?? ''
+  deleteSubTopicId.value = subTopicId ?? ''
   showDeleteDialog.value = true
 }
 
 function getDeleteDialogDescription() {
   switch (deleteType.value) {
     case 'grade':
-      return 'This will permanently delete this grade level and all its subjects and topics. This action cannot be undone.'
+      return 'This will permanently delete this grade level and all its subjects, topics, and sub-topics. This action cannot be undone.'
     case 'subject':
-      return 'This will permanently delete this subject and all its topics. This action cannot be undone.'
+      return 'This will permanently delete this subject and all its topics and sub-topics. This action cannot be undone.'
     case 'topic':
-      return 'This will permanently delete this topic. This action cannot be undone.'
+      return 'This will permanently delete this topic and all its sub-topics. This action cannot be undone.'
+    case 'subtopic':
+      return 'This will permanently delete this sub-topic. This action cannot be undone.'
   }
 }
 
@@ -466,6 +565,7 @@ async function confirmDelete() {
         if (!result.error) {
           if (selectedSubjectId.value === deleteSubjectId.value) {
             selectedSubjectId.value = null
+            selectedTopicId.value = null
           }
           toast.success('Subject deleted successfully')
         }
@@ -477,7 +577,21 @@ async function confirmDelete() {
           deleteTopicId.value,
         )
         if (!result.error) {
+          if (selectedTopicId.value === deleteTopicId.value) {
+            selectedTopicId.value = null
+          }
           toast.success('Topic deleted successfully')
+        }
+        break
+      case 'subtopic':
+        result = await curriculumStore.deleteSubTopic(
+          deleteGradeLevelId.value,
+          deleteSubjectId.value,
+          deleteTopicId.value,
+          deleteSubTopicId.value,
+        )
+        if (!result.error) {
+          toast.success('Sub-topic deleted successfully')
         }
         break
     }
@@ -499,6 +613,8 @@ function getDialogTitle() {
       return 'Add Subject'
     case 'topic':
       return 'Add Topic'
+    case 'subtopic':
+      return 'Add Sub-Topic'
   }
 }
 
@@ -510,6 +626,8 @@ function getDialogDescription() {
       return 'Add a new subject with an optional cover image.'
     case 'topic':
       return 'Add a new topic with an optional cover image.'
+    case 'subtopic':
+      return 'Add a new sub-topic with an optional cover image.'
   }
 }
 
@@ -521,6 +639,8 @@ function getInputLabel() {
       return 'Subject Name'
     case 'topic':
       return 'Topic Name'
+    case 'subtopic':
+      return 'Sub-Topic Name'
   }
 }
 </script>
@@ -531,7 +651,7 @@ function getInputLabel() {
     <div class="mb-6 flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold">Curriculum</h1>
-        <p class="text-muted-foreground">Manage grade levels, subjects, and topics</p>
+        <p class="text-muted-foreground">Manage grade levels, subjects, topics, and sub-topics</p>
         <!-- Breadcrumb Navigation -->
         <Breadcrumb class="mt-4">
           <BreadcrumbList>
@@ -553,7 +673,16 @@ function getInputLabel() {
             <template v-if="selectedSubject">
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{{ selectedSubject.name }}</BreadcrumbPage>
+                <BreadcrumbLink v-if="selectedTopic" as-child>
+                  <button @click="goBackToTopics">{{ selectedSubject.name }}</button>
+                </BreadcrumbLink>
+                <BreadcrumbPage v-else>{{ selectedSubject.name }}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </template>
+            <template v-if="selectedTopic">
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{{ selectedTopic.name }}</BreadcrumbPage>
               </BreadcrumbItem>
             </template>
           </BreadcrumbList>
@@ -702,12 +831,13 @@ function getInputLabel() {
     </div>
 
     <!-- Topic Selection (Level 3) -->
-    <div v-else>
+    <div v-else-if="!selectedTopic">
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card
           v-for="topic in selectedSubject.topics"
           :key="topic.id"
-          class="group relative overflow-hidden transition-shadow hover:shadow-lg"
+          class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+          @click="selectTopic(topic.id)"
         >
           <div class="aspect-video w-full overflow-hidden">
             <img
@@ -718,7 +848,10 @@ function getInputLabel() {
           </div>
           <CardContent class="p-4">
             <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
-            <p class="text-sm text-muted-foreground">Topic</p>
+            <p class="text-sm text-muted-foreground">
+              {{ topic.subTopics.length }}
+              {{ topic.subTopics.length === 1 ? 'sub-topic' : 'sub-topics' }}
+            </p>
           </CardContent>
           <!-- Action buttons -->
           <div
@@ -774,6 +907,87 @@ function getInputLabel() {
         <Button class="mt-4" @click="openAddDialog('topic')">
           <Plus class="mr-2 size-4" />
           Add Topic
+        </Button>
+      </div>
+    </div>
+
+    <!-- Sub-Topic Selection (Level 4) -->
+    <div v-else>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <Card
+          v-for="subTopic in selectedTopic.subTopics"
+          :key="subTopic.id"
+          class="group relative overflow-hidden transition-shadow hover:shadow-lg"
+        >
+          <div class="aspect-video w-full overflow-hidden">
+            <img
+              :src="getSubTopicImage(subTopic)"
+              :alt="subTopic.name"
+              class="size-full object-cover transition-transform group-hover:scale-105"
+            />
+          </div>
+          <CardContent class="p-4">
+            <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
+            <p class="text-sm text-muted-foreground">Sub-Topic</p>
+          </CardContent>
+          <!-- Action buttons -->
+          <div
+            class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              class="size-8"
+              @click.stop="
+                openEditImageDialog(
+                  'subtopic',
+                  selectedGradeLevel.id,
+                  selectedSubject.id,
+                  subTopic.name,
+                  getSubTopicImage(subTopic),
+                  selectedTopic.id,
+                  subTopic.id,
+                )
+              "
+            >
+              <ImagePlus class="size-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              class="size-8"
+              :disabled="isDeleting"
+              @click.stop="
+                openDeleteDialog(
+                  'subtopic',
+                  subTopic.name,
+                  selectedGradeLevel.id,
+                  selectedSubject.id,
+                  selectedTopic.id,
+                  subTopic.id,
+                )
+              "
+            >
+              <Trash2 class="size-4" />
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      <div
+        v-if="selectedTopic.subTopics.length === 0"
+        class="rounded-lg border border-dashed p-12 text-center"
+      >
+        <div class="mx-auto size-12 rounded-full bg-muted flex items-center justify-center">
+          <Plus class="size-6 text-muted-foreground" />
+        </div>
+        <h3 class="mt-4 text-lg font-medium">No sub-topics yet</h3>
+        <p class="mt-2 text-sm text-muted-foreground">
+          Add sub-topics to {{ selectedTopic.name }}.
+        </p>
+        <Button class="mt-4" @click="openAddDialog('subtopic')">
+          <Plus class="mr-2 size-4" />
+          Add Sub-Topic
         </Button>
       </div>
     </div>
