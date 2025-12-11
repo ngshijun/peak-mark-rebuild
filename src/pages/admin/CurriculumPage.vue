@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useCurriculumStore, type Subject, type Topic, type SubTopic } from '@/stores/curriculum'
 import { addCurriculumItemFormSchema } from '@/lib/validations'
-import { Plus, Trash2, ImagePlus, Loader2, X } from 'lucide-vue-next'
+import { Plus, Trash2, ImagePlus, Loader2, X, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import {
   Breadcrumb,
@@ -129,6 +129,16 @@ const deleteGradeLevelId = ref('')
 const deleteSubjectId = ref('')
 const deleteTopicId = ref('')
 const deleteSubTopicId = ref('')
+
+// Edit name dialog
+const showEditNameDialog = ref(false)
+const editNameType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
+const editNameValue = ref('')
+const editNameGradeLevelId = ref('')
+const editNameSubjectId = ref('')
+const editNameTopicId = ref('')
+const editNameSubTopicId = ref('')
+const editNameCurrentName = ref('')
 
 // Default images
 const defaultSubjectImage =
@@ -643,6 +653,109 @@ function getInputLabel() {
       return 'Sub-Topic Name'
   }
 }
+
+// Edit name dialog functions
+function openEditNameDialog(
+  type: 'grade' | 'subject' | 'topic' | 'subtopic',
+  currentName: string,
+  gradeLevelId: string,
+  subjectId?: string,
+  topicId?: string,
+  subTopicId?: string,
+) {
+  editNameType.value = type
+  editNameValue.value = currentName
+  editNameCurrentName.value = currentName
+  editNameGradeLevelId.value = gradeLevelId
+  editNameSubjectId.value = subjectId ?? ''
+  editNameTopicId.value = topicId ?? ''
+  editNameSubTopicId.value = subTopicId ?? ''
+  showEditNameDialog.value = true
+}
+
+function getEditNameDialogTitle() {
+  switch (editNameType.value) {
+    case 'grade':
+      return 'Edit Grade Level Name'
+    case 'subject':
+      return 'Edit Subject Name'
+    case 'topic':
+      return 'Edit Topic Name'
+    case 'subtopic':
+      return 'Edit Sub-Topic Name'
+  }
+}
+
+function getEditNameInputLabel() {
+  switch (editNameType.value) {
+    case 'grade':
+      return 'Grade Level Name'
+    case 'subject':
+      return 'Subject Name'
+    case 'topic':
+      return 'Topic Name'
+    case 'subtopic':
+      return 'Sub-Topic Name'
+  }
+}
+
+async function handleEditName() {
+  const trimmedName = editNameValue.value.trim()
+  if (!trimmedName) {
+    toast.error('Name cannot be empty')
+    return
+  }
+
+  if (trimmedName === editNameCurrentName.value) {
+    showEditNameDialog.value = false
+    return
+  }
+
+  isSaving.value = true
+
+  try {
+    let result: { success: boolean; error: string | null }
+
+    switch (editNameType.value) {
+      case 'grade':
+        result = await curriculumStore.updateGradeLevel(editNameGradeLevelId.value, trimmedName)
+        break
+      case 'subject':
+        result = await curriculumStore.updateSubject(
+          editNameGradeLevelId.value,
+          editNameSubjectId.value,
+          { name: trimmedName },
+        )
+        break
+      case 'topic':
+        result = await curriculumStore.updateTopic(
+          editNameGradeLevelId.value,
+          editNameSubjectId.value,
+          editNameTopicId.value,
+          { name: trimmedName },
+        )
+        break
+      case 'subtopic':
+        result = await curriculumStore.updateSubTopic(
+          editNameGradeLevelId.value,
+          editNameSubjectId.value,
+          editNameTopicId.value,
+          editNameSubTopicId.value,
+          { name: trimmedName },
+        )
+        break
+    }
+
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      toast.success('Name updated successfully')
+      showEditNameDialog.value = false
+    }
+  } finally {
+    isSaving.value = false
+  }
+}
 </script>
 
 <template>
@@ -724,16 +837,28 @@ function getInputLabel() {
               {{ grade.subjects.length }} {{ grade.subjects.length === 1 ? 'subject' : 'subjects' }}
             </p>
           </CardContent>
-          <!-- Delete button -->
-          <Button
-            variant="destructive"
-            size="icon"
-            class="absolute right-2 top-2 size-8 opacity-0 transition-opacity group-hover:opacity-100"
-            :disabled="isDeleting"
-            @click.stop="openDeleteDialog('grade', grade.name, grade.id)"
+          <!-- Action buttons -->
+          <div
+            class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
           >
-            <Trash2 class="size-4" />
-          </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              class="size-8"
+              @click.stop="openEditNameDialog('grade', grade.name, grade.id)"
+            >
+              <Pencil class="size-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              class="size-8"
+              :disabled="isDeleting"
+              @click.stop="openDeleteDialog('grade', grade.name, grade.id)"
+            >
+              <Trash2 class="size-4" />
+            </Button>
+          </div>
         </Card>
       </div>
 
@@ -781,6 +906,16 @@ function getInputLabel() {
           <div
             class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
           >
+            <Button
+              variant="secondary"
+              size="icon"
+              class="size-8"
+              @click.stop="
+                openEditNameDialog('subject', subject.name, selectedGradeLevel.id, subject.id)
+              "
+            >
+              <Pencil class="size-4" />
+            </Button>
             <Button
               variant="secondary"
               size="icon"
@@ -862,6 +997,22 @@ function getInputLabel() {
               size="icon"
               class="size-8"
               @click.stop="
+                openEditNameDialog(
+                  'topic',
+                  topic.name,
+                  selectedGradeLevel.id,
+                  selectedSubject.id,
+                  topic.id,
+                )
+              "
+            >
+              <Pencil class="size-4" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              class="size-8"
+              @click.stop="
                 openEditImageDialog(
                   'topic',
                   selectedGradeLevel.id,
@@ -934,6 +1085,23 @@ function getInputLabel() {
           <div
             class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
           >
+            <Button
+              variant="secondary"
+              size="icon"
+              class="size-8"
+              @click.stop="
+                openEditNameDialog(
+                  'subtopic',
+                  subTopic.name,
+                  selectedGradeLevel.id,
+                  selectedSubject.id,
+                  selectedTopic.id,
+                  subTopic.id,
+                )
+              "
+            >
+              <Pencil class="size-4" />
+            </Button>
             <Button
               variant="secondary"
               size="icon"
@@ -1197,5 +1365,38 @@ function getInputLabel() {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <!-- Edit Name Dialog -->
+    <Dialog v-model:open="showEditNameDialog">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{{ getEditNameDialogTitle() }}</DialogTitle>
+          <DialogDescription> Update the name for "{{ editNameCurrentName }}" </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-4 py-4">
+          <Field>
+            <FieldLabel for="edit-name-input">{{ getEditNameInputLabel() }}</FieldLabel>
+            <Input
+              id="edit-name-input"
+              v-model="editNameValue"
+              :placeholder="'Enter ' + getEditNameInputLabel().toLowerCase()"
+              :disabled="isSaving"
+              @keydown.enter.prevent="handleEditName"
+            />
+          </Field>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" :disabled="isSaving" @click="showEditNameDialog = false">
+            Cancel
+          </Button>
+          <Button :disabled="isSaving || !editNameValue.trim()" @click="handleEditName">
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
