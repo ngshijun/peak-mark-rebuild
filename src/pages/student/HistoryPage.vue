@@ -81,6 +81,7 @@ interface HistoryRow {
   gradeLevelName: string
   subjectName: string
   topicName: string
+  subTopicName: string
   status: 'completed' | 'in_progress'
   score: number | null
   totalQuestions: number
@@ -94,6 +95,7 @@ const historyData = computed<HistoryRow[]>(() => {
     currentGradeLevel.value, // filter by student's current grade level from profile
     subjectFilter.value,
     topicFilter.value,
+    undefined, // subTopicFilter - not used in UI currently
     selectedDateRange.value,
   )
 
@@ -116,6 +118,7 @@ const historyData = computed<HistoryRow[]>(() => {
       gradeLevelName: session.gradeLevelName,
       subjectName: session.subjectName,
       topicName: session.topicName,
+      subTopicName: session.subTopicName,
       status: isCompleted ? 'completed' : 'in_progress',
       score,
       totalQuestions,
@@ -180,6 +183,13 @@ const columns: ColumnDef<HistoryRow>[] = [
     header: 'Topic',
     cell: ({ row }) => {
       return h('div', {}, row.original.topicName)
+    },
+  },
+  {
+    accessorKey: 'subTopicName',
+    header: 'Sub-Topic',
+    cell: ({ row }) => {
+      return h('div', {}, row.original.subTopicName)
     },
   },
   {

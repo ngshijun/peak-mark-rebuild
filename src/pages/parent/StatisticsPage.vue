@@ -67,6 +67,7 @@ const selectedDateRange = ref<DateRangeFilter>('today')
 const selectedGradeLevel = ref<string>(ALL_VALUE)
 const selectedSubject = ref<string>(ALL_VALUE)
 const selectedTopic = ref<string>(ALL_VALUE)
+const selectedSubTopic = ref<string>(ALL_VALUE)
 
 const dateRangeOptions = [
   { value: 'today' as DateRangeFilter, label: 'Today' },
@@ -81,6 +82,7 @@ watch(selectedChildId, (newChildId) => {
   selectedGradeLevel.value = ALL_VALUE
   selectedSubject.value = ALL_VALUE
   selectedTopic.value = ALL_VALUE
+  selectedSubTopic.value = ALL_VALUE
 
   // Persist selected child to localStorage
   if (newChildId) {
@@ -88,15 +90,22 @@ watch(selectedChildId, (newChildId) => {
   }
 })
 
-// Reset subject and topic when grade level changes
+// Reset subject, topic, and subtopic when grade level changes
 watch(selectedGradeLevel, () => {
   selectedSubject.value = ALL_VALUE
   selectedTopic.value = ALL_VALUE
+  selectedSubTopic.value = ALL_VALUE
 })
 
-// Reset topic when subject changes
+// Reset topic and subtopic when subject changes
 watch(selectedSubject, () => {
   selectedTopic.value = ALL_VALUE
+  selectedSubTopic.value = ALL_VALUE
+})
+
+// Reset subtopic when topic changes
+watch(selectedTopic, () => {
+  selectedSubTopic.value = ALL_VALUE
 })
 
 // Helper to convert ALL_VALUE to undefined for store calls
@@ -108,6 +117,9 @@ const subjectFilter = computed(() =>
 )
 const topicFilter = computed(() =>
   selectedTopic.value === ALL_VALUE ? undefined : selectedTopic.value,
+)
+const subTopicFilter = computed(() =>
+  selectedSubTopic.value === ALL_VALUE ? undefined : selectedSubTopic.value,
 )
 
 // Get available grade levels for selected child
@@ -132,6 +144,17 @@ const availableTopics = computed(() => {
   )
 })
 
+// Get available sub-topics for selected child (filtered by grade level, subject, and topic)
+const availableSubTopics = computed(() => {
+  if (!selectedChildId.value) return []
+  return childStatisticsStore.getSubTopics(
+    selectedChildId.value,
+    gradeLevelFilter.value,
+    subjectFilter.value,
+    topicFilter.value,
+  )
+})
+
 // Get filtered statistics
 const averageScore = computed(() => {
   if (!selectedChildId.value) return 0
@@ -140,6 +163,7 @@ const averageScore = computed(() => {
     gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
+    subTopicFilter.value,
     selectedDateRange.value,
   )
 })
@@ -151,6 +175,7 @@ const totalSessions = computed(() => {
     gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
+    subTopicFilter.value,
     selectedDateRange.value,
   )
 })
@@ -162,6 +187,7 @@ const totalStudyTime = computed(() => {
     gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
+    subTopicFilter.value,
     selectedDateRange.value,
   )
 })
@@ -173,7 +199,7 @@ const subTopicsPracticed = computed(() => {
     gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
-    undefined, // subTopicName filter
+    subTopicFilter.value,
     selectedDateRange.value,
   )
 })
@@ -186,6 +212,7 @@ const recentSessions = computed(() => {
     gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
+    subTopicFilter.value,
     selectedDateRange.value,
   )
 })
@@ -259,6 +286,13 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
     header: 'Topic',
     cell: ({ row }) => {
       return h('div', {}, row.original.topicName)
+    },
+  },
+  {
+    accessorKey: 'subTopicName',
+    header: 'Sub-Topic',
+    cell: ({ row }) => {
+      return h('div', {}, row.original.subTopicName)
     },
   },
   {
@@ -409,6 +443,19 @@ function handleRowClick(row: ChildPracticeSession) {
             </SelectItem>
           </SelectContent>
         </Select>
+
+        <!-- Sub-Topic Selector -->
+        <Select v-model="selectedSubTopic" :disabled="selectedTopic === ALL_VALUE">
+          <SelectTrigger class="w-[150px]">
+            <SelectValue placeholder="All Sub-Topics" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Sub-Topics</SelectItem>
+            <SelectItem v-for="subTopic in availableSubTopics" :key="subTopic" :value="subTopic">
+              {{ subTopic }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <!-- Statistics Cards -->
@@ -446,10 +493,10 @@ function handleRowClick(row: ChildPracticeSession) {
           </CardContent>
         </Card>
 
-        <!-- Topics Practiced Card -->
+        <!-- Sub-Topics Practiced Card -->
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Topics Practiced</CardTitle>
+            <CardTitle class="text-sm font-medium">Sub-Topics Practiced</CardTitle>
             <Layers class="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

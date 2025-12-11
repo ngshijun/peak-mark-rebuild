@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useCurriculumStore } from '@/stores/curriculum'
+import { useCurriculumStore, type SubTopic } from '@/stores/curriculum'
 import { usePracticeStore, type SessionLimitStatus } from '@/stores/practice'
 import { Loader2, AlertCircle } from 'lucide-vue-next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -34,13 +34,14 @@ const curriculumStore = useCurriculumStore()
 const practiceStore = usePracticeStore()
 
 const selectedSubjectId = ref<string | null>(null)
+const selectedTopicId = ref<string | null>(null)
 const isStartingSession = ref(false)
 const sessionLimitStatus = ref<SessionLimitStatus | null>(null)
 const isLoadingLimit = ref(true)
 
 // Confirmation dialog state
 const showConfirmDialog = ref(false)
-const pendingTopicId = ref<string | null>(null)
+const pendingSubTopicId = ref<string | null>(null)
 
 // Fetch curriculum and session limit on mount
 onMounted(async () => {
@@ -73,10 +74,16 @@ const selectedSubject = computed(() => {
   return availableSubjects.value.find((s) => s.id === selectedSubjectId.value) ?? null
 })
 
-// Get pending topic for confirmation dialog
-const pendingTopic = computed(() => {
-  if (!selectedSubject.value || !pendingTopicId.value) return null
-  return selectedSubject.value.topics.find((t) => t.id === pendingTopicId.value) ?? null
+// Get selected topic
+const selectedTopic = computed(() => {
+  if (!selectedSubject.value || !selectedTopicId.value) return null
+  return selectedSubject.value.topics.find((t) => t.id === selectedTopicId.value) ?? null
+})
+
+// Get pending sub-topic for confirmation dialog
+const pendingSubTopic = computed(() => {
+  if (!selectedTopic.value || !pendingSubTopicId.value) return null
+  return selectedTopic.value.subTopics.find((st) => st.id === pendingSubTopicId.value) ?? null
 })
 
 // Subject images mapping
@@ -145,14 +152,24 @@ function getTopicImage(topic: { name: string; coverImage?: string | null }): str
 
 function selectSubject(subjectId: string) {
   selectedSubjectId.value = subjectId
+  selectedTopicId.value = null
 }
 
 function goBackToSubjects() {
   selectedSubjectId.value = null
+  selectedTopicId.value = null
 }
 
 function selectTopic(topicId: string) {
-  if (!selectedSubject.value || isStartingSession.value) return
+  selectedTopicId.value = topicId
+}
+
+function goBackToTopics() {
+  selectedTopicId.value = null
+}
+
+function selectSubTopic(subTopicId: string) {
+  if (!selectedTopic.value || isStartingSession.value) return
 
   // Check limit before showing dialog
   if (sessionLimitStatus.value && !sessionLimitStatus.value.canStartSession) {
@@ -163,18 +180,18 @@ function selectTopic(topicId: string) {
   }
 
   // Show confirmation dialog
-  pendingTopicId.value = topicId
+  pendingSubTopicId.value = subTopicId
   showConfirmDialog.value = true
 }
 
 async function confirmStartSession() {
-  if (!pendingTopicId.value) return
+  if (!pendingSubTopicId.value) return
 
   showConfirmDialog.value = false
   isStartingSession.value = true
 
   try {
-    const result = await practiceStore.startSession(pendingTopicId.value)
+    const result = await practiceStore.startSession(pendingSubTopicId.value)
 
     if (result.error) {
       toast.error(result.error)
@@ -190,8 +207,18 @@ async function confirmStartSession() {
     }
   } finally {
     isStartingSession.value = false
-    pendingTopicId.value = null
+    pendingSubTopicId.value = null
   }
+}
+
+function getSubTopicImage(subTopic: SubTopic): string {
+  if (subTopic.coverImagePath) {
+    if (subTopic.coverImagePath.startsWith('http')) {
+      return subTopic.coverImagePath
+    }
+    return curriculumStore.getCurriculumImageUrl(subTopic.coverImagePath)
+  }
+  return topicImages[subTopic.name] || defaultTopicImage
 }
 </script>
 
@@ -203,9 +230,11 @@ async function confirmStartSession() {
         <h1 class="text-2xl font-bold">Practice</h1>
         <p class="text-muted-foreground">
           {{
-            selectedSubject
-              ? 'Select a topic to start practicing'
-              : 'Select a subject to start practicing'
+            selectedTopic
+              ? 'Select a sub-topic to start practicing'
+              : selectedSubject
+                ? 'Select a topic to continue'
+                : 'Select a subject to start practicing'
           }}
         </p>
         <!-- Breadcrumb Navigation -->
@@ -220,7 +249,16 @@ async function confirmStartSession() {
             <template v-if="selectedSubject">
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{{ selectedSubject.name }}</BreadcrumbPage>
+                <BreadcrumbLink v-if="selectedTopic" as-child>
+                  <button @click="goBackToTopics">{{ selectedSubject.name }}</button>
+                </BreadcrumbLink>
+                <BreadcrumbPage v-else>{{ selectedSubject.name }}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </template>
+            <template v-if="selectedTopic">
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{{ selectedTopic.name }}</BreadcrumbPage>
               </BreadcrumbItem>
             </template>
           </BreadcrumbList>
@@ -304,16 +342,12 @@ async function confirmStartSession() {
       </div>
 
       <!-- Topic Selection -->
-      <div v-else>
+      <div v-else-if="!selectedTopic">
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Card
             v-for="topic in selectedSubject.topics"
             :key="topic.id"
             class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
-            :class="{
-              'opacity-50 pointer-events-none':
-                isStartingSession || !sessionLimitStatus?.canStartSession,
-            }"
             @click="selectTopic(topic.id)"
           >
             <div class="aspect-video w-full overflow-hidden">
@@ -325,13 +359,48 @@ async function confirmStartSession() {
             </div>
             <CardContent class="p-4">
               <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
-              <p class="text-sm text-muted-foreground">10 questions</p>
+              <p class="text-sm text-muted-foreground">
+                {{ topic.subTopics.length }}
+                {{ topic.subTopics.length === 1 ? 'sub-topic' : 'sub-topics' }} available
+              </p>
             </CardContent>
           </Card>
         </div>
 
         <div v-if="selectedSubject.topics.length === 0" class="py-12 text-center">
           <p class="text-muted-foreground">No topics available for this subject.</p>
+        </div>
+      </div>
+
+      <!-- Sub-Topic Selection -->
+      <div v-else>
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Card
+            v-for="subTopic in selectedTopic.subTopics"
+            :key="subTopic.id"
+            class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+            :class="{
+              'opacity-50 pointer-events-none':
+                isStartingSession || !sessionLimitStatus?.canStartSession,
+            }"
+            @click="selectSubTopic(subTopic.id)"
+          >
+            <div class="aspect-video w-full overflow-hidden">
+              <img
+                :src="getSubTopicImage(subTopic)"
+                :alt="subTopic.name"
+                class="size-full object-cover transition-transform hover:scale-105"
+              />
+            </div>
+            <CardContent class="p-4">
+              <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
+              <p class="text-sm text-muted-foreground">10 questions</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div v-if="selectedTopic.subTopics.length === 0" class="py-12 text-center">
+          <p class="text-muted-foreground">No sub-topics available for this topic.</p>
         </div>
       </div>
     </template>
@@ -354,7 +423,7 @@ async function confirmStartSession() {
           <AlertDialogTitle>Start Practice Session?</AlertDialogTitle>
           <AlertDialogDescription>
             You are about to start a practice session for
-            <span class="font-medium text-foreground">{{ pendingTopic?.name }}</span
+            <span class="font-medium text-foreground">{{ pendingSubTopic?.name }}</span
             >. This will use 1 of your daily sessions.
           </AlertDialogDescription>
         </AlertDialogHeader>
