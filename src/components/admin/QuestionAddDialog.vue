@@ -531,11 +531,13 @@ function handleCancel() {
         </div>
 
         <!-- Question -->
-        <VeeField v-slot="{ field, errors: fieldErrors }" name="question">
+        <VeeField v-slot="{ value, handleChange, handleBlur, errors: fieldErrors }" name="question">
           <Field :data-invalid="!!fieldErrors.length">
             <FieldLabel> Question <span class="text-destructive">*</span> </FieldLabel>
             <Textarea
-              v-bind="field"
+              :model-value="value"
+              @update:model-value="handleChange"
+              @blur="handleBlur"
               placeholder="Enter the question"
               rows="3"
               :disabled="isSaving"
@@ -679,11 +681,13 @@ function handleCancel() {
         </VeeField>
 
         <!-- Explanation -->
-        <VeeField v-slot="{ field }" name="explanation">
+        <VeeField v-slot="{ value, handleChange, handleBlur }" name="explanation">
           <Field>
             <FieldLabel>Explanation</FieldLabel>
             <Textarea
-              v-bind="field"
+              :model-value="value"
+              @update:model-value="handleChange"
+              @blur="handleBlur"
               placeholder="Explain the answer"
               rows="2"
               :disabled="isSaving"

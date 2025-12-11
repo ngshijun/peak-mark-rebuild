@@ -107,7 +107,7 @@ const correctAnswer = computed(() => {
         <!-- Question Text -->
         <div class="space-y-2">
           <h3 class="font-semibold">Question</h3>
-          <p class="text-foreground">{{ question.question }}</p>
+          <p class="text-foreground whitespace-pre-line">{{ question.question }}</p>
         </div>
 
         <!-- Question Image -->

@@ -16,7 +16,14 @@
       "Bash(find:*)",
       "mcp__chrome-devtools__wait_for",
       "mcp__supabase__list_tables",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__shadcnVue__view_items_in_registries",
+      "mcp__shadcnVue__get_item_examples_from_registries",
+      "mcp__shadcnVue__search_items_in_registries",
+      "mcp__shadcnVue__get_add_command_for_items",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:vee-validate.logaretm.com)"
     ],
     "deny": [],
     "ask": []

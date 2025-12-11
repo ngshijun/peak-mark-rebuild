@@ -241,7 +241,9 @@ async function goToQuestion(index: number) {
         <Card>
           <CardHeader>
             <div class="flex items-start justify-between gap-4">
-              <CardTitle class="text-lg">{{ currentQuestion.question }}</CardTitle>
+              <CardTitle class="text-lg whitespace-pre-line">{{
+                currentQuestion.question
+              }}</CardTitle>
               <div class="flex shrink-0 items-center gap-2">
                 <Badge variant="secondary">
                   {{ currentQuestion.type === 'mcq' ? 'Multiple Choice' : 'Short Answer' }}

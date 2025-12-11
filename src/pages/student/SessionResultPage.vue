@@ -331,7 +331,7 @@ function goToHistory() {
 
             <!-- Question Text -->
             <template v-else>
-              <p class="text-sm">{{ question.question }}</p>
+              <p class="text-sm whitespace-pre-line">{{ question.question }}</p>
 
               <!-- Question Image if exists -->
               <img
