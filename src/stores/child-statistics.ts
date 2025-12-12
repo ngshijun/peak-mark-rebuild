@@ -91,6 +91,15 @@ export interface ChildStatistics {
   sessions: ChildPracticeSession[]
 }
 
+export type MoodType = Database['public']['Enums']['mood_type']
+
+export interface ChildDailyStatus {
+  id: string
+  date: string // YYYY-MM-DD
+  mood: MoodType | null
+  hasPracticed: boolean
+}
+
 export const useChildStatisticsStore = defineStore('childStatistics', () => {
   const childLinkStore = useChildLinkStore()
   const authStore = useAuthStore()
@@ -701,6 +710,56 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     return limit ? sorted.slice(0, limit) : sorted
   }
 
+  /**
+   * Fetch daily statuses for a child for a specific month
+   */
+  async function fetchChildDailyStatuses(
+    childId: string,
+    year: number,
+    month: number, // 1-12
+  ): Promise<{ statuses: ChildDailyStatus[]; error: string | null }> {
+    if (!authStore.user || !authStore.isParent) {
+      return { statuses: [], error: 'Not authenticated as parent' }
+    }
+
+    // Verify the child is linked to this parent
+    const isLinked = childLinkStore.linkedChildren.some((c) => c.id === childId)
+    if (!isLinked) {
+      return { statuses: [], error: 'Child is not linked to your account' }
+    }
+
+    // Calculate date range for the month
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+    const lastDay = new Date(year, month, 0).getDate()
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('daily_statuses')
+        .select('id, date, mood, has_practiced')
+        .eq('student_id', childId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true })
+
+      if (fetchError) {
+        return { statuses: [], error: fetchError.message }
+      }
+
+      const statuses: ChildDailyStatus[] = (data ?? []).map((d) => ({
+        id: d.id,
+        date: d.date,
+        mood: d.mood,
+        hasPracticed: d.has_practiced ?? false,
+      }))
+
+      return { statuses, error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch daily statuses'
+      return { statuses: [], error: message }
+    }
+  }
+
   return {
     // State
     childrenStatistics,
@@ -725,5 +784,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     getRecentSessions,
     getSessionById,
     getChildSubscriptionStatus,
+    fetchChildDailyStatuses,
   }
 })
