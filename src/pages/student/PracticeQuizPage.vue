@@ -27,7 +27,7 @@ const route = useRoute()
 const practiceStore = usePracticeStore()
 const questionsStore = useQuestionsStore()
 
-const selectedOptionId = ref('')
+const selectedOptionIds = ref<Set<string>>(new Set())
 const textAnswer = ref('')
 const showExitDialog = ref(false)
 const showFeedbackDialog = ref(false)
@@ -51,9 +51,13 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled
 }
 
-// Get filtered and shuffled options for current question
+// Get filtered and shuffled options for current question (MCQ and MRQ)
 const displayOptions = computed(() => {
-  if (!currentQuestion.value || currentQuestion.value.type !== 'mcq') return []
+  if (
+    !currentQuestion.value ||
+    (currentQuestion.value.type !== 'mcq' && currentQuestion.value.type !== 'mrq')
+  )
+    return []
 
   const questionId = currentQuestion.value.id
 
@@ -132,13 +136,17 @@ const correctAnswer = computed(() => {
     const correct = currentQuestion.value.options.find((o) => o.isCorrect)
     return correct?.text ?? ''
   }
+  if (currentQuestion.value.type === 'mrq') {
+    const correctOptions = currentQuestion.value.options.filter((o) => o.isCorrect)
+    return correctOptions.map((o) => o.text).join(', ')
+  }
   return currentQuestion.value.answer ?? ''
 })
 
-// Get the selected option id from the current answer (convert from number to letter)
-const answeredOptionId = computed(() => {
-  if (!currentAnswer.value?.selectedOption) return null
-  return practiceStore.optionNumberToId(currentAnswer.value.selectedOption)
+// Get the selected option ids from the current answer (convert from numbers to letters)
+const answeredOptionIds = computed(() => {
+  if (!currentAnswer.value?.selectedOptions) return []
+  return practiceStore.optionNumbersToIds(currentAnswer.value.selectedOptions)
 })
 
 async function submitAnswer() {
@@ -147,9 +155,13 @@ async function submitAnswer() {
   // Calculate time spent on this question in seconds
   const timeSpentSeconds = Math.round((Date.now() - questionStartTime.value) / 1000)
 
-  if (currentQuestion.value.type === 'mcq') {
-    if (!selectedOptionId.value) return
-    await practiceStore.submitAnswer(selectedOptionId.value, undefined, timeSpentSeconds)
+  if (currentQuestion.value.type === 'mcq' || currentQuestion.value.type === 'mrq') {
+    if (selectedOptionIds.value.size === 0) return
+    await practiceStore.submitAnswer(
+      Array.from(selectedOptionIds.value),
+      undefined,
+      timeSpentSeconds,
+    )
   } else {
     if (!textAnswer.value.trim()) return
     await practiceStore.submitAnswer(undefined, textAnswer.value.trim(), timeSpentSeconds)
@@ -158,14 +170,14 @@ async function submitAnswer() {
 
 async function nextQuestion() {
   // Reset input state
-  selectedOptionId.value = ''
+  selectedOptionIds.value = new Set()
   textAnswer.value = ''
   await practiceStore.nextQuestion()
 }
 
 async function previousQuestion() {
   // Reset input state
-  selectedOptionId.value = ''
+  selectedOptionIds.value = new Set()
   textAnswer.value = ''
   await practiceStore.previousQuestion()
 }
@@ -190,7 +202,7 @@ async function restartQuiz() {
   if (session) {
     practiceStore.endSession()
     await practiceStore.startSession(session.subTopicId)
-    selectedOptionId.value = ''
+    selectedOptionIds.value = new Set()
     textAnswer.value = ''
   }
 }
@@ -202,8 +214,27 @@ function goHome() {
 
 async function goToQuestion(index: number) {
   await practiceStore.goToQuestion(index)
-  selectedOptionId.value = ''
+  selectedOptionIds.value = new Set()
   textAnswer.value = ''
+}
+
+// Handle option click - single select for MCQ, toggle for MRQ
+function handleOptionClick(optionId: string) {
+  if (!currentQuestion.value) return
+
+  if (currentQuestion.value.type === 'mcq') {
+    // MCQ: single selection (radio behavior)
+    selectedOptionIds.value = new Set([optionId])
+  } else if (currentQuestion.value.type === 'mrq') {
+    // MRQ: toggle selection (checkbox behavior)
+    const newSet = new Set(selectedOptionIds.value)
+    if (newSet.has(optionId)) {
+      newSet.delete(optionId)
+    } else {
+      newSet.add(optionId)
+    }
+    selectedOptionIds.value = newSet
+  }
 }
 </script>
 
@@ -246,7 +277,13 @@ async function goToQuestion(index: number) {
               }}</CardTitle>
               <div class="flex shrink-0 items-center gap-2">
                 <Badge variant="secondary">
-                  {{ currentQuestion.type === 'mcq' ? 'Multiple Choice' : 'Short Answer' }}
+                  {{
+                    currentQuestion.type === 'mcq'
+                      ? 'Multiple Choice'
+                      : currentQuestion.type === 'mrq'
+                        ? 'Multiple Response'
+                        : 'Short Answer'
+                  }}
                 </Badge>
                 <Button
                   variant="ghost"
@@ -271,34 +308,41 @@ async function goToQuestion(index: number) {
               />
             </div>
 
-            <!-- MCQ Options (shuffled and filtered) -->
-            <div v-if="currentQuestion.type === 'mcq'" class="space-y-2">
+            <!-- MCQ/MRQ Options (shuffled and filtered) -->
+            <div
+              v-if="currentQuestion.type === 'mcq' || currentQuestion.type === 'mrq'"
+              class="space-y-2"
+            >
+              <!-- Hint for MRQ -->
+              <p v-if="currentQuestion.type === 'mrq'" class="text-sm text-muted-foreground">
+                Select all correct answers
+              </p>
               <button
                 v-for="(option, index) in displayOptions"
                 :key="option.id"
                 class="w-full rounded-lg border p-4 text-left transition-colors"
                 :class="{
-                  'border-primary bg-primary/5': selectedOptionId === option.id && !isAnswered,
+                  'border-primary bg-primary/5': selectedOptionIds.has(option.id) && !isAnswered,
                   'hover:border-primary/50 hover:bg-muted/50':
-                    !isAnswered && selectedOptionId !== option.id,
+                    !isAnswered && !selectedOptionIds.has(option.id),
                   'cursor-not-allowed': isAnswered,
                   'border-green-500 bg-green-50 dark:bg-green-950/20':
                     isAnswered && option.isCorrect,
                   'border-red-500 bg-red-50 dark:bg-red-950/20':
-                    isAnswered && answeredOptionId === option.id && !option.isCorrect,
+                    isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
                 }"
                 :disabled="isAnswered"
-                @click="selectedOptionId = option.id"
+                @click="handleOptionClick(option.id)"
               >
                 <div class="flex items-center gap-3">
                   <span
                     class="flex size-8 shrink-0 items-center justify-center rounded-full border font-medium"
                     :class="{
                       'border-primary bg-primary text-primary-foreground':
-                        selectedOptionId === option.id && !isAnswered,
+                        selectedOptionIds.has(option.id) && !isAnswered,
                       'border-green-500 bg-green-500 text-white': isAnswered && option.isCorrect,
                       'border-red-500 bg-red-500 text-white':
-                        isAnswered && answeredOptionId === option.id && !option.isCorrect,
+                        isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
                     }"
                   >
                     {{ String.fromCharCode(65 + index) }}
@@ -317,7 +361,7 @@ async function goToQuestion(index: number) {
                     class="ml-auto size-5 text-green-500"
                   />
                   <XCircle
-                    v-if="isAnswered && answeredOptionId === option.id && !option.isCorrect"
+                    v-if="isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect"
                     class="ml-auto size-5 text-red-500"
                   />
                 </div>
@@ -325,7 +369,7 @@ async function goToQuestion(index: number) {
             </div>
 
             <!-- Short Answer Input -->
-            <div v-else class="space-y-2">
+            <div v-if="currentQuestion.type === 'short_answer'" class="space-y-2">
               <Input
                 v-model="textAnswer"
                 placeholder="Type your answer..."
@@ -373,7 +417,11 @@ async function goToQuestion(index: number) {
             <div class="flex gap-2">
               <Button
                 v-if="!isAnswered"
-                :disabled="currentQuestion.type === 'mcq' ? !selectedOptionId : !textAnswer.trim()"
+                :disabled="
+                  currentQuestion.type === 'mcq' || currentQuestion.type === 'mrq'
+                    ? selectedOptionIds.size === 0
+                    : !textAnswer.trim()
+                "
                 @click="submitAnswer"
               >
                 Submit Answer

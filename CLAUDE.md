@@ -48,6 +48,8 @@ npx supabase db push
 npx supabase gen types typescript --linked > src/types/database.types.ts
 ```
 
+Afterwards, check for security and performace issues with supabase mcp and fix them if necessary.
+
 ---
 
 ## Code Quality Standards

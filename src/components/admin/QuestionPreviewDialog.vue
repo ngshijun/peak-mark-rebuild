@@ -52,6 +52,12 @@ const correctAnswer = computed(() => {
     const correct = props.question.options.find((o) => o.isCorrect)
     return correct ? `${correct.id.toUpperCase()}. ${correct.text || '(Image)'}` : 'N/A'
   }
+  if (props.question.type === 'mrq') {
+    const correctOptions = props.question.options.filter((o) => o.isCorrect)
+    return correctOptions.length > 0
+      ? correctOptions.map((o) => `${o.id.toUpperCase()}. ${o.text || '(Image)'}`).join(', ')
+      : 'N/A'
+  }
   return props.question.answer ?? 'N/A'
 })
 </script>
@@ -63,7 +69,13 @@ const correctAnswer = computed(() => {
         <DialogTitle class="flex items-center gap-2">
           Question Preview
           <Badge v-if="question" variant="secondary">
-            {{ question.type === 'mcq' ? 'Multiple Choice' : 'Short Answer' }}
+            {{
+              question.type === 'mcq'
+                ? 'Multiple Choice'
+                : question.type === 'mrq'
+                  ? 'Multiple Response'
+                  : 'Short Answer'
+            }}
           </Badge>
         </DialogTitle>
       </DialogHeader>
@@ -97,11 +109,15 @@ const correctAnswer = computed(() => {
           </div>
         </div>
 
-        <!-- Question Metadata -->
-        <div class="flex flex-wrap gap-2 text-sm text-muted-foreground">
-          <Badge variant="outline">{{ question.gradeLevelName }}</Badge>
-          <Badge variant="outline">{{ question.subjectName }}</Badge>
-          <Badge variant="outline">{{ question.topicName }}</Badge>
+        <!-- Question Metadata (Breadcrumb hierarchy) -->
+        <div class="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+          <span>{{ question.gradeLevelName }}</span>
+          <span class="text-muted-foreground/50">/</span>
+          <span>{{ question.subjectName }}</span>
+          <span class="text-muted-foreground/50">/</span>
+          <span>{{ question.topicName }}</span>
+          <span class="text-muted-foreground/50">/</span>
+          <span class="font-medium text-foreground">{{ question.subTopicName }}</span>
         </div>
 
         <!-- Question Text -->
@@ -120,8 +136,8 @@ const correctAnswer = computed(() => {
           />
         </div>
 
-        <!-- MCQ Options -->
-        <div v-if="question.type === 'mcq'" class="space-y-2">
+        <!-- MCQ/MRQ Options -->
+        <div v-if="question.type === 'mcq' || question.type === 'mrq'" class="space-y-2">
           <h3 class="font-semibold">Options</h3>
           <div class="space-y-2">
             <div
@@ -158,7 +174,7 @@ const correctAnswer = computed(() => {
         </div>
 
         <!-- Short Answer -->
-        <div v-else class="space-y-2">
+        <div v-if="question.type === 'short_answer'" class="space-y-2">
           <h3 class="font-semibold">Correct Answer</h3>
           <div class="rounded-lg border border-green-500 bg-green-50 p-3 dark:bg-green-950/20">
             <div class="flex items-center gap-2">

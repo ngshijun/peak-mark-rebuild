@@ -46,7 +46,7 @@ const isOptionFilled = (opt: { text: string | null; imagePath: string | null }) 
 const questionFormSchema = toTypedSchema(
   z
     .object({
-      type: z.enum(['mcq', 'short_answer']),
+      type: z.enum(['mcq', 'mrq', 'short_answer']),
       gradeLevelId: z.string().min(1, 'Grade level is required'),
       subjectId: z.string().min(1, 'Subject is required'),
       topicId: z.string().min(1, 'Topic is required'),
@@ -57,7 +57,7 @@ const questionFormSchema = toTypedSchema(
       options: z.array(mcqOptionSchema).optional(),
     })
     .superRefine((data, ctx) => {
-      if (data.type === 'mcq' && data.options) {
+      if ((data.type === 'mcq' || data.type === 'mrq') && data.options) {
         const filledOptions = data.options.filter(isOptionFilled)
         if (filledOptions.length < 2) {
           ctx.addIssue({
@@ -84,10 +84,18 @@ const questionFormSchema = toTypedSchema(
           }
         }
 
-        if (!data.options.some((opt) => opt.isCorrect)) {
+        const correctCount = data.options.filter((opt) => opt.isCorrect).length
+        if (data.type === 'mcq' && correctCount !== 1) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Please select the correct answer',
+            message: 'MCQ must have exactly one correct answer',
+            path: ['options'],
+          })
+        }
+        if (data.type === 'mrq' && correctCount < 1) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'MRQ must have at least one correct answer',
             path: ['options'],
           })
         }
@@ -262,9 +270,20 @@ function removeOptionImage(optionId: 'a' | 'b' | 'c' | 'd') {
 }
 
 function setCorrectOption(optionId: string) {
+  // For MCQ: single correct answer (radio behavior)
   const options = (values.options || []).map((opt) => ({
     ...opt,
     isCorrect: opt.id === optionId,
+  }))
+  setFieldValue('options', options)
+  setFieldTouched('options', true)
+}
+
+function toggleCorrectOption(optionId: string) {
+  // For MRQ: multiple correct answers (checkbox behavior)
+  const options = (values.options || []).map((opt) => ({
+    ...opt,
+    isCorrect: opt.id === optionId ? !opt.isCorrect : opt.isCorrect,
   }))
   setFieldValue('options', options)
   setFieldTouched('options', true)
@@ -298,7 +317,7 @@ const onSubmit = handleSubmit(async (formValues) => {
       explanation: formValues.explanation || null,
       answer: formValues.type === 'short_answer' ? formValues.answer || null : null,
       options:
-        formValues.type === 'mcq'
+        formValues.type === 'mcq' || formValues.type === 'mrq'
           ? (formValues.options || []).map((opt) => ({ ...opt, imagePath: null }))
           : undefined,
     })
@@ -325,8 +344,8 @@ const onSubmit = handleSubmit(async (formValues) => {
       }
     }
 
-    // Upload option images if present (for MCQ)
-    if (formValues.type === 'mcq') {
+    // Upload option images if present (for MCQ/MRQ)
+    if (formValues.type === 'mcq' || formValues.type === 'mrq') {
       for (const optionId of ['a', 'b', 'c', 'd'] as const) {
         const file = optionImageFiles.value[optionId]
         if (file) {
@@ -346,7 +365,7 @@ const onSubmit = handleSubmit(async (formValues) => {
 
     if (hasImages) {
       const updateOptions =
-        formValues.type === 'mcq'
+        formValues.type === 'mcq' || formValues.type === 'mrq'
           ? (formValues.options || []).map((opt) => ({
               ...opt,
               imagePath: optionImagePaths[opt.id] ?? null,
@@ -391,7 +410,8 @@ function handleCancel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mcq">Multiple Choice</SelectItem>
+                <SelectItem value="mcq">Multiple Choice (Single Answer)</SelectItem>
+                <SelectItem value="mrq">Multiple Response (Multiple Answers)</SelectItem>
                 <SelectItem value="short_answer">Short Answer</SelectItem>
               </SelectContent>
             </Select>
@@ -589,17 +609,22 @@ function handleCancel() {
           </div>
         </Field>
 
-        <!-- MCQ Options -->
-        <div v-if="values.type === 'mcq'" class="space-y-3">
+        <!-- MCQ/MRQ Options -->
+        <div v-if="values.type === 'mcq' || values.type === 'mrq'" class="space-y-3">
           <Field :data-invalid="!!errors.options">
             <FieldLabel>
               Options <span class="text-destructive">*</span>
               <span class="ml-1 text-xs font-normal text-muted-foreground">
-                (select the correct answer)
+                ({{
+                  values.type === 'mcq'
+                    ? 'select the correct answer'
+                    : 'select all correct answers'
+                }})
               </span>
             </FieldLabel>
             <p class="text-xs text-muted-foreground">
               Each option can have text, an image, or both.
+              {{ values.type === 'mrq' ? 'Click to toggle correct answers.' : '' }}
             </p>
             <FieldError v-if="errors.options" :errors="[errors.options]" />
           </Field>
@@ -612,7 +637,11 @@ function handleCancel() {
                 size="sm"
                 class="mt-1 w-8 shrink-0"
                 :disabled="isSaving"
-                @click="setCorrectOption(option.id)"
+                @click="
+                  values.type === 'mcq'
+                    ? setCorrectOption(option.id)
+                    : toggleCorrectOption(option.id)
+                "
               >
                 {{ option.id.toUpperCase() }}
               </Button>
@@ -666,7 +695,11 @@ function handleCancel() {
         </div>
 
         <!-- Short Answer -->
-        <VeeField v-else v-slot="{ field, errors: fieldErrors }" name="answer">
+        <VeeField
+          v-else-if="values.type === 'short_answer'"
+          v-slot="{ field, errors: fieldErrors }"
+          name="answer"
+        >
           <Field :data-invalid="!!fieldErrors.length">
             <FieldLabel> Answer <span class="text-destructive">*</span> </FieldLabel>
             <Input

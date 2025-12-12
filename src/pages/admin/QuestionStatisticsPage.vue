@@ -55,16 +55,24 @@ const previewQuestion = ref<QuestionWithStats | null>(null)
 const selectedGradeLevel = ref<string>(ALL_VALUE)
 const selectedSubject = ref<string>(ALL_VALUE)
 const selectedTopic = ref<string>(ALL_VALUE)
+const selectedSubTopic = ref<string>(ALL_VALUE)
 
-// Reset subject and topic when grade level changes
+// Reset subject, topic, and sub-topic when grade level changes
 watch(selectedGradeLevel, () => {
   selectedSubject.value = ALL_VALUE
   selectedTopic.value = ALL_VALUE
+  selectedSubTopic.value = ALL_VALUE
 })
 
-// Reset topic when subject changes
+// Reset topic and sub-topic when subject changes
 watch(selectedSubject, () => {
   selectedTopic.value = ALL_VALUE
+  selectedSubTopic.value = ALL_VALUE
+})
+
+// Reset sub-topic when topic changes
+watch(selectedTopic, () => {
+  selectedSubTopic.value = ALL_VALUE
 })
 
 // Helper to convert ALL_VALUE to undefined for store calls
@@ -77,12 +85,18 @@ const subjectFilter = computed(() =>
 const topicFilter = computed(() =>
   selectedTopic.value === ALL_VALUE ? undefined : selectedTopic.value,
 )
+const subTopicFilter = computed(() =>
+  selectedSubTopic.value === ALL_VALUE ? undefined : selectedSubTopic.value,
+)
 
 // Get available filter options
 const availableGradeLevels = computed(() => questionsStore.getGradeLevels())
 const availableSubjects = computed(() => questionsStore.getSubjects(gradeLevelFilter.value))
 const availableTopics = computed(() =>
   questionsStore.getTopics(gradeLevelFilter.value, subjectFilter.value),
+)
+const availableSubTopics = computed(() =>
+  questionsStore.getSubTopics(gradeLevelFilter.value, subjectFilter.value, topicFilter.value),
 )
 
 // Filter questions based on dropdown filters and search
@@ -92,6 +106,7 @@ const filteredQuestions = computed(() => {
     gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
+    subTopicFilter.value,
   )
 
   // Then apply search query
@@ -152,9 +167,9 @@ const columns: ColumnDef<QuestionWithStats>[] = [
     header: 'Type',
     cell: ({ row }) => {
       const type = row.original.type
-      return h(Badge, { variant: type === 'mcq' ? 'default' : 'secondary' }, () =>
-        type === 'mcq' ? 'MCQ' : 'Short Answer',
-      )
+      const variant = type === 'mcq' ? 'default' : type === 'mrq' ? 'default' : 'secondary'
+      const label = type === 'mcq' ? 'MCQ' : type === 'mrq' ? 'MRQ' : 'Short Answer'
+      return h(Badge, { variant }, () => label)
     },
   },
   {
@@ -302,6 +317,19 @@ function handleRowClick(question: QuestionWithStats) {
           <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
           <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
             {{ topic }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+
+      <!-- Sub-Topic Selector -->
+      <Select v-model="selectedSubTopic" :disabled="selectedTopic === ALL_VALUE">
+        <SelectTrigger class="w-[140px]">
+          <SelectValue placeholder="All Sub-Topics" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem :value="ALL_VALUE">All Sub-Topics</SelectItem>
+          <SelectItem v-for="subTopic in availableSubTopics" :key="subTopic" :value="subTopic">
+            {{ subTopic }}
           </SelectItem>
         </SelectContent>
       </Select>

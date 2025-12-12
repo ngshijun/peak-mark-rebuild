@@ -23,7 +23,8 @@
       "mcp__shadcnVue__get_add_command_for_items",
       "WebFetch(domain:github.com)",
       "WebSearch",
-      "WebFetch(domain:vee-validate.logaretm.com)"
+      "WebFetch(domain:vee-validate.logaretm.com)",
+      "Bash(npx supabase:*)"
     ],
     "deny": [],
     "ask": []

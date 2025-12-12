@@ -418,7 +418,7 @@ export type Database = {
           id: string
           is_correct: boolean
           question_id: string | null
-          selected_option: number | null
+          selected_options: number[] | null
           session_id: string
           text_answer: string | null
           time_spent_seconds: number | null
@@ -428,7 +428,7 @@ export type Database = {
           id?: string
           is_correct: boolean
           question_id?: string | null
-          selected_option?: number | null
+          selected_options?: number[] | null
           session_id: string
           text_answer?: string | null
           time_spent_seconds?: number | null
@@ -438,7 +438,7 @@ export type Database = {
           id?: string
           is_correct?: boolean
           question_id?: string | null
-          selected_option?: number | null
+          selected_options?: number[] | null
           session_id?: string
           text_answer?: string | null
           time_spent_seconds?: number | null
@@ -1138,7 +1138,7 @@ export type Database = {
       invitation_status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
       mood_type: 'sad' | 'neutral' | 'happy'
       pet_rarity: 'common' | 'rare' | 'epic' | 'legendary'
-      question_type: 'mcq' | 'short_answer'
+      question_type: 'mcq' | 'short_answer' | 'mrq'
       subscription_tier: 'basic' | 'plus' | 'pro' | 'max'
       user_type: 'admin' | 'student' | 'parent'
     }
@@ -1281,7 +1281,7 @@ export const Constants = {
       invitation_status: ['pending', 'accepted', 'rejected', 'cancelled'],
       mood_type: ['sad', 'neutral', 'happy'],
       pet_rarity: ['common', 'rare', 'epic', 'legendary'],
-      question_type: ['mcq', 'short_answer'],
+      question_type: ['mcq', 'short_answer', 'mrq'],
       subscription_tier: ['basic', 'plus', 'pro', 'max'],
       user_type: ['admin', 'student', 'parent'],
     },

@@ -231,8 +231,8 @@ export const useQuestionsStore = defineStore('questions', () => {
         answer: input.type === 'short_answer' ? (input.answer ?? null) : null,
       }
 
-      // Add MCQ options if present
-      if (input.type === 'mcq' && input.options) {
+      // Add MCQ/MRQ options if present
+      if ((input.type === 'mcq' || input.type === 'mrq') && input.options) {
         const optionA = input.options.find((o) => o.id === 'a')
         const optionB = input.options.find((o) => o.id === 'b')
         const optionC = input.options.find((o) => o.id === 'c')

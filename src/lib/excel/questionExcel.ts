@@ -15,7 +15,7 @@ export interface ParsedQuestionImage {
 
 export interface ParsedQuestion {
   row: number
-  type: 'mcq' | 'short_answer'
+  type: 'mcq' | 'mrq' | 'short_answer'
   gradeLevelName: string
   subjectName: string
   topicName: string
@@ -305,10 +305,10 @@ function applyCascadingValidations(sheet: ExcelJS.Worksheet, gradeLevels: GradeL
     sheet.getCell(`A${row}`).dataValidation = {
       type: 'list',
       allowBlank: false,
-      formulae: ['"mcq,short_answer"'],
+      formulae: ['"mcq,mrq,short_answer"'],
       showErrorMessage: true,
       errorTitle: 'Invalid Type',
-      error: 'Please select mcq or short_answer',
+      error: 'Please select mcq, mrq, or short_answer',
     }
 
     // Column B: Grade Level dropdown (static list)
@@ -387,7 +387,8 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     ['COLUMN DESCRIPTIONS:'],
     [''],
     ['Type* (Required)'],
-    ['  - mcq: Multiple choice question with options A, B, C, D'],
+    ['  - mcq: Multiple choice question with ONE correct answer (A, B, C, or D)'],
+    ['  - mrq: Multiple response question with MULTIPLE correct answers (e.g., A,B or A,C,D)'],
     ['  - short_answer: Question with a text answer'],
     [''],
     ['Grade Level* (Required)'],
@@ -421,7 +422,8 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     ['  - Paste or insert an image for each option'],
     [''],
     ['Correct Answer* (Required)'],
-    ['  - For MCQ: Select A, B, C, or D'],
+    ['  - For MCQ: Enter A, B, C, or D (single answer)'],
+    ['  - For MRQ: Enter multiple answers separated by commas (e.g., A,B or A,C,D)'],
     ['  - For short_answer: Type the correct answer text'],
     [''],
     ['Explanation (Optional)'],
@@ -655,11 +657,11 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
     const rowErrors: ParseError[] = []
 
     const normalizedType = type.toLowerCase()
-    if (!normalizedType || !['mcq', 'short_answer'].includes(normalizedType)) {
+    if (!normalizedType || !['mcq', 'mrq', 'short_answer'].includes(normalizedType)) {
       rowErrors.push({
         row: rowNumber,
         column: 'A',
-        message: 'Type must be "mcq" or "short_answer"',
+        message: 'Type must be "mcq", "mrq", or "short_answer"',
       })
     }
     if (!gradeLevel) {
@@ -681,8 +683,8 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
       rowErrors.push({ row: rowNumber, column: 'P', message: 'Correct Answer is required' })
     }
 
-    // MCQ-specific validation
-    if (normalizedType === 'mcq') {
+    // MCQ/MRQ-specific validation
+    if (normalizedType === 'mcq' || normalizedType === 'mrq') {
       const optionAFilled = !!(optionA || imageMap.get(`${rowNumber}-${imageColumns.optionAImage}`))
       const optionBFilled = !!(optionB || imageMap.get(`${rowNumber}-${imageColumns.optionBImage}`))
       const optionCFilled = !!(optionC || imageMap.get(`${rowNumber}-${imageColumns.optionCImage}`))
@@ -695,8 +697,8 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
       if (filledCount < 2) {
         rowErrors.push({
           row: rowNumber,
-          column: 'G-N',
-          message: 'At least 2 options must be filled for MCQ',
+          column: 'H-O',
+          message: `At least 2 options must be filled for ${normalizedType.toUpperCase()}`,
         })
       }
 
@@ -707,7 +709,7 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
         if (foundEmpty && filled[i]) {
           rowErrors.push({
             row: rowNumber,
-            column: 'G-N',
+            column: 'H-O',
             message: 'Options must be filled consecutively from Option A',
           })
           break
@@ -715,33 +717,96 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
         if (!filled[i]) foundEmpty = true
       }
 
-      // Validate correct answer
-      const upperAnswer = correctAnswer.toUpperCase()
-      if (correctAnswer && !['A', 'B', 'C', 'D'].includes(upperAnswer)) {
-        rowErrors.push({
-          row: rowNumber,
-          column: 'O',
-          message: 'Correct Answer must be A, B, C, or D for MCQ',
-        })
+      // Parse and validate correct answer(s)
+      // MCQ: single answer (A, B, C, or D)
+      // MRQ: multiple answers separated by comma (e.g., A,B or A,C,D)
+      const answerParts = correctAnswer
+        .toUpperCase()
+        .split(',')
+        .map((a) => a.trim())
+        .filter((a) => a.length > 0)
+
+      if (normalizedType === 'mcq') {
+        // MCQ must have exactly one answer
+        const mcqAnswer = answerParts[0]
+        if (answerParts.length !== 1 || !mcqAnswer) {
+          rowErrors.push({
+            row: rowNumber,
+            column: 'P',
+            message: 'MCQ must have exactly one correct answer (A, B, C, or D)',
+          })
+        } else if (!['A', 'B', 'C', 'D'].includes(mcqAnswer)) {
+          rowErrors.push({
+            row: rowNumber,
+            column: 'P',
+            message: 'Correct Answer must be A, B, C, or D for MCQ',
+          })
+        }
+      } else {
+        // MRQ must have at least one answer
+        if (answerParts.length < 1) {
+          rowErrors.push({
+            row: rowNumber,
+            column: 'P',
+            message: 'MRQ must have at least one correct answer',
+          })
+        }
+
+        // Validate each answer is A, B, C, or D
+        const invalidAnswers = answerParts.filter((a) => !['A', 'B', 'C', 'D'].includes(a))
+        if (invalidAnswers.length > 0) {
+          rowErrors.push({
+            row: rowNumber,
+            column: 'P',
+            message: `Invalid answer(s): ${invalidAnswers.join(', ')}. Must be A, B, C, or D`,
+          })
+        }
+
+        // Check for duplicates
+        const uniqueAnswers = new Set(answerParts)
+        if (uniqueAnswers.size !== answerParts.length) {
+          rowErrors.push({
+            row: rowNumber,
+            column: 'P',
+            message: 'Duplicate answers are not allowed for MRQ',
+          })
+        }
       }
 
-      // Check correct answer references filled option
-      const answerIndex = upperAnswer.charCodeAt(0) - 65
-      if (answerIndex >= 0 && answerIndex < 4 && !filled[answerIndex]) {
-        rowErrors.push({
-          row: rowNumber,
-          column: 'O',
-          message: `Correct Answer "${correctAnswer}" references an empty option`,
-        })
+      // Check each answer references a filled option
+      for (const answer of answerParts) {
+        const answerIndex = answer.charCodeAt(0) - 65
+        if (answerIndex >= 0 && answerIndex < 4 && !filled[answerIndex]) {
+          rowErrors.push({
+            row: rowNumber,
+            column: 'P',
+            message: `Correct Answer "${answer}" references an empty option`,
+          })
+        }
       }
     }
 
     if (rowErrors.length > 0) {
       errors.push(...rowErrors)
     } else {
+      // Normalize correct answer based on type
+      let normalizedAnswer = correctAnswer
+      if (normalizedType === 'mcq') {
+        normalizedAnswer = correctAnswer.toUpperCase()
+      } else if (normalizedType === 'mrq') {
+        // Normalize MRQ answers: sort alphabetically and uppercase
+        normalizedAnswer = correctAnswer
+          .toUpperCase()
+          .split(',')
+          .map((a) => a.trim())
+          .filter((a) => a.length > 0)
+          .sort()
+          .join(',')
+      }
+
       questions.push({
         row: rowNumber,
-        type: normalizedType as 'mcq' | 'short_answer',
+        type: normalizedType as 'mcq' | 'mrq' | 'short_answer',
         gradeLevelName: gradeLevel,
         subjectName: subject,
         topicName: topic,
@@ -756,7 +821,7 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
         optionCImage: imageMap.get(`${rowNumber}-${imageColumns.optionCImage}`) || null,
         optionD,
         optionDImage: imageMap.get(`${rowNumber}-${imageColumns.optionDImage}`) || null,
-        correctAnswer: normalizedType === 'mcq' ? correctAnswer.toUpperCase() : correctAnswer,
+        correctAnswer: normalizedAnswer,
         explanation,
       })
     }

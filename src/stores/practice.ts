@@ -17,7 +17,7 @@ export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
 export interface PracticeAnswer {
   id: string
   questionId: string | null
-  selectedOption: number | null // 1-4 for options a-d
+  selectedOptions: number[] | null // Array of 1-4 for options a-d (MCQ: single element, MRQ: multiple)
   textAnswer: string | null
   isCorrect: boolean
   answeredAt: string | null
@@ -191,13 +191,21 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
+   * Convert array of option numbers to array of IDs for UI display
+   */
+  function optionNumbersToIds(optionNumbers: number[] | null): string[] {
+    if (!optionNumbers) return []
+    return optionNumbers.map((num) => optionNumberToId(num))
+  }
+
+  /**
    * Convert database row to PracticeAnswer
    */
   function rowToAnswer(row: PracticeAnswerRow): PracticeAnswer {
     return {
       id: row.id,
       questionId: row.question_id,
-      selectedOption: row.selected_option,
+      selectedOptions: row.selected_options,
       textAnswer: row.text_answer,
       isCorrect: row.is_correct,
       answeredAt: row.answered_at,
@@ -634,9 +642,12 @@ export const usePracticeStore = defineStore('practice', () => {
 
   /**
    * Submit an answer to the current question
+   * @param selectedOptionIds - Array of option IDs for MCQ/MRQ (e.g., ['a'] for MCQ, ['a', 'c'] for MRQ)
+   * @param textAnswer - Text answer for short_answer questions
+   * @param timeSpentSeconds - Time spent on this question
    */
   async function submitAnswer(
-    selectedOptionId?: string,
+    selectedOptionIds?: string[],
     textAnswer?: string,
     timeSpentSeconds?: number,
   ): Promise<{ answer: PracticeAnswer | null; error: string | null }> {
@@ -647,22 +658,40 @@ export const usePracticeStore = defineStore('practice', () => {
     const question = currentQuestion.value
     let isCorrect = false
 
-    if (question.type === 'mcq' && selectedOptionId) {
-      const selectedOption = question.options.find((o) => o.id === selectedOptionId)
+    if (question.type === 'mcq' && selectedOptionIds && selectedOptionIds.length === 1) {
+      // MCQ: single correct answer
+      const selectedOption = question.options.find((o) => o.id === selectedOptionIds[0])
       isCorrect = selectedOption?.isCorrect ?? false
+    } else if (question.type === 'mrq' && selectedOptionIds && selectedOptionIds.length > 0) {
+      // MRQ: must select ALL correct options and NO incorrect options
+      const correctOptionIds = question.options
+        .filter((o) => o.isCorrect)
+        .map((o) => o.id as string)
+      const selectedSet = new Set(selectedOptionIds)
+      const correctSet = new Set(correctOptionIds)
+
+      // Check if sets are equal (same size and all elements match)
+      isCorrect =
+        selectedSet.size === correctSet.size && [...selectedSet].every((id) => correctSet.has(id))
     } else if (question.type === 'short_answer' && textAnswer && question.answer) {
       // Simple case-insensitive comparison for short answers
       isCorrect = textAnswer.trim().toLowerCase() === question.answer.trim().toLowerCase()
     }
 
     try {
+      // Convert option IDs to numbers for database storage
+      const selectedOptionsNumbers =
+        selectedOptionIds && selectedOptionIds.length > 0
+          ? selectedOptionIds.map((id) => optionIdToNumber(id))
+          : null
+
       // Insert answer into database
       const { data: answerData, error: insertError } = await supabase
         .from('practice_answers')
         .insert({
           session_id: currentSession.value.id,
           question_id: question.id,
-          selected_option: selectedOptionId ? optionIdToNumber(selectedOptionId) : null,
+          selected_options: selectedOptionsNumbers,
           text_answer: textAnswer ?? null,
           is_correct: isCorrect,
           time_spent_seconds: timeSpentSeconds ?? null,
@@ -1219,6 +1248,7 @@ export const usePracticeStore = defineStore('practice', () => {
     getSessionById,
     resumeSession,
     optionNumberToId,
+    optionNumbersToIds,
     getStudentSubscriptionStatus,
     checkSessionLimit,
   }

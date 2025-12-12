@@ -102,11 +102,16 @@ function getAnswerByIndex(index: number): PracticeAnswer | undefined {
   return session.value?.answers[index]
 }
 
-// Convert selectedOption (number) to option id (letter)
-function getSelectedOptionId(answer: PracticeAnswer | undefined): string | undefined {
-  if (!answer?.selectedOption) return undefined
+// Convert selectedOptions (number[]) to option ids (letters)
+function getSelectedOptionIds(answer: PracticeAnswer | undefined): string[] {
+  if (!answer?.selectedOptions) return []
   const map: Record<number, string> = { 1: 'a', 2: 'b', 3: 'c', 4: 'd' }
-  return map[answer.selectedOption]
+  return answer.selectedOptions.map((n) => map[n] ?? 'a')
+}
+
+// Check if an option was selected
+function wasOptionSelected(answer: PracticeAnswer | undefined, optionId: string): boolean {
+  return getSelectedOptionIds(answer).includes(optionId)
 }
 
 // Check if question is deleted
@@ -288,8 +293,11 @@ function goBack() {
                 class="max-h-40 rounded-md object-contain"
               />
 
-              <!-- MCQ Options (filtered to show only non-empty options) -->
-              <div v-if="question.type === 'mcq' && question.options" class="space-y-2">
+              <!-- MCQ/MRQ Options (filtered to show only non-empty options) -->
+              <div
+                v-if="(question.type === 'mcq' || question.type === 'mrq') && question.options"
+                class="space-y-2"
+              >
                 <div
                   v-for="option in question.options.filter(isOptionFilled)"
                   :key="option.id"
@@ -297,15 +305,14 @@ function goBack() {
                   :class="{
                     'border-green-500 bg-green-100 dark:bg-green-900/30': option.isCorrect,
                     'border-red-500 bg-red-100 dark:bg-red-900/30':
-                      !option.isCorrect &&
-                      getSelectedOptionId(getAnswerByIndex(index)) === option.id,
+                      !option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id),
                   }"
                 >
                   <span v-if="option.isCorrect" class="text-green-600">
                     <CheckCircle2 class="size-4" />
                   </span>
                   <span
-                    v-else-if="getSelectedOptionId(getAnswerByIndex(index)) === option.id"
+                    v-else-if="wasOptionSelected(getAnswerByIndex(index), option.id)"
                     class="text-red-600"
                   >
                     <XCircle class="size-4" />

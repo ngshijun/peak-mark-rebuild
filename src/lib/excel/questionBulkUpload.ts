@@ -228,6 +228,7 @@ export async function executeBulkUpload(options: BulkUploadOptions): Promise<Bul
       }
 
       if (q.type === 'mcq') {
+        // MCQ: single correct answer
         const correctIndex = q.correctAnswer.charCodeAt(0) - 65 // A=0, B=1, etc
         input.options = [
           { id: 'a', text: q.optionA, imagePath: null, isCorrect: correctIndex === 0 },
@@ -235,7 +236,17 @@ export async function executeBulkUpload(options: BulkUploadOptions): Promise<Bul
           { id: 'c', text: q.optionC, imagePath: null, isCorrect: correctIndex === 2 },
           { id: 'd', text: q.optionD, imagePath: null, isCorrect: correctIndex === 3 },
         ]
+      } else if (q.type === 'mrq') {
+        // MRQ: multiple correct answers (e.g., "A,B" or "A,C,D")
+        const correctAnswers = q.correctAnswer.split(',').map((a) => a.trim().toUpperCase())
+        input.options = [
+          { id: 'a', text: q.optionA, imagePath: null, isCorrect: correctAnswers.includes('A') },
+          { id: 'b', text: q.optionB, imagePath: null, isCorrect: correctAnswers.includes('B') },
+          { id: 'c', text: q.optionC, imagePath: null, isCorrect: correctAnswers.includes('C') },
+          { id: 'd', text: q.optionD, imagePath: null, isCorrect: correctAnswers.includes('D') },
+        ]
       } else {
+        // short_answer
         input.answer = q.correctAnswer
       }
 

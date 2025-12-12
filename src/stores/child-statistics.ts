@@ -56,7 +56,7 @@ export interface ChildPracticeSession {
 
 export interface PracticeAnswer {
   questionId: string | null
-  selectedOption: number | null
+  selectedOptions: number[] | null
   textAnswer: string | null
   isCorrect: boolean
   answeredAt: string
@@ -65,7 +65,7 @@ export interface PracticeAnswer {
 
 export interface Question {
   id: string
-  type: 'mcq' | 'short_answer'
+  type: 'mcq' | 'mrq' | 'short_answer'
   question: string
   explanation: string | null
   answer: string | null
@@ -426,7 +426,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       // Build answers array
       const answers: PracticeAnswer[] = (answersData ?? []).map((a) => ({
         questionId: a.question_id,
-        selectedOption: a.selected_option,
+        selectedOptions: a.selected_options,
         textAnswer: a.text_answer,
         isCorrect: a.is_correct ?? false,
         answeredAt: a.answered_at ?? new Date().toISOString(),
