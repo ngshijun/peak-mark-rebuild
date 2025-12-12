@@ -26,6 +26,7 @@ const ALL_VALUE = '__all__'
 const selectedDateRange = ref<DateRangeFilter>('alltime')
 const selectedSubject = ref<string>(ALL_VALUE)
 const selectedTopic = ref<string>(ALL_VALUE)
+const selectedSubTopic = ref<string>(ALL_VALUE)
 
 const dateRangeOptions = [
   { value: 'today' as DateRangeFilter, label: 'Today' },
@@ -51,9 +52,15 @@ onMounted(async () => {
   }
 })
 
-// Reset topic when subject changes
+// Reset topic and sub-topic when subject changes
 watch(selectedSubject, () => {
   selectedTopic.value = ALL_VALUE
+  selectedSubTopic.value = ALL_VALUE
+})
+
+// Reset sub-topic when topic changes
+watch(selectedTopic, () => {
+  selectedSubTopic.value = ALL_VALUE
 })
 
 // Helper to convert ALL_VALUE to undefined for store calls
@@ -62,6 +69,9 @@ const subjectFilter = computed(() =>
 )
 const topicFilter = computed(() =>
   selectedTopic.value === ALL_VALUE ? undefined : selectedTopic.value,
+)
+const subTopicFilter = computed(() =>
+  selectedSubTopic.value === ALL_VALUE ? undefined : selectedSubTopic.value,
 )
 
 // Get available subjects from history (filtered by current grade level)
@@ -72,6 +82,15 @@ const availableSubjects = computed(() => {
 // Get available topics (filtered by current grade level and subject)
 const availableTopics = computed(() => {
   return practiceStore.getHistoryTopics(currentGradeLevel.value, subjectFilter.value)
+})
+
+// Get available sub-topics (filtered by current grade level, subject, and topic)
+const availableSubTopics = computed(() => {
+  return practiceStore.getHistorySubTopics(
+    currentGradeLevel.value,
+    subjectFilter.value,
+    topicFilter.value,
+  )
 })
 
 // Helper type for table row
@@ -95,7 +114,7 @@ const historyData = computed<HistoryRow[]>(() => {
     currentGradeLevel.value, // filter by student's current grade level from profile
     subjectFilter.value,
     topicFilter.value,
-    undefined, // subTopicFilter - not used in UI currently
+    subTopicFilter.value,
     selectedDateRange.value,
   )
 
@@ -317,6 +336,19 @@ function handleRowClick(row: HistoryRow) {
             <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
             <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
               {{ topic }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <!-- Sub-Topic Selector -->
+        <Select v-model="selectedSubTopic" :disabled="selectedTopic === ALL_VALUE">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All Sub-Topics" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Sub-Topics</SelectItem>
+            <SelectItem v-for="subTopic in availableSubTopics" :key="subTopic" :value="subTopic">
+              {{ subTopic }}
             </SelectItem>
           </SelectContent>
         </Select>

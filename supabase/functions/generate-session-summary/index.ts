@@ -12,7 +12,7 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 interface QuestionData {
   question: string
-  type: 'mcq' | 'short_answer'
+  type: 'mcq' | 'mrq' | 'short_answer'
   isCorrect: boolean
   studentAnswer: string | null
   correctAnswer: string | null
@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
       .from('practice_answers')
       .select(`
         is_correct,
-        selected_option,
+        selected_options,
         text_answer,
         questions!inner(
           question,
@@ -141,8 +141,10 @@ Deno.serve(async (req: Request) => {
       let correctAnswer: string | null = null
 
       const options: QuestionData['options'] = []
+      // selected_options is now an array of numbers (1-4)
+      const selectedOptions: number[] = a.selected_options || []
 
-      if (q.type === 'mcq') {
+      if (q.type === 'mcq' || q.type === 'mrq') {
         // Build options array
         const optionLabels = ['A', 'B', 'C', 'D']
         const optionData = [
@@ -152,20 +154,28 @@ Deno.serve(async (req: Request) => {
           { text: q.option_4_text, imagePath: q.option_4_image_path, isCorrect: q.option_4_is_correct },
         ]
 
+        const studentAnswers: string[] = []
+        const correctAnswers: string[] = []
+
         optionData.forEach((opt, index) => {
           if (opt.text || opt.imagePath) {
             const label = optionLabels[index]
+            const isStudentAnswer = selectedOptions.includes(index + 1)
             options.push({
               label,
               text: opt.text,
               imageUrl: getImagePublicUrl(opt.imagePath),
               isCorrect: opt.isCorrect ?? false,
-              isStudentAnswer: a.selected_option === index + 1,
+              isStudentAnswer,
             })
-            if (opt.isCorrect) correctAnswer = label
-            if (a.selected_option === index + 1) studentAnswer = label
+            if (opt.isCorrect) correctAnswers.push(label)
+            if (isStudentAnswer) studentAnswers.push(label)
           }
         })
+
+        // For MCQ: single answer, for MRQ: comma-separated
+        studentAnswer = studentAnswers.length > 0 ? studentAnswers.join(', ') : null
+        correctAnswer = correctAnswers.length > 0 ? correctAnswers.join(', ') : null
       } else {
         studentAnswer = a.text_answer
         correctAnswer = q.answer
@@ -317,8 +327,8 @@ Do not use bullet points or lists - write flowing sentences.`,
         })
       }
 
-      // Add option images for MCQ (only for options that have images)
-      if (q.type === 'mcq' && q.options.length > 0) {
+      // Add option images for MCQ/MRQ (only for options that have images)
+      if ((q.type === 'mcq' || q.type === 'mrq') && q.options.length > 0) {
         const optionsWithImages = q.options.filter((opt) => opt.imageUrl)
         if (optionsWithImages.length > 0) {
           userContent.push({ type: 'text', text: '   Options:' })
