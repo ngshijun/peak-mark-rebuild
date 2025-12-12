@@ -132,9 +132,9 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 </script>
 
 <template>
-  <Card>
+  <Card class="h-full">
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm font-medium">{{ childName }}'s Daily Sgoodtatus</CardTitle>
+      <CardTitle class="text-sm font-medium">{{ childName }}'s Daily Status</CardTitle>
       <Calendar class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>

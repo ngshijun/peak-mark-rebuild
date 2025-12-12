@@ -139,49 +139,40 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       if (fetchError) throw fetchError
 
-      // For each invitation, try to get names if IDs are set
-      const invitationsWithNames: ParentStudentInvitation[] = []
-
+      // Collect all unique user IDs that need profile lookup
+      const userIds = new Set<string>()
       for (const row of data ?? []) {
-        let parentName: string | undefined
-        let studentName: string | undefined
-
-        if (row.parent_id) {
-          const { data: parentProfile } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', row.parent_id)
-            .single()
-
-          parentName = parentProfile?.name
-        }
-
-        if (row.student_id) {
-          const { data: studentProfile } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', row.student_id)
-            .single()
-
-          studentName = studentProfile?.name
-        }
-
-        invitationsWithNames.push({
-          id: row.id,
-          parentId: row.parent_id,
-          parentEmail: row.parent_email,
-          parentName,
-          studentId: row.student_id,
-          studentEmail: row.student_email,
-          studentName,
-          direction: row.direction,
-          status: row.status ?? 'pending',
-          createdAt: row.created_at ?? new Date().toISOString(),
-          respondedAt: row.responded_at,
-        })
+        if (row.parent_id) userIds.add(row.parent_id)
+        if (row.student_id) userIds.add(row.student_id)
       }
 
-      invitations.value = invitationsWithNames
+      // Batch fetch all profiles in a single query
+      const profilesMap = new Map<string, string>()
+      if (userIds.size > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', Array.from(userIds))
+
+        for (const profile of profilesData ?? []) {
+          profilesMap.set(profile.id, profile.name)
+        }
+      }
+
+      // Build invitations with names from the map
+      invitations.value = (data ?? []).map((row) => ({
+        id: row.id,
+        parentId: row.parent_id,
+        parentEmail: row.parent_email,
+        parentName: row.parent_id ? profilesMap.get(row.parent_id) : undefined,
+        studentId: row.student_id,
+        studentEmail: row.student_email,
+        studentName: row.student_id ? profilesMap.get(row.student_id) : undefined,
+        direction: row.direction,
+        status: row.status ?? 'pending',
+        createdAt: row.created_at ?? new Date().toISOString(),
+        respondedAt: row.responded_at,
+      }))
 
       return { error: null }
     } catch (err) {

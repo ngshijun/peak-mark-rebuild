@@ -24,7 +24,8 @@
       "WebFetch(domain:github.com)",
       "WebSearch",
       "WebFetch(domain:vee-validate.logaretm.com)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "mcp__chrome-devtools__fill_form"
     ],
     "deny": [],
     "ask": []

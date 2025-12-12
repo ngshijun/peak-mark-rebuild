@@ -100,6 +100,11 @@ export interface ChildDailyStatus {
   hasPracticed: boolean
 }
 
+export interface DailySessionCount {
+  date: string // YYYY-MM-DD
+  count: number
+}
+
 export const useChildStatisticsStore = defineStore('childStatistics', () => {
   const childLinkStore = useChildLinkStore()
   const authStore = useAuthStore()
@@ -163,17 +168,35 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       if (fetchError) throw fetchError
 
-      // For each session, get the answers to calculate score and total time
+      // Get all session IDs for batch query
+      const sessionIds = (sessionsData ?? []).map((s) => s.id)
+
+      // Batch fetch all answers in a single request instead of N+1 queries
+      const { data: allAnswersData } = await supabase
+        .from('practice_answers')
+        .select('session_id, is_correct, time_spent_seconds')
+        .in('session_id', sessionIds)
+
+      // Group answers by session_id
+      const answersBySession = new Map<
+        string,
+        { is_correct: boolean | null; time_spent_seconds: number | null }[]
+      >()
+      for (const answer of allAnswersData ?? []) {
+        if (!answersBySession.has(answer.session_id)) {
+          answersBySession.set(answer.session_id, [])
+        }
+        answersBySession.get(answer.session_id)!.push(answer)
+      }
+
+      // Build sessions with scores using the grouped answers
       const sessionsWithScores: ChildPracticeSession[] = []
 
       for (const session of sessionsData ?? []) {
-        const { data: answersData } = await supabase
-          .from('practice_answers')
-          .select('is_correct, time_spent_seconds')
-          .eq('session_id', session.id)
+        const answersData = answersBySession.get(session.id) ?? []
 
-        const correctAnswers = answersData?.filter((a) => a.is_correct).length ?? 0
-        const totalQuestions = session.total_questions ?? answersData?.length ?? 0
+        const correctAnswers = answersData.filter((a) => a.is_correct).length
+        const totalQuestions = session.total_questions ?? answersData.length
 
         // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
         const subTopic = session.sub_topics as unknown as {
@@ -192,8 +215,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
         // Calculate duration from sum of time_spent_seconds in answers
         // This accurately tracks actual time spent, even if student left and came back
-        const durationSeconds =
-          answersData?.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0) ?? 0
+        const durationSeconds = answersData.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
 
         sessionsWithScores.push({
           id: session.id,
@@ -760,6 +782,40 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     }
   }
 
+  /**
+   * Get daily session counts for a child for the last N days
+   */
+  function getDailySessionCounts(childId: string, days: number = 30): DailySessionCount[] {
+    const stats = getChildStatistics(childId)
+    const sessions = stats?.sessions ?? []
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Create a map for the last N days initialized to 0
+    const countsMap = new Map<string, number>()
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      countsMap.set(dateStr, 0)
+    }
+
+    // Count sessions per day
+    sessions.forEach((session) => {
+      const completedDate = new Date(session.completedAt)
+      const dateStr = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, '0')}-${String(completedDate.getDate()).padStart(2, '0')}`
+      if (countsMap.has(dateStr)) {
+        countsMap.set(dateStr, (countsMap.get(dateStr) ?? 0) + 1)
+      }
+    })
+
+    // Convert to array sorted by date
+    return Array.from(countsMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  }
+
   return {
     // State
     childrenStatistics,
@@ -785,5 +841,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     getSessionById,
     getChildSubscriptionStatus,
     fetchChildDailyStatuses,
+    getDailySessionCounts,
   }
 })

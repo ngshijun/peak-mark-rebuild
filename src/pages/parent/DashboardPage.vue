@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useChildLinkStore } from '@/stores/child-link'
+import { useChildStatisticsStore } from '@/stores/child-statistics'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import {
@@ -11,8 +12,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import ChildMoodCalendar from '@/components/parent/ChildMoodCalendar.vue'
+import ChildSessionChart from '@/components/parent/ChildSessionChart.vue'
 
 const childLinkStore = useChildLinkStore()
+const childStatisticsStore = useChildStatisticsStore()
 
 const isLoading = ref(true)
 const selectedChildId = ref<string>('')
@@ -28,6 +31,8 @@ const selectedChild = computed(() => {
 onMounted(async () => {
   try {
     await childLinkStore.fetchLinkedChildren()
+    // Fetch statistics for all children
+    await childStatisticsStore.fetchChildrenStatistics()
     // Select first child by default
     const firstChild = linkedChildren.value[0]
     if (firstChild) {
@@ -80,11 +85,14 @@ onMounted(async () => {
         <ChildMoodCalendar :child-id="selectedChild.id" :child-name="selectedChild.name" />
       </div>
 
-      <!-- Main Content (3/4 width) -->
-      <div class="space-y-6 lg:col-span-3">
-        <div class="rounded-lg border bg-card p-6">
-          <p class="text-muted-foreground">More dashboard content coming soon...</p>
-        </div>
+      <!-- Chart (1/2 width) -->
+      <div class="lg:col-span-2">
+        <ChildSessionChart :child-id="selectedChild.id" />
+      </div>
+
+      <!-- Additional Content (1/4 width) -->
+      <div class="lg:col-span-1">
+        <!-- Placeholder for future content -->
       </div>
     </div>
   </div>
