@@ -16,6 +16,7 @@ import {
   PieChart,
   CreditCard,
   Gift,
+  PawPrint,
 } from 'lucide-vue-next'
 import type { SidebarNavConfig } from '@/types'
 
@@ -26,7 +27,7 @@ export const sidebarNavConfig: SidebarNavConfig = {
     { title: 'Question Bank', path: '/admin/question-bank', icon: Database },
     { title: 'Question Statistics', path: '/admin/question-statistics', icon: BarChart3 },
     { title: 'Question Feedback', path: '/admin/question-feedback', icon: MessageSquare },
-    { title: 'Pets', path: '/admin/pets', icon: Cat },
+    { title: 'Pets', path: '/admin/pets', icon: PawPrint },
   ],
   student: [
     { title: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
@@ -35,7 +36,7 @@ export const sidebarNavConfig: SidebarNavConfig = {
     { title: 'Parent', path: '/student/parent', icon: Users },
     { title: 'Leaderboard', path: '/student/leaderboard', icon: Trophy },
     { title: 'Gacha', path: '/student/gacha', icon: Gift },
-    { title: 'My Pet', path: '/student/my-pet', icon: Heart },
+    { title: 'My Pet', path: '/student/my-pet', icon: PawPrint },
     { title: 'Collections', path: '/student/collections', icon: FolderHeart },
     { title: 'Market', path: '/student/market', icon: ShoppingBag },
   ],

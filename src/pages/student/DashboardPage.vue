@@ -6,7 +6,8 @@ import { usePetsStore } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
-import DailyStatusCard from '@/components/dashboard/DailyStatusCard.vue'
+import DailyStatusButton from '@/components/dashboard/DailyStatusButton.vue'
+import BestSubjectCard from '@/components/dashboard/BestSubjectCard.vue'
 import CurrentPetCard from '@/components/dashboard/CurrentPetCard.vue'
 import SpinWheelCard from '@/components/dashboard/SpinWheelCard.vue'
 import StreakCard from '@/components/dashboard/StreakCard.vue'
@@ -18,7 +19,7 @@ const petsStore = usePetsStore()
 const authStore = useAuthStore()
 
 const isLoading = ref(true)
-const dailyStatusCardRef = ref<InstanceType<typeof DailyStatusCard> | null>(null)
+const dailyStatusButtonRef = ref<InstanceType<typeof DailyStatusButton> | null>(null)
 
 // LocalStorage key for "don't show again today"
 const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
@@ -59,8 +60,8 @@ watch(isLoading, async (loading) => {
   if (!loading && shouldShowMoodReminder()) {
     // Wait for Vue to finish rendering the v-else content
     await nextTick()
-    // Open the DailyStatusCard dialog with "don't show again" option
-    dailyStatusCardRef.value?.openDialog(true)
+    // Open the DailyStatusButton dialog with "don't show again" option
+    dailyStatusButtonRef.value?.openDialog(true)
   }
 })
 </script>
@@ -68,9 +69,12 @@ watch(isLoading, async (loading) => {
 <template>
   <div class="p-6">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold">Dashboard</h1>
-      <p class="text-muted-foreground">Here's your daily overview</p>
+    <div class="mb-6 flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Dashboard</h1>
+        <p class="text-muted-foreground">Here's your daily overview</p>
+      </div>
+      <DailyStatusButton v-if="!isLoading" ref="dailyStatusButtonRef" />
     </div>
 
     <!-- Loading State -->
@@ -81,7 +85,7 @@ watch(isLoading, async (loading) => {
     <div v-else class="space-y-6">
       <!-- Dashboard Cards Grid -->
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DailyStatusCard ref="dailyStatusCardRef" />
+        <BestSubjectCard />
         <CurrentPetCard />
         <SpinWheelCard />
         <StreakCard />
