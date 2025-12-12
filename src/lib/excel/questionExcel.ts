@@ -19,6 +19,7 @@ export interface ParsedQuestion {
   gradeLevelName: string
   subjectName: string
   topicName: string
+  subTopicName: string
   question: string
   questionImage: ParsedQuestionImage | null
   optionA: string | null
@@ -44,24 +45,25 @@ export interface ParseResult {
   errors: ParseError[]
 }
 
-// Column indices (0-based) for the Questions sheet
+// Column indices (1-based) for the Questions sheet
 const COLUMNS = {
   TYPE: 1, // A
   GRADE_LEVEL: 2, // B
   SUBJECT: 3, // C
   TOPIC: 4, // D
-  QUESTION_TEXT: 5, // E
-  QUESTION_IMAGE: 6, // F
-  OPTION_A: 7, // G
-  OPTION_A_IMAGE: 8, // H
-  OPTION_B: 9, // I
-  OPTION_B_IMAGE: 10, // J
-  OPTION_C: 11, // K
-  OPTION_C_IMAGE: 12, // L
-  OPTION_D: 13, // M
-  OPTION_D_IMAGE: 14, // N
-  CORRECT_ANSWER: 15, // O
-  EXPLANATION: 16, // P
+  SUB_TOPIC: 5, // E
+  QUESTION_TEXT: 6, // F
+  QUESTION_IMAGE: 7, // G
+  OPTION_A: 8, // H
+  OPTION_A_IMAGE: 9, // I
+  OPTION_B: 10, // J
+  OPTION_B_IMAGE: 11, // K
+  OPTION_C: 12, // L
+  OPTION_C_IMAGE: 13, // M
+  OPTION_D: 14, // N
+  OPTION_D_IMAGE: 15, // O
+  CORRECT_ANSWER: 16, // P
+  EXPLANATION: 17, // Q
 }
 
 // ============================================
@@ -103,6 +105,7 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
     { header: 'Grade Level*', key: 'gradeLevel', width: 15 },
     { header: 'Subject*', key: 'subject', width: 20 },
     { header: 'Topic*', key: 'topic', width: 25 },
+    { header: 'Sub-Topic*', key: 'subTopic', width: 25 },
     { header: 'Question Text*', key: 'question', width: 40 },
     { header: 'Question Image', key: 'questionImage', width: 18 },
     { header: 'Option A', key: 'optionA', width: 25 },
@@ -135,8 +138,8 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
     const row = sheet.getRow(i)
     row.height = 80
 
-    // Add dashed borders to image columns as visual guides
-    const imageColumns = ['F', 'H', 'J', 'L', 'N']
+    // Add dashed borders to image columns as visual guides (G, I, K, M, O)
+    const imageColumns = ['G', 'I', 'K', 'M', 'O']
     for (const col of imageColumns) {
       const cell = sheet.getCell(`${col}${i}`)
       cell.border = {
@@ -179,6 +182,7 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
   // Column A: Grade Levels list
   // Columns B onwards: Subject lists per grade level (using grade name as header)
   // After subjects: Topic lists per subject (using subject name as header)
+  // After topics: Sub-Topic lists per topic (using topic name as header)
 
   // Write grade levels in column A
   sheet.getCell('A1').value = 'GradeLevels'
@@ -255,6 +259,39 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
     }
   }
 
+  // For each topic, create a column for its sub-topics
+  for (const grade of gradeLevels) {
+    for (const subject of grade.subjects) {
+      for (const topic of subject.topics) {
+        const colLetter = getColumnLetter(colIndex)
+
+        // Sanitize topic name
+        const topicSafeName = sanitizeName(topic.name)
+
+        // Header: Topic name (for reference)
+        sheet.getCell(`${colLetter}1`).value = `SubTopics_${topic.name}`
+        sheet.getCell(`${colLetter}1`).font = { bold: true }
+
+        // Write sub-topics
+        topic.subTopics.forEach((subTopic, idx) => {
+          sheet.getCell(`${colLetter}${idx + 2}`).value = subTopic.name
+        })
+
+        // Define named range for this topic's sub-topics
+        if (topic.subTopics.length > 0) {
+          const endRow = topic.subTopics.length + 1
+          // Named range: Topic_加法 -> list of sub-topics
+          sheet.workbook.definedNames.add(
+            `'DropdownData'!$${colLetter}$2:$${colLetter}$${endRow}`,
+            `Topic_${topicSafeName}`,
+          )
+        }
+
+        colIndex++
+      }
+    }
+  }
+
   // Hide the data sheet
   sheet.state = 'hidden'
 }
@@ -308,15 +345,19 @@ function applyCascadingValidations(sheet: ExcelJS.Worksheet, gradeLevels: GradeL
       error: 'Please select a valid topic for the chosen subject',
     }
 
-    // Column O: Correct Answer dropdown
-    sheet.getCell(`O${row}`).dataValidation = {
+    // Column E: Sub-Topic dropdown (dependent on Topic in column D)
+    // Uses INDIRECT to reference a named range based on column D value
+    sheet.getCell(`E${row}`).dataValidation = {
       type: 'list',
       allowBlank: true,
-      formulae: ['"A,B,C,D"'],
+      formulae: [`INDIRECT("Topic_"&SUBSTITUTE(D${row}," ","_"))`],
       showErrorMessage: true,
-      errorTitle: 'Invalid Answer',
-      error: 'For MCQ, select A, B, C, or D. For short answer, type the answer.',
+      errorTitle: 'Invalid Sub-Topic',
+      error: 'Please select a valid sub-topic for the chosen topic',
     }
+
+    // Column P: Correct Answer - no dropdown to allow free text input for short_answer questions
+    // MCQ uses A/B/C/D, short_answer uses free text
   }
 }
 
@@ -328,7 +369,9 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     [''],
     ['HOW TO USE THIS TEMPLATE:'],
     ['1. Fill in your questions in the "Questions" sheet'],
-    ['2. Use cascading dropdowns: Select Grade Level first, then Subject, then Topic'],
+    [
+      '2. Use cascading dropdowns: Select Grade Level first, then Subject, then Topic, then Sub-Topic',
+    ],
     ['3. Save the file and upload it to the system'],
     [''],
     ['CASCADING DROPDOWNS:'],
@@ -336,7 +379,10 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     ['  1. Select a Grade Level from the dropdown'],
     ['  2. The Subject dropdown will show only subjects for that grade'],
     ['  3. The Topic dropdown will show only topics for that subject'],
-    ['  Note: You must select Grade Level before Subject, and Subject before Topic'],
+    ['  4. The Sub-Topic dropdown will show only sub-topics for that topic'],
+    [
+      '  Note: You must select Grade Level before Subject, Subject before Topic, and Topic before Sub-Topic',
+    ],
     [''],
     ['COLUMN DESCRIPTIONS:'],
     [''],
@@ -354,6 +400,10 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     ['Topic* (Required)'],
     ['  - Select from the dropdown (depends on Subject selection)'],
     ['  - Must select Subject first'],
+    [''],
+    ['Sub-Topic* (Required)'],
+    ['  - Select from the dropdown (depends on Topic selection)'],
+    ['  - Must select Topic first'],
     [''],
     ['Question Text* (Required)'],
     ['  - The question to be asked'],
@@ -420,6 +470,7 @@ export async function exportQuestionsToExcel(
     { header: 'Grade Level', key: 'gradeLevel', width: 15 },
     { header: 'Subject', key: 'subject', width: 20 },
     { header: 'Topic', key: 'topic', width: 25 },
+    { header: 'Sub-Topic', key: 'subTopic', width: 25 },
     { header: 'Question Text', key: 'question', width: 40 },
     { header: 'Question Image', key: 'questionImage', width: 18 },
     { header: 'Option A', key: 'optionA', width: 25 },
@@ -456,6 +507,7 @@ export async function exportQuestionsToExcel(
     row.getCell(COLUMNS.GRADE_LEVEL).value = q.gradeLevelName
     row.getCell(COLUMNS.SUBJECT).value = q.subjectName
     row.getCell(COLUMNS.TOPIC).value = q.topicName
+    row.getCell(COLUMNS.SUB_TOPIC).value = q.subTopicName
     row.getCell(COLUMNS.QUESTION_TEXT).value = q.question
 
     // Question image
@@ -573,11 +625,11 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
 
   // Image column indices (0-based for image map)
   const imageColumns = {
-    questionImage: COLUMNS.QUESTION_IMAGE - 1, // F = 5
-    optionAImage: COLUMNS.OPTION_A_IMAGE - 1, // H = 7
-    optionBImage: COLUMNS.OPTION_B_IMAGE - 1, // J = 9
-    optionCImage: COLUMNS.OPTION_C_IMAGE - 1, // L = 11
-    optionDImage: COLUMNS.OPTION_D_IMAGE - 1, // N = 13
+    questionImage: COLUMNS.QUESTION_IMAGE - 1, // G = 6
+    optionAImage: COLUMNS.OPTION_A_IMAGE - 1, // I = 8
+    optionBImage: COLUMNS.OPTION_B_IMAGE - 1, // K = 10
+    optionCImage: COLUMNS.OPTION_C_IMAGE - 1, // M = 12
+    optionDImage: COLUMNS.OPTION_D_IMAGE - 1, // O = 14
   }
 
   worksheet.eachRow((row, rowNumber) => {
@@ -587,6 +639,7 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
     const gradeLevel = getCellValue(row.getCell(COLUMNS.GRADE_LEVEL))
     const subject = getCellValue(row.getCell(COLUMNS.SUBJECT))
     const topic = getCellValue(row.getCell(COLUMNS.TOPIC))
+    const subTopic = getCellValue(row.getCell(COLUMNS.SUB_TOPIC))
     const questionText = getCellValue(row.getCell(COLUMNS.QUESTION_TEXT))
     const optionA = getCellValue(row.getCell(COLUMNS.OPTION_A)) || null
     const optionB = getCellValue(row.getCell(COLUMNS.OPTION_B)) || null
@@ -596,7 +649,7 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
     const explanation = getCellValue(row.getCell(COLUMNS.EXPLANATION)) || null
 
     // Skip empty rows
-    if (!type && !gradeLevel && !subject && !topic && !questionText) return
+    if (!type && !gradeLevel && !subject && !topic && !subTopic && !questionText) return
 
     // Validate required fields
     const rowErrors: ParseError[] = []
@@ -618,11 +671,14 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
     if (!topic) {
       rowErrors.push({ row: rowNumber, column: 'D', message: 'Topic is required' })
     }
+    if (!subTopic) {
+      rowErrors.push({ row: rowNumber, column: 'E', message: 'Sub-Topic is required' })
+    }
     if (!questionText) {
-      rowErrors.push({ row: rowNumber, column: 'E', message: 'Question Text is required' })
+      rowErrors.push({ row: rowNumber, column: 'F', message: 'Question Text is required' })
     }
     if (!correctAnswer) {
-      rowErrors.push({ row: rowNumber, column: 'O', message: 'Correct Answer is required' })
+      rowErrors.push({ row: rowNumber, column: 'P', message: 'Correct Answer is required' })
     }
 
     // MCQ-specific validation
@@ -689,6 +745,7 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
         gradeLevelName: gradeLevel,
         subjectName: subject,
         topicName: topic,
+        subTopicName: subTopic,
         question: questionText,
         questionImage: imageMap.get(`${rowNumber}-${imageColumns.questionImage}`) || null,
         optionA,
