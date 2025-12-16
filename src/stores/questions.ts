@@ -373,6 +373,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
   /**
    * Upload a question or option image
+   * Sets high cache-control value for better CDN caching (1 year)
    */
   async function uploadQuestionImage(
     file: File,
@@ -384,9 +385,12 @@ export const useQuestionsStore = defineStore('questions', () => {
       const folder = optionId ? `options/${optionId}` : 'questions'
       const filePath = `${folder}/${questionId}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('question-images')
-        .upload(filePath, file, { upsert: true })
+      const { error: uploadError } = await supabase.storage.from('question-images').upload(filePath, file, {
+        upsert: true,
+        // High cache-control value (1 year) for better CDN caching
+        // Smart CDN will auto-invalidate when file is updated
+        cacheControl: '31536000',
+      })
 
       if (uploadError) throw uploadError
 
@@ -418,14 +422,58 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   /**
-   * Get public URL for a question image
+   * Image transformation options for Supabase Storage
+   * Using transformations improves load times via:
+   * - Automatic WebP conversion
+   * - Size reduction
+   * - CDN caching of transformed images
    */
-  function getQuestionImageUrl(path: string | null): string {
+  interface ImageTransformOptions {
+    width?: number
+    height?: number
+    quality?: number
+    resize?: 'cover' | 'contain' | 'fill'
+  }
+
+  /**
+   * Get public URL for a question image with optional transformation
+   * Transformations are cached at CDN edge for fast delivery
+   */
+  function getQuestionImageUrl(path: string | null, transform?: ImageTransformOptions): string {
     if (!path) return ''
     // Check if it's already a full URL
     if (path.startsWith('http')) return path
+
+    // Apply transformation if provided (enables automatic WebP conversion)
+    if (transform) {
+      const { data } = supabase.storage.from('question-images').getPublicUrl(path, {
+        transform: {
+          width: transform.width,
+          height: transform.height,
+          quality: transform.quality ?? 80,
+          resize: transform.resize ?? 'contain',
+        },
+      })
+      return data.publicUrl
+    }
+
     const { data } = supabase.storage.from('question-images').getPublicUrl(path)
     return data.publicUrl
+  }
+
+  /**
+   * Get optimized image URL for question display (medium size)
+   * Uses width=800 which is suitable for most question displays
+   */
+  function getOptimizedQuestionImageUrl(path: string | null): string {
+    return getQuestionImageUrl(path, { width: 800, quality: 80 })
+  }
+
+  /**
+   * Get thumbnail URL for question image (small size for lists/previews)
+   */
+  function getThumbnailQuestionImageUrl(path: string | null): string {
+    return getQuestionImageUrl(path, { width: 200, quality: 70 })
   }
 
   /**
@@ -581,6 +629,8 @@ export const useQuestionsStore = defineStore('questions', () => {
     uploadQuestionImage,
     deleteQuestionImage,
     getQuestionImageUrl,
+    getOptimizedQuestionImageUrl,
+    getThumbnailQuestionImageUrl,
     fetchQuestionStatistics,
     getStatsByQuestionId,
 

@@ -285,12 +285,13 @@ function goBack() {
             <template v-else>
               <p class="text-sm whitespace-pre-line">{{ question.question }}</p>
 
-              <!-- Question Image if exists -->
+              <!-- Question Image if exists (optimized for faster loading) -->
               <img
                 v-if="question.imagePath"
-                :src="questionsStore.getQuestionImageUrl(question.imagePath)"
+                :src="questionsStore.getOptimizedQuestionImageUrl(question.imagePath)"
                 :alt="`Question ${index + 1} image`"
                 class="max-h-40 rounded-md object-contain"
+                loading="lazy"
               />
 
               <!-- MCQ/MRQ Options (filtered to show only non-empty options) -->
@@ -322,9 +323,10 @@ function goBack() {
                     <span v-if="option.text">{{ option.text }}</span>
                     <img
                       v-if="option.imagePath"
-                      :src="questionsStore.getQuestionImageUrl(option.imagePath)"
+                      :src="questionsStore.getThumbnailQuestionImageUrl(option.imagePath)"
                       :alt="`Option ${option.id.toUpperCase()}`"
                       class="max-h-12 rounded border object-contain"
+                      loading="lazy"
                     />
                   </div>
                 </div>

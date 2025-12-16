@@ -222,9 +222,10 @@ export const useAuthStore = defineStore('auth', () => {
       const fileExt = file.name.split('.').pop()
       const filePath = `${user.value.id}/avatar.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, {
+        upsert: true,
+        cacheControl: '31536000', // 1 year cache for CDN
+      })
 
       if (uploadError) throw uploadError
 
@@ -266,6 +267,7 @@ export const useAuthStore = defineStore('auth', () => {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, blob, {
         upsert: true,
         contentType,
+        cacheControl: '31536000', // 1 year cache for CDN
       })
 
       if (uploadError) throw uploadError

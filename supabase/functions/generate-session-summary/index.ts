@@ -17,13 +17,51 @@ interface QuestionData {
   studentAnswer: string | null
   correctAnswer: string | null
   questionImageUrl: string | null
+  questionImageBase64: string | null
   options: {
     label: string
     text: string | null
     imageUrl: string | null
+    imageBase64: string | null
     isCorrect: boolean
     isStudentAnswer: boolean
   }[]
+}
+
+/**
+ * Fetch an image and convert it to base64 data URI
+ * Returns null if fetch fails (with timeout protection)
+ */
+async function fetchImageAsBase64(url: string, timeoutMs = 5000): Promise<string | null> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+    const response = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch image: ${url} - Status: ${response.status}`)
+      return null
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    const base64 = btoa(binary)
+
+    // Determine content type from response or URL
+    const contentType = response.headers.get('content-type') || 'image/png'
+    const imageType = contentType.split('/')[1]?.split(';')[0] || 'png'
+
+    return `data:image/${imageType};base64,${base64}`
+  } catch (error) {
+    console.warn(`Error fetching image: ${url}`, error)
+    return null
+  }
 }
 
 interface SessionData {
@@ -165,6 +203,7 @@ Deno.serve(async (req: Request) => {
               label,
               text: opt.text,
               imageUrl: getImagePublicUrl(opt.imagePath),
+              imageBase64: null, // Will be populated later for incorrect questions
               isCorrect: opt.isCorrect ?? false,
               isStudentAnswer,
             })
@@ -188,9 +227,40 @@ Deno.serve(async (req: Request) => {
         studentAnswer,
         correctAnswer,
         questionImageUrl: getImagePublicUrl(q.image_path),
+        questionImageBase64: null, // Will be populated later for incorrect questions
         options,
       }
     })
+
+    // Pre-fetch images as base64 for incorrect questions only (to reduce API calls)
+    // This avoids OpenAI's timeout issues when fetching from URLs
+    const incorrectQuestions = questionsData.filter((q) => !q.isCorrect)
+    const imagePromises: Promise<void>[] = []
+
+    for (const q of incorrectQuestions) {
+      // Fetch question image
+      if (q.questionImageUrl) {
+        imagePromises.push(
+          fetchImageAsBase64(q.questionImageUrl).then((base64) => {
+            q.questionImageBase64 = base64
+          })
+        )
+      }
+
+      // Fetch option images
+      for (const opt of q.options) {
+        if (opt.imageUrl) {
+          imagePromises.push(
+            fetchImageAsBase64(opt.imageUrl).then((base64) => {
+              opt.imageBase64 = base64
+            })
+          )
+        }
+      }
+    }
+
+    // Wait for all image fetches to complete (with individual timeouts)
+    await Promise.all(imagePromises)
 
     // Extract names from nested sub_topic structure
     // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
@@ -212,7 +282,8 @@ Deno.serve(async (req: Request) => {
       questions: questionsData,
     })
 
-    // Call OpenAI API directly using fetch (for GPT-5 family support)
+    // Call OpenAI API directly using fetch
+    // Note: gpt-5-nano uses max_completion_tokens (not max_tokens)
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -220,9 +291,10 @@ Deno.serve(async (req: Request) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-5-nano',
+        // gpt-4o-mini is better for summarization (no reasoning token overhead)
+        model: 'gpt-4o-mini',
         messages,
-        reasoning_effort: 'minimal',
+        max_tokens: 300,
       }),
     })
 
@@ -233,10 +305,20 @@ Deno.serve(async (req: Request) => {
     }
 
     const completion = await openaiResponse.json()
-    const summary = completion.choices?.[0]?.message?.content?.trim() || null
+    console.log('OpenAI response:', JSON.stringify(completion, null, 2))
+
+    // Handle both Chat Completions and Responses API formats
+    const summary =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      completion.output?.[0]?.content?.[0]?.text?.trim() ||
+      null
 
     if (!summary) {
-      return new Response('Failed to generate summary', { status: 500, headers: corsHeaders })
+      console.error('No summary content found in response:', JSON.stringify(completion))
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate summary', response: completion }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Save summary to database
@@ -319,8 +401,15 @@ Do not use bullet points or lists - write flowing sentences.`,
         text: `\n${index + 1}. Question: ${q.question}\n   Student's answer: ${q.studentAnswer || 'No answer'}\n   Correct answer: ${q.correctAnswer || 'N/A'}`,
       })
 
-      // Add question image if exists
-      if (q.questionImageUrl) {
+      // Add question image if exists (prefer base64, fallback to URL)
+      // Using base64 avoids OpenAI's timeout issues when fetching URLs
+      if (q.questionImageBase64) {
+        userContent.push({
+          type: 'image_url',
+          image_url: { url: q.questionImageBase64 },
+        })
+      } else if (q.questionImageUrl) {
+        // Fallback to URL if base64 fetch failed (OpenAI may still timeout)
         userContent.push({
           type: 'image_url',
           image_url: { url: q.questionImageUrl },
@@ -329,16 +418,24 @@ Do not use bullet points or lists - write flowing sentences.`,
 
       // Add option images for MCQ/MRQ (only for options that have images)
       if ((q.type === 'mcq' || q.type === 'mrq') && q.options.length > 0) {
-        const optionsWithImages = q.options.filter((opt) => opt.imageUrl)
+        const optionsWithImages = q.options.filter((opt) => opt.imageUrl || opt.imageBase64)
         if (optionsWithImages.length > 0) {
           userContent.push({ type: 'text', text: '   Options:' })
           optionsWithImages.forEach((opt) => {
             const marker = opt.isCorrect ? '(correct)' : opt.isStudentAnswer ? '(student chose)' : ''
             userContent.push({ type: 'text', text: `   ${opt.label}${marker}:` })
-            userContent.push({
-              type: 'image_url',
-              image_url: { url: opt.imageUrl! },
-            })
+            // Prefer base64 over URL to avoid timeout issues
+            if (opt.imageBase64) {
+              userContent.push({
+                type: 'image_url',
+                image_url: { url: opt.imageBase64 },
+              })
+            } else if (opt.imageUrl) {
+              userContent.push({
+                type: 'image_url',
+                image_url: { url: opt.imageUrl },
+              })
+            }
           })
         }
       }

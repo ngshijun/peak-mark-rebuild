@@ -299,12 +299,15 @@ function handleOptionClick(optionId: string) {
           </CardHeader>
 
           <CardContent class="space-y-4">
-            <!-- Question Image -->
+            <!-- Question Image (using optimized URL for faster loading) -->
+            <!-- Key forces re-render on question change to prevent showing previous image -->
             <div v-if="currentQuestion.imagePath" class="flex justify-center">
               <img
-                :src="questionsStore.getQuestionImageUrl(currentQuestion.imagePath)"
+                :key="currentQuestion.id"
+                :src="questionsStore.getOptimizedQuestionImageUrl(currentQuestion.imagePath)"
                 alt="Question image"
                 class="max-h-64 rounded-lg border object-contain"
+                loading="eager"
               />
             </div>
 
@@ -351,9 +354,11 @@ function handleOptionClick(optionId: string) {
                     <span v-if="option.text">{{ option.text }}</span>
                     <img
                       v-if="option.imagePath"
-                      :src="questionsStore.getQuestionImageUrl(option.imagePath)"
+                      :key="`${currentQuestion.id}-${option.id}`"
+                      :src="questionsStore.getThumbnailQuestionImageUrl(option.imagePath)"
                       :alt="`Option ${String.fromCharCode(65 + index)}`"
                       class="max-h-16 rounded border object-contain"
+                      loading="lazy"
                     />
                   </div>
                   <CheckCircle2
