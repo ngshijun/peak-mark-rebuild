@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useSubscriptionStore, type SubscriptionTier } from '@/stores/subscription'
 import { useChildLinkStore } from '@/stores/child-link'
+import { toast } from 'vue-sonner'
 import {
   Card,
   CardContent,
@@ -30,25 +31,85 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Check, Sparkles, Zap, Crown, CreditCard, Users, Loader2 } from 'lucide-vue-next'
+import {
+  Check,
+  Sparkles,
+  Zap,
+  Crown,
+  CreditCard,
+  Users,
+  Loader2,
+  ExternalLink,
+} from 'lucide-vue-next'
 
 const subscriptionStore = useSubscriptionStore()
 const childLinkStore = useChildLinkStore()
 
-const isUpgrading = ref(false)
 const selectedChildId = ref<string>('')
 
-// Fetch data on mount
-// Note: linkedChildren is preloaded by parentRouteGuard in router/index.ts
+// Fetch data on mount and handle checkout redirect
 onMounted(async () => {
-  // Set default selected child (linkedChildren already loaded by route guard)
+  // Set default selected child first (linkedChildren already loaded by route guard)
   if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
     selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
   }
+
+  // Handle Stripe checkout redirect
+  const urlParams = new URLSearchParams(window.location.search)
+  const sessionId = urlParams.get('session_id')
+  const isSuccess = urlParams.get('success') === 'true'
+  const isCanceled = urlParams.get('canceled') === 'true'
+
+  if (isSuccess && sessionId && selectedChildId.value) {
+    // Sync subscription from Stripe to ensure database is up to date
+    const { success, error } = await subscriptionStore.syncSubscription(
+      selectedChildId.value,
+      sessionId
+    )
+
+    if (success) {
+      toast.success('Subscription activated!', {
+        description: 'Your subscription has been successfully activated.',
+      })
+    } else {
+      toast.error('Sync issue', {
+        description: error || 'Subscription may not be fully synced. Please refresh the page.',
+      })
+    }
+    // Clean up URL
+    window.history.replaceState({}, '', window.location.pathname)
+  } else if (isCanceled) {
+    toast.error('Checkout cancelled', {
+      description: 'You cancelled the checkout process.',
+    })
+    window.history.replaceState({}, '', window.location.pathname)
+  }
+
+  // Fetch plans and subscriptions
   await Promise.all([
     subscriptionStore.fetchPlans(),
     subscriptionStore.fetchChildrenSubscriptions(),
   ])
+
+  // Background sync: verify Stripe state for children with active subscriptions
+  // This catches any missed webhooks without blocking the UI
+  const childrenWithStripe = childLinkStore.linkedChildren.filter((child) =>
+    subscriptionStore.hasActiveStripeSubscription(child.id)
+  )
+
+  if (childrenWithStripe.length > 0) {
+    // Sync in background - don't await, don't show errors (silent reconciliation)
+    Promise.all(
+      childrenWithStripe.map((child) =>
+        subscriptionStore.syncSubscription(child.id).catch((err) => {
+          console.warn(`Background sync failed for child ${child.id}:`, err)
+        })
+      )
+    ).then(() => {
+      // Refresh subscriptions after background sync completes
+      subscriptionStore.fetchChildrenSubscriptions()
+    })
+  }
 })
 
 const selectedChild = computed(() => {
@@ -65,7 +126,8 @@ const currentPlan = computed(() => {
   return subscriptionStore.getChildPlan(selectedChildId.value)
 })
 
-function formatDate(dateString: string): string {
+function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -73,18 +135,87 @@ function formatDate(dateString: string): string {
   })
 }
 
-async function handleUpgrade(tier: SubscriptionTier) {
+async function handleSubscribe(tier: SubscriptionTier) {
   if (!selectedChildId.value) return
-  isUpgrading.value = true
-  await subscriptionStore.upgradePlan(selectedChildId.value, tier)
-  isUpgrading.value = false
+
+  // For basic tier, cancel the subscription
+  if (tier === 'basic') {
+    await handleCancel()
+    return
+  }
+
+  const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
+
+  if (hasStripe) {
+    // Has existing Stripe subscription - modify it
+    const result = await subscriptionStore.modifySubscription(selectedChildId.value, tier)
+    if (result.error) {
+      toast.error('Error', { description: result.error })
+    } else if (result.type === 'scheduled') {
+      // Downgrade scheduled for next billing cycle
+      const scheduledDate = result.scheduledDate
+        ? new Date(result.scheduledDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        : 'next billing cycle'
+      toast.success('Downgrade scheduled', {
+        description: `Your plan will change to ${tier} on ${scheduledDate}. You'll keep your current plan until then.`,
+      })
+    } else {
+      // Upgrade applied immediately
+      toast.success('Subscription upgraded!', {
+        description: `Plan has been upgraded to ${tier}. Proration applied to your next invoice.`,
+      })
+    }
+  } else {
+    // No Stripe subscription - create checkout session
+    const { url, error } = await subscriptionStore.createCheckoutSession(selectedChildId.value, tier)
+    if (error) {
+      toast.error('Error', { description: error })
+    } else if (url) {
+      // Redirect to Stripe Checkout
+      window.location.href = url
+    }
+  }
 }
 
 async function handleCancel() {
   if (!selectedChildId.value) return
-  isUpgrading.value = true
-  await subscriptionStore.cancelSubscription(selectedChildId.value)
-  isUpgrading.value = false
+
+  const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
+
+  if (hasStripe) {
+    // Cancel Stripe subscription at period end
+    const { error } = await subscriptionStore.cancelStripeSubscription(selectedChildId.value, false)
+    if (error) {
+      toast.error('Error', { description: error })
+    } else {
+      toast.success('Subscription cancelled', {
+        description: 'Your subscription will end at the current billing period.',
+      })
+    }
+  } else {
+    // Legacy cancel (downgrade to basic)
+    const { error } = await subscriptionStore.cancelSubscription(selectedChildId.value)
+    if (error) {
+      toast.error('Error', { description: error })
+    } else {
+      toast.success('Subscription cancelled', {
+        description: 'Downgraded to basic tier.',
+      })
+    }
+  }
+}
+
+async function handleOpenPortal() {
+  const { url, error } = await subscriptionStore.openCustomerPortal()
+  if (error) {
+    toast.error('Error', { description: error })
+  } else if (url) {
+    window.location.href = url
+  }
 }
 
 function getTierIcon(tier: SubscriptionTier) {
@@ -114,24 +245,58 @@ function getButtonText(planTier: SubscriptionTier, currentTier: SubscriptionTier
 function getButtonVariant(
   planTier: SubscriptionTier,
   currentTier: SubscriptionTier,
-  highlighted?: boolean,
+  highlighted?: boolean
 ) {
   if (planTier === currentTier) return 'outline' as const
   if (highlighted) return 'default' as const
   return 'outline' as const
+}
+
+function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChildSubscription>) {
+  if (!subscription.stripe) return null
+
+  if (subscription.stripe.cancelAtPeriodEnd) {
+    return { text: 'Cancels soon', variant: 'destructive' as const }
+  }
+
+  if (subscription.stripe.stripeStatus === 'past_due') {
+    return { text: 'Payment failed', variant: 'destructive' as const }
+  }
+
+  if (subscription.stripe.stripeStatus === 'active') {
+    return { text: 'Active', variant: 'default' as const }
+  }
+
+  return null
 }
 </script>
 
 <template>
   <div class="space-y-6 p-6">
     <!-- Header -->
-    <div>
-      <h1 class="text-2xl font-bold">Subscription</h1>
-      <p class="text-muted-foreground">Manage subscriptions for your children</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Subscription</h1>
+        <p class="text-muted-foreground">Manage subscriptions for your children</p>
+      </div>
+
+      <!-- Manage Billing Button -->
+      <Button
+        v-if="subscriptionStore.hasAnyStripeSubscription"
+        variant="outline"
+        @click="handleOpenPortal"
+      >
+        <CreditCard class="mr-2 size-4" />
+        Manage Billing
+        <ExternalLink class="ml-2 size-3" />
+      </Button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="subscriptionStore.isLoading" class="flex items-center justify-center py-16">
+    <div
+      v-if="subscriptionStore.isLoading || subscriptionStore.isProcessingPayment"
+      class="flex items-center justify-center py-16"
+    >
       <Loader2 class="size-8 animate-spin text-muted-foreground" />
     </div>
 
@@ -188,15 +353,38 @@ function getButtonVariant(
               <div>
                 <div class="flex items-center gap-2">
                   <span class="text-2xl font-bold">{{ currentPlan.name }}</span>
-                  <Badge v-if="currentSubscription.tier !== 'basic'" variant="default">
-                    Active
-                  </Badge>
-                  <Badge v-else variant="secondary">Free Tier</Badge>
+                  <!-- Status badges -->
+                  <template v-if="getStatusBadge(currentSubscription)">
+                    <Badge :variant="getStatusBadge(currentSubscription)!.variant">
+                      {{ getStatusBadge(currentSubscription)!.text }}
+                    </Badge>
+                  </template>
+                  <template v-else>
+                    <Badge v-if="currentSubscription.tier !== 'basic'" variant="default">
+                      Active
+                    </Badge>
+                    <Badge v-else variant="secondary">Free Tier</Badge>
+                  </template>
                 </div>
                 <p class="mt-1 text-sm text-muted-foreground">
                   Started on {{ formatDate(currentSubscription.startDate) }}
                 </p>
-                <p v-if="currentSubscription.nextBillingDate" class="text-sm text-muted-foreground">
+                <!-- Show period end for Stripe subscriptions -->
+                <p
+                  v-if="currentSubscription.stripe?.currentPeriodEnd"
+                  class="text-sm text-muted-foreground"
+                >
+                  <template v-if="currentSubscription.stripe.cancelAtPeriodEnd">
+                    Ends on {{ formatDate(currentSubscription.stripe.currentPeriodEnd) }}
+                  </template>
+                  <template v-else>
+                    Renews on {{ formatDate(currentSubscription.stripe.currentPeriodEnd) }}
+                  </template>
+                </p>
+                <p
+                  v-else-if="currentSubscription.nextBillingDate"
+                  class="text-sm text-muted-foreground"
+                >
                   Next billing: {{ formatDate(currentSubscription.nextBillingDate) }}
                 </p>
               </div>
@@ -211,7 +399,9 @@ function getButtonVariant(
               </div>
             </div>
           </CardContent>
-          <CardFooter v-if="currentSubscription.tier !== 'basic'">
+          <CardFooter
+            v-if="currentSubscription.tier !== 'basic' && !currentSubscription.stripe?.cancelAtPeriodEnd"
+          >
             <AlertDialog>
               <AlertDialogTrigger as-child>
                 <Button variant="outline" class="text-destructive hover:text-destructive">
@@ -222,8 +412,15 @@ function getButtonVariant(
                 <AlertDialogHeader>
                   <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to cancel {{ selectedChild?.name }}'s subscription? They
-                    will be downgraded to the Basic tier and lose access to premium features.
+                    Are you sure you want to cancel {{ selectedChild?.name }}'s subscription?
+                    <template v-if="currentSubscription.stripe?.stripeSubscriptionId">
+                      The subscription will remain active until
+                      {{ formatDate(currentSubscription.stripe.currentPeriodEnd) }}, then
+                      automatically downgrade to Basic.
+                    </template>
+                    <template v-else>
+                      They will be downgraded to the Basic tier immediately.
+                    </template>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -292,7 +489,12 @@ function getButtonVariant(
                   <Button
                     class="w-full"
                     :variant="getButtonVariant(plan.id, currentSubscription.tier, plan.highlighted)"
+                    :disabled="subscriptionStore.isProcessingPayment"
                   >
+                    <Loader2
+                      v-if="subscriptionStore.isProcessingPayment"
+                      class="mr-2 size-4 animate-spin"
+                    />
                     {{ getButtonText(plan.id, currentSubscription.tier) }}
                   </Button>
                 </AlertDialogTrigger>
@@ -303,19 +505,31 @@ function getButtonVariant(
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       <template v-if="plan.price > (currentPlan?.price ?? 0)">
-                        You will be charged ${{ plan.price.toFixed(2) }}/month for
-                        {{ selectedChild?.name }}. Their new plan includes
-                        {{ plan.sessionsPerDay }} sessions per day.
+                        <template
+                          v-if="subscriptionStore.hasActiveStripeSubscription(selectedChildId)"
+                        >
+                          Your plan will be upgraded immediately. The price difference will be
+                          prorated and charged to your payment method on file.
+                        </template>
+                        <template v-else>
+                          You will be redirected to a secure checkout page to complete your payment.
+                        </template>
+                        {{ selectedChild?.name }}'s new plan includes {{ plan.sessionsPerDay }}
+                        sessions per day.
+                      </template>
+                      <template v-else-if="plan.id === 'basic'">
+                        {{ selectedChild?.name }} will be downgraded to the free Basic plan. Their
+                        sessions will be limited to {{ plan.sessionsPerDay }} per day.
                       </template>
                       <template v-else>
                         {{ selectedChild?.name }} will be downgraded to the {{ plan.name }} plan.
-                        Their sessions will be limited to {{ plan.sessionsPerDay }} per day.
+                        The price difference will be credited to your account.
                       </template>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="handleUpgrade(plan.id)"> Confirm </AlertDialogAction>
+                    <AlertDialogAction @click="handleSubscribe(plan.id)"> Confirm </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

@@ -16,6 +16,16 @@ export interface SubscriptionPlan {
   sessionsPerDay: number
   features: string[]
   highlighted?: boolean
+  stripePriceId?: string
+}
+
+export interface StripeSubscriptionDetails {
+  stripeSubscriptionId: string | null
+  stripePriceId: string | null
+  stripeStatus: string | null
+  currentPeriodStart: string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
 }
 
 export interface ChildSubscription {
@@ -24,6 +34,7 @@ export interface ChildSubscription {
   startDate: string
   nextBillingDate?: string
   isActive: boolean
+  stripe?: StripeSubscriptionDetails
 }
 
 export const useSubscriptionStore = defineStore('subscription', () => {
@@ -35,6 +46,8 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   const childSubscriptions = ref<ChildSubscription[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const isProcessingPayment = ref(false)
+  const paymentError = ref<string | null>(null)
 
   /**
    * Fetch subscription plans from the database
@@ -55,6 +68,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         sessionsPerDay: row.sessions_per_day,
         features: (row.features as string[]) ?? [],
         highlighted: row.is_highlighted ?? false,
+        stripePriceId: row.stripe_price_id ?? undefined,
       }))
 
       return { error: null }
@@ -108,6 +122,14 @@ export const useSubscriptionStore = defineStore('subscription', () => {
             startDate: existing.start_date,
             nextBillingDate: existing.next_billing_date ?? undefined,
             isActive: existing.is_active ?? true,
+            stripe: {
+              stripeSubscriptionId: existing.stripe_subscription_id,
+              stripePriceId: existing.stripe_price_id,
+              stripeStatus: existing.stripe_status,
+              currentPeriodStart: existing.current_period_start,
+              currentPeriodEnd: existing.current_period_end,
+              cancelAtPeriodEnd: existing.cancel_at_period_end ?? false,
+            },
           }
         }
         // Default to basic subscription
@@ -151,11 +173,217 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   }
 
   /**
-   * Upgrade/change plan for a child
+   * Check if a child has an active Stripe subscription
+   */
+  function hasActiveStripeSubscription(childId: string): boolean {
+    const subscription = getChildSubscription(childId)
+    return !!subscription.stripe?.stripeSubscriptionId
+  }
+
+  /**
+   * Create a Stripe Checkout session for a new subscription
+   */
+  async function createCheckoutSession(
+    childId: string,
+    tier: SubscriptionTier
+  ): Promise<{ url: string | null; error: string | null }> {
+    if (!authStore.user || !authStore.isParent) {
+      return { url: null, error: 'Not authenticated as parent' }
+    }
+
+    if (tier === 'basic') {
+      return { url: null, error: 'Cannot checkout for basic tier' }
+    }
+
+    // Get price ID for tier
+    const plan = plans.value.find((p) => p.id === tier)
+    if (!plan?.stripePriceId) {
+      return { url: null, error: 'Plan not configured for payments' }
+    }
+
+    isProcessingPayment.value = true
+    paymentError.value = null
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        'create-checkout-session',
+        {
+          body: {
+            priceId: plan.stripePriceId,
+            studentId: childId,
+            successUrl: `${window.location.origin}/parent/subscription?success=true`,
+            cancelUrl: `${window.location.origin}/parent/subscription?canceled=true`,
+          },
+        }
+      )
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      return { url: data.url, error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create checkout'
+      paymentError.value = message
+      return { url: null, error: message }
+    } finally {
+      isProcessingPayment.value = false
+    }
+  }
+
+  /**
+   * Open Stripe Customer Portal for billing management
+   */
+  async function openCustomerPortal(): Promise<{ url: string | null; error: string | null }> {
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('create-portal-session', {
+        body: {
+          returnUrl: `${window.location.origin}/parent/subscription`,
+        },
+      })
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      return { url: data.url, error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to open billing portal'
+      return { url: null, error: message }
+    }
+  }
+
+  /**
+   * Sync subscription state from Stripe to database.
+   * Used after checkout redirect and for manual reconciliation.
+   */
+  async function syncSubscription(
+    childId: string,
+    sessionId?: string
+  ): Promise<{ success: boolean; error: string | null }> {
+    isProcessingPayment.value = true
+    paymentError.value = null
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('sync-subscription', {
+        body: {
+          studentId: childId,
+          sessionId: sessionId,
+        },
+      })
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      // Refresh subscriptions to get synced data
+      await fetchChildrenSubscriptions()
+      return { success: true, error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to sync subscription'
+      paymentError.value = message
+      return { success: false, error: message }
+    } finally {
+      isProcessingPayment.value = false
+    }
+  }
+
+  /**
+   * Modify an existing Stripe subscription (upgrade/downgrade)
+   * - Upgrades: Applied immediately with proration
+   * - Downgrades: Scheduled for next billing cycle
+   */
+  async function modifySubscription(
+    childId: string,
+    newTier: SubscriptionTier
+  ): Promise<{
+    success: boolean
+    error: string | null
+    type?: 'immediate' | 'scheduled'
+    scheduledDate?: string
+    message?: string
+  }> {
+    if (newTier === 'basic') {
+      // Downgrade to basic = cancel at period end (user keeps access until period ends)
+      const result = await cancelStripeSubscription(childId, false)
+      return { ...result, type: 'scheduled' }
+    }
+
+    const plan = plans.value.find((p) => p.id === newTier)
+    if (!plan?.stripePriceId) {
+      return { success: false, error: 'Plan not configured for payments' }
+    }
+
+    isProcessingPayment.value = true
+    paymentError.value = null
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('modify-subscription', {
+        body: {
+          studentId: childId,
+          newPriceId: plan.stripePriceId,
+        },
+      })
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      // Refresh subscriptions to get updated data
+      await fetchChildrenSubscriptions()
+
+      return {
+        success: true,
+        error: null,
+        type: data.type,
+        scheduledDate: data.scheduledDate,
+        message: data.message,
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to modify subscription'
+      paymentError.value = message
+      return { success: false, error: message }
+    } finally {
+      isProcessingPayment.value = false
+    }
+  }
+
+  /**
+   * Cancel a Stripe subscription
+   */
+  async function cancelStripeSubscription(
+    childId: string,
+    immediately: boolean = false
+  ): Promise<{ success: boolean; error: string | null }> {
+    isProcessingPayment.value = true
+    paymentError.value = null
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('cancel-subscription', {
+        body: {
+          studentId: childId,
+          cancelImmediately: immediately,
+        },
+      })
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      // Refresh subscriptions
+      await fetchChildrenSubscriptions()
+      return { success: true, error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to cancel subscription'
+      paymentError.value = message
+      return { success: false, error: message }
+    } finally {
+      isProcessingPayment.value = false
+    }
+  }
+
+  /**
+   * Upgrade/change plan for a child (local DB only - for basic tier or initial setup)
+   * @deprecated Use createCheckoutSession or modifySubscription for paid tiers
    */
   async function upgradePlan(
     childId: string,
-    tier: SubscriptionTier,
+    tier: SubscriptionTier
   ): Promise<{ success: boolean; error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
       return { success: false, error: 'Not authenticated as parent' }
@@ -226,9 +454,10 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
   /**
    * Cancel subscription for a child (downgrade to basic)
+   * @deprecated Use cancelStripeSubscription for Stripe-managed subscriptions
    */
   async function cancelSubscription(
-    childId: string,
+    childId: string
   ): Promise<{ success: boolean; error: string | null }> {
     return upgradePlan(childId, 'basic')
   }
@@ -241,21 +470,39 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }, 0)
   })
 
+  // Check if any child has an active Stripe subscription (for showing billing portal)
+  const hasAnyStripeSubscription = computed(() => {
+    return childSubscriptions.value.some((sub) => sub.stripe?.stripeSubscriptionId)
+  })
+
   return {
     // State
     plans,
     childSubscriptions,
     isLoading,
     error,
+    isProcessingPayment,
+    paymentError,
 
     // Computed
     totalMonthlyCost,
+    hasAnyStripeSubscription,
 
     // Actions
     fetchPlans,
     fetchChildrenSubscriptions,
     getChildSubscription,
     getChildPlan,
+    hasActiveStripeSubscription,
+
+    // Stripe Actions
+    createCheckoutSession,
+    openCustomerPortal,
+    syncSubscription,
+    modifySubscription,
+    cancelStripeSubscription,
+
+    // Legacy Actions (for basic tier or non-Stripe usage)
     upgradePlan,
     cancelSubscription,
   }
