@@ -43,8 +43,11 @@ export type Database = {
           is_active: boolean | null
           next_billing_date: string | null
           parent_id: string
+          scheduled_change_date: string | null
+          scheduled_tier: Database['public']['Enums']['subscription_tier'] | null
           start_date: string
           stripe_price_id: string | null
+          stripe_schedule_id: string | null
           stripe_status: string | null
           stripe_subscription_id: string | null
           student_id: string
@@ -60,8 +63,11 @@ export type Database = {
           is_active?: boolean | null
           next_billing_date?: string | null
           parent_id: string
+          scheduled_change_date?: string | null
+          scheduled_tier?: Database['public']['Enums']['subscription_tier'] | null
           start_date?: string
           stripe_price_id?: string | null
+          stripe_schedule_id?: string | null
           stripe_status?: string | null
           stripe_subscription_id?: string | null
           student_id: string
@@ -77,8 +83,11 @@ export type Database = {
           is_active?: boolean | null
           next_billing_date?: string | null
           parent_id?: string
+          scheduled_change_date?: string | null
+          scheduled_tier?: Database['public']['Enums']['subscription_tier'] | null
           start_date?: string
           stripe_price_id?: string | null
+          stripe_schedule_id?: string | null
           stripe_status?: string | null
           stripe_subscription_id?: string | null
           student_id?: string

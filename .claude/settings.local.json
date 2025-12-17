@@ -25,7 +25,13 @@
       "WebSearch",
       "WebFetch(domain:vee-validate.logaretm.com)",
       "Bash(npx supabase:*)",
-      "mcp__chrome-devtools__fill_form"
+      "mcp__chrome-devtools__fill_form",
+      "mcp__supabase__execute_sql",
+      "mcp__stripe__list_invoices",
+      "mcp__stripe__fetch_stripe_resources",
+      "mcp__stripe__list_subscriptions",
+      "mcp__supabase__get_logs",
+      "mcp__context7__resolve-library-id"
     ],
     "deny": [],
     "ask": []

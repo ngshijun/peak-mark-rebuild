@@ -5,7 +5,10 @@ import { supabase } from '@/lib/supabaseClient'
 export interface DashboardStats {
   revenue: {
     total: number
+    currentMonth: number
+    previousMonth: number
     change: string
+    currency: string
   }
   users: {
     total: number
@@ -19,8 +22,11 @@ export interface DashboardStats {
 export const useAdminDashboardStore = defineStore('adminDashboard', () => {
   const stats = ref<DashboardStats>({
     revenue: {
-      total: 12580, // Mock data for now
-      change: '+12.5%',
+      total: 0,
+      currentMonth: 0,
+      previousMonth: 0,
+      change: '0%',
+      currency: 'MYR',
     },
     users: {
       total: 0,
@@ -40,6 +46,23 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
     return today.toISOString().split('T')[0] ?? ''
   }
 
+  // Get first day of current month
+  function getCurrentMonthStart(): string {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  }
+
+  // Get first and last day of previous month
+  function getPreviousMonthRange(): { start: string; end: string } {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+    }
+  }
+
   // Fetch all dashboard stats
   async function fetchStats(): Promise<{ error: string | null }> {
     isLoading.value = true
@@ -47,9 +70,18 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
     try {
       const today = getTodayString()
+      const currentMonthStart = getCurrentMonthStart()
+      const previousMonth = getPreviousMonthRange()
 
       // Fetch all stats in parallel
-      const [usersResult, activeStudentsResult, practiceSessionsResult] = await Promise.all([
+      const [
+        usersResult,
+        activeStudentsResult,
+        practiceSessionsResult,
+        totalRevenueResult,
+        currentMonthRevenueResult,
+        previousMonthRevenueResult,
+      ] = await Promise.all([
         // Total users by type
         supabase.from('profiles').select('user_type'),
 
@@ -65,6 +97,24 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           .select('id', { count: 'exact', head: true })
           .gte('created_at', `${today}T00:00:00`)
           .lt('created_at', `${today}T23:59:59.999`),
+
+        // Total revenue (all time, only succeeded payments)
+        supabase.from('payment_history').select('amount_cents, currency').eq('status', 'succeeded'),
+
+        // Current month revenue
+        supabase
+          .from('payment_history')
+          .select('amount_cents')
+          .eq('status', 'succeeded')
+          .gte('created_at', currentMonthStart),
+
+        // Previous month revenue
+        supabase
+          .from('payment_history')
+          .select('amount_cents')
+          .eq('status', 'succeeded')
+          .gte('created_at', previousMonth.start)
+          .lte('created_at', previousMonth.end),
       ])
 
       // Check for errors
@@ -86,6 +136,46 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       // Process practice sessions
       stats.value.practiceSessionsToday = practiceSessionsResult.count ?? 0
+
+      // Process revenue
+      if (totalRevenueResult.data) {
+        const totalCents = totalRevenueResult.data.reduce(
+          (sum, p) => sum + (p.amount_cents || 0),
+          0,
+        )
+        stats.value.revenue.total = totalCents / 100
+
+        // Get currency from first payment, default to MYR
+        const firstPayment = totalRevenueResult.data[0]
+        stats.value.revenue.currency = firstPayment?.currency?.toUpperCase() || 'MYR'
+      }
+
+      if (currentMonthRevenueResult.data) {
+        const currentCents = currentMonthRevenueResult.data.reduce(
+          (sum, p) => sum + (p.amount_cents || 0),
+          0,
+        )
+        stats.value.revenue.currentMonth = currentCents / 100
+      }
+
+      if (previousMonthRevenueResult.data) {
+        const previousCents = previousMonthRevenueResult.data.reduce(
+          (sum, p) => sum + (p.amount_cents || 0),
+          0,
+        )
+        stats.value.revenue.previousMonth = previousCents / 100
+      }
+
+      // Calculate percentage change
+      const current = stats.value.revenue.currentMonth
+      const previous = stats.value.revenue.previousMonth
+      if (previous === 0) {
+        stats.value.revenue.change = current > 0 ? '+100%' : '0%'
+      } else {
+        const change = ((current - previous) / previous) * 100
+        const sign = change >= 0 ? '+' : ''
+        stats.value.revenue.change = `${sign}${change.toFixed(1)}%`
+      }
 
       return { error: null }
     } catch (err) {

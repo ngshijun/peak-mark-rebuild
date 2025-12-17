@@ -22,6 +22,9 @@ Deno.serve(async (req: Request) => {
     const event = await stripe.webhooks.constructEventAsync(body, signature, WEBHOOK_SECRET)
 
     console.log(`Processing webhook event: ${event.type}`)
+    console.log(`Event ID: ${event.id}`)
+
+    let handlerResult: unknown = null
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -38,7 +41,7 @@ Deno.serve(async (req: Request) => {
         break
 
       case 'invoice.paid':
-        await handleInvoicePaid(event.data.object as Stripe.Invoice)
+        handlerResult = await handleInvoicePaid(event.data.object as Stripe.Invoice)
         break
 
       case 'invoice.payment_failed':
@@ -49,7 +52,7 @@ Deno.serve(async (req: Request) => {
         console.log(`Unhandled event type: ${event.type}`)
     }
 
-    return new Response(JSON.stringify({ received: true }), {
+    return new Response(JSON.stringify({ received: true, eventType: event.type, eventId: event.id, handlerResult }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
@@ -89,26 +92,82 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 }
 
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  if (!invoice.subscription) return
+async function handleInvoicePaid(invoiceFromWebhook: Stripe.Invoice): Promise<{ success: boolean; step: string; error?: string }> {
+  console.log(`handleInvoicePaid called for invoice ${invoiceFromWebhook.id}`)
+  console.log(`Invoice subscription field: ${invoiceFromWebhook.subscription}`)
 
-  // Fetch subscription to get metadata
-  const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)
-  const parentId = subscription.metadata.supabase_parent_id
-  const studentId = subscription.metadata.supabase_student_id
+  // Use webhook data first, but may need to fetch full invoice from API
+  let invoice = invoiceFromWebhook
+  let subscriptionId = invoice.subscription as string | null
 
-  if (!parentId) {
-    console.error('Missing parent_id in subscription metadata')
-    return
+  if (!subscriptionId && invoice.lines?.data?.[0]?.subscription) {
+    subscriptionId = invoice.lines.data[0].subscription as string
+    console.log(`Got subscription from line item: ${subscriptionId}`)
   }
 
-  // Get tier from first line item price
-  const priceId = invoice.lines.data[0]?.price?.id
+  // If still no subscription ID, fetch the full invoice from Stripe API
+  if (!subscriptionId) {
+    console.log('No subscription in webhook payload, fetching full invoice from Stripe API')
+    invoice = await stripe.invoices.retrieve(invoiceFromWebhook.id, {
+      expand: ['lines.data.price'],
+    })
+    subscriptionId = invoice.subscription as string | null
+    console.log(`Got subscription from API: ${subscriptionId}`)
+
+    if (!subscriptionId && invoice.lines?.data?.[0]?.subscription) {
+      subscriptionId = invoice.lines.data[0].subscription as string
+      console.log(`Got subscription from API line item: ${subscriptionId}`)
+    }
+  }
+
+  if (!subscriptionId) {
+    console.log('No subscription on invoice even after API fetch')
+    return { success: false, step: 'get_subscription_id', error: 'No subscription ID found on invoice or line items' }
+  }
+
+  console.log(`Using subscription ID: ${subscriptionId}`)
+
+  // Fetch subscription to get metadata
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  console.log(`Subscription ${subscription.id} metadata:`, JSON.stringify(subscription.metadata))
+
+  let parentId = subscription.metadata.supabase_parent_id
+  let studentId = subscription.metadata.supabase_student_id
+
+  // Fallback: look up from existing child_subscriptions record
+  if (!parentId || !studentId) {
+    console.log(`Metadata missing, trying fallback lookup for subscription ${subscription.id}`)
+    const { data: existingSub, error: lookupError } = await supabaseAdmin
+      .from('child_subscriptions')
+      .select('parent_id, student_id')
+      .eq('stripe_subscription_id', subscription.id)
+      .single()
+
+    console.log(`Fallback lookup result:`, existingSub, lookupError)
+
+    if (existingSub) {
+      parentId = existingSub.parent_id
+      studentId = existingSub.student_id
+      console.log(`Using fallback IDs: parent=${parentId}, student=${studentId}`)
+    }
+  }
+
+  if (!parentId) {
+    console.error(`Missing parent_id for invoice ${invoice.id}, subscription ${subscription.id}`)
+    return { success: false, step: 'get_parent_id', error: `No parent_id found for subscription ${subscription.id}` }
+  }
+
+  console.log(`Proceeding to insert payment for parent=${parentId}, student=${studentId}`)
+
+  // Get tier from subscription's price (more reliable than invoice line items)
+  const priceId = subscription.items.data[0]?.price?.id || invoice.lines?.data?.[0]?.price?.id
+  console.log(`Looking up tier for price: ${priceId}`)
   const { data: plan } = await supabaseAdmin
     .from('subscription_plans')
     .select('id')
     .eq('stripe_price_id', priceId)
     .single()
+  console.log(`Found plan: ${plan?.id || 'none'}`)
 
   // Record payment
   const { error } = await supabaseAdmin.from('payment_history').insert({
@@ -116,12 +175,12 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     student_id: studentId || null,
     stripe_invoice_id: invoice.id,
     stripe_payment_intent_id: (invoice.payment_intent as string) || null,
-    stripe_subscription_id: invoice.subscription as string,
+    stripe_subscription_id: subscriptionId,
     amount_cents: invoice.amount_paid,
     currency: invoice.currency,
     status: 'succeeded',
     tier: plan?.id || null,
-    description: invoice.lines.data[0]?.description || 'Subscription payment',
+    description: invoice.lines?.data?.[0]?.description || 'Subscription payment',
     metadata: {
       invoice_number: invoice.number,
       billing_reason: invoice.billing_reason,
@@ -129,21 +188,42 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   })
 
   if (error) {
-    console.error('Error recording payment:', error)
+    console.error('Error recording payment:', JSON.stringify(error))
+    return { success: false, step: 'insert_payment', error: error.message }
   } else {
-    console.log(`Payment recorded for invoice ${invoice.id}`)
+    console.log(`Payment recorded successfully for invoice ${invoice.id}`)
+    return { success: true, step: 'complete' }
   }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  if (!invoice.subscription) return
+  // Try to get subscription ID from invoice or from line items
+  let subscriptionId = invoice.subscription as string | null
+  if (!subscriptionId && invoice.lines?.data?.[0]?.subscription) {
+    subscriptionId = invoice.lines.data[0].subscription as string
+  }
+  if (!subscriptionId) return
 
-  const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)
-  const parentId = subscription.metadata.supabase_parent_id
-  const studentId = subscription.metadata.supabase_student_id
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  let parentId = subscription.metadata.supabase_parent_id
+  let studentId = subscription.metadata.supabase_student_id
+
+  // Fallback: look up from existing child_subscriptions record
+  if (!parentId || !studentId) {
+    const { data: existingSub } = await supabaseAdmin
+      .from('child_subscriptions')
+      .select('parent_id, student_id')
+      .eq('stripe_subscription_id', subscription.id)
+      .single()
+
+    if (existingSub) {
+      parentId = existingSub.parent_id
+      studentId = existingSub.student_id
+    }
+  }
 
   if (!parentId) {
-    console.error('Missing parent_id in subscription metadata')
+    console.error(`Missing parent_id for failed payment, invoice ${invoice.id}`)
     return
   }
 
@@ -152,7 +232,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     parent_id: parentId,
     student_id: studentId || null,
     stripe_invoice_id: invoice.id,
-    stripe_subscription_id: invoice.subscription as string,
+    stripe_subscription_id: subscriptionId,
     amount_cents: invoice.amount_due,
     currency: invoice.currency,
     status: 'failed',

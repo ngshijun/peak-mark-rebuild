@@ -102,7 +102,8 @@ Deno.serve(async (req: Request) => {
     let updatedSubscription: Stripe.Subscription
 
     if (isUpgrade) {
-      // UPGRADE: Apply immediately with proration
+      // UPGRADE: Pay prorated difference immediately and reset billing cycle
+      // Similar to Claude's subscription behavior
       // If there's an existing schedule, release it first
       if (stripeSubscription.schedule) {
         const scheduleId =
@@ -121,20 +122,40 @@ Deno.serve(async (req: Request) => {
               price: newPriceId,
             },
           ],
-          proration_behavior: 'create_prorations',
+          // Reset billing cycle to now - starts a new subscription period
+          billing_cycle_anchor: 'now',
+          // Immediately invoice the prorated difference
+          proration_behavior: 'always_invoice',
+          // Ensure payment is attempted immediately
+          payment_behavior: 'error_if_incomplete',
         }
       )
 
       // Immediately sync the updated subscription state to database
       await syncSubscriptionToDatabase(updatedSubscription, supabaseAdmin)
 
+      // Clear any scheduled downgrade since we're upgrading now
+      await supabaseAdmin
+        .from('child_subscriptions')
+        .update({
+          scheduled_tier: null,
+          scheduled_change_date: null,
+          stripe_schedule_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', subscription.stripe_subscription_id)
+
       return new Response(
         JSON.stringify({
           success: true,
           type: 'immediate',
+          message: 'Upgrade applied immediately. You have been charged the prorated difference and your new billing cycle starts today.',
           subscription: {
             id: updatedSubscription.id,
             status: updatedSubscription.status,
+            currentPeriodStart: new Date(
+              updatedSubscription.current_period_start * 1000
+            ).toISOString(),
             currentPeriodEnd: new Date(
               updatedSubscription.current_period_end * 1000
             ).toISOString(),
@@ -202,22 +223,33 @@ Deno.serve(async (req: Request) => {
       // Sync current state (tier stays the same until period end)
       await syncSubscriptionToDatabase(updatedSubscription, supabaseAdmin)
 
-      // Get the new tier name for response
+      // Get the new tier info for response and database
       const { data: newPlan } = await supabaseAdmin
         .from('subscription_plans')
-        .select('name')
+        .select('id, name')
         .eq('stripe_price_id', newPriceId)
         .single()
+
+      // Save scheduled downgrade info to database
+      const scheduledDate = new Date(stripeSubscription.current_period_end * 1000).toISOString()
+      await supabaseAdmin
+        .from('child_subscriptions')
+        .update({
+          scheduled_tier: newPlan?.id || null,
+          scheduled_change_date: scheduledDate,
+          stripe_schedule_id: schedule.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', subscription.stripe_subscription_id)
 
       return new Response(
         JSON.stringify({
           success: true,
           type: 'scheduled',
           message: `Downgrade to ${newPlan?.name || 'new plan'} scheduled for next billing cycle`,
-          scheduledDate: new Date(
-            stripeSubscription.current_period_end * 1000
-          ).toISOString(),
+          scheduledDate,
           scheduleId: schedule.id,
+          scheduledTier: newPlan?.id,
           subscription: {
             id: updatedSubscription.id,
             status: updatedSubscription.status,

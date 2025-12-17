@@ -38,11 +38,26 @@ onMounted(async () => {
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold">
-            ${{ dashboardStore.stats.revenue.total.toLocaleString() }}
+            {{
+              dashboardStore.stats.revenue.total.toLocaleString('en-MY', {
+                style: 'currency',
+                currency: dashboardStore.stats.revenue.currency,
+              })
+            }}
           </div>
           <p class="text-xs text-muted-foreground">
-            <span class="text-green-600">{{ dashboardStore.stats.revenue.change }}</span> from last
-            month
+            <span
+              :class="
+                dashboardStore.stats.revenue.change.startsWith('+')
+                  ? 'text-green-600'
+                  : dashboardStore.stats.revenue.change.startsWith('-')
+                    ? 'text-red-600'
+                    : ''
+              "
+            >
+              {{ dashboardStore.stats.revenue.change }}
+            </span>
+            from last month
           </p>
         </CardContent>
       </Card>

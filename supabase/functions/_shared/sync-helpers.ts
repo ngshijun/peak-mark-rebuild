@@ -74,6 +74,10 @@ async function syncWithIds(
       ? null
       : new Date(subscription.current_period_end * 1000).toISOString().split('T')[0]
 
+  // Check if subscription has a schedule - if not, clear scheduled fields
+  // This handles the case when a schedule executes and the tier changes
+  const hasSchedule = !!subscription.schedule
+
   // Upsert child subscription
   const { error } = await supabaseAdmin
     .from('child_subscriptions')
@@ -92,6 +96,12 @@ async function syncWithIds(
         start_date: startDate,
         next_billing_date: nextBillingDate,
         updated_at: new Date().toISOString(),
+        // Clear scheduled fields if no schedule exists (schedule has executed)
+        ...(hasSchedule ? {} : {
+          scheduled_tier: null,
+          scheduled_change_date: null,
+          stripe_schedule_id: null,
+        }),
       },
       {
         onConflict: 'student_id',
@@ -129,6 +139,10 @@ export async function syncSubscriptionDeletion(
       current_period_start: null,
       current_period_end: null,
       next_billing_date: null,
+      // Clear scheduled fields
+      scheduled_tier: null,
+      scheduled_change_date: null,
+      stripe_schedule_id: null,
       updated_at: new Date().toISOString(),
     })
     .eq('stripe_subscription_id', subscriptionId)

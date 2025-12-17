@@ -28,6 +28,38 @@ export interface StripeSubscriptionDetails {
   cancelAtPeriodEnd: boolean
 }
 
+export interface UpgradePreview {
+  isUpgrade: boolean
+  amountDue?: number
+  currency?: string
+  lineItems?: Array<{
+    description: string
+    amount: number
+    currency: string
+    proration: boolean
+  }>
+  currentPlan: {
+    name: string
+    priceId: string
+    amount: number
+  }
+  newPlan: {
+    name: string
+    priceId: string
+    amount: number
+  }
+  message: string
+  effectiveDate?: string
+  newBillingCycleStart?: string
+  newBillingCycleEnd?: string
+}
+
+export interface ScheduledChange {
+  scheduledTier: SubscriptionTier
+  scheduledChangeDate: string
+  stripeScheduleId?: string
+}
+
 export interface ChildSubscription {
   childId: string
   tier: SubscriptionTier
@@ -35,6 +67,7 @@ export interface ChildSubscription {
   nextBillingDate?: string
   isActive: boolean
   stripe?: StripeSubscriptionDetails
+  scheduledChange?: ScheduledChange
 }
 
 export const useSubscriptionStore = defineStore('subscription', () => {
@@ -116,7 +149,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       childSubscriptions.value = childIds.map((childId) => {
         const existing = subscriptionMap.get(childId)
         if (existing) {
-          return {
+          const subscription: ChildSubscription = {
             childId: existing.student_id,
             tier: existing.tier,
             startDate: existing.start_date,
@@ -131,6 +164,17 @@ export const useSubscriptionStore = defineStore('subscription', () => {
               cancelAtPeriodEnd: existing.cancel_at_period_end ?? false,
             },
           }
+
+          // Add scheduled change info if present
+          if (existing.scheduled_tier && existing.scheduled_change_date) {
+            subscription.scheduledChange = {
+              scheduledTier: existing.scheduled_tier,
+              scheduledChangeDate: existing.scheduled_change_date,
+              stripeScheduleId: existing.stripe_schedule_id ?? undefined,
+            }
+          }
+
+          return subscription
         }
         // Default to basic subscription
         return {
@@ -285,6 +329,40 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { success: false, error: message }
     } finally {
       isProcessingPayment.value = false
+    }
+  }
+
+  /**
+   * Preview an upgrade to see prorated costs before confirming
+   */
+  async function previewUpgrade(
+    childId: string,
+    newTier: SubscriptionTier,
+  ): Promise<{ preview: UpgradePreview | null; error: string | null }> {
+    if (!authStore.user || !authStore.isParent) {
+      return { preview: null, error: 'Not authenticated as parent' }
+    }
+
+    const plan = plans.value.find((p) => p.id === newTier)
+    if (!plan?.stripePriceId) {
+      return { preview: null, error: 'Plan not configured for payments' }
+    }
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('preview-upgrade', {
+        body: {
+          studentId: childId,
+          newPriceId: plan.stripePriceId,
+        },
+      })
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      return { preview: data as UpgradePreview, error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to preview upgrade'
+      return { preview: null, error: message }
     }
   }
 
@@ -502,6 +580,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     createCheckoutSession,
     openCustomerPortal,
     syncSubscription,
+    previewUpgrade,
     modifySubscription,
     cancelStripeSubscription,
 
