@@ -385,12 +385,14 @@ export const useQuestionsStore = defineStore('questions', () => {
       const folder = optionId ? `options/${optionId}` : 'questions'
       const filePath = `${folder}/${questionId}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage.from('question-images').upload(filePath, file, {
-        upsert: true,
-        // High cache-control value (1 year) for better CDN caching
-        // Smart CDN will auto-invalidate when file is updated
-        cacheControl: '31536000',
-      })
+      const { error: uploadError } = await supabase.storage
+        .from('question-images')
+        .upload(filePath, file, {
+          upsert: true,
+          // High cache-control value (1 year) for better CDN caching
+          // Smart CDN will auto-invalidate when file is updated
+          cacheControl: '31536000',
+        })
 
       if (uploadError) throw uploadError
 

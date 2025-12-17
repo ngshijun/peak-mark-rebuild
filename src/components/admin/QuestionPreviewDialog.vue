@@ -130,7 +130,7 @@ const correctAnswer = computed(() => {
         <div v-if="question.imagePath" class="space-y-2">
           <h3 class="font-semibold">Question Image</h3>
           <img
-            :src="questionsStore.getQuestionImageUrl(question.imagePath)"
+            :src="questionsStore.getOptimizedQuestionImageUrl(question.imagePath)"
             alt="Question image"
             class="max-h-48 rounded-lg border object-contain"
           />
@@ -160,7 +160,7 @@ const correctAnswer = computed(() => {
                 <span v-if="option.text">{{ option.text }}</span>
                 <img
                   v-if="option.imagePath"
-                  :src="questionsStore.getQuestionImageUrl(option.imagePath)"
+                  :src="questionsStore.getThumbnailQuestionImageUrl(option.imagePath)"
                   :alt="`Option ${option.id.toUpperCase()}`"
                   class="max-h-16 rounded border object-contain"
                 />

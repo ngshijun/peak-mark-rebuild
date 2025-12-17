@@ -185,7 +185,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
    */
   async function createCheckoutSession(
     childId: string,
-    tier: SubscriptionTier
+    tier: SubscriptionTier,
   ): Promise<{ url: string | null; error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
       return { url: null, error: 'Not authenticated as parent' }
@@ -214,7 +214,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
             successUrl: `${window.location.origin}/parent/subscription?success=true`,
             cancelUrl: `${window.location.origin}/parent/subscription?canceled=true`,
           },
-        }
+        },
       )
 
       if (invokeError) throw invokeError
@@ -235,11 +235,14 @@ export const useSubscriptionStore = defineStore('subscription', () => {
    */
   async function openCustomerPortal(): Promise<{ url: string | null; error: string | null }> {
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('create-portal-session', {
-        body: {
-          returnUrl: `${window.location.origin}/parent/subscription`,
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        'create-portal-session',
+        {
+          body: {
+            returnUrl: `${window.location.origin}/parent/subscription`,
+          },
         },
-      })
+      )
 
       if (invokeError) throw invokeError
       if (data.error) throw new Error(data.error)
@@ -257,7 +260,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
    */
   async function syncSubscription(
     childId: string,
-    sessionId?: string
+    sessionId?: string,
   ): Promise<{ success: boolean; error: string | null }> {
     isProcessingPayment.value = true
     paymentError.value = null
@@ -292,7 +295,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
    */
   async function modifySubscription(
     childId: string,
-    newTier: SubscriptionTier
+    newTier: SubscriptionTier,
   ): Promise<{
     success: boolean
     error: string | null
@@ -349,7 +352,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
    */
   async function cancelStripeSubscription(
     childId: string,
-    immediately: boolean = false
+    immediately: boolean = false,
   ): Promise<{ success: boolean; error: string | null }> {
     isProcessingPayment.value = true
     paymentError.value = null
@@ -383,7 +386,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
    */
   async function upgradePlan(
     childId: string,
-    tier: SubscriptionTier
+    tier: SubscriptionTier,
   ): Promise<{ success: boolean; error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
       return { success: false, error: 'Not authenticated as parent' }
@@ -457,7 +460,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
    * @deprecated Use cancelStripeSubscription for Stripe-managed subscriptions
    */
   async function cancelSubscription(
-    childId: string
+    childId: string,
   ): Promise<{ success: boolean; error: string | null }> {
     return upgradePlan(childId, 'basic')
   }

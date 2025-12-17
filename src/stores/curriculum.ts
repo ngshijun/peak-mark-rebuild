@@ -663,10 +663,12 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       const folder = type === 'subtopic' ? 'subtopics' : `${type}s`
       const filePath = `${folder}/${id}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage.from('curriculum-images').upload(filePath, file, {
-        upsert: true,
-        cacheControl: '31536000', // 1 year cache for CDN
-      })
+      const { error: uploadError } = await supabase.storage
+        .from('curriculum-images')
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: '31536000', // 1 year cache for CDN
+        })
 
       if (uploadError) throw uploadError
 

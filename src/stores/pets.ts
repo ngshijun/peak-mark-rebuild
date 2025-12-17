@@ -602,10 +602,12 @@ export const usePetsStore = defineStore('pets', () => {
       const fileName = petId ? `${petId}.${fileExt}` : `${Date.now()}.${fileExt}`
       const filePath = fileName
 
-      const { error: uploadError } = await supabase.storage.from('pet-images').upload(filePath, file, {
-        upsert: true,
-        cacheControl: '31536000', // 1 year cache for CDN
-      })
+      const { error: uploadError } = await supabase.storage
+        .from('pet-images')
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: '31536000', // 1 year cache for CDN
+        })
 
       if (uploadError) {
         return { path: null, error: uploadError.message }

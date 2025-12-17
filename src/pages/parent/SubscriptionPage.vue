@@ -64,7 +64,7 @@ onMounted(async () => {
     // Sync subscription from Stripe to ensure database is up to date
     const { success, error } = await subscriptionStore.syncSubscription(
       selectedChildId.value,
-      sessionId
+      sessionId,
     )
 
     if (success) {
@@ -94,7 +94,7 @@ onMounted(async () => {
   // Background sync: verify Stripe state for children with active subscriptions
   // This catches any missed webhooks without blocking the UI
   const childrenWithStripe = childLinkStore.linkedChildren.filter((child) =>
-    subscriptionStore.hasActiveStripeSubscription(child.id)
+    subscriptionStore.hasActiveStripeSubscription(child.id),
   )
 
   if (childrenWithStripe.length > 0) {
@@ -103,8 +103,8 @@ onMounted(async () => {
       childrenWithStripe.map((child) =>
         subscriptionStore.syncSubscription(child.id).catch((err) => {
           console.warn(`Background sync failed for child ${child.id}:`, err)
-        })
-      )
+        }),
+      ),
     ).then(() => {
       // Refresh subscriptions after background sync completes
       subscriptionStore.fetchChildrenSubscriptions()
@@ -171,7 +171,10 @@ async function handleSubscribe(tier: SubscriptionTier) {
     }
   } else {
     // No Stripe subscription - create checkout session
-    const { url, error } = await subscriptionStore.createCheckoutSession(selectedChildId.value, tier)
+    const { url, error } = await subscriptionStore.createCheckoutSession(
+      selectedChildId.value,
+      tier,
+    )
     if (error) {
       toast.error('Error', { description: error })
     } else if (url) {
@@ -245,7 +248,7 @@ function getButtonText(planTier: SubscriptionTier, currentTier: SubscriptionTier
 function getButtonVariant(
   planTier: SubscriptionTier,
   currentTier: SubscriptionTier,
-  highlighted?: boolean
+  highlighted?: boolean,
 ) {
   if (planTier === currentTier) return 'outline' as const
   if (highlighted) return 'default' as const
@@ -400,7 +403,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
             </div>
           </CardContent>
           <CardFooter
-            v-if="currentSubscription.tier !== 'basic' && !currentSubscription.stripe?.cancelAtPeriodEnd"
+            v-if="
+              currentSubscription.tier !== 'basic' && !currentSubscription.stripe?.cancelAtPeriodEnd
+            "
           >
             <AlertDialog>
               <AlertDialogTrigger as-child>
@@ -529,7 +534,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="handleSubscribe(plan.id)"> Confirm </AlertDialogAction>
+                    <AlertDialogAction @click="handleSubscribe(plan.id)">
+                      Confirm
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

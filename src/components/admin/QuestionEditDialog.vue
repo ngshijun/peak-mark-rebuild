@@ -253,9 +253,9 @@ watch(
         })),
       })
 
-      // Set question image URL for display
+      // Set question image URL for display (use optimized for faster loading)
       if (q.imagePath) {
-        formImageUrl.value = questionsStore.getQuestionImageUrl(q.imagePath)
+        formImageUrl.value = questionsStore.getOptimizedQuestionImageUrl(q.imagePath)
       } else {
         formImageUrl.value = ''
       }
@@ -366,8 +366,8 @@ function getOptionImageUrl(optionId: 'a' | 'b' | 'c' | 'd'): string {
     return option.imagePath
   }
 
-  // Otherwise, get the public URL from storage
-  return questionsStore.getQuestionImageUrl(option.imagePath)
+  // Otherwise, get the optimized thumbnail URL from storage
+  return questionsStore.getThumbnailQuestionImageUrl(option.imagePath)
 }
 
 const onSubmit = handleSubmit(async (formValues) => {
