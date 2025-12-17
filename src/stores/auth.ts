@@ -156,9 +156,9 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       const result = await authSignOut()
-      if (!result.error) {
-        user.value = null
-      }
+      // Always clear local user state when signing out
+      // Even if the server returns an error, we want to clear the local session
+      user.value = null
       return result
     } finally {
       isLoading.value = false

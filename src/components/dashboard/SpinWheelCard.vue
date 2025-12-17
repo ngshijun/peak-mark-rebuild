@@ -49,7 +49,11 @@ async function spin() {
   // Calculate final rotation: multiple full spins + landing on correct segment
   const fullSpins = 5 + Math.random() * 3 // 5-8 full rotations
   const targetAngle = segmentIndex * segmentAngle + segmentAngle / 2 // Center of segment
-  const finalRotation = rotation.value + fullSpins * 360 + (360 - targetAngle)
+  const targetRotation = 360 - targetAngle // The rotation angle (mod 360) needed to land on target
+  const currentAngle = rotation.value % 360 // Current wheel position
+  let deltaToTarget = targetRotation - currentAngle
+  if (deltaToTarget <= 0) deltaToTarget += 360 // Always rotate forward (clockwise)
+  const finalRotation = rotation.value + fullSpins * 360 + deltaToTarget
 
   rotation.value = finalRotation
 

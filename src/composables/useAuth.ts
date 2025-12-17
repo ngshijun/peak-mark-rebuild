@@ -114,8 +114,16 @@ export async function signOut(): Promise<{ error: string | null }> {
     const { error: signOutError } = await supabase.auth.signOut()
 
     if (signOutError) {
-      error.value = signOutError.message
-      return { error: signOutError.message }
+      // If session is not found, the user is effectively already logged out
+      // Treat this as a successful logout rather than an error
+      const isSessionGone =
+        signOutError.message.includes('session_not_found') ||
+        signOutError.code === 'session_not_found'
+
+      if (!isSessionGone) {
+        error.value = signOutError.message
+        return { error: signOutError.message }
+      }
     }
 
     return { error: null }
