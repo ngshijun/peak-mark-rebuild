@@ -86,68 +86,12 @@ const pendingSubTopic = computed(() => {
   return selectedTopic.value.subTopics.find((st) => st.id === pendingSubTopicId.value) ?? null
 })
 
-// Subject images mapping
-const subjectImages: Record<string, string> = {
-  Mathematics: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop',
-  Science: 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=400&h=300&fit=crop',
-  English: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=400&h=300&fit=crop',
-  Chinese: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&h=300&fit=crop',
-  History: 'https://images.unsplash.com/photo-1461360370896-922624d12a74?w=400&h=300&fit=crop',
-  Geography: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=300&fit=crop',
-}
-
-const defaultSubjectImage =
-  'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop'
-
-// Topic images mapping
-const topicImages: Record<string, string> = {
-  // Mathematics topics
-  Addition: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=400&h=300&fit=crop',
-  Subtraction: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400&h=300&fit=crop',
-  Multiplication:
-    'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop',
-  Division: 'https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400&h=300&fit=crop',
-  Fractions: 'https://images.unsplash.com/photo-1632571401005-458e9d244591?w=400&h=300&fit=crop',
-  Geometry: 'https://images.unsplash.com/photo-1635372722656-389f87a941b7?w=400&h=300&fit=crop',
-  Counting: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=400&h=300&fit=crop',
-  Shapes: 'https://images.unsplash.com/photo-1635372722656-389f87a941b7?w=400&h=300&fit=crop',
-  // Science topics
-  Plants: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop',
-  Animals: 'https://images.unsplash.com/photo-1474511320723-9a56873571b7?w=400&h=300&fit=crop',
-  Weather: 'https://images.unsplash.com/photo-1504253163759-c23fccaebb55?w=400&h=300&fit=crop',
-  Matter: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=400&h=300&fit=crop',
-  Energy: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=300&fit=crop',
-  // English topics
-  Alphabet: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop',
-  Phonics: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=300&fit=crop',
-  Grammar: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=300&fit=crop',
-  Vocabulary: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=400&h=300&fit=crop',
-  Reading: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=300&fit=crop',
-  Writing: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&h=300&fit=crop',
-  Spelling: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop',
-  // Chinese topics
-  Pinyin: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&h=300&fit=crop',
-  Characters: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&h=300&fit=crop',
-  // History topics
-  'Local History':
-    'https://images.unsplash.com/photo-1461360370896-922624d12a74?w=400&h=300&fit=crop',
-  'Famous People':
-    'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&h=300&fit=crop',
-  // Geography topics
-  Maps: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=300&fit=crop',
-  Continents: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=300&fit=crop',
-  Countries: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=400&h=300&fit=crop',
-}
-
-const defaultTopicImage =
-  'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400&h=300&fit=crop'
-
-function getSubjectImage(subject: { name: string; coverImage?: string | null }): string {
-  return subject.coverImage || subjectImages[subject.name] || defaultSubjectImage
-}
-
-function getTopicImage(topic: { name: string; coverImage?: string | null }): string {
-  return topic.coverImage || topicImages[topic.name] || defaultTopicImage
+function getImageUrl(coverImagePath: string | null): string {
+  if (!coverImagePath) return ''
+  if (coverImagePath.startsWith('http')) {
+    return coverImagePath
+  }
+  return curriculumStore.getOptimizedImageUrl(coverImagePath)
 }
 
 function selectSubject(subjectId: string) {
@@ -209,16 +153,6 @@ async function confirmStartSession() {
     isStartingSession.value = false
     pendingSubTopicId.value = null
   }
-}
-
-function getSubTopicImage(subTopic: SubTopic): string {
-  if (subTopic.coverImagePath) {
-    if (subTopic.coverImagePath.startsWith('http')) {
-      return subTopic.coverImagePath
-    }
-    return curriculumStore.getCurriculumImageUrl(subTopic.coverImagePath)
-  }
-  return topicImages[subTopic.name] || defaultTopicImage
 }
 </script>
 
@@ -319,9 +253,9 @@ function getSubTopicImage(subTopic: SubTopic): string {
             class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
             @click="selectSubject(subject.id)"
           >
-            <div class="aspect-video w-full overflow-hidden">
+            <div v-if="subject.coverImagePath" class="aspect-video w-full overflow-hidden">
               <img
-                :src="getSubjectImage(subject)"
+                :src="getImageUrl(subject.coverImagePath)"
                 :alt="subject.name"
                 class="size-full object-cover transition-transform hover:scale-105"
               />
@@ -350,9 +284,9 @@ function getSubTopicImage(subTopic: SubTopic): string {
             class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
             @click="selectTopic(topic.id)"
           >
-            <div class="aspect-video w-full overflow-hidden">
+            <div v-if="topic.coverImagePath" class="aspect-video w-full overflow-hidden">
               <img
-                :src="getTopicImage(topic)"
+                :src="getImageUrl(topic.coverImagePath)"
                 :alt="topic.name"
                 class="size-full object-cover transition-transform hover:scale-105"
               />
@@ -385,16 +319,19 @@ function getSubTopicImage(subTopic: SubTopic): string {
             }"
             @click="selectSubTopic(subTopic.id)"
           >
-            <div class="aspect-video w-full overflow-hidden">
+            <div v-if="subTopic.coverImagePath" class="aspect-video w-full overflow-hidden">
               <img
-                :src="getSubTopicImage(subTopic)"
+                :src="getImageUrl(subTopic.coverImagePath)"
                 :alt="subTopic.name"
                 class="size-full object-cover transition-transform hover:scale-105"
               />
             </div>
             <CardContent class="p-4">
               <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
-              <p class="text-sm text-muted-foreground">10 questions</p>
+              <p class="text-sm text-muted-foreground">
+                {{ subTopic.questionCount }}
+                {{ subTopic.questionCount === 1 ? 'question' : 'questions' }}
+              </p>
             </CardContent>
           </Card>
         </div>

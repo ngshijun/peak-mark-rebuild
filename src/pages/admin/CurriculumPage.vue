@@ -120,6 +120,7 @@ const editImageTopicId = ref('')
 const editImageSubTopicId = ref('')
 const editImageItemName = ref('')
 const editImageInputRef = ref<HTMLInputElement | null>(null)
+const editImageHasCustomImage = ref(false)
 
 // Delete confirmation dialog
 const showDeleteDialog = ref(false)
@@ -140,90 +141,12 @@ const editNameTopicId = ref('')
 const editNameSubTopicId = ref('')
 const editNameCurrentName = ref('')
 
-// Default images
-const defaultSubjectImage =
-  'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop'
-const defaultTopicImage =
-  'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400&h=300&fit=crop'
-
-// Subject images mapping (fallback)
-const subjectImages: Record<string, string> = {
-  Mathematics: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop',
-  Science: 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=400&h=300&fit=crop',
-  English: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=400&h=300&fit=crop',
-  Chinese: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&h=300&fit=crop',
-  History: 'https://images.unsplash.com/photo-1461360370896-922624d12a74?w=400&h=300&fit=crop',
-  Geography: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=300&fit=crop',
-}
-
-// Topic images mapping (fallback)
-const topicImages: Record<string, string> = {
-  Addition: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=400&h=300&fit=crop',
-  Subtraction: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400&h=300&fit=crop',
-  Multiplication:
-    'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop',
-  Division: 'https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400&h=300&fit=crop',
-  Fractions: 'https://images.unsplash.com/photo-1632571401005-458e9d244591?w=400&h=300&fit=crop',
-  Geometry: 'https://images.unsplash.com/photo-1635372722656-389f87a941b7?w=400&h=300&fit=crop',
-  Counting: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=400&h=300&fit=crop',
-  Shapes: 'https://images.unsplash.com/photo-1635372722656-389f87a941b7?w=400&h=300&fit=crop',
-  Plants: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop',
-  Animals: 'https://images.unsplash.com/photo-1474511320723-9a56873571b7?w=400&h=300&fit=crop',
-  Weather: 'https://images.unsplash.com/photo-1504253163759-c23fccaebb55?w=400&h=300&fit=crop',
-  Matter: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=400&h=300&fit=crop',
-  Energy: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=300&fit=crop',
-  Alphabet: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop',
-  Phonics: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=300&fit=crop',
-  Grammar: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=300&fit=crop',
-  Vocabulary: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=400&h=300&fit=crop',
-  Reading: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=300&fit=crop',
-  Writing: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&h=300&fit=crop',
-  Spelling: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop',
-  Pinyin: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&h=300&fit=crop',
-  Characters: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&h=300&fit=crop',
-  'Local History':
-    'https://images.unsplash.com/photo-1461360370896-922624d12a74?w=400&h=300&fit=crop',
-  'Famous People':
-    'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&h=300&fit=crop',
-  Maps: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=300&fit=crop',
-  Continents: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=300&fit=crop',
-  Countries: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=400&h=300&fit=crop',
-}
-
-function getSubjectImage(subject: Subject): string {
-  // If there's a stored image path, get the public URL
-  if (subject.coverImagePath) {
-    // Check if it's a full URL or a storage path
-    if (subject.coverImagePath.startsWith('http')) {
-      return subject.coverImagePath
-    }
-    return curriculumStore.getCurriculumImageUrl(subject.coverImagePath)
+function getImageUrl(coverImagePath: string | null): string {
+  if (!coverImagePath) return ''
+  if (coverImagePath.startsWith('http')) {
+    return coverImagePath
   }
-  return subjectImages[subject.name] || defaultSubjectImage
-}
-
-function getTopicImage(topic: Topic): string {
-  // If there's a stored image path, get the public URL
-  if (topic.coverImagePath) {
-    // Check if it's a full URL or a storage path
-    if (topic.coverImagePath.startsWith('http')) {
-      return topic.coverImagePath
-    }
-    return curriculumStore.getCurriculumImageUrl(topic.coverImagePath)
-  }
-  return topicImages[topic.name] || defaultTopicImage
-}
-
-function getSubTopicImage(subTopic: SubTopic): string {
-  // If there's a stored image path, get the public URL
-  if (subTopic.coverImagePath) {
-    // Check if it's a full URL or a storage path
-    if (subTopic.coverImagePath.startsWith('http')) {
-      return subTopic.coverImagePath
-    }
-    return curriculumStore.getCurriculumImageUrl(subTopic.coverImagePath)
-  }
-  return topicImages[subTopic.name] || defaultTopicImage
+  return curriculumStore.getOptimizedImageUrl(coverImagePath)
 }
 
 // Fetch curriculum on mount
@@ -422,6 +345,7 @@ function openEditImageDialog(
   subjectId: string,
   itemName: string,
   currentImage: string,
+  hasCustomImage: boolean,
   topicId?: string,
   subTopicId?: string,
 ) {
@@ -433,6 +357,7 @@ function openEditImageDialog(
   editImageItemName.value = itemName
   editImagePreview.value = currentImage
   editImageFile.value = null
+  editImageHasCustomImage.value = hasCustomImage
   showEditImageDialog.value = true
 }
 
@@ -519,6 +444,50 @@ async function handleEditImage() {
     showEditImageDialog.value = false
     editImagePreview.value = ''
     editImageFile.value = null
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function handleRemoveImage() {
+  isSaving.value = true
+
+  try {
+    let result: { success: boolean; error: string | null }
+
+    if (editImageType.value === 'subject') {
+      result = await curriculumStore.updateSubjectCoverImage(
+        editImageGradeLevelId.value,
+        editImageSubjectId.value,
+        null,
+      )
+    } else if (editImageType.value === 'topic') {
+      result = await curriculumStore.updateTopicCoverImage(
+        editImageGradeLevelId.value,
+        editImageSubjectId.value,
+        editImageTopicId.value,
+        null,
+      )
+    } else {
+      result = await curriculumStore.updateSubTopicCoverImage(
+        editImageGradeLevelId.value,
+        editImageSubjectId.value,
+        editImageTopicId.value,
+        editImageSubTopicId.value,
+        null,
+      )
+    }
+
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+
+    toast.success('Cover image removed successfully')
+    showEditImageDialog.value = false
+    editImagePreview.value = ''
+    editImageFile.value = null
+    editImageHasCustomImage.value = false
   } finally {
     isSaving.value = false
   }
@@ -765,41 +734,6 @@ async function handleEditName() {
       <div>
         <h1 class="text-2xl font-bold">Curriculum</h1>
         <p class="text-muted-foreground">Manage grade levels, subjects, topics, and sub-topics</p>
-        <!-- Breadcrumb Navigation -->
-        <Breadcrumb class="mt-4">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink v-if="selectedGradeLevel" as-child>
-                <button @click="goBackToGradeLevels">Grade Levels</button>
-              </BreadcrumbLink>
-              <BreadcrumbPage v-else>Grade Levels</BreadcrumbPage>
-            </BreadcrumbItem>
-            <template v-if="selectedGradeLevel">
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink v-if="selectedSubject" as-child>
-                  <button @click="goBackToSubjects">{{ selectedGradeLevel.name }}</button>
-                </BreadcrumbLink>
-                <BreadcrumbPage v-else>{{ selectedGradeLevel.name }}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </template>
-            <template v-if="selectedSubject">
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink v-if="selectedTopic" as-child>
-                  <button @click="goBackToTopics">{{ selectedSubject.name }}</button>
-                </BreadcrumbLink>
-                <BreadcrumbPage v-else>{{ selectedSubject.name }}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </template>
-            <template v-if="selectedTopic">
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{{ selectedTopic.name }}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </template>
-          </BreadcrumbList>
-        </Breadcrumb>
       </div>
       <!-- Dynamic Add Button -->
       <Button :disabled="curriculumStore.isLoading" @click="openAddDialog(currentAddType)">
@@ -807,6 +741,42 @@ async function handleEditName() {
         {{ addButtonLabel }}
       </Button>
     </div>
+
+    <!-- Breadcrumb Navigation -->
+    <Breadcrumb class="mb-4">
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink v-if="selectedGradeLevel" as-child>
+            <button @click="goBackToGradeLevels">Grade Levels</button>
+          </BreadcrumbLink>
+          <BreadcrumbPage v-else>Grade Levels</BreadcrumbPage>
+        </BreadcrumbItem>
+        <template v-if="selectedGradeLevel">
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink v-if="selectedSubject" as-child>
+              <button @click="goBackToSubjects">{{ selectedGradeLevel.name }}</button>
+            </BreadcrumbLink>
+            <BreadcrumbPage v-else>{{ selectedGradeLevel.name }}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </template>
+        <template v-if="selectedSubject">
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink v-if="selectedTopic" as-child>
+              <button @click="goBackToTopics">{{ selectedSubject.name }}</button>
+            </BreadcrumbLink>
+            <BreadcrumbPage v-else>{{ selectedSubject.name }}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </template>
+        <template v-if="selectedTopic">
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{{ selectedTopic.name }}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </template>
+      </BreadcrumbList>
+    </Breadcrumb>
 
     <!-- Loading State -->
     <div v-if="curriculumStore.isLoading" class="flex items-center justify-center py-12">
@@ -819,18 +789,9 @@ async function handleEditName() {
         <Card
           v-for="grade in curriculumStore.gradeLevels"
           :key="grade.id"
-          class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+          class="group relative cursor-pointer transition-shadow hover:shadow-lg"
           @click="selectGradeLevel(grade.id)"
         >
-          <div
-            class="aspect-video w-full overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5"
-          >
-            <div class="flex size-full items-center justify-center">
-              <span class="text-6xl font-bold text-primary/30">{{
-                grade.name.replace(/\D/g, '') || '?'
-              }}</span>
-            </div>
-          </div>
           <CardContent class="p-4">
             <h3 class="text-lg font-semibold">{{ grade.name }}</h3>
             <p class="text-sm text-muted-foreground">
@@ -889,9 +850,9 @@ async function handleEditName() {
           class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
           @click="selectSubject(subject.id)"
         >
-          <div class="aspect-video w-full overflow-hidden">
+          <div v-if="subject.coverImagePath" class="aspect-video w-full overflow-hidden">
             <img
-              :src="getSubjectImage(subject)"
+              :src="getImageUrl(subject.coverImagePath)"
               :alt="subject.name"
               class="size-full object-cover transition-transform group-hover:scale-105"
             />
@@ -926,7 +887,8 @@ async function handleEditName() {
                   selectedGradeLevel.id,
                   subject.id,
                   subject.name,
-                  getSubjectImage(subject),
+                  getImageUrl(subject.coverImagePath),
+                  !!subject.coverImagePath,
                 )
               "
             >
@@ -974,9 +936,9 @@ async function handleEditName() {
           class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
           @click="selectTopic(topic.id)"
         >
-          <div class="aspect-video w-full overflow-hidden">
+          <div v-if="topic.coverImagePath" class="aspect-video w-full overflow-hidden">
             <img
-              :src="getTopicImage(topic)"
+              :src="getImageUrl(topic.coverImagePath)"
               :alt="topic.name"
               class="size-full object-cover transition-transform group-hover:scale-105"
             />
@@ -1018,7 +980,8 @@ async function handleEditName() {
                   selectedGradeLevel.id,
                   selectedSubject.id,
                   topic.name,
-                  getTopicImage(topic),
+                  getImageUrl(topic.coverImagePath),
+                  !!topic.coverImagePath,
                   topic.id,
                 )
               "
@@ -1070,9 +1033,9 @@ async function handleEditName() {
           :key="subTopic.id"
           class="group relative overflow-hidden transition-shadow hover:shadow-lg"
         >
-          <div class="aspect-video w-full overflow-hidden">
+          <div v-if="subTopic.coverImagePath" class="aspect-video w-full overflow-hidden">
             <img
-              :src="getSubTopicImage(subTopic)"
+              :src="getImageUrl(subTopic.coverImagePath)"
               :alt="subTopic.name"
               class="size-full object-cover transition-transform group-hover:scale-105"
             />
@@ -1112,7 +1075,8 @@ async function handleEditName() {
                   selectedGradeLevel.id,
                   selectedSubject.id,
                   subTopic.name,
-                  getSubTopicImage(subTopic),
+                  getImageUrl(subTopic.coverImagePath),
+                  !!subTopic.coverImagePath,
                   selectedTopic.id,
                   subTopic.id,
                 )
@@ -1301,12 +1265,11 @@ async function handleEditName() {
 
         <div class="space-y-4 py-4">
           <!-- Preview -->
-          <div class="aspect-video w-full overflow-hidden rounded-lg border">
-            <img
-              :src="editImagePreview || defaultSubjectImage"
-              :alt="editImageItemName"
-              class="size-full object-cover"
-            />
+          <div
+            v-if="editImagePreview"
+            class="aspect-video w-full overflow-hidden rounded-lg border"
+          >
+            <img :src="editImagePreview" :alt="editImageItemName" class="size-full object-cover" />
           </div>
 
           <!-- Upload Button -->
@@ -1331,10 +1294,19 @@ async function handleEditName() {
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" :disabled="isSaving" @click="showEditImageDialog = false"
-            >Cancel</Button
+        <DialogFooter class="gap-2">
+          <Button variant="outline" :disabled="isSaving" @click="showEditImageDialog = false">
+            Cancel
+          </Button>
+          <Button
+            v-if="editImageHasCustomImage && !editImageFile"
+            variant="destructive"
+            :disabled="isSaving"
+            @click="handleRemoveImage"
           >
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Remove Image
+          </Button>
           <Button @click="handleEditImage" :disabled="!editImageFile || isSaving">
             <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
             Save

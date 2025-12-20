@@ -14,6 +14,7 @@ export interface SubTopic {
   coverImagePath: string | null
   displayOrder: number
   topicId: string
+  questionCount: number
 }
 
 export interface Topic {
@@ -91,6 +92,20 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
       if (subTopicError) throw subTopicError
 
+      // Fetch question counts per subtopic
+      const { data: questionCounts, error: questionCountError } = await supabase
+        .from('questions')
+        .select('topic_id')
+
+      if (questionCountError) throw questionCountError
+
+      // Build question count map
+      const questionCountMap = new Map<string, number>()
+      for (const q of questionCounts ?? []) {
+        const count = questionCountMap.get(q.topic_id) ?? 0
+        questionCountMap.set(q.topic_id, count + 1)
+      }
+
       // Store flat lists
       allSubjects.value = subjectData ?? []
       allTopics.value = topicData ?? []
@@ -155,6 +170,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
             coverImagePath: subTopic.cover_image_path,
             displayOrder: subTopic.display_order ?? 0,
             topicId: subTopic.topic_id,
+            questionCount: questionCountMap.get(subTopic.id) ?? 0,
           })
         }
       }
@@ -311,10 +327,10 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   async function updateSubject(
     gradeLevelId: string,
     subjectId: string,
-    updates: { name?: string; coverImagePath?: string },
+    updates: { name?: string; coverImagePath?: string | null },
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      const updateData: { name?: string; cover_image_path?: string } = {}
+      const updateData: { name?: string; cover_image_path?: string | null } = {}
       if (updates.name !== undefined) updateData.name = updates.name
       if (updates.coverImagePath !== undefined) updateData.cover_image_path = updates.coverImagePath
 
@@ -347,7 +363,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   async function updateSubjectCoverImage(
     gradeLevelId: string,
     subjectId: string,
-    coverImagePath: string,
+    coverImagePath: string | null,
   ): Promise<{ success: boolean; error: string | null }> {
     return updateSubject(gradeLevelId, subjectId, { coverImagePath })
   }
@@ -438,10 +454,10 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     gradeLevelId: string,
     subjectId: string,
     topicId: string,
-    updates: { name?: string; coverImagePath?: string },
+    updates: { name?: string; coverImagePath?: string | null },
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      const updateData: { name?: string; cover_image_path?: string } = {}
+      const updateData: { name?: string; cover_image_path?: string | null } = {}
       if (updates.name !== undefined) updateData.name = updates.name
       if (updates.coverImagePath !== undefined) updateData.cover_image_path = updates.coverImagePath
 
@@ -476,7 +492,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     gradeLevelId: string,
     subjectId: string,
     topicId: string,
-    coverImagePath: string,
+    coverImagePath: string | null,
   ): Promise<{ success: boolean; error: string | null }> {
     return updateTopic(gradeLevelId, subjectId, topicId, { coverImagePath })
   }
@@ -553,6 +569,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
         coverImagePath: data.cover_image_path,
         displayOrder: data.display_order ?? 0,
         topicId: data.topic_id,
+        questionCount: 0,
       })
 
       return { success: true, error: null, id: data.id }
@@ -571,10 +588,10 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     subjectId: string,
     topicId: string,
     subTopicId: string,
-    updates: { name?: string; coverImagePath?: string },
+    updates: { name?: string; coverImagePath?: string | null },
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      const updateData: { name?: string; cover_image_path?: string } = {}
+      const updateData: { name?: string; cover_image_path?: string | null } = {}
       if (updates.name !== undefined) updateData.name = updates.name
       if (updates.coverImagePath !== undefined) updateData.cover_image_path = updates.coverImagePath
 
@@ -611,7 +628,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     subjectId: string,
     topicId: string,
     subTopicId: string,
-    coverImagePath: string,
+    coverImagePath: string | null,
   ): Promise<{ success: boolean; error: string | null }> {
     return updateSubTopic(gradeLevelId, subjectId, topicId, subTopicId, { coverImagePath })
   }
@@ -681,12 +698,42 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   }
 
   /**
-   * Get public URL for a curriculum image
+   * Image transformation options for Supabase Storage
    */
-  function getCurriculumImageUrl(path: string | null): string {
+  interface ImageTransformOptions {
+    width?: number
+    height?: number
+    quality?: number
+    resize?: 'cover' | 'contain' | 'fill'
+  }
+
+  /**
+   * Get public URL for a curriculum image with optional transformation
+   */
+  function getCurriculumImageUrl(path: string | null, transform?: ImageTransformOptions): string {
     if (!path) return ''
+
+    if (transform) {
+      const { data } = supabase.storage.from('curriculum-images').getPublicUrl(path, {
+        transform: {
+          width: transform.width,
+          height: transform.height,
+          quality: transform.quality ?? 80,
+          resize: transform.resize ?? 'contain',
+        },
+      })
+      return data.publicUrl
+    }
+
     const { data } = supabase.storage.from('curriculum-images').getPublicUrl(path)
     return data.publicUrl
+  }
+
+  /**
+   * Get optimized image URL for curriculum display (cards)
+   */
+  function getOptimizedImageUrl(path: string | null): string {
+    return getCurriculumImageUrl(path, { width: 400, quality: 80 })
   }
 
   // Helper to find a grade level by ID
@@ -792,6 +839,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     deleteSubTopic,
     uploadCurriculumImage,
     getCurriculumImageUrl,
+    getOptimizedImageUrl,
 
     // Helpers
     getGradeLevelById,
