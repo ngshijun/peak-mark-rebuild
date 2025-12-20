@@ -33,6 +33,103 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcement_reads: {
+        Row: {
+          announcement_id: string
+          id: string
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          id?: string
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          id?: string
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'announcement_reads_announcement_id_fkey'
+            columns: ['announcement_id']
+            isOneToOne: false
+            referencedRelation: 'announcements'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'announcement_reads_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'leaderboard'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'announcement_reads_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          id: string
+          image_path: string | null
+          is_pinned: boolean
+          target_audience: Database['public']['Enums']['announcement_audience']
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          image_path?: string | null
+          is_pinned?: boolean
+          target_audience?: Database['public']['Enums']['announcement_audience']
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          image_path?: string | null
+          is_pinned?: boolean
+          target_audience?: Database['public']['Enums']['announcement_audience']
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'announcements_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'leaderboard'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'announcements_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       child_subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -1237,10 +1334,12 @@ export type Database = {
         Args: { p_price_id: string }
         Returns: Database['public']['Enums']['subscription_tier']
       }
+      get_unread_announcement_count: { Args: never; Returns: number }
       refresh_question_statistics: { Args: never; Returns: undefined }
       update_student_streak: { Args: { p_student_id: string }; Returns: number }
     }
     Enums: {
+      announcement_audience: 'all' | 'students_only' | 'parents_only'
       feedback_category:
         | 'question_error'
         | 'image_error'
@@ -1383,6 +1482,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      announcement_audience: ['all', 'students_only', 'parents_only'],
       feedback_category: [
         'question_error',
         'image_error',

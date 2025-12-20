@@ -17,12 +17,14 @@ import {
   CreditCard,
   Gift,
   PawPrint,
+  Megaphone,
 } from 'lucide-vue-next'
 import type { SidebarNavConfig } from '@/types'
 
 export const sidebarNavConfig: SidebarNavConfig = {
   admin: [
     { title: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { title: 'Announcements', path: '/admin/announcements', icon: Megaphone },
     { title: 'Curriculum', path: '/admin/curriculum', icon: BookOpen },
     { title: 'Question Bank', path: '/admin/question-bank', icon: Database },
     { title: 'Question Statistics', path: '/admin/question-statistics', icon: BarChart3 },
@@ -31,6 +33,7 @@ export const sidebarNavConfig: SidebarNavConfig = {
   ],
   student: [
     { title: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
+    { title: 'Announcements', path: '/student/announcements', icon: Megaphone },
     { title: 'Practice', path: '/student/practice', icon: PenTool },
     { title: 'History', path: '/student/history', icon: History },
     { title: 'Parent', path: '/student/parent', icon: Users },
@@ -42,6 +45,7 @@ export const sidebarNavConfig: SidebarNavConfig = {
   ],
   parent: [
     { title: 'Dashboard', path: '/parent/dashboard', icon: LayoutDashboard },
+    { title: 'Announcements', path: '/parent/announcements', icon: Megaphone },
     { title: 'Children', path: '/parent/children', icon: Baby },
     { title: 'Statistics', path: '/parent/statistics', icon: PieChart },
     { title: 'Subscription', path: '/parent/subscription', icon: CreditCard },

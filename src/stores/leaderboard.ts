@@ -156,6 +156,14 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     selectedGradeLevelId.value = gradeLevelId
   }
 
+  // Reset store state (call on logout)
+  function $reset() {
+    students.value = []
+    isLoading.value = false
+    error.value = null
+    selectedGradeLevelId.value = null
+  }
+
   return {
     // State
     students,
@@ -177,5 +185,6 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     getTop20,
     getAvatarUrl,
     setGradeLevelFilter,
+    $reset,
   }
 })

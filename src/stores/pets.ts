@@ -620,6 +620,14 @@ export const usePetsStore = defineStore('pets', () => {
     }
   }
 
+  // Reset user-specific state (call on logout)
+  // Note: allPets is shared data and doesn't need reset
+  function $reset() {
+    ownedPets.value = []
+    isLoading.value = false
+    error.value = null
+  }
+
   return {
     // State
     allPets,
@@ -659,5 +667,6 @@ export const usePetsStore = defineStore('pets', () => {
     updatePet,
     deletePet,
     uploadPetImage,
+    $reset,
   }
 })

@@ -556,6 +556,16 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     return childSubscriptions.value.some((sub) => sub.stripe?.stripeSubscriptionId)
   })
 
+  // Reset user-specific state (call on logout)
+  // Note: plans is shared data and doesn't need reset
+  function $reset() {
+    childSubscriptions.value = []
+    isLoading.value = false
+    error.value = null
+    isProcessingPayment.value = false
+    paymentError.value = null
+  }
+
   return {
     // State
     plans,
@@ -587,5 +597,6 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     // Legacy Actions (for basic tier or non-Stripe usage)
     upgradePlan,
     cancelSubscription,
+    $reset,
   }
 })

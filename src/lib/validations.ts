@@ -101,6 +101,18 @@ export const petFormSchema = toTypedSchema(
   }),
 )
 
+// Announcement forms
+export const announcementFormSchema = toTypedSchema(
+  z.object({
+    title: requiredStringSchema('Title'),
+    content: z.string().min(1, 'Content is required'),
+    targetAudience: z.enum(['all', 'students_only', 'parents_only'], {
+      required_error: 'Please select target audience',
+    }),
+    expiresAt: z.string().optional().nullable(),
+  }),
+)
+
 // Question form - this is complex, so we define it as a raw zod schema for flexibility
 export const questionFormSchemaBase = z.object({
   type: z.enum(['mcq', 'short_answer']),
@@ -223,6 +235,15 @@ const petFormZodSchema = z.object({
   gachaWeight: z.number().min(0, 'Weight must be positive'),
 })
 
+const announcementFormZodSchema = z.object({
+  title: requiredStringSchema('Title'),
+  content: z.string().min(1, 'Content is required'),
+  targetAudience: z.enum(['all', 'students_only', 'parents_only'], {
+    required_error: 'Please select target audience',
+  }),
+  expiresAt: z.string().optional().nullable(),
+})
+
 // Type exports for form values
 export type LoginFormValues = z.infer<typeof loginFormZodSchema>
 export type SignupFormValues = z.infer<typeof signupFormZodSchema>
@@ -231,4 +252,5 @@ export type EditNameFormValues = z.infer<typeof editNameFormZodSchema>
 export type QuestionFeedbackFormValues = z.infer<typeof questionFeedbackFormZodSchema>
 export type AddCurriculumItemFormValues = z.infer<typeof addCurriculumItemFormZodSchema>
 export type PetFormValues = z.infer<typeof petFormZodSchema>
+export type AnnouncementFormValues = z.infer<typeof announcementFormZodSchema>
 export type QuestionFormValues = z.infer<typeof questionFormSchema>

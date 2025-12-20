@@ -12,6 +12,7 @@ import CurrentPetCard from '@/components/dashboard/CurrentPetCard.vue'
 import SpinWheelCard from '@/components/dashboard/SpinWheelCard.vue'
 import StreakCard from '@/components/dashboard/StreakCard.vue'
 import InProgressSessionsCard from '@/components/dashboard/InProgressSessionsCard.vue'
+import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget.vue'
 
 const dashboardStore = useStudentDashboardStore()
 const practiceStore = usePracticeStore()
@@ -91,8 +92,11 @@ watch(isLoading, async (loading) => {
         <StreakCard />
       </div>
 
-      <!-- In-Progress Sessions -->
-      <InProgressSessionsCard />
+      <!-- Announcements and In-Progress Sessions Grid -->
+      <div class="grid gap-4 lg:grid-cols-2">
+        <AnnouncementsWidget />
+        <InProgressSessionsCard />
+      </div>
     </div>
   </div>
 </template>

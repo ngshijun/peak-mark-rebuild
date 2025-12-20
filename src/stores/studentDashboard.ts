@@ -262,6 +262,14 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
   }
 
+  // Reset store state (call on logout)
+  function $reset() {
+    todayStatus.value = null
+    isLoading.value = false
+    error.value = null
+    currentStreak.value = 0
+  }
+
   return {
     todayStatus,
     isLoading,
@@ -276,5 +284,6 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     refreshStreak,
     markPracticedToday,
     getTodayString,
+    $reset,
   }
 })

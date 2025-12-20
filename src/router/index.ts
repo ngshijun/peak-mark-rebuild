@@ -6,25 +6,39 @@ import { useParentLinkStore } from '@/stores/parent-link'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { usePetsStore } from '@/stores/pets'
 import { useQuestionsStore } from '@/stores/questions'
+import { useAnnouncementsStore } from '@/stores/announcements'
 
 /**
  * Route guards for data preloading
  * These ensure required store data is loaded before entering routes
  */
 
-// Parent routes require linked children data
+// Parent routes require linked children data and announcements
 async function parentRouteGuard() {
   const childLinkStore = useChildLinkStore()
+  const announcementsStore = useAnnouncementsStore()
+
+  const promises: Promise<unknown>[] = []
+
   if (childLinkStore.linkedChildren.length === 0 && !childLinkStore.isLoading) {
-    await childLinkStore.fetchLinkedChildren()
+    promises.push(childLinkStore.fetchLinkedChildren())
+  }
+
+  if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
+    promises.push(announcementsStore.fetchAnnouncements())
+  }
+
+  if (promises.length > 0) {
+    await Promise.all(promises)
   }
 }
 
-// Student routes require curriculum and pets data
+// Student routes require curriculum, pets, and announcements data
 async function studentRouteGuard() {
   const curriculumStore = useCurriculumStore()
   const petsStore = usePetsStore()
   const parentLinkStore = useParentLinkStore()
+  const announcementsStore = useAnnouncementsStore()
 
   const promises: Promise<unknown>[] = []
 
@@ -41,16 +55,21 @@ async function studentRouteGuard() {
     promises.push(parentLinkStore.fetchLinkedParents())
   }
 
+  if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
+    promises.push(announcementsStore.fetchAnnouncements())
+  }
+
   if (promises.length > 0) {
     await Promise.all(promises)
   }
 }
 
-// Admin routes require curriculum and questions data
+// Admin routes require curriculum, questions, and announcements data
 async function adminRouteGuard() {
   const curriculumStore = useCurriculumStore()
   const questionsStore = useQuestionsStore()
   const petsStore = usePetsStore()
+  const announcementsStore = useAnnouncementsStore()
 
   const promises: Promise<unknown>[] = []
 
@@ -64,6 +83,10 @@ async function adminRouteGuard() {
 
   if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
     promises.push(petsStore.fetchAllPets())
+  }
+
+  if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
+    promises.push(announcementsStore.fetchAnnouncements())
   }
 
   if (promises.length > 0) {
@@ -126,6 +149,11 @@ const router = createRouter({
           path: 'pets',
           name: 'admin-pets',
           component: () => import('@/pages/admin/PetsPage.vue'),
+        },
+        {
+          path: 'announcements',
+          name: 'admin-announcements',
+          component: () => import('@/pages/admin/AnnouncementsPage.vue'),
         },
         {
           path: 'profile',
@@ -197,6 +225,11 @@ const router = createRouter({
           component: () => import('@/pages/student/GachaPage.vue'),
         },
         {
+          path: 'announcements',
+          name: 'student-announcements',
+          component: () => import('@/pages/student/AnnouncementsPage.vue'),
+        },
+        {
           path: 'profile',
           name: 'student-profile',
           component: () => import('@/pages/student/ProfilePage.vue'),
@@ -229,6 +262,11 @@ const router = createRouter({
           path: 'session/:childId/:sessionId',
           name: 'parent-session-result',
           component: () => import('@/pages/parent/SessionResultPage.vue'),
+        },
+        {
+          path: 'announcements',
+          name: 'parent-announcements',
+          component: () => import('@/pages/parent/AnnouncementsPage.vue'),
         },
         {
           path: 'subscription',

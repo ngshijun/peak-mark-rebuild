@@ -507,6 +507,14 @@ export const useChildLinkStore = defineStore('childLink', () => {
     return data.publicUrl
   }
 
+  // Reset store state (call on logout)
+  function $reset() {
+    linkedChildren.value = []
+    invitations.value = []
+    isLoading.value = false
+    error.value = null
+  }
+
   return {
     // State
     linkedChildren,
@@ -528,5 +536,6 @@ export const useChildLinkStore = defineStore('childLink', () => {
     cancelInvitation,
     removeLinkedChild,
     getAvatarUrl,
+    $reset,
   }
 })

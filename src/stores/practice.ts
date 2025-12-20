@@ -1219,6 +1219,14 @@ export const usePracticeStore = defineStore('practice', () => {
     return { session: result.session, error: null }
   }
 
+  // Reset store state (call on logout)
+  function $reset() {
+    currentSession.value = null
+    sessionHistory.value = []
+    isLoading.value = false
+    error.value = null
+  }
+
   return {
     currentSession,
     sessionHistory,
@@ -1251,5 +1259,6 @@ export const usePracticeStore = defineStore('practice', () => {
     optionNumbersToIds,
     getStudentSubscriptionStatus,
     checkSessionLimit,
+    $reset,
   }
 })

@@ -450,6 +450,14 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     }
   }
 
+  // Reset store state (call on logout)
+  function $reset() {
+    linkedParents.value = []
+    invitations.value = []
+    isLoading.value = false
+    error.value = null
+  }
+
   return {
     // State
     linkedParents,
@@ -470,5 +478,6 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     rejectInvitation,
     cancelInvitation,
     removeLinkedParent,
+    $reset,
   }
 })

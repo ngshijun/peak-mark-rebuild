@@ -816,6 +816,13 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       .sort((a, b) => a.date.localeCompare(b.date))
   }
 
+  // Reset store state (call on logout)
+  function $reset() {
+    childrenStatistics.value = []
+    isLoading.value = false
+    error.value = null
+  }
+
   return {
     // State
     childrenStatistics,
@@ -842,5 +849,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     getChildSubscriptionStatus,
     fetchChildDailyStatuses,
     getDailySessionCounts,
+    $reset,
   }
 })

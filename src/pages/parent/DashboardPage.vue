@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import ChildMoodCalendar from '@/components/parent/ChildMoodCalendar.vue'
 import ChildSessionChart from '@/components/parent/ChildSessionChart.vue'
+import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget.vue'
 
 const childLinkStore = useChildLinkStore()
 const childStatisticsStore = useChildStatisticsStore()
@@ -90,9 +91,9 @@ onMounted(async () => {
         <ChildSessionChart :child-id="selectedChild.id" />
       </div>
 
-      <!-- Additional Content (1/4 width) -->
+      <!-- Announcements (1/4 width) -->
       <div class="lg:col-span-1">
-        <!-- Placeholder for future content -->
+        <AnnouncementsWidget />
       </div>
     </div>
   </div>

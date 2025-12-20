@@ -9,6 +9,15 @@ import {
   ensureProfileExists,
   type AuthUser,
 } from '@/composables/useAuth'
+import { useAnnouncementsStore } from './announcements'
+import { useChildLinkStore } from './child-link'
+import { useParentLinkStore } from './parent-link'
+import { usePetsStore } from './pets'
+import { useStudentDashboardStore } from './studentDashboard'
+import { usePracticeStore } from './practice'
+import { useSubscriptionStore } from './subscription'
+import { useChildStatisticsStore } from './child-statistics'
+import { useLeaderboardStore } from './leaderboard'
 import type { Database } from '@/types/database.types'
 
 type UserType = Database['public']['Enums']['user_type']
@@ -159,6 +168,19 @@ export const useAuthStore = defineStore('auth', () => {
       // Always clear local user state when signing out
       // Even if the server returns an error, we want to clear the local session
       user.value = null
+
+      // Reset all user-specific stores to prevent stale data on next login
+      // This is an industry best practice for security and data integrity
+      useAnnouncementsStore().$reset()
+      useChildLinkStore().$reset()
+      useParentLinkStore().$reset()
+      usePetsStore().$reset()
+      useStudentDashboardStore().$reset()
+      usePracticeStore().$reset()
+      useSubscriptionStore().$reset()
+      useChildStatisticsStore().$reset()
+      useLeaderboardStore().$reset()
+
       return result
     } finally {
       isLoading.value = false
