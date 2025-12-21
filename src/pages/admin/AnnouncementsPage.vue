@@ -13,13 +13,14 @@ import {
   Search,
   Plus,
   Trash2,
-  Edit,
   Loader2,
   ImagePlus,
   X,
   Pin,
   PinOff,
   ArrowUpDown,
+  MoreHorizontal,
+  Pencil,
 } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDetailDialog.vue'
 import { toast } from 'vue-sonner'
 
@@ -370,54 +377,67 @@ const columns: ColumnDef<Announcement>[] = [
     cell: ({ row }) => {
       const announcement = row.original
       const isPinning = togglingPinId.value === announcement.id
-      return h('div', { class: 'flex gap-3' }, [
-        h(
-          Button,
-          {
-            variant: 'ghost',
-            size: 'icon',
-            class: announcement.isPinned ? 'size-4 text-primary' : 'size-4',
-            disabled: isPinning,
-            onClick: (event: Event) => {
-              event.stopPropagation()
-              handleTogglePin(announcement)
-            },
-            title: announcement.isPinned ? 'Unpin announcement' : 'Pin announcement',
-          },
-          () =>
-            isPinning
-              ? h(Loader2, { class: 'size-4 animate-spin' })
-              : announcement.isPinned
-                ? h(PinOff, { class: 'size-4' })
-                : h(Pin, { class: 'size-4' }),
-        ),
-        h(
-          Button,
-          {
-            variant: 'ghost',
-            size: 'icon',
-            class: 'size-4',
-            onClick: (event: Event) => {
-              event.stopPropagation()
-              openEditDialog(announcement)
-            },
-          },
-          () => h(Edit, { class: 'size-4' }),
-        ),
-        h(
-          Button,
-          {
-            variant: 'ghost',
-            size: 'icon',
-            class: 'size-4 text-destructive hover:text-destructive',
-            onClick: (event: Event) => {
-              event.stopPropagation()
-              openDeleteDialog(announcement)
-            },
-          },
-          () => h(Trash2, { class: 'size-4' }),
-        ),
-      ])
+      return h(
+        DropdownMenu,
+        {},
+        {
+          default: () => [
+            h(DropdownMenuTrigger, { asChild: true }, () =>
+              h(
+                Button,
+                {
+                  variant: 'ghost',
+                  size: 'icon',
+                  class: 'size-4',
+                  onClick: (event: Event) => event.stopPropagation(),
+                },
+                () => h(MoreHorizontal, { class: 'size-4' }),
+              ),
+            ),
+            h(DropdownMenuContent, { align: 'end' }, () => [
+              h(
+                DropdownMenuItem,
+                {
+                  disabled: isPinning,
+                  onClick: (event: Event) => {
+                    event.stopPropagation()
+                    handleTogglePin(announcement)
+                  },
+                },
+                () => [
+                  isPinning
+                    ? h(Loader2, { class: 'mr-2 size-4 animate-spin' })
+                    : announcement.isPinned
+                      ? h(PinOff, { class: 'mr-2 size-4' })
+                      : h(Pin, { class: 'mr-2 size-4' }),
+                  announcement.isPinned ? 'Unpin' : 'Pin',
+                ],
+              ),
+              h(
+                DropdownMenuItem,
+                {
+                  onClick: (event: Event) => {
+                    event.stopPropagation()
+                    openEditDialog(announcement)
+                  },
+                },
+                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit'],
+              ),
+              h(
+                DropdownMenuItem,
+                {
+                  class: 'text-destructive focus:text-destructive',
+                  onClick: (event: Event) => {
+                    event.stopPropagation()
+                    openDeleteDialog(announcement)
+                  },
+                },
+                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete'],
+              ),
+            ]),
+          ],
+        },
+      )
     },
   },
 ]
