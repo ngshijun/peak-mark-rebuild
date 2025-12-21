@@ -493,25 +493,25 @@ function handleCancel() {
       </DialogHeader>
 
       <form class="space-y-4 py-4" @submit="onSubmit">
-        <!-- Question Type -->
-        <VeeField v-slot="{ handleChange, value }" name="type">
-          <Field>
-            <FieldLabel>Question Type</FieldLabel>
-            <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
-              <SelectTrigger class="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mcq">Multiple Choice (MCQ)</SelectItem>
-                <SelectItem value="mrq">Multiple Response (MRQ)</SelectItem>
-                <SelectItem value="short_answer">Short Answer</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        </VeeField>
+        <!-- Question Type + Grade Level Row -->
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Question Type -->
+          <VeeField v-slot="{ handleChange, value }" name="type">
+            <Field>
+              <FieldLabel>Question Type</FieldLabel>
+              <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
+                <SelectTrigger class="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mcq">Multiple Choice (MCQ)</SelectItem>
+                  <SelectItem value="mrq">Multiple Response (MRQ)</SelectItem>
+                  <SelectItem value="short_answer">Short Answer</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </VeeField>
 
-        <!-- Grade Level, Subject, Topic Row -->
-        <div class="grid grid-cols-3 gap-4">
           <!-- Grade Level -->
           <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="gradeLevelId">
             <Field :data-invalid="!!fieldErrors.length">
@@ -546,7 +546,10 @@ function handleCancel() {
               <FieldError :errors="fieldErrors" />
             </Field>
           </VeeField>
+        </div>
 
+        <!-- Subject, Topic, Sub-Topic Row -->
+        <div class="grid grid-cols-3 gap-4">
           <!-- Subject -->
           <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="subjectId">
             <Field :data-invalid="!!fieldErrors.length">
