@@ -9,10 +9,13 @@ import { PawPrint, Star } from 'lucide-vue-next'
 const petsStore = usePetsStore()
 const router = useRouter()
 
-// Get the selected pet's image based on current tier
+// Get the selected pet's image based on current tier (thumbnail for card)
 const selectedPetImage = computed(() => {
   if (!petsStore.selectedPet || !petsStore.selectedOwnedPet) return ''
-  return petsStore.getPetImageUrlForTier(petsStore.selectedPet, petsStore.selectedOwnedPet.tier)
+  return petsStore.getThumbnailPetImageUrlForTier(
+    petsStore.selectedPet,
+    petsStore.selectedOwnedPet.tier,
+  )
 })
 
 function goToCollections() {

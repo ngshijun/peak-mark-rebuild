@@ -150,8 +150,20 @@ export const usePetsStore = defineStore('pets', () => {
     }
   }
 
-  // Get pet image URL from storage path
-  function getPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
+  // Image transform options for optimization
+  interface ImageTransformOptions {
+    width?: number
+    height?: number
+    quality?: number
+    resize?: 'cover' | 'contain' | 'fill'
+  }
+
+  // Get pet image URL from storage path with optional transformation
+  function getPetImageUrl(
+    imagePath: string | null,
+    updatedAt?: string | null,
+    transform?: ImageTransformOptions,
+  ): string {
     if (!imagePath) return ''
     // If it's already a full URL, return as-is (with cache bust if needed)
     if (imagePath.startsWith('http')) {
@@ -165,6 +177,25 @@ export const usePetsStore = defineStore('pets', () => {
     if (imagePath.startsWith('data:')) {
       return imagePath
     }
+
+    // Apply transformation if provided (enables automatic WebP conversion)
+    if (transform) {
+      const { data } = supabase.storage.from('pet-images').getPublicUrl(imagePath, {
+        transform: {
+          width: transform.width,
+          height: transform.height,
+          quality: transform.quality ?? 80,
+          resize: transform.resize ?? 'contain',
+        },
+      })
+      // Add cache-busting query param if updatedAt is provided
+      if (updatedAt) {
+        const separator = data.publicUrl.includes('?') ? '&' : '?'
+        return `${data.publicUrl}${separator}v=${new Date(updatedAt).getTime()}`
+      }
+      return data.publicUrl
+    }
+
     // Otherwise, get the public URL from storage
     const { data } = supabase.storage.from('pet-images').getPublicUrl(imagePath)
     // Add cache-busting query param if updatedAt is provided
@@ -172,6 +203,16 @@ export const usePetsStore = defineStore('pets', () => {
       return `${data.publicUrl}?v=${new Date(updatedAt).getTime()}`
     }
     return data.publicUrl
+  }
+
+  // Get optimized pet image URL (medium size for dialog display)
+  function getOptimizedPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
+    return getPetImageUrl(imagePath, updatedAt, { width: 400, quality: 80 })
+  }
+
+  // Get thumbnail pet image URL (small size for collection grid)
+  function getThumbnailPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
+    return getPetImageUrl(imagePath, updatedAt, { width: 128, quality: 75 })
   }
 
   // Get pet image URL based on tier
@@ -183,6 +224,28 @@ export const usePetsStore = defineStore('pets', () => {
       imagePath = pet.tier3ImagePath
     }
     return getPetImageUrl(imagePath, pet.updatedAt)
+  }
+
+  // Get optimized pet image URL based on tier (for dialog display)
+  function getOptimizedPetImageUrlForTier(pet: Pet, tier: number): string {
+    let imagePath: string | null = pet.imagePath
+    if (tier === 2 && pet.tier2ImagePath) {
+      imagePath = pet.tier2ImagePath
+    } else if (tier === 3 && pet.tier3ImagePath) {
+      imagePath = pet.tier3ImagePath
+    }
+    return getOptimizedPetImageUrl(imagePath, pet.updatedAt)
+  }
+
+  // Get thumbnail pet image URL based on tier (for collection grid)
+  function getThumbnailPetImageUrlForTier(pet: Pet, tier: number): string {
+    let imagePath: string | null = pet.imagePath
+    if (tier === 2 && pet.tier2ImagePath) {
+      imagePath = pet.tier2ImagePath
+    } else if (tier === 3 && pet.tier3ImagePath) {
+      imagePath = pet.tier3ImagePath
+    }
+    return getThumbnailPetImageUrl(imagePath, pet.updatedAt)
   }
 
   // Get evolution progress for an owned pet
@@ -650,6 +713,10 @@ export const usePetsStore = defineStore('pets', () => {
     // Helper functions
     getPetImageUrl,
     getPetImageUrlForTier,
+    getOptimizedPetImageUrl,
+    getOptimizedPetImageUrlForTier,
+    getThumbnailPetImageUrl,
+    getThumbnailPetImageUrlForTier,
     getEvolutionProgress,
     isPetOwned,
     getOwnedPet,

@@ -45,10 +45,10 @@ const evolutionProgress = computed(() => {
   return petsStore.getEvolutionProgress(selectedOwnedPet.value)
 })
 
-// Get current tier image
+// Get current tier image (optimized for display)
 const currentTierImage = computed(() => {
   if (!selectedPet.value || !selectedOwnedPet.value) return ''
-  return petsStore.getPetImageUrlForTier(selectedPet.value, selectedOwnedPet.value.tier)
+  return petsStore.getOptimizedPetImageUrlForTier(selectedPet.value, selectedOwnedPet.value.tier)
 })
 
 // Animation states

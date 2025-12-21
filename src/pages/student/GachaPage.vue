@@ -234,7 +234,7 @@ function closeResults() {
             :class="rarityConfig[pet.rarity].bgColor"
           >
             <img
-              :src="petsStore.getPetImageUrl(pet.imagePath)"
+              :src="petsStore.getThumbnailPetImageUrl(pet.imagePath, pet.updatedAt)"
               :alt="pet.name"
               class="size-16 object-contain"
             />
