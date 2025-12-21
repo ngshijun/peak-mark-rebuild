@@ -179,8 +179,9 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
       return { reward: null, error: 'Already spun today' }
     }
 
-    // Generate random reward between 1 and 5
-    const reward = Math.floor(Math.random() * 5) + 1
+    // Generate random reward (multiples of 5: 5, 10, or 15 coins)
+    const possibleRewards = [5, 10, 15] as const
+    const reward = possibleRewards[Math.floor(Math.random() * possibleRewards.length)] as number
 
     try {
       // Update daily status

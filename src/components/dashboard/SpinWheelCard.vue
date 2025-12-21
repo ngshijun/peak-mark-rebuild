@@ -20,7 +20,7 @@ const isSpinning = ref(false)
 const reward = ref<number | null>(null)
 const rotation = ref(0)
 
-const segments = [1, 2, 3, 4, 5, 1, 2, 3] // 8 segments for the wheel
+const segments = [5, 10, 15, 5, 10, 15, 5, 10] // 8 segments (multiples of 5)
 const segmentAngle = 360 / segments.length
 
 const wheelStyle = computed(() => ({
@@ -43,7 +43,7 @@ async function spin() {
     return
   }
 
-  // Find the segment index for this reward
+  // Find the segment index for this reward (exact match)
   const segmentIndex = segments.findIndex((s) => s === wonReward)
 
   // Calculate final rotation: multiple full spins + landing on correct segment

@@ -62,7 +62,7 @@ const showSparkles = ref(false)
 const showFoodExchangeDialog = ref(false)
 const foodAmount = ref(1)
 const isExchanging = ref(false)
-const FOOD_PRICE = 100 // coins per food
+const FOOD_PRICE = 50 // coins per food
 
 const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
 const exchangeCost = computed(() => foodAmount.value * FOOD_PRICE)
