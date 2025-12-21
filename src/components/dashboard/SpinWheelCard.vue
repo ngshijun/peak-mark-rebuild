@@ -47,7 +47,8 @@ async function spin() {
   const segmentIndex = segments.findIndex((s) => s === wonReward)
 
   // Calculate final rotation: multiple full spins + landing on correct segment
-  const fullSpins = 5 + Math.random() * 3 // 5-8 full rotations
+  // IMPORTANT: fullSpins must be an integer so fullSpins * 360 is a multiple of 360
+  const fullSpins = 5 + Math.floor(Math.random() * 4) // 5, 6, 7, or 8 full rotations
   const targetAngle = segmentIndex * segmentAngle + segmentAngle / 2 // Center of segment
   const targetRotation = 360 - targetAngle // The rotation angle (mod 360) needed to land on target
   const currentAngle = rotation.value % 360 // Current wheel position
