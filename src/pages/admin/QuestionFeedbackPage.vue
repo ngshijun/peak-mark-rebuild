@@ -41,6 +41,21 @@ const previewQuestion = ref<Question | null>(null)
 const previewFeedback = ref<QuestionFeedback | null>(null)
 const editingQuestion = ref<Question | null>(null)
 
+// Category config with colors
+const categoryConfig: Record<FeedbackCategory, { label: string; color: string; bgColor: string }> =
+  {
+    question_error: { label: 'Question Error', color: 'text-red-700', bgColor: 'bg-red-100' },
+    image_error: { label: 'Image Error', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+    option_error: { label: 'Option Error', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+    answer_error: { label: 'Answer Error', color: 'text-red-700', bgColor: 'bg-red-100' },
+    explanation_error: {
+      label: 'Explanation Error',
+      color: 'text-purple-700',
+      bgColor: 'bg-purple-100',
+    },
+    other: { label: 'Other', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  }
+
 // Fetch feedbacks and questions on mount
 onMounted(async () => {
   await Promise.all([feedbackStore.fetchFeedbacks(), questionsStore.fetchQuestions()])
@@ -54,36 +69,9 @@ const filteredFeedbacks = computed(() => {
     (f) =>
       f.question.toLowerCase().includes(query) ||
       (f.comments?.toLowerCase().includes(query) ?? false) ||
-      getCategoryLabel(f.category).toLowerCase().includes(query),
+      categoryConfig[f.category].label.toLowerCase().includes(query),
   )
 })
-
-// Category labels and colors
-function getCategoryLabel(category: FeedbackCategory): string {
-  const labels: Record<FeedbackCategory, string> = {
-    question_error: 'Question Error',
-    image_error: 'Image Error',
-    option_error: 'Option Error',
-    answer_error: 'Answer Error',
-    explanation_error: 'Explanation Error',
-    other: 'Other',
-  }
-  return labels[category]
-}
-
-function getCategoryVariant(
-  category: FeedbackCategory,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  const variants: Record<FeedbackCategory, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    question_error: 'destructive',
-    image_error: 'secondary',
-    option_error: 'default',
-    answer_error: 'destructive',
-    explanation_error: 'secondary',
-    other: 'outline',
-  }
-  return variants[category]
-}
 
 // Format date display
 function formatDate(dateString: string): string {
@@ -179,7 +167,12 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     header: 'Category',
     cell: ({ row }) => {
       const category = row.original.category
-      return h(Badge, { variant: getCategoryVariant(category) }, () => getCategoryLabel(category))
+      const config = categoryConfig[category]
+      return h(
+        Badge,
+        { variant: 'secondary', class: `${config.bgColor} ${config.color}` },
+        () => config.label,
+      )
     },
   },
   {

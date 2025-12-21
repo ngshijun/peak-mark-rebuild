@@ -327,7 +327,10 @@ const columns: ColumnDef<Pet>[] = [
       const rarity = row.original.rarity
       return h(
         Badge,
-        { variant: 'outline', class: rarityConfig[rarity].color },
+        {
+          variant: 'secondary',
+          class: `${rarityConfig[rarity].bgColor} ${rarityConfig[rarity].color}`,
+        },
         () => rarityConfig[rarity].label,
       )
     },

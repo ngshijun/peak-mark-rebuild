@@ -164,9 +164,17 @@ const columns: ColumnDef<Question>[] = [
     header: 'Type',
     cell: ({ row }) => {
       const type = row.original.type
-      const variant = type === 'mcq' ? 'default' : type === 'mrq' ? 'default' : 'secondary'
-      const label = type === 'mcq' ? 'MCQ' : type === 'mrq' ? 'MRQ' : 'Short Answer'
-      return h(Badge, { variant }, () => label)
+      const config: Record<string, { label: string; color: string; bgColor: string }> = {
+        mcq: { label: 'MCQ', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+        mrq: { label: 'MRQ', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+        short_answer: { label: 'Short Answer', color: 'text-green-700', bgColor: 'bg-green-100' },
+      }
+      const typeConfig = config[type] ?? config.mcq
+      return h(
+        Badge,
+        { variant: 'secondary', class: `${typeConfig!.bgColor} ${typeConfig!.color}` },
+        () => typeConfig!.label,
+      )
     },
   },
   {

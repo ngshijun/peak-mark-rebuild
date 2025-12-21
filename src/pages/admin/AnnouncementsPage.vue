@@ -321,7 +321,11 @@ const columns: ColumnDef<Announcement>[] = [
     cell: ({ row }) => {
       const audience = row.original.targetAudience
       const config = audienceConfig[audience]
-      return h(Badge, { variant: 'outline', class: config.color }, () => config.label)
+      return h(
+        Badge,
+        { variant: 'secondary', class: `${config.bgColor} ${config.color}` },
+        () => config.label,
+      )
     },
   },
   {
