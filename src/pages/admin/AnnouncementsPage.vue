@@ -77,6 +77,7 @@ const {
     content: '',
     targetAudience: 'all' as AnnouncementAudience,
     expiresAt: null as string | null,
+    isPinned: false,
   },
 })
 
@@ -140,6 +141,7 @@ async function openEditDialog(announcement: Announcement) {
     content: announcement.content,
     targetAudience: announcement.targetAudience,
     expiresAt: announcement.expiresAt,
+    isPinned: announcement.isPinned,
   })
 }
 
@@ -186,6 +188,7 @@ const handleSave = handleSubmit(async (values) => {
         targetAudience: values.targetAudience,
         imagePath,
         expiresAt: values.expiresAt || null,
+        isPinned: values.isPinned,
       })
       if (error) {
         toast.error(error)
@@ -200,6 +203,7 @@ const handleSave = handleSubmit(async (values) => {
         targetAudience: values.targetAudience,
         imagePath,
         expiresAt: values.expiresAt || null,
+        isPinned: values.isPinned,
       })
       if (error) {
         toast.error(error)
@@ -388,7 +392,7 @@ const columns: ColumnDef<Announcement>[] = [
                 {
                   variant: 'ghost',
                   size: 'icon',
-                  class: 'size-4',
+                  class: 'size-6',
                   onClick: (event: Event) => event.stopPropagation(),
                 },
                 () => h(MoreHorizontal, { class: 'size-4' }),
@@ -529,7 +533,7 @@ const columns: ColumnDef<Announcement>[] = [
             </Field>
           </VeeField>
 
-          <!-- Target Audience and Expiry Row -->
+          <!-- Target Audience and Pin Row -->
           <div class="grid grid-cols-2 gap-4">
             <!-- Target Audience -->
             <VeeField v-slot="{ handleChange, value, errors }" name="targetAudience">
@@ -556,6 +560,72 @@ const columns: ColumnDef<Announcement>[] = [
                 <FieldError :errors="errors" />
               </Field>
             </VeeField>
+
+            <!-- Pin to Top -->
+            <VeeField v-slot="{ handleChange, value }" name="isPinned">
+              <Field>
+                <FieldLabel>Pin to Top</FieldLabel>
+                <Select
+                  :model-value="value ? 'yes' : 'no'"
+                  :disabled="isSaving"
+                  @update:model-value="(val) => handleChange(val === 'yes')"
+                >
+                  <SelectTrigger class="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="yes">Yes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </VeeField>
+          </div>
+
+          <!-- Image Upload and Expiry Row -->
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Image Upload -->
+            <div class="space-y-2">
+              <FieldLabel>Image (Optional)</FieldLabel>
+              <div v-if="formImagePath" class="relative inline-block">
+                <img
+                  :src="
+                    formImageFile ? formImagePath : announcementsStore.getImageUrl(formImagePath)
+                  "
+                  alt="Announcement image preview"
+                  class="h-24 max-w-full rounded-lg border object-contain"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  class="absolute -right-2 -top-2 size-6"
+                  :disabled="isSaving"
+                  @click="removeImage"
+                >
+                  <X class="size-4" />
+                </Button>
+              </div>
+              <div v-else>
+                <input
+                  ref="imageInputRef"
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                  @change="handleImageUpload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="w-full"
+                  :disabled="isSaving"
+                  @click="imageInputRef?.click()"
+                >
+                  <ImagePlus class="mr-2 size-4" />
+                  Upload Image
+                </Button>
+              </div>
+            </div>
 
             <!-- Expiry Date -->
             <VeeField v-slot="{ field, errors, setValue }" name="expiresAt">
@@ -599,49 +669,6 @@ const columns: ColumnDef<Announcement>[] = [
                 <FieldError :errors="errors" />
               </Field>
             </VeeField>
-          </div>
-
-          <!-- Image Upload -->
-          <div class="space-y-2">
-            <FieldLabel>Image (Optional)</FieldLabel>
-            <div v-if="formImagePath" class="relative inline-block">
-              <img
-                :src="formImageFile ? formImagePath : announcementsStore.getImageUrl(formImagePath)"
-                alt="Announcement image preview"
-                class="h-32 max-w-full rounded-lg border object-contain"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                class="absolute -right-2 -top-2 size-6"
-                :disabled="isSaving"
-                @click="removeImage"
-              >
-                <X class="size-4" />
-              </Button>
-            </div>
-            <div v-else>
-              <input
-                ref="imageInputRef"
-                type="file"
-                accept="image/*"
-                class="hidden"
-                @change="handleImageUpload"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                :disabled="isSaving"
-                @click="imageInputRef?.click()"
-              >
-                <ImagePlus class="mr-2 size-4" />
-                Upload Image
-              </Button>
-            </div>
-            <p class="text-xs text-muted-foreground">
-              Add an optional image to make your announcement more engaging.
-            </p>
           </div>
 
           <DialogFooter>

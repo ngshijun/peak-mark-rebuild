@@ -110,6 +110,7 @@ export const announcementFormSchema = toTypedSchema(
       required_error: 'Please select target audience',
     }),
     expiresAt: z.string().optional().nullable(),
+    isPinned: z.boolean().default(false),
   }),
 )
 
@@ -242,6 +243,7 @@ const announcementFormZodSchema = z.object({
     required_error: 'Please select target audience',
   }),
   expiresAt: z.string().optional().nullable(),
+  isPinned: z.boolean().default(false),
 })
 
 // Type exports for form values

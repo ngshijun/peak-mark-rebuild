@@ -262,6 +262,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     targetAudience: AnnouncementAudience
     imagePath?: string | null
     expiresAt?: string | null
+    isPinned?: boolean
   }): Promise<{ announcement: Announcement | null; error: string | null }> {
     try {
       const { data: newAnnouncement, error: insertError } = await supabase
@@ -272,6 +273,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
           target_audience: data.targetAudience,
           image_path: data.imagePath ?? null,
           expires_at: data.expiresAt ?? null,
+          is_pinned: data.isPinned ?? false,
           created_by: authStore.user!.id,
         })
         .select()
@@ -313,6 +315,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
       targetAudience: AnnouncementAudience
       imagePath: string | null
       expiresAt: string | null
+      isPinned: boolean
     }>,
   ): Promise<{ error: string | null }> {
     try {
@@ -322,6 +325,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
       if (updates.targetAudience !== undefined) updateData.target_audience = updates.targetAudience
       if (updates.imagePath !== undefined) updateData.image_path = updates.imagePath
       if (updates.expiresAt !== undefined) updateData.expires_at = updates.expiresAt
+      if (updates.isPinned !== undefined) updateData.is_pinned = updates.isPinned
 
       const { data: updatedData, error: updateError } = await supabase
         .from('announcements')
@@ -343,6 +347,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
             announcement.targetAudience = updates.targetAudience
           if (updates.imagePath !== undefined) announcement.imagePath = updates.imagePath
           if (updates.expiresAt !== undefined) announcement.expiresAt = updates.expiresAt
+          if (updates.isPinned !== undefined) announcement.isPinned = updates.isPinned
           announcement.updatedAt = updatedData?.updated_at ?? new Date().toISOString()
         }
       }

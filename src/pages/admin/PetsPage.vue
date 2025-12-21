@@ -4,7 +4,17 @@ import { useForm, Field as VeeField } from 'vee-validate'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
 import { petFormSchema } from '@/lib/validations'
-import { Search, Plus, Trash2, Edit, ArrowUpDown, Loader2, ImagePlus, X } from 'lucide-vue-next'
+import {
+  Search,
+  Plus,
+  Trash2,
+  ArrowUpDown,
+  Loader2,
+  ImagePlus,
+  X,
+  MoreHorizontal,
+  Pencil,
+} from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +45,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { toast } from 'vue-sonner'
 
 const petsStore = usePetsStore()
@@ -337,28 +353,43 @@ const columns: ColumnDef<Pet>[] = [
     header: '',
     cell: ({ row }) => {
       const pet = row.original
-      return h('div', { class: 'flex gap-1' }, [
-        h(
-          Button,
-          {
-            variant: 'ghost',
-            size: 'icon',
-            class: 'size-8',
-            onClick: () => openEditDialog(pet),
-          },
-          () => h(Edit, { class: 'size-4' }),
-        ),
-        h(
-          Button,
-          {
-            variant: 'ghost',
-            size: 'icon',
-            class: 'size-8 text-destructive hover:text-destructive',
-            onClick: () => openDeleteDialog(pet),
-          },
-          () => h(Trash2, { class: 'size-4' }),
-        ),
-      ])
+      return h(
+        DropdownMenu,
+        {},
+        {
+          default: () => [
+            h(DropdownMenuTrigger, { asChild: true }, () =>
+              h(
+                Button,
+                {
+                  variant: 'ghost',
+                  size: 'icon',
+                  class: 'size-6',
+                  onClick: (event: Event) => event.stopPropagation(),
+                },
+                () => h(MoreHorizontal, { class: 'size-4' }),
+              ),
+            ),
+            h(DropdownMenuContent, { align: 'end' }, () => [
+              h(
+                DropdownMenuItem,
+                {
+                  onClick: () => openEditDialog(pet),
+                },
+                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit'],
+              ),
+              h(
+                DropdownMenuItem,
+                {
+                  class: 'text-destructive focus:text-destructive',
+                  onClick: () => openDeleteDialog(pet),
+                },
+                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete'],
+              ),
+            ]),
+          ],
+        },
+      )
     },
   },
 ]

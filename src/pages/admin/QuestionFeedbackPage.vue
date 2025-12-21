@@ -232,7 +232,7 @@ const columns: ColumnDef<QuestionFeedback>[] = [
                 {
                   variant: 'ghost',
                   size: 'icon',
-                  class: 'size-4',
+                  class: 'size-6',
                   onClick: (event: Event) => event.stopPropagation(),
                 },
                 () => h(MoreHorizontal, { class: 'size-4' }),
