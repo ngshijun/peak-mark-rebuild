@@ -52,8 +52,7 @@ async function handleLogout() {
     toast.error('Failed to log out')
     return
   }
-  toast.info('Logged out successfully')
-  router.push('/login')
+  // Toast and navigation handled by App.vue auth watcher
 }
 </script>
 
