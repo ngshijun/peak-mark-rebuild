@@ -234,7 +234,7 @@ function resetInviteForm() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      class="bg-destructive text-white hover:bg-destructive/90"
                       @click="handleRemoveChild(child.id)"
                     >
                       Remove
@@ -370,7 +370,7 @@ function resetInviteForm() {
                     <AlertDialogFooter>
                       <AlertDialogCancel>Keep</AlertDialogCancel>
                       <AlertDialogAction
-                        class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        class="bg-destructive text-white hover:bg-destructive/90"
                         @click="handleCancelInvitation(invitation.id)"
                       >
                         Cancel Invitation
