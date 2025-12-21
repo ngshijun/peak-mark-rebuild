@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Megaphone, ChevronRight, Pin } from 'lucide-vue-next'
-import { useAnnouncementsStore, type Announcement } from '@/stores/announcements'
+import { useAnnouncementsStore, audienceConfig, type Announcement } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
 import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDetailDialog.vue'
 
@@ -46,48 +46,40 @@ function formatTimeAgo(dateStr: string | null): string {
 <template>
   <Card>
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <div class="flex items-center gap-2">
-        <CardTitle class="text-sm font-medium">Announcements</CardTitle>
-        <Badge
-          v-if="announcementsStore.unreadCount > 0"
-          variant="default"
-          class="size-5 justify-center rounded-full p-0 text-xs"
-        >
-          {{ announcementsStore.unreadCount > 9 ? '9+' : announcementsStore.unreadCount }}
-        </Badge>
-      </div>
+      <CardTitle class="text-sm font-medium">Unread Announcements</CardTitle>
       <Megaphone class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
-      <div v-if="announcementsStore.latestAnnouncements.length === 0" class="py-4 text-center">
-        <p class="text-sm text-muted-foreground">No announcements yet</p>
+      <div v-if="announcementsStore.unreadAnnouncements.length === 0" class="py-4 text-center">
+        <p class="text-sm text-muted-foreground">No unread announcements</p>
       </div>
 
       <div v-else class="space-y-3">
-        <!-- Latest 3 announcements -->
+        <!-- Unread announcements (up to 3) -->
         <div
-          v-for="announcement in announcementsStore.latestAnnouncements.slice(0, 3)"
+          v-for="announcement in announcementsStore.unreadAnnouncements.slice(0, 3)"
           :key="announcement.id"
           class="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/50"
           @click="openAnnouncement(announcement)"
         >
           <div class="flex items-start gap-2">
-            <!-- Unread indicator -->
-            <div
-              v-if="!announcement.isRead"
-              class="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
-            />
             <div class="min-w-0 flex-1">
               <p class="flex items-center gap-1.5 truncate text-sm font-medium">
                 <Pin v-if="announcement.isPinned" class="size-3 shrink-0 text-primary" />
                 {{ announcement.title }}
               </p>
-              <p class="line-clamp-1 text-xs text-muted-foreground">
-                {{ announcement.content }}
-              </p>
-              <p class="mt-1 text-xs text-muted-foreground">
-                {{ formatTimeAgo(announcement.createdAt) }}
-              </p>
+              <div class="mt-1 flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  class="text-xs"
+                  :class="audienceConfig[announcement.targetAudience].color"
+                >
+                  {{ audienceConfig[announcement.targetAudience].label }}
+                </Badge>
+                <span class="text-xs text-muted-foreground">
+                  {{ formatTimeAgo(announcement.createdAt) }}
+                </span>
+              </div>
             </div>
           </div>
         </div>

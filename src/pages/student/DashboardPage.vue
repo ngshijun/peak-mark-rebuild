@@ -92,11 +92,11 @@ watch(isLoading, async (loading) => {
         <StreakCard />
       </div>
 
-      <!-- Announcements and In-Progress Sessions Grid -->
-      <div class="grid gap-4 lg:grid-cols-2">
-        <AnnouncementsWidget />
-        <InProgressSessionsCard />
-      </div>
+      <!-- In-Progress Sessions -->
+      <InProgressSessionsCard />
+
+      <!-- Announcements (full width) -->
+      <AnnouncementsWidget />
     </div>
   </div>
 </template>

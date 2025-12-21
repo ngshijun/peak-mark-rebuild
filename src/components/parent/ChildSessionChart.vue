@@ -34,12 +34,12 @@ const chartConfig = {
 
 <template>
   <Card class="flex h-full flex-col">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <div>
-        <CardTitle class="text-base font-medium">Practice Sessions</CardTitle>
-        <CardDescription>Daily sessions over the last 30 days</CardDescription>
+    <CardHeader class="space-y-0 pb-2">
+      <div class="flex flex-row items-center justify-between">
+        <CardTitle class="text-sm font-medium">Practice Sessions</CardTitle>
+        <BarChart3 class="size-4 text-muted-foreground" />
       </div>
-      <BarChart3 class="size-4 text-muted-foreground" />
+      <CardDescription>Daily sessions over the last 30 days</CardDescription>
     </CardHeader>
     <CardContent class="flex-1">
       <ChartContainer :config="chartConfig" class="h-full max-h-[280px] w-full" cursor>

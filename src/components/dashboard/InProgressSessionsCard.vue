@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { ArrowUpDown, Play } from 'lucide-vue-next'
+import { ArrowUpDown, Play, ListTodo } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
 const practiceStore = usePracticeStore()
@@ -130,16 +130,17 @@ const columns: ColumnDef<InProgressRow>[] = [
 
 <template>
   <Card>
-    <CardHeader>
-      <div class="flex items-center justify-between">
-        <div>
-          <CardTitle>In-Progress Sessions</CardTitle>
-          <CardDescription>Continue where you left off</CardDescription>
+    <CardHeader class="space-y-0 pb-2">
+      <div class="flex flex-row items-center justify-between">
+        <CardTitle class="text-sm font-medium">In-Progress Sessions</CardTitle>
+        <div class="flex items-center gap-2">
+          <Badge v-if="inProgressData.length > 0" variant="secondary">
+            {{ inProgressData.length }} active
+          </Badge>
+          <ListTodo class="size-4 text-muted-foreground" />
         </div>
-        <Badge v-if="inProgressData.length > 0" variant="secondary">
-          {{ inProgressData.length }} active
-        </Badge>
       </div>
+      <CardDescription>Continue where you left off</CardDescription>
     </CardHeader>
     <CardContent>
       <template v-if="inProgressData.length > 0">

@@ -94,7 +94,9 @@ function isFuture(date: string | null): boolean {
   if (!date) return false
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const dateObj = new Date(date)
+  // Parse date as local time (not UTC) by splitting the string
+  const [year, month, day] = date.split('-').map(Number)
+  const dateObj = new Date(year, month - 1, day) // month is 0-indexed
   return dateObj > today
 }
 

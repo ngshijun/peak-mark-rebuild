@@ -80,21 +80,21 @@ onMounted(async () => {
     </div>
 
     <!-- Dashboard Content -->
-    <div v-else-if="selectedChild" class="grid gap-6 lg:grid-cols-4">
-      <!-- Calendar (1/4 width) -->
-      <div class="lg:col-span-1">
-        <ChildMoodCalendar :child-id="selectedChild.id" :child-name="selectedChild.name" />
+    <div v-else-if="selectedChild" class="space-y-6">
+      <div class="grid gap-6 lg:grid-cols-4">
+        <!-- Calendar (1/4 width) -->
+        <div class="lg:col-span-1">
+          <ChildMoodCalendar :child-id="selectedChild.id" :child-name="selectedChild.name" />
+        </div>
+
+        <!-- Chart (3/4 width) -->
+        <div class="lg:col-span-3">
+          <ChildSessionChart :child-id="selectedChild.id" />
+        </div>
       </div>
 
-      <!-- Chart (1/2 width) -->
-      <div class="lg:col-span-2">
-        <ChildSessionChart :child-id="selectedChild.id" />
-      </div>
-
-      <!-- Announcements (1/4 width) -->
-      <div class="lg:col-span-1">
-        <AnnouncementsWidget />
-      </div>
+      <!-- Announcements (full width) -->
+      <AnnouncementsWidget />
     </div>
   </div>
 </template>
