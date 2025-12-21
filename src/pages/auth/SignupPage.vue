@@ -1,20 +1,37 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { signupFormSchema } from '@/lib/validations'
-import { Mountain, Loader2 } from 'lucide-vue-next'
+import { Mountain, Loader2, CalendarIcon } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldLabel, FieldError } from '@/components/ui/field'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { toast } from 'vue-sonner'
+import { type DateValue, getLocalTimeZone, today } from '@internationalized/date'
+import { createYearRange } from 'reka-ui/date'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
+const dateOfBirthValue = ref<DateValue | undefined>(undefined)
+
+// Max date for birthday (today)
+const maxBirthdayDate = computed(() => today(getLocalTimeZone()))
+
+// Year range for birthday picker (last 25 years, newest first)
+const birthdayYearRange = computed(() => {
+  const now = today(getLocalTimeZone())
+  return createYearRange({
+    start: now.cycle('year', -25),
+    end: now,
+  }).reverse()
+})
 
 const { handleSubmit, values, setFieldValue } = useForm({
   validationSchema: signupFormSchema,
@@ -162,10 +179,50 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-if="values.userType === 'student'" v-slot="{ field }" name="dateOfBirth">
+          <VeeField
+            v-if="values.userType === 'student'"
+            v-slot="{ handleChange }"
+            name="dateOfBirth"
+          >
             <Field>
-              <FieldLabel for="dateOfBirth">Date of Birth</FieldLabel>
-              <Input id="dateOfBirth" type="date" :disabled="isSubmitting" v-bind="field" />
+              <FieldLabel>Date of Birth</FieldLabel>
+              <Popover>
+                <PopoverTrigger as-child>
+                  <Button
+                    variant="outline"
+                    class="w-full justify-start text-left font-normal"
+                    :class="{ 'text-muted-foreground': !dateOfBirthValue }"
+                    :disabled="isSubmitting"
+                  >
+                    <CalendarIcon class="mr-2 size-4" />
+                    <span v-if="dateOfBirthValue">
+                      {{
+                        new Date(dateOfBirthValue.toString()).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      }}
+                    </span>
+                    <span v-else>Pick a date</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent class="w-auto p-0" align="start">
+                  <Calendar
+                    :model-value="dateOfBirthValue as any"
+                    :max-value="maxBirthdayDate"
+                    :year-range="birthdayYearRange"
+                    layout="month-and-year"
+                    initial-focus
+                    @update:model-value="
+                      (v: any) => {
+                        dateOfBirthValue = v
+                        handleChange(v?.toString() ?? '')
+                      }
+                    "
+                  />
+                </PopoverContent>
+              </Popover>
             </Field>
           </VeeField>
 

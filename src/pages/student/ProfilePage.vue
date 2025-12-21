@@ -25,11 +25,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarPicker } from '@/components/ui/calendar'
 import { toast } from 'vue-sonner'
 import {
   Cake,
   Mail,
   Calendar,
+  CalendarIcon,
   GraduationCap,
   Trophy,
   CirclePoundSterling,
@@ -39,6 +42,14 @@ import {
   ImagePlus,
   Dices,
 } from 'lucide-vue-next'
+import {
+  type DateValue,
+  getLocalTimeZone,
+  today,
+  parseDate,
+  CalendarDate,
+} from '@internationalized/date'
+import { createYearRange } from 'reka-ui/date'
 import type { Database } from '@/types/database.types'
 
 type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
@@ -54,6 +65,8 @@ const showAvatarDialog = ref(false)
 const avatarPreviewUrl = ref('')
 const avatarFile = ref<File | null>(null)
 const showEditNameDialog = ref(false)
+const showEditBirthdayDialog = ref(false)
+const editBirthdayValue = ref<DateValue | undefined>(undefined)
 const isSaving = ref(false)
 
 // Edit name form
@@ -107,6 +120,15 @@ const age = computed(() => {
     years--
   }
   return years
+})
+
+const formattedBirthday = computed(() => {
+  if (!authStore.user?.dateOfBirth) return null
+  return new Date(authStore.user.dateOfBirth).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
 })
 
 const currentGradeName = computed(() => {
@@ -232,6 +254,50 @@ async function handleGradeChange(value: unknown) {
     isSaving.value = false
   }
 }
+
+function openEditBirthdayDialog() {
+  // Convert string date to DateValue for calendar
+  if (authStore.user?.dateOfBirth) {
+    const dateStr = authStore.user.dateOfBirth.split('T')[0]
+    if (dateStr) {
+      editBirthdayValue.value = parseDate(dateStr)
+    } else {
+      editBirthdayValue.value = undefined
+    }
+  } else {
+    editBirthdayValue.value = undefined
+  }
+  showEditBirthdayDialog.value = true
+}
+
+async function saveBirthday() {
+  isSaving.value = true
+  try {
+    // Convert DateValue back to string (YYYY-MM-DD format)
+    const dateString = editBirthdayValue.value?.toString() ?? null
+    const result = await authStore.updateDateOfBirth(dateString)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Birthday updated successfully')
+    showEditBirthdayDialog.value = false
+  } finally {
+    isSaving.value = false
+  }
+}
+
+// Computed for max date (today) for birthday calendar
+const maxBirthdayDate = computed(() => today(getLocalTimeZone()))
+
+// Year range for birthday picker (last 25 years, newest first)
+const birthdayYearRange = computed(() => {
+  const now = today(getLocalTimeZone())
+  return createYearRange({
+    start: now.cycle('year', -25),
+    end: now,
+  }).reverse()
+})
 </script>
 
 <template>
@@ -315,17 +381,24 @@ async function handleGradeChange(value: unknown) {
             </div>
           </div>
 
-          <!-- Age -->
+          <!-- Birthday -->
           <div class="flex items-center gap-4">
             <div class="flex size-10 items-center justify-center rounded-lg bg-muted">
               <Cake class="size-5 text-muted-foreground" />
             </div>
             <div class="flex-1">
-              <p class="text-sm text-muted-foreground">Age</p>
+              <p class="text-sm text-muted-foreground">Birthday</p>
               <p class="font-medium">
-                {{ age !== null ? `${age} years old` : 'Not set' }}
+                <template v-if="formattedBirthday">
+                  {{ formattedBirthday }}
+                  <span class="text-muted-foreground">({{ age }} years old)</span>
+                </template>
+                <template v-else>Not set</template>
               </p>
             </div>
+            <Button size="icon" variant="ghost" class="size-8" @click="openEditBirthdayDialog">
+              <Pencil class="size-4" />
+            </Button>
           </div>
 
           <!-- Grade Level -->
@@ -457,6 +530,67 @@ async function handleGradeChange(value: unknown) {
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Edit Birthday Dialog -->
+    <Dialog v-model:open="showEditBirthdayDialog">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Birthday</DialogTitle>
+          <DialogDescription>Select your date of birth.</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4 py-4">
+          <Field>
+            <FieldLabel>Birthday</FieldLabel>
+            <Popover>
+              <PopoverTrigger as-child>
+                <Button
+                  variant="outline"
+                  class="w-full justify-start text-left font-normal"
+                  :class="{ 'text-muted-foreground': !editBirthdayValue }"
+                  :disabled="isSaving"
+                >
+                  <CalendarIcon class="mr-2 size-4" />
+                  <span v-if="editBirthdayValue">
+                    {{
+                      new Date(editBirthdayValue.toString()).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    }}
+                  </span>
+                  <span v-else>Pick a date</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0" align="start">
+                <CalendarPicker
+                  :model-value="editBirthdayValue as any"
+                  :max-value="maxBirthdayDate"
+                  :year-range="birthdayYearRange"
+                  layout="month-and-year"
+                  initial-focus
+                  @update:model-value="(v: any) => (editBirthdayValue = v)"
+                />
+              </PopoverContent>
+            </Popover>
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="isSaving"
+            @click="showEditBirthdayDialog = false"
+          >
+            Cancel
+          </Button>
+          <Button :disabled="isSaving" @click="saveBirthday">
+            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+            Save
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </div>

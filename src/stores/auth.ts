@@ -216,6 +216,25 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Update user's date of birth
+   */
+  async function updateDateOfBirth(dateOfBirth: string | null) {
+    if (!user.value) return { error: 'Not authenticated' }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ date_of_birth: dateOfBirth })
+      .eq('id', user.value.id)
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    user.value.dateOfBirth = dateOfBirth
+    return { error: null }
+  }
+
+  /**
    * Update user's avatar path in database
    */
   async function updateAvatar(avatarPath: string) {
@@ -487,6 +506,7 @@ export const useAuthStore = defineStore('auth', () => {
     signOut,
     refreshProfile,
     updateName,
+    updateDateOfBirth,
     updateAvatar,
     uploadAvatar,
     uploadAvatarFromUrl,
