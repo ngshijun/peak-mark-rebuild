@@ -503,9 +503,9 @@ function handleOptionClick(optionId: string) {
             :class="{
               'border-primary bg-primary text-primary-foreground':
                 index === practiceStore.currentQuestionNumber - 1,
-              'border-green-500 bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300':
+              'border-green-500 bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-300':
                 practiceStore.currentSession?.answers.find((a) => a.questionId === q.id)?.isCorrect,
-              'border-red-500 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300':
+              'border-red-500 bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300':
                 practiceStore.currentSession?.answers.find((a) => a.questionId === q.id) &&
                 !practiceStore.currentSession?.answers.find((a) => a.questionId === q.id)
                   ?.isCorrect,

@@ -179,7 +179,9 @@ async function handleSelectPet(petId: string) {
               <!-- Pet Name -->
               <p
                 class="mt-2 text-center text-xs font-medium"
-                :class="petsStore.isPetOwned(pet.id) ? '' : 'text-gray-500'"
+                :class="
+                  petsStore.isPetOwned(pet.id) ? rarityConfig[rarity].textColor : 'text-gray-500'
+                "
               >
                 {{ petsStore.isPetOwned(pet.id) ? pet.name : '???' }}
               </p>

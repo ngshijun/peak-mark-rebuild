@@ -17,6 +17,7 @@ interface InProgressRow {
   createdAt: string
   subjectName: string
   topicName: string
+  subTopicName: string
   answeredQuestions: number
   totalQuestions: number
   correctAnswers: number
@@ -34,6 +35,7 @@ const inProgressData = computed<InProgressRow[]>(() => {
         createdAt: session.createdAt ?? new Date().toISOString(),
         subjectName: session.subjectName,
         topicName: session.topicName,
+        subTopicName: session.subTopicName,
         answeredQuestions: session.currentQuestionIndex,
         totalQuestions: session.totalQuestions,
         correctAnswers: session.correctCount,
@@ -85,6 +87,13 @@ const columns: ColumnDef<InProgressRow>[] = [
     header: 'Topic',
     cell: ({ row }) => {
       return h('div', {}, row.original.topicName)
+    },
+  },
+  {
+    accessorKey: 'subTopicName',
+    header: 'Sub-Topic',
+    cell: ({ row }) => {
+      return h('div', {}, row.original.subTopicName)
     },
   },
   {

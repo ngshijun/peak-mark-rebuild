@@ -36,34 +36,45 @@ export const EVOLUTION_COSTS = {
 
 export const rarityConfig: Record<
   PetRarity,
-  { label: string; color: string; bgColor: string; borderColor: string; chance: number }
+  {
+    label: string
+    color: string
+    bgColor: string
+    borderColor: string
+    textColor: string
+    chance: number
+  }
 > = {
   common: {
     label: 'Common',
     color: 'text-green-500',
-    bgColor: 'bg-green-100',
-    borderColor: 'border-green-300',
+    bgColor: 'bg-green-100 dark:bg-green-950/30',
+    borderColor: 'border-green-300 dark:border-green-700',
+    textColor: 'text-green-800 dark:text-green-200',
     chance: 60,
   },
   rare: {
     label: 'Rare',
     color: 'text-blue-500',
-    bgColor: 'bg-blue-100',
-    borderColor: 'border-blue-300',
+    bgColor: 'bg-blue-100 dark:bg-blue-950/30',
+    borderColor: 'border-blue-300 dark:border-blue-700',
+    textColor: 'text-blue-800 dark:text-blue-200',
     chance: 30,
   },
   epic: {
     label: 'Epic',
     color: 'text-purple-500',
-    bgColor: 'bg-purple-100',
-    borderColor: 'border-purple-300',
+    bgColor: 'bg-purple-100 dark:bg-purple-950/30',
+    borderColor: 'border-purple-300 dark:border-purple-700',
+    textColor: 'text-purple-800 dark:text-purple-200',
     chance: 9,
   },
   legendary: {
     label: 'Legendary',
     color: 'text-yellow-500',
-    bgColor: 'bg-yellow-100',
-    borderColor: 'border-yellow-300',
+    bgColor: 'bg-yellow-100 dark:bg-yellow-950/30',
+    borderColor: 'border-yellow-300 dark:border-yellow-700',
+    textColor: 'text-yellow-800 dark:text-yellow-200',
     chance: 1,
   },
 }

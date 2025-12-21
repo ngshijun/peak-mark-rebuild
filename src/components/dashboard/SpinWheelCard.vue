@@ -84,11 +84,16 @@ function closeDialog() {
               class="flex size-14 items-center justify-center rounded-full border-2"
               :class="
                 dashboardStore.hasSpunToday
-                  ? 'border-green-500 bg-green-100'
-                  : 'border-yellow-500 bg-yellow-100 animate-pulse'
+                  ? 'border-green-500 bg-green-100 dark:bg-green-900'
+                  : 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 animate-pulse'
               "
             >
-              <span class="text-2xl">{{ dashboardStore.hasSpunToday ? '✓' : '🎡' }}</span>
+              <span
+                class="text-2xl"
+                :class="dashboardStore.hasSpunToday ? 'text-green-700 dark:text-green-400' : ''"
+              >
+                {{ dashboardStore.hasSpunToday ? '✓' : '🎡' }}
+              </span>
             </div>
             <div>
               <p class="font-medium">

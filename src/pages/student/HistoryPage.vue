@@ -23,6 +23,20 @@ const authStore = useAuthStore()
 
 const ALL_VALUE = '__all__'
 
+// Status config for badge styling (matching admin announcement pattern)
+const statusConfig = {
+  completed: {
+    label: 'Completed',
+    bgColor: 'bg-green-100 dark:bg-green-950/30',
+    color: 'text-green-700 dark:text-green-400',
+  },
+  in_progress: {
+    label: 'In Progress',
+    bgColor: 'bg-amber-100 dark:bg-amber-950/30',
+    color: 'text-amber-700 dark:text-amber-400',
+  },
+} as const
+
 const selectedDateRange = ref<DateRangeFilter>('alltime')
 const selectedSubject = ref<string>(ALL_VALUE)
 const selectedTopic = ref<string>(ALL_VALUE)
@@ -216,12 +230,14 @@ const columns: ColumnDef<HistoryRow>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.original.status
+      const config = statusConfig[status]
       return h(
         Badge,
         {
-          variant: status === 'completed' ? 'default' : 'secondary',
+          variant: 'secondary',
+          class: `${config.bgColor} ${config.color}`,
         },
-        () => (status === 'completed' ? 'Completed' : 'In Progress'),
+        () => config.label,
       )
     },
   },
