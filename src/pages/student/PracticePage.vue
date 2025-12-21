@@ -61,6 +61,13 @@ const studentGradeLevelId = computed(() => {
   return null
 })
 
+// Get student's grade level name
+const studentGradeLevelName = computed(() => {
+  if (!studentGradeLevelId.value) return ''
+  const grade = curriculumStore.gradeLevels.find((g) => g.id === studentGradeLevelId.value)
+  return grade?.name ?? ''
+})
+
 // Get available subjects for student's grade level
 const availableSubjects = computed(() => {
   if (!studentGradeLevelId.value) return []
@@ -176,9 +183,9 @@ async function confirmStartSession() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink v-if="selectedSubject" as-child>
-                <button @click="goBackToSubjects">Subjects</button>
+                <button @click="goBackToSubjects">{{ studentGradeLevelName }}</button>
               </BreadcrumbLink>
-              <BreadcrumbPage v-else>Subjects</BreadcrumbPage>
+              <BreadcrumbPage v-else>{{ studentGradeLevelName }}</BreadcrumbPage>
             </BreadcrumbItem>
             <template v-if="selectedSubject">
               <BreadcrumbSeparator />
