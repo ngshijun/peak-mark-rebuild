@@ -149,6 +149,12 @@ const answeredOptionIds = computed(() => {
   return practiceStore.optionNumbersToIds(currentAnswer.value.selectedOptions)
 })
 
+// Check if all options are image-only (no text)
+const isImageOnlyOptions = computed(() => {
+  if (!displayOptions.value.length) return false
+  return displayOptions.value.every((opt) => opt.imagePath && !opt.text?.trim())
+})
+
 async function submitAnswer() {
   if (!currentQuestion.value) return
 
@@ -314,17 +320,22 @@ function handleOptionClick(optionId: string) {
             <!-- MCQ/MRQ Options (shuffled and filtered) -->
             <div
               v-if="currentQuestion.type === 'mcq' || currentQuestion.type === 'mrq'"
-              class="space-y-2"
+              :class="isImageOnlyOptions ? 'grid grid-cols-2 gap-3' : 'space-y-2'"
             >
               <!-- Hint for MRQ -->
-              <p v-if="currentQuestion.type === 'mrq'" class="text-sm text-muted-foreground">
+              <p
+                v-if="currentQuestion.type === 'mrq'"
+                class="text-sm text-muted-foreground"
+                :class="{ 'col-span-2': isImageOnlyOptions }"
+              >
                 Select all correct answers
               </p>
               <button
                 v-for="(option, index) in displayOptions"
                 :key="option.id"
-                class="w-full rounded-lg border p-4 text-left transition-colors"
+                class="w-full rounded-lg border p-4 transition-colors"
                 :class="{
+                  'text-left': !isImageOnlyOptions,
                   'border-primary bg-primary/5': selectedOptionIds.has(option.id) && !isAnswered,
                   'hover:border-primary/50 hover:bg-muted/50':
                     !isAnswered && !selectedOptionIds.has(option.id),
@@ -337,7 +348,43 @@ function handleOptionClick(optionId: string) {
                 :disabled="isAnswered"
                 @click="handleOptionClick(option.id)"
               >
-                <div class="flex items-center gap-3">
+                <!-- Image-only layout: vertical with centered content -->
+                <div v-if="isImageOnlyOptions" class="flex flex-col items-center gap-2">
+                  <div class="flex w-full items-center justify-between">
+                    <span
+                      class="flex size-8 shrink-0 items-center justify-center rounded-full border font-medium"
+                      :class="{
+                        'border-primary bg-primary text-primary-foreground':
+                          selectedOptionIds.has(option.id) && !isAnswered,
+                        'border-green-500 bg-green-500 text-white': isAnswered && option.isCorrect,
+                        'border-red-500 bg-red-500 text-white':
+                          isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
+                      }"
+                    >
+                      {{ String.fromCharCode(65 + index) }}
+                    </span>
+                    <CheckCircle2
+                      v-if="isAnswered && option.isCorrect"
+                      class="size-5 text-green-500"
+                    />
+                    <XCircle
+                      v-if="
+                        isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect
+                      "
+                      class="size-5 text-red-500"
+                    />
+                  </div>
+                  <img
+                    v-if="option.imagePath"
+                    :key="`${currentQuestion.id}-${option.id}`"
+                    :src="questionsStore.getThumbnailQuestionImageUrl(option.imagePath)"
+                    :alt="`Option ${String.fromCharCode(65 + index)}`"
+                    class="max-h-32 rounded border object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <!-- Text/mixed layout: horizontal -->
+                <div v-else class="flex items-center gap-3">
                   <span
                     class="flex size-8 shrink-0 items-center justify-center rounded-full border font-medium"
                     :class="{
