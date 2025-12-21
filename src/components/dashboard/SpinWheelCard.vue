@@ -11,8 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Gift } from 'lucide-vue-next'
-import PixelCoin from '@/components/icons/PixelCoin.vue'
+import { Gift, CirclePoundSterling } from 'lucide-vue-next'
 
 const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
@@ -160,7 +159,7 @@ function closeDialog() {
           <p class="text-lg font-bold text-green-600">Congratulations!</p>
           <div class="mt-2 flex items-center justify-center gap-2">
             <span class="text-2xl font-bold">+{{ reward }}</span>
-            <PixelCoin :size="28" />
+            <CirclePoundSterling class="size-7 text-amber-700 dark:text-amber-400" />
           </div>
         </div>
 

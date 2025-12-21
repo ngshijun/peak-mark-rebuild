@@ -22,7 +22,7 @@ import {
   Lock,
   Users,
   Sparkles,
-  Coins,
+  CirclePoundSterling,
   BotMessageSquare,
 } from 'lucide-vue-next'
 
@@ -191,7 +191,7 @@ function goToHistory() {
               <span class="font-medium">+{{ session.xpEarned ?? 0 }} XP</span>
             </div>
             <div class="flex items-center gap-1.5 text-yellow-600">
-              <Coins class="size-4" />
+              <CirclePoundSterling class="size-4 text-amber-700 dark:text-amber-400" />
               <span class="font-medium">+{{ session.coinsEarned ?? 0 }} Coins</span>
             </div>
           </div>

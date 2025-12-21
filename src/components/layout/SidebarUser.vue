@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ChevronsUpDown, LogOut, User } from 'lucide-vue-next'
+import { ChevronsUpDown, LogOut, Users } from 'lucide-vue-next'
 import {
   SidebarFooter,
   SidebarMenu,
@@ -22,6 +22,8 @@ import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
 const router = useRouter()
+
+const isStudent = computed(() => authStore.userType === 'student')
 
 const profilePath = computed(() => {
   if (!authStore.userType) return '/login'
@@ -83,8 +85,8 @@ async function handleLogout() {
             align="end"
             :side-offset="4"
           >
-            <DropdownMenuLabel class="p-0 font-normal">
-              <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            <DropdownMenuItem class="p-0 font-normal" @click="router.push(profilePath)">
+              <div class="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
                 <Avatar class="size-8 rounded-lg">
                   <AvatarImage :src="userAvatar" :alt="userName" />
                   <AvatarFallback class="rounded-lg">{{ userInitials }}</AvatarFallback>
@@ -94,11 +96,11 @@ async function handleLogout() {
                   <span class="truncate text-xs text-muted-foreground">{{ userEmail }}</span>
                 </div>
               </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem @click="router.push(profilePath)">
-              <User class="mr-2 size-4" />
-              Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator v-if="isStudent" />
+            <DropdownMenuItem v-if="isStudent" @click="router.push('/student/parent')">
+              <Users class="mr-2 size-4" />
+              Parent
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem @click="handleLogout">

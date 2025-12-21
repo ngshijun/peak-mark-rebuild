@@ -12,8 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Gift, Star, Sparkles, Loader2 } from 'lucide-vue-next'
-import PixelCoin from '@/components/icons/PixelCoin.vue'
+import { Gift, Star, Sparkles, Loader2, CirclePoundSterling } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
@@ -160,7 +159,7 @@ function closeResults() {
                   <Star class="mr-2 size-5" />
                   Single Pull
                   <Badge variant="secondary" class="ml-2 gap-1">
-                    <PixelCoin :size="12" />
+                    <CirclePoundSterling class="size-3 text-amber-700 dark:text-amber-400" />
                     {{ SINGLE_PULL_COST }}
                   </Badge>
                 </Button>
@@ -173,7 +172,7 @@ function closeResults() {
                   <Sparkles class="mr-2 size-5" />
                   10x Pull
                   <Badge variant="secondary" class="ml-2 gap-1">
-                    <PixelCoin :size="12" />
+                    <CirclePoundSterling class="size-3 text-amber-700 dark:text-amber-400" />
                     {{ MULTI_PULL_COST }}
                   </Badge>
                 </Button>

@@ -21,11 +21,9 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabaseClient'
 import { toast } from 'vue-sonner'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, CirclePoundSterling, Beef } from 'lucide-vue-next'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import PixelCoin from '@/components/icons/PixelCoin.vue'
-import PixelMeat from '@/components/icons/PixelMeat.vue'
 import type { Database } from '@/types/database.types'
 
 type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
@@ -122,14 +120,14 @@ const greeting = computed(() => {
             <div
               class="flex w-28 items-center rounded-md bg-amber-50 px-2.5 py-1 dark:bg-amber-950/30"
             >
-              <PixelCoin :size="16" />
+              <CirclePoundSterling class="size-4 text-amber-700 dark:text-amber-400" />
               <span
                 class="flex-1 text-right text-sm font-semibold text-amber-700 dark:text-amber-400"
                 >{{ coins.toLocaleString() }}</span
               >
             </div>
             <div class="flex w-24 items-center rounded-md bg-red-50 px-2.5 py-1 dark:bg-red-950/30">
-              <PixelMeat :size="16" />
+              <Beef class="size-4 text-red-700 dark:text-red-400" />
               <span
                 class="flex-1 text-right text-sm font-semibold text-red-700 dark:text-red-400"
                 >{{ food.toLocaleString() }}</span

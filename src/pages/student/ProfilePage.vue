@@ -32,7 +32,7 @@ import {
   Calendar,
   GraduationCap,
   Trophy,
-  Coins,
+  CirclePoundSterling,
   Pencil,
   Camera,
   Loader2,
@@ -276,7 +276,7 @@ async function handleGradeChange(value: unknown) {
               Level {{ authStore.currentLevel }}
             </Badge>
             <Badge variant="outline" class="text-sm">
-              <Coins class="mr-1 size-3" />
+              <CirclePoundSterling class="mr-1 size-3 text-amber-700 dark:text-amber-400" />
               {{ authStore.studentProfile?.coins ?? 0 }} Coins
             </Badge>
           </div>

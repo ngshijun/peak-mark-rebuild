@@ -33,7 +33,6 @@ export const sidebarNavConfig: SidebarNavConfig = {
     { title: 'Announcements', path: '/student/announcements', icon: Megaphone },
     { title: 'Practice', path: '/student/practice', icon: PenTool },
     { title: 'History', path: '/student/history', icon: History },
-    { title: 'Parent', path: '/student/parent', icon: Users },
     { title: 'Leaderboard', path: '/student/leaderboard', icon: Trophy },
     { title: 'Gacha', path: '/student/gacha', icon: Gift },
     { title: 'My Pet', path: '/student/my-pet', icon: PawPrint },
