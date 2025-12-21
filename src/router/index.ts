@@ -215,11 +215,6 @@ const router = createRouter({
           component: () => import('@/pages/student/CollectionsPage.vue'),
         },
         {
-          path: 'market',
-          name: 'student-market',
-          component: () => import('@/pages/student/MarketPage.vue'),
-        },
-        {
           path: 'gacha',
           name: 'student-gacha',
           component: () => import('@/pages/student/GachaPage.vue'),

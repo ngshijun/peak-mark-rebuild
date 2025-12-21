@@ -600,9 +600,15 @@ export const usePracticeStore = defineStore('practice', () => {
       }))
 
       // Use upsert to handle any edge cases where a question might already be recorded
-      await supabase
+      // Requires unique constraint on (student_id, topic_id, question_id, cycle_number)
+      const { error: progressError } = await supabase
         .from('student_question_progress')
         .upsert(progressInsertData, { onConflict: 'student_id,topic_id,question_id,cycle_number' })
+
+      if (progressError) {
+        console.error('Failed to record question progress:', progressError)
+        // Don't fail the session, but log for debugging
+      }
 
       const session: PracticeSession = {
         id: sessionData.id,

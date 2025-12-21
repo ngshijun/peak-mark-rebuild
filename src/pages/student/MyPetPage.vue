@@ -7,8 +7,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Heart, Sparkles, Hand, ArrowUp, Star } from 'lucide-vue-next'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Heart,
+  Sparkles,
+  Hand,
+  ArrowUp,
+  Star,
+  Plus,
+  Minus,
+  Loader2,
+  ShoppingCart,
+} from 'lucide-vue-next'
 import PixelMeat from '@/components/icons/PixelMeat.vue'
+import PixelCoin from '@/components/icons/PixelCoin.vue'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
@@ -37,6 +57,54 @@ const isFeeding = ref(false)
 const isEvolving = ref(false)
 const showHearts = ref(false)
 const showSparkles = ref(false)
+
+// Food exchange dialog state
+const showFoodExchangeDialog = ref(false)
+const foodAmount = ref(1)
+const isExchanging = ref(false)
+const FOOD_PRICE = 100 // coins per food
+
+const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
+const exchangeCost = computed(() => foodAmount.value * FOOD_PRICE)
+const canAffordExchange = computed(() => currentCoins.value >= exchangeCost.value)
+
+function incrementFood() {
+  const maxAffordable = Math.floor(currentCoins.value / FOOD_PRICE)
+  if (foodAmount.value < maxAffordable) {
+    foodAmount.value++
+  }
+}
+
+function decrementFood() {
+  if (foodAmount.value > 1) {
+    foodAmount.value--
+  }
+}
+
+function resetFoodExchange() {
+  foodAmount.value = 1
+}
+
+async function handleExchangeFood() {
+  if (!canAffordExchange.value || isExchanging.value) return
+
+  isExchanging.value = true
+  try {
+    const success = await authStore.spendCoins(exchangeCost.value)
+    if (!success) {
+      toast.error('Not enough coins!')
+      return
+    }
+
+    await authStore.addFood(foodAmount.value)
+    toast.success(`Exchanged ${exchangeCost.value} coins for ${foodAmount.value} food!`)
+    showFoodExchangeDialog.value = false
+  } catch {
+    toast.error('Failed to exchange coins for food')
+  } finally {
+    isExchanging.value = false
+  }
+}
 
 // Pet the pet
 function petPet() {
@@ -69,7 +137,7 @@ async function feedPet() {
   }
 
   if (currentFood.value <= 0) {
-    toast.warning('No food available! Buy some from the Market.')
+    toast.warning('No food available!')
     return
   }
 
@@ -128,10 +196,6 @@ function goToCollections() {
   router.push('/student/collections')
 }
 
-function goToMarket() {
-  router.push('/student/market')
-}
-
 // Tier label helper
 function getTierLabel(tier: number): string {
   switch (tier) {
@@ -149,15 +213,85 @@ function getTierLabel(tier: number): string {
 
 <template>
   <div class="space-y-6 p-6">
+    <!-- Header with Buy Food Button -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold">My Pet</h1>
         <p class="text-muted-foreground">Take care of your pet companion</p>
       </div>
-      <div class="flex items-center gap-2 rounded-lg border bg-card px-4 py-2">
-        <PixelMeat :size="20" />
-        <span class="font-semibold">{{ currentFood }}</span>
-      </div>
+      <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
+        <DialogTrigger as-child>
+          <Button>
+            <ShoppingCart class="mr-2 size-4" />
+            Buy Food
+          </Button>
+        </DialogTrigger>
+        <DialogContent class="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Buy Food</DialogTitle>
+            <DialogDescription>Exchange coins for food to feed your pet.</DialogDescription>
+          </DialogHeader>
+          <div class="space-y-4 py-4">
+            <!-- Exchange Rate Info -->
+            <div class="rounded-lg bg-muted p-3 text-center text-sm">
+              <span class="text-muted-foreground">Exchange Rate: </span>
+              <span class="font-semibold">{{ FOOD_PRICE }} coins = 1 food</span>
+            </div>
+
+            <!-- Amount Selector -->
+            <div class="flex items-center justify-center gap-4">
+              <button
+                class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="foodAmount <= 1"
+                @click="decrementFood"
+              >
+                <Minus class="size-5" />
+              </button>
+              <div class="flex min-w-20 flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <PixelMeat :size="24" />
+                  <span class="text-3xl font-bold">{{ foodAmount }}</span>
+                </div>
+              </div>
+              <button
+                class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="!canAffordExchange || currentCoins < (foodAmount + 1) * FOOD_PRICE"
+                @click="incrementFood"
+              >
+                <Plus class="size-5" />
+              </button>
+            </div>
+
+            <!-- Cost Display -->
+            <div class="flex items-center justify-center gap-2 text-lg">
+              <span class="text-muted-foreground">Cost:</span>
+              <div class="flex items-center gap-1">
+                <PixelCoin :size="20" />
+                <span
+                  class="font-bold"
+                  :class="canAffordExchange ? 'text-amber-600' : 'text-red-500'"
+                >
+                  {{ exchangeCost.toLocaleString() }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Current Balance -->
+            <div class="text-center text-sm text-muted-foreground">
+              Your balance:
+              <span class="font-semibold text-amber-600">{{ currentCoins.toLocaleString() }}</span>
+              coins
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" @click="showFoodExchangeDialog = false">Cancel</Button>
+            <Button :disabled="!canAffordExchange || isExchanging" @click="handleExchangeFood">
+              <Loader2 v-if="isExchanging" class="mr-2 size-4 animate-spin" />
+              Buy Food
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
 
     <!-- No Pet Selected -->
@@ -343,10 +477,6 @@ function getTierLabel(tier: number): string {
 
             <!-- Quick Actions -->
             <div class="space-y-2">
-              <Button variant="outline" class="w-full" @click="goToMarket">
-                <PixelMeat :size="16" class="mr-2" />
-                Buy Food at Market
-              </Button>
               <Button variant="outline" class="w-full" @click="goToCollections">
                 <Sparkles class="mr-2 size-4" />
                 View Collection

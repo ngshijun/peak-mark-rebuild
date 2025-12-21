@@ -50,6 +50,38 @@ npx supabase gen types typescript --linked > src/types/database.types.ts
 
 Afterwards, check for security and performance issues with supabase mcp and fix them if necessary.
 
+### RLS Policy Best Practices
+When writing Row Level Security (RLS) policies, **always wrap `auth.uid()` and other auth functions in a subquery** to prevent re-evaluation for each row:
+
+```sql
+-- BAD: Re-evaluates auth.uid() for every row (slow at scale)
+CREATE POLICY "Users can read own data" ON my_table
+FOR SELECT USING (user_id = auth.uid());
+
+-- GOOD: Evaluates auth.uid() once per query (fast)
+CREATE POLICY "Users can read own data" ON my_table
+FOR SELECT USING (user_id = (SELECT auth.uid()));
+```
+
+This applies to all RLS policies using:
+- `auth.uid()`
+- `auth.jwt()`
+- `current_setting()`
+
+See: https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select
+
+### Upsert Requirements
+When using Supabase `upsert` with `onConflict`, ensure:
+1. A **unique constraint** exists on the specified columns
+2. The user has **UPDATE permission** (RLS policy) if conflicts may occur
+
+```typescript
+// Requires: UNIQUE constraint on (student_id, topic_id, question_id)
+await supabase
+  .from('my_table')
+  .upsert(data, { onConflict: 'student_id,topic_id,question_id' })
+```
+
 ---
 
 ## Code Quality Standards

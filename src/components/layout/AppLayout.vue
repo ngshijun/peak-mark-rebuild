@@ -24,6 +24,8 @@ import { toast } from 'vue-sonner'
 import { Loader2 } from 'lucide-vue-next'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
+import PixelCoin from '@/components/icons/PixelCoin.vue'
+import PixelMeat from '@/components/icons/PixelMeat.vue'
 import type { Database } from '@/types/database.types'
 
 type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
@@ -83,6 +85,10 @@ async function handleSaveGrade() {
   }
 }
 
+const isStudent = computed(() => authStore.userType === 'student')
+const coins = computed(() => authStore.studentProfile?.coins ?? 0)
+const food = computed(() => authStore.studentProfile?.food ?? 0)
+
 const greeting = computed(() => {
   const hour = new Date().getHours()
   let timeGreeting: string
@@ -110,7 +116,28 @@ const greeting = computed(() => {
           <Separator orientation="vertical" class="mr-2 h-4" />
           <h1 class="text-lg font-medium">{{ greeting }}</h1>
         </div>
-        <ThemeToggle />
+        <div class="flex items-center gap-2">
+          <!-- Coins and Food display for students -->
+          <template v-if="isStudent">
+            <div
+              class="flex w-28 items-center rounded-md bg-amber-50 px-2.5 py-1 dark:bg-amber-950/30"
+            >
+              <PixelCoin :size="16" />
+              <span
+                class="flex-1 text-right text-sm font-semibold text-amber-700 dark:text-amber-400"
+                >{{ coins.toLocaleString() }}</span
+              >
+            </div>
+            <div class="flex w-24 items-center rounded-md bg-red-50 px-2.5 py-1 dark:bg-red-950/30">
+              <PixelMeat :size="16" />
+              <span
+                class="flex-1 text-right text-sm font-semibold text-red-700 dark:text-red-400"
+                >{{ food.toLocaleString() }}</span
+              >
+            </div>
+          </template>
+          <ThemeToggle />
+        </div>
       </header>
       <main class="flex-1 overflow-auto">
         <router-view />

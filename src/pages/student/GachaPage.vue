@@ -111,15 +111,9 @@ function closeResults() {
 
 <template>
   <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Gacha</h1>
-        <p class="text-muted-foreground">Spend coins to get new pets!</p>
-      </div>
-      <div class="flex items-center gap-2 rounded-lg border bg-card px-4 py-2">
-        <PixelCoin :size="20" />
-        <span class="font-semibold">{{ currentCoins.toLocaleString() }}</span>
-      </div>
+    <div>
+      <h1 class="text-2xl font-bold">Gacha</h1>
+      <p class="text-muted-foreground">Spend coins to get new pets!</p>
     </div>
 
     <!-- Loading State -->
