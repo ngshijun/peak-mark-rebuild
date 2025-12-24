@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, h, onMounted } from 'vue'
+import { computed, ref, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { usePracticeStore, type DateRangeFilter } from '@/stores/practice'
@@ -37,11 +37,6 @@ const statusConfig = {
   },
 } as const
 
-const selectedDateRange = ref<DateRangeFilter>('alltime')
-const selectedSubject = ref<string>(ALL_VALUE)
-const selectedTopic = ref<string>(ALL_VALUE)
-const selectedSubTopic = ref<string>(ALL_VALUE)
-
 const dateRangeOptions = [
   { value: 'today' as DateRangeFilter, label: 'Today' },
   { value: 'last7days' as DateRangeFilter, label: 'Last 7 Days' },
@@ -66,26 +61,19 @@ onMounted(async () => {
   }
 })
 
-// Reset topic and sub-topic when subject changes
-watch(selectedSubject, () => {
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
-})
-
-// Reset sub-topic when topic changes
-watch(selectedTopic, () => {
-  selectedSubTopic.value = ALL_VALUE
-})
-
 // Helper to convert ALL_VALUE to undefined for store calls
 const subjectFilter = computed(() =>
-  selectedSubject.value === ALL_VALUE ? undefined : selectedSubject.value,
+  practiceStore.historyFilters.subject === ALL_VALUE
+    ? undefined
+    : practiceStore.historyFilters.subject,
 )
 const topicFilter = computed(() =>
-  selectedTopic.value === ALL_VALUE ? undefined : selectedTopic.value,
+  practiceStore.historyFilters.topic === ALL_VALUE ? undefined : practiceStore.historyFilters.topic,
 )
 const subTopicFilter = computed(() =>
-  selectedSubTopic.value === ALL_VALUE ? undefined : selectedSubTopic.value,
+  practiceStore.historyFilters.subTopic === ALL_VALUE
+    ? undefined
+    : practiceStore.historyFilters.subTopic,
 )
 
 // Get available subjects from history (filtered by current grade level)
@@ -129,7 +117,7 @@ const historyData = computed<HistoryRow[]>(() => {
     subjectFilter.value,
     topicFilter.value,
     subTopicFilter.value,
-    selectedDateRange.value,
+    practiceStore.historyFilters.dateRange,
   )
 
   return filteredSessions.map((session) => {
@@ -314,7 +302,10 @@ function handleRowClick(row: HistoryRow) {
       <!-- Filters Row -->
       <div class="mb-4 flex flex-wrap items-center gap-3">
         <!-- Date Range Selector -->
-        <Select v-model="selectedDateRange">
+        <Select
+          :model-value="practiceStore.historyFilters.dateRange"
+          @update:model-value="practiceStore.setHistoryDateRange($event as DateRangeFilter)"
+        >
           <SelectTrigger class="w-[140px]">
             <Calendar class="mr-2 size-4" />
             <SelectValue placeholder="Date range" />
@@ -331,7 +322,10 @@ function handleRowClick(row: HistoryRow) {
         </Select>
 
         <!-- Subject Selector -->
-        <Select v-model="selectedSubject">
+        <Select
+          :model-value="practiceStore.historyFilters.subject"
+          @update:model-value="practiceStore.setHistorySubject($event as string)"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Subjects" />
           </SelectTrigger>
@@ -344,7 +338,11 @@ function handleRowClick(row: HistoryRow) {
         </Select>
 
         <!-- Topic Selector -->
-        <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
+        <Select
+          :model-value="practiceStore.historyFilters.topic"
+          :disabled="practiceStore.historyFilters.subject === ALL_VALUE"
+          @update:model-value="practiceStore.setHistoryTopic($event as string)"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Topics" />
           </SelectTrigger>
@@ -357,7 +355,11 @@ function handleRowClick(row: HistoryRow) {
         </Select>
 
         <!-- Sub-Topic Selector -->
-        <Select v-model="selectedSubTopic" :disabled="selectedTopic === ALL_VALUE">
+        <Select
+          :model-value="practiceStore.historyFilters.subTopic"
+          :disabled="practiceStore.historyFilters.topic === ALL_VALUE"
+          @update:model-value="practiceStore.setHistorySubTopic($event as string)"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Sub-Topics" />
           </SelectTrigger>

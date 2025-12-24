@@ -52,7 +52,7 @@ onMounted(async () => {
 const ALL_VALUE = '__all__'
 const SELECTED_CHILD_KEY = 'parent_selected_child_id'
 
-// Get initial child ID from localStorage or default to first child
+// Get initial child ID from localStorage or default to first child (user preference - persists across sessions)
 function getInitialChildId(): string {
   const savedChildId = localStorage.getItem(SELECTED_CHILD_KEY)
   // Verify saved child is still in linked children list
@@ -63,11 +63,6 @@ function getInitialChildId(): string {
 }
 
 const selectedChildId = ref<string>(getInitialChildId())
-const selectedDateRange = ref<DateRangeFilter>('today')
-const selectedGradeLevel = ref<string>(ALL_VALUE)
-const selectedSubject = ref<string>(ALL_VALUE)
-const selectedTopic = ref<string>(ALL_VALUE)
-const selectedSubTopic = ref<string>(ALL_VALUE)
 
 const dateRangeOptions = [
   { value: 'today' as DateRangeFilter, label: 'Today' },
@@ -78,48 +73,35 @@ const dateRangeOptions = [
 
 // Reset filters when child changes and save to localStorage
 watch(selectedChildId, (newChildId) => {
-  selectedDateRange.value = 'today'
-  selectedGradeLevel.value = ALL_VALUE
-  selectedSubject.value = ALL_VALUE
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
+  // Reset all filters when switching children
+  childStatisticsStore.resetStatisticsFilters()
 
-  // Persist selected child to localStorage
+  // Persist selected child to localStorage (user preference)
   if (newChildId) {
     localStorage.setItem(SELECTED_CHILD_KEY, newChildId)
   }
 })
 
-// Reset subject, topic, and subtopic when grade level changes
-watch(selectedGradeLevel, () => {
-  selectedSubject.value = ALL_VALUE
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
-})
-
-// Reset topic and subtopic when subject changes
-watch(selectedSubject, () => {
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
-})
-
-// Reset subtopic when topic changes
-watch(selectedTopic, () => {
-  selectedSubTopic.value = ALL_VALUE
-})
-
 // Helper to convert ALL_VALUE to undefined for store calls
 const gradeLevelFilter = computed(() =>
-  selectedGradeLevel.value === ALL_VALUE ? undefined : selectedGradeLevel.value,
+  childStatisticsStore.statisticsFilters.gradeLevel === ALL_VALUE
+    ? undefined
+    : childStatisticsStore.statisticsFilters.gradeLevel,
 )
 const subjectFilter = computed(() =>
-  selectedSubject.value === ALL_VALUE ? undefined : selectedSubject.value,
+  childStatisticsStore.statisticsFilters.subject === ALL_VALUE
+    ? undefined
+    : childStatisticsStore.statisticsFilters.subject,
 )
 const topicFilter = computed(() =>
-  selectedTopic.value === ALL_VALUE ? undefined : selectedTopic.value,
+  childStatisticsStore.statisticsFilters.topic === ALL_VALUE
+    ? undefined
+    : childStatisticsStore.statisticsFilters.topic,
 )
 const subTopicFilter = computed(() =>
-  selectedSubTopic.value === ALL_VALUE ? undefined : selectedSubTopic.value,
+  childStatisticsStore.statisticsFilters.subTopic === ALL_VALUE
+    ? undefined
+    : childStatisticsStore.statisticsFilters.subTopic,
 )
 
 // Get available grade levels for selected child
@@ -164,7 +146,7 @@ const averageScore = computed(() => {
     subjectFilter.value,
     topicFilter.value,
     subTopicFilter.value,
-    selectedDateRange.value,
+    childStatisticsStore.statisticsFilters.dateRange,
   )
 })
 
@@ -176,7 +158,7 @@ const totalSessions = computed(() => {
     subjectFilter.value,
     topicFilter.value,
     subTopicFilter.value,
-    selectedDateRange.value,
+    childStatisticsStore.statisticsFilters.dateRange,
   )
 })
 
@@ -188,7 +170,7 @@ const totalStudyTime = computed(() => {
     subjectFilter.value,
     topicFilter.value,
     subTopicFilter.value,
-    selectedDateRange.value,
+    childStatisticsStore.statisticsFilters.dateRange,
   )
 })
 
@@ -200,7 +182,7 @@ const subTopicsPracticed = computed(() => {
     subjectFilter.value,
     topicFilter.value,
     subTopicFilter.value,
-    selectedDateRange.value,
+    childStatisticsStore.statisticsFilters.dateRange,
   )
 })
 
@@ -213,7 +195,7 @@ const recentSessions = computed(() => {
     subjectFilter.value,
     topicFilter.value,
     subTopicFilter.value,
-    selectedDateRange.value,
+    childStatisticsStore.statisticsFilters.dateRange,
   )
 })
 
@@ -372,7 +354,7 @@ function handleRowClick(row: ChildPracticeSession) {
     <template v-else>
       <!-- Filters Row -->
       <div class="flex flex-wrap items-center gap-3">
-        <!-- Child Selector -->
+        <!-- Child Selector (persisted in localStorage - user preference) -->
         <Select v-model="selectedChildId">
           <SelectTrigger class="w-[150px]">
             <SelectValue placeholder="Select child" />
@@ -389,7 +371,12 @@ function handleRowClick(row: ChildPracticeSession) {
         </Select>
 
         <!-- Date Range Selector -->
-        <Select v-model="selectedDateRange">
+        <Select
+          :model-value="childStatisticsStore.statisticsFilters.dateRange"
+          @update:model-value="
+            childStatisticsStore.setStatisticsDateRange($event as DateRangeFilter)
+          "
+        >
           <SelectTrigger class="w-[140px]">
             <Calendar class="mr-2 size-4" />
             <SelectValue placeholder="Date range" />
@@ -406,7 +393,10 @@ function handleRowClick(row: ChildPracticeSession) {
         </Select>
 
         <!-- Grade Level Selector -->
-        <Select v-model="selectedGradeLevel">
+        <Select
+          :model-value="childStatisticsStore.statisticsFilters.gradeLevel"
+          @update:model-value="childStatisticsStore.setStatisticsGradeLevel($event as string)"
+        >
           <SelectTrigger class="w-[130px]">
             <SelectValue placeholder="All Grades" />
           </SelectTrigger>
@@ -419,7 +409,11 @@ function handleRowClick(row: ChildPracticeSession) {
         </Select>
 
         <!-- Subject Selector -->
-        <Select v-model="selectedSubject" :disabled="selectedGradeLevel === ALL_VALUE">
+        <Select
+          :model-value="childStatisticsStore.statisticsFilters.subject"
+          :disabled="childStatisticsStore.statisticsFilters.gradeLevel === ALL_VALUE"
+          @update:model-value="childStatisticsStore.setStatisticsSubject($event as string)"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Subjects" />
           </SelectTrigger>
@@ -432,7 +426,11 @@ function handleRowClick(row: ChildPracticeSession) {
         </Select>
 
         <!-- Topic Selector -->
-        <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
+        <Select
+          :model-value="childStatisticsStore.statisticsFilters.topic"
+          :disabled="childStatisticsStore.statisticsFilters.subject === ALL_VALUE"
+          @update:model-value="childStatisticsStore.setStatisticsTopic($event as string)"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Topics" />
           </SelectTrigger>
@@ -445,7 +443,11 @@ function handleRowClick(row: ChildPracticeSession) {
         </Select>
 
         <!-- Sub-Topic Selector -->
-        <Select v-model="selectedSubTopic" :disabled="selectedTopic === ALL_VALUE">
+        <Select
+          :model-value="childStatisticsStore.statisticsFilters.subTopic"
+          :disabled="childStatisticsStore.statisticsFilters.topic === ALL_VALUE"
+          @update:model-value="childStatisticsStore.setStatisticsSubTopic($event as string)"
+        >
           <SelectTrigger class="w-[150px]">
             <SelectValue placeholder="All Sub-Topics" />
           </SelectTrigger>

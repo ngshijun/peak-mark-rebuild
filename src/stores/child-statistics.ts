@@ -113,6 +113,16 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // Statistics page filter state (persisted across navigation)
+  // Note: selectedChildId is persisted via localStorage in the component (user preference)
+  const statisticsFilters = ref({
+    dateRange: 'today' as DateRangeFilter,
+    gradeLevel: '__all__',
+    subject: '__all__',
+    topic: '__all__',
+    subTopic: '__all__',
+  })
+
   /**
    * Fetch practice sessions for all linked children
    */
@@ -816,11 +826,52 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       .sort((a, b) => a.date.localeCompare(b.date))
   }
 
+  // Statistics filter setters
+  function setStatisticsDateRange(value: DateRangeFilter) {
+    statisticsFilters.value.dateRange = value
+  }
+
+  function setStatisticsGradeLevel(value: string) {
+    statisticsFilters.value.gradeLevel = value
+    // Reset dependent filters when grade level changes
+    statisticsFilters.value.subject = '__all__'
+    statisticsFilters.value.topic = '__all__'
+    statisticsFilters.value.subTopic = '__all__'
+  }
+
+  function setStatisticsSubject(value: string) {
+    statisticsFilters.value.subject = value
+    // Reset dependent filters when subject changes
+    statisticsFilters.value.topic = '__all__'
+    statisticsFilters.value.subTopic = '__all__'
+  }
+
+  function setStatisticsTopic(value: string) {
+    statisticsFilters.value.topic = value
+    // Reset dependent filter when topic changes
+    statisticsFilters.value.subTopic = '__all__'
+  }
+
+  function setStatisticsSubTopic(value: string) {
+    statisticsFilters.value.subTopic = value
+  }
+
+  function resetStatisticsFilters() {
+    statisticsFilters.value = {
+      dateRange: 'today',
+      gradeLevel: '__all__',
+      subject: '__all__',
+      topic: '__all__',
+      subTopic: '__all__',
+    }
+  }
+
   // Reset store state (call on logout)
   function $reset() {
     childrenStatistics.value = []
     isLoading.value = false
     error.value = null
+    resetStatisticsFilters()
   }
 
   return {
@@ -828,6 +879,15 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     childrenStatistics,
     isLoading,
     error,
+
+    // Statistics filters
+    statisticsFilters,
+    setStatisticsDateRange,
+    setStatisticsGradeLevel,
+    setStatisticsSubject,
+    setStatisticsTopic,
+    setStatisticsSubTopic,
+    resetStatisticsFilters,
 
     // Computed
     linkedChildrenStatistics,

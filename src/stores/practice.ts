@@ -86,6 +86,14 @@ export const usePracticeStore = defineStore('practice', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // History page filter state (persisted across navigation)
+  const historyFilters = ref({
+    dateRange: 'alltime' as DateRangeFilter,
+    subject: '__all__',
+    topic: '__all__',
+    subTopic: '__all__',
+  })
+
   const questionsStore = useQuestionsStore()
   const authStore = useAuthStore()
   const curriculumStore = useCurriculumStore()
@@ -1225,12 +1233,44 @@ export const usePracticeStore = defineStore('practice', () => {
     return { session: result.session, error: null }
   }
 
+  // History filter setters
+  function setHistoryDateRange(value: DateRangeFilter) {
+    historyFilters.value.dateRange = value
+  }
+
+  function setHistorySubject(value: string) {
+    historyFilters.value.subject = value
+    // Reset dependent filters when subject changes
+    historyFilters.value.topic = '__all__'
+    historyFilters.value.subTopic = '__all__'
+  }
+
+  function setHistoryTopic(value: string) {
+    historyFilters.value.topic = value
+    // Reset dependent filter when topic changes
+    historyFilters.value.subTopic = '__all__'
+  }
+
+  function setHistorySubTopic(value: string) {
+    historyFilters.value.subTopic = value
+  }
+
+  function resetHistoryFilters() {
+    historyFilters.value = {
+      dateRange: 'alltime',
+      subject: '__all__',
+      topic: '__all__',
+      subTopic: '__all__',
+    }
+  }
+
   // Reset store state (call on logout)
   function $reset() {
     currentSession.value = null
     sessionHistory.value = []
     isLoading.value = false
     error.value = null
+    resetHistoryFilters()
   }
 
   return {
@@ -1246,6 +1286,14 @@ export const usePracticeStore = defineStore('practice', () => {
     currentAnswer,
     isCurrentQuestionAnswered,
     sessionResults,
+    // History filters
+    historyFilters,
+    setHistoryDateRange,
+    setHistorySubject,
+    setHistoryTopic,
+    setHistorySubTopic,
+    resetHistoryFilters,
+    // Actions
     fetchSessionHistory,
     startSession,
     submitAnswer,
