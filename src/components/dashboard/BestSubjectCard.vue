@@ -86,30 +86,36 @@ function goToHistory() {
       <Trophy class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
-      <div v-if="bestSubject" class="flex items-center gap-3">
-        <span class="text-4xl">🏆</span>
-        <div>
-          <p class="font-medium">
-            {{ bestSubject.gradeLevelName }} - {{ bestSubject.subjectName }}
-          </p>
-          <p class="text-2xl font-bold" :class="getScoreColor(bestSubject.averageScore)">
-            {{ bestSubject.averageScore }}%
-            <span class="text-sm font-normal text-muted-foreground">avg</span>
-          </p>
-          <p class="text-xs text-muted-foreground">
-            Based on {{ bestSubject.sessionCount }} session{{
-              bestSubject.sessionCount > 1 ? 's' : ''
-            }}
-          </p>
+      <template v-if="bestSubject">
+        <div class="flex items-center gap-3">
+          <span class="text-4xl">🏆</span>
+          <div>
+            <p class="font-medium">
+              {{ bestSubject.gradeLevelName }} - {{ bestSubject.subjectName }}
+            </p>
+            <p class="text-2xl font-bold" :class="getScoreColor(bestSubject.averageScore)">
+              {{ bestSubject.averageScore }}%
+              <span class="text-sm font-normal text-muted-foreground">avg</span>
+            </p>
+          </div>
         </div>
-      </div>
-      <div v-else class="flex items-center gap-3">
-        <span class="text-4xl">📚</span>
-        <div>
-          <p class="font-medium text-muted-foreground">No data yet</p>
-          <p class="text-xs text-muted-foreground">Complete practice sessions to see your stats</p>
+        <p class="mt-2 text-xs text-muted-foreground">
+          Based on {{ bestSubject.sessionCount }} session{{
+            bestSubject.sessionCount > 1 ? 's' : ''
+          }}
+        </p>
+      </template>
+      <template v-else>
+        <div class="flex items-center gap-3">
+          <span class="text-4xl">📚</span>
+          <div>
+            <p class="font-medium text-muted-foreground">No data yet</p>
+            <p class="text-xs text-muted-foreground">
+              Complete practice sessions to see your stats
+            </p>
+          </div>
         </div>
-      </div>
+      </template>
     </CardContent>
   </Card>
 </template>

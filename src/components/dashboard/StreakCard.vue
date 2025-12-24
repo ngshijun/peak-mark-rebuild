@@ -47,19 +47,19 @@ function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
           <p class="text-xs text-muted-foreground">
             {{ getStreakMessage(dashboardStore.currentStreak, dashboardStore.hasPracticedToday) }}
           </p>
-          <!-- Today's status indicator -->
-          <div class="mt-1 flex items-center gap-1.5 text-xs">
-            <div
-              class="size-2 rounded-full"
-              :class="dashboardStore.hasPracticedToday ? 'bg-green-500' : 'bg-gray-300'"
-            />
-            <span
-              :class="dashboardStore.hasPracticedToday ? 'text-green-600' : 'text-muted-foreground'"
-            >
-              {{ dashboardStore.hasPracticedToday ? 'Practiced today' : 'Not yet practiced today' }}
-            </span>
-          </div>
         </div>
+      </div>
+      <!-- Today's status indicator -->
+      <div class="mt-2 flex items-center gap-1.5 text-xs">
+        <div
+          class="size-2 rounded-full"
+          :class="dashboardStore.hasPracticedToday ? 'bg-green-500' : 'bg-gray-300'"
+        />
+        <span
+          :class="dashboardStore.hasPracticedToday ? 'text-green-600' : 'text-muted-foreground'"
+        >
+          {{ dashboardStore.hasPracticedToday ? 'Practiced today' : 'Not yet practiced today' }}
+        </span>
       </div>
     </CardContent>
   </Card>
