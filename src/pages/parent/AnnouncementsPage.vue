@@ -75,7 +75,6 @@ function goToPage(page: number) {
       <Button
         v-if="announcementsStore.unreadCount > 0"
         variant="outline"
-        size="sm"
         :disabled="isMarkingAllRead"
         @click="handleMarkAllAsRead"
       >
