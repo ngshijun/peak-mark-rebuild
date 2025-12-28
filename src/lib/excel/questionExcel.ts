@@ -98,8 +98,51 @@ export async function generateQuestionTemplate(gradeLevels: GradeLevel[]): Promi
   saveAs(blob, 'question_upload_template.xlsx')
 }
 
+// Helper area configuration for INDIRECT formulas (used by Google Sheets)
+// Helpers are placed far below data rows to allow array spilling without collision
+const HELPER_CONFIG = {
+  START_ROW: 1000, // First helper row starts at row 1000
+  MIN_ROW_SPACING: 20, // Minimum spacing even if lists are small
+  COLUMNS: {
+    SUBJECTS: 18, // R - INDIRECT formula for subjects based on grade
+    TOPICS: 19, // S - INDIRECT formula for topics based on grade+subject
+    SUBTOPICS: 20, // T - INDIRECT formula for sub-topics based on grade+subject+topic
+  },
+}
+
+// Calculate the maximum dropdown list size to determine required spacing
+function calculateMaxDropdownSize(gradeLevels: GradeLevel[]): number {
+  let maxSize = 0
+
+  // Check max subjects per grade
+  for (const grade of gradeLevels) {
+    maxSize = Math.max(maxSize, grade.subjects.length)
+
+    // Check max topics per subject
+    for (const subject of grade.subjects) {
+      maxSize = Math.max(maxSize, subject.topics.length)
+
+      // Check max sub-topics per topic
+      for (const topic of subject.topics) {
+        maxSize = Math.max(maxSize, topic.subTopics.length)
+      }
+    }
+  }
+
+  // Add buffer and ensure minimum spacing
+  return Math.max(maxSize + 5, HELPER_CONFIG.MIN_ROW_SPACING)
+}
+
+// Calculate helper row for a given data row
+function getHelperRow(dataRow: number, rowSpacing: number): number {
+  // Data rows start at 2, so dataRow 2 -> helper row 1000, dataRow 3 -> 1000+spacing, etc.
+  return HELPER_CONFIG.START_ROW + (dataRow - 2) * rowSpacing
+}
+
 function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]) {
   // Set column widths
+  // Columns A-Q: main data columns
+  // Columns R-T: hidden helper columns with INDIRECT formulas for Google Sheets cascading dropdowns
   sheet.columns = [
     { header: 'Type*', key: 'type', width: 15 },
     { header: 'Grade Level*', key: 'gradeLevel', width: 15 },
@@ -118,6 +161,10 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
     { header: 'Option D Image', key: 'optionDImage', width: 15 },
     { header: 'Correct Answer*', key: 'correctAnswer', width: 18 },
     { header: 'Explanation', key: 'explanation', width: 40 },
+    // Hidden helper columns for INDIRECT formulas (Google Sheets compatibility)
+    { header: '_Subjects', key: '_subjects', width: 15, hidden: true },
+    { header: '_Topics', key: '_topics', width: 15, hidden: true },
+    { header: '_SubTopics', key: '_subtopics', width: 15, hidden: true },
   ]
 
   // Style header row
@@ -131,7 +178,7 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
   headerRow.height = 25
 
-  // Note: Data validations are applied separately in applyCascadingValidations()
+  // Note: Data validations and INDIRECT formulas are applied separately in applyCascadingValidations()
 
   // Add placeholder rows with proper height for images
   for (let i = 2; i <= 11; i++) {
@@ -155,6 +202,11 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
       }
     }
   }
+
+  // Hide helper columns (R, S, T)
+  sheet.getColumn(HELPER_CONFIG.COLUMNS.SUBJECTS).hidden = true
+  sheet.getColumn(HELPER_CONFIG.COLUMNS.TOPICS).hidden = true
+  sheet.getColumn(HELPER_CONFIG.COLUMNS.SUBTOPICS).hidden = true
 
   // Freeze header row
   sheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
@@ -180,9 +232,9 @@ function getColumnLetter(colNum: number): string {
 
 function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]) {
   // Column A: Grade Levels list
-  // Columns B onwards: Subject lists per grade level (using grade name as header)
-  // After subjects: Topic lists per subject (using subject name as header)
-  // After topics: Sub-Topic lists per topic (using topic name as header)
+  // Columns B onwards: Subject lists per grade level
+  // After subjects: Topic lists per grade+subject (compound naming)
+  // After topics: Sub-Topic lists per grade+subject+topic (compound naming)
 
   // Write grade levels in column A
   sheet.getCell('A1').value = 'GradeLevels'
@@ -200,14 +252,13 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
   let colIndex = 2 // Start from column B
 
   // For each grade level, create a column for its subjects
+  // Named range: {gradeName} -> list of subjects (e.g., "P1" -> Math, Science)
   for (const grade of gradeLevels) {
     const colLetter = getColumnLetter(colIndex)
-
-    // Sanitize grade name for use as named range
     const gradeSafeName = sanitizeName(grade.name)
 
-    // Header: Grade name (for reference)
-    sheet.getCell(`${colLetter}1`).value = `Subjects_${grade.name}`
+    // Header for reference
+    sheet.getCell(`${colLetter}1`).value = `${grade.name}_Subjects`
     sheet.getCell(`${colLetter}1`).font = { bold: true }
 
     // Write subjects
@@ -215,29 +266,29 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
       sheet.getCell(`${colLetter}${idx + 2}`).value = subject.name
     })
 
-    // Define named range for this grade's subjects
+    // Define named range: {gradeName} -> subjects
     if (grade.subjects.length > 0) {
       const endRow = grade.subjects.length + 1
-      // Named range: Grade_三年级 -> list of subjects
       sheet.workbook.definedNames.add(
         `'DropdownData'!$${colLetter}$2:$${colLetter}$${endRow}`,
-        `Grade_${gradeSafeName}`,
+        gradeSafeName,
       )
     }
 
     colIndex++
   }
 
-  // For each subject, create a column for its topics
+  // For each grade+subject, create a column for its topics
+  // Named range: {gradeName}_{subjectName} -> list of topics (e.g., "P1_Math" -> Numbers, Geometry)
   for (const grade of gradeLevels) {
+    const gradeSafeName = sanitizeName(grade.name)
     for (const subject of grade.subjects) {
       const colLetter = getColumnLetter(colIndex)
-
-      // Sanitize subject name
       const subjectSafeName = sanitizeName(subject.name)
+      const compoundName = `${gradeSafeName}_${subjectSafeName}`
 
-      // Header: Subject name (for reference)
-      sheet.getCell(`${colLetter}1`).value = `Topics_${subject.name}`
+      // Header for reference
+      sheet.getCell(`${colLetter}1`).value = `${grade.name}_${subject.name}_Topics`
       sheet.getCell(`${colLetter}1`).font = { bold: true }
 
       // Write topics
@@ -245,13 +296,12 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
         sheet.getCell(`${colLetter}${idx + 2}`).value = topic.name
       })
 
-      // Define named range for this subject's topics
+      // Define named range: {gradeName}_{subjectName} -> topics
       if (subject.topics.length > 0) {
         const endRow = subject.topics.length + 1
-        // Named range: Subject_数学 -> list of topics
         sheet.workbook.definedNames.add(
           `'DropdownData'!$${colLetter}$2:$${colLetter}$${endRow}`,
-          `Subject_${subjectSafeName}`,
+          compoundName,
         )
       }
 
@@ -259,17 +309,20 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
     }
   }
 
-  // For each topic, create a column for its sub-topics
+  // For each grade+subject+topic, create a column for its sub-topics
+  // Named range: {gradeName}_{subjectName}_{topicName} -> list of sub-topics
   for (const grade of gradeLevels) {
+    const gradeSafeName = sanitizeName(grade.name)
     for (const subject of grade.subjects) {
+      const subjectSafeName = sanitizeName(subject.name)
       for (const topic of subject.topics) {
         const colLetter = getColumnLetter(colIndex)
-
-        // Sanitize topic name
         const topicSafeName = sanitizeName(topic.name)
+        const compoundName = `${gradeSafeName}_${subjectSafeName}_${topicSafeName}`
 
-        // Header: Topic name (for reference)
-        sheet.getCell(`${colLetter}1`).value = `SubTopics_${topic.name}`
+        // Header for reference
+        sheet.getCell(`${colLetter}1`).value =
+          `${grade.name}_${subject.name}_${topic.name}_SubTopics`
         sheet.getCell(`${colLetter}1`).font = { bold: true }
 
         // Write sub-topics
@@ -277,13 +330,12 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
           sheet.getCell(`${colLetter}${idx + 2}`).value = subTopic.name
         })
 
-        // Define named range for this topic's sub-topics
+        // Define named range: {gradeName}_{subjectName}_{topicName} -> sub-topics
         if (topic.subTopics.length > 0) {
           const endRow = topic.subTopics.length + 1
-          // Named range: Topic_加法 -> list of sub-topics
           sheet.workbook.definedNames.add(
             `'DropdownData'!$${colLetter}$2:$${colLetter}$${endRow}`,
-            `Topic_${topicSafeName}`,
+            compoundName,
           )
         }
 
@@ -298,11 +350,17 @@ function setupDropdownDataSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLeve
 
 function applyCascadingValidations(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]) {
   const gradeNames = gradeLevels.map((g) => g.name).join(',')
+  const maxDataRows = 500
 
-  // Apply validations for rows 2-500
-  for (let row = 2; row <= 500; row++) {
+  // Calculate dynamic row spacing based on actual curriculum data
+  const rowSpacing = calculateMaxDropdownSize(gradeLevels)
+
+  // Apply validations for data rows 2-500
+  // Google Sheets doesn't support INDIRECT directly in data validation,
+  // so we use helper formulas in a separate area (row 1000+) that data validation references
+  for (let dataRow = 2; dataRow <= maxDataRows; dataRow++) {
     // Column A: Type dropdown
-    sheet.getCell(`A${row}`).dataValidation = {
+    sheet.getCell(`A${dataRow}`).dataValidation = {
       type: 'list',
       allowBlank: false,
       formulae: ['"mcq,mrq,short_answer"'],
@@ -311,46 +369,67 @@ function applyCascadingValidations(sheet: ExcelJS.Worksheet, gradeLevels: GradeL
       error: 'Please select mcq, mrq, or short_answer',
     }
 
-    // Column B: Grade Level dropdown (static list)
+    // Column B: Grade Level dropdown (static list from named range)
     if (gradeNames) {
-      sheet.getCell(`B${row}`).dataValidation = {
+      sheet.getCell(`B${dataRow}`).dataValidation = {
         type: 'list',
         allowBlank: false,
-        formulae: [`"${gradeNames}"`],
+        formulae: ['GradeLevels'],
         showErrorMessage: true,
         errorTitle: 'Invalid Grade Level',
         error: 'Please select a valid grade level',
       }
     }
 
-    // Column C: Subject dropdown (dependent on Grade Level in column B)
-    // Uses INDIRECT to reference a named range based on column B value
-    sheet.getCell(`C${row}`).dataValidation = {
+    // Calculate helper row for this data row (spaced to allow array spilling)
+    const helperRow = getHelperRow(dataRow, rowSpacing)
+    const helperEndRow = helperRow + rowSpacing - 1
+
+    // Helper column R: INDIRECT formula for subjects based on grade
+    // Named range format: {gradeName} (e.g., "P1" -> list of subjects)
+    // References the data row's B column value
+    sheet.getCell(`R${helperRow}`).value = {
+      formula: `IFERROR(INDIRECT(SUBSTITUTE($B$${dataRow}," ","_")),"")`,
+    }
+
+    // Helper column S: INDIRECT formula for topics based on grade+subject
+    // Named range format: {gradeName}_{subjectName} (e.g., "P1_Math" -> list of topics)
+    sheet.getCell(`S${helperRow}`).value = {
+      formula: `IFERROR(INDIRECT(SUBSTITUTE($B$${dataRow}&"_"&$C$${dataRow}," ","_")),"")`,
+    }
+
+    // Helper column T: INDIRECT formula for sub-topics based on grade+subject+topic
+    // Named range format: {gradeName}_{subjectName}_{topicName} (e.g., "P1_Math_Numbers" -> list of sub-topics)
+    sheet.getCell(`T${helperRow}`).value = {
+      formula: `IFERROR(INDIRECT(SUBSTITUTE($B$${dataRow}&"_"&$C$${dataRow}&"_"&$D$${dataRow}," ","_")),"")`,
+    }
+
+    // Column C: Subject dropdown - references helper area for this row's subjects
+    // Range covers helperRow to helperEndRow to capture spilled array values
+    sheet.getCell(`C${dataRow}`).dataValidation = {
       type: 'list',
       allowBlank: true,
-      formulae: [`INDIRECT("Grade_"&SUBSTITUTE(B${row}," ","_"))`],
+      formulae: [`$R$${helperRow}:$R$${helperEndRow}`],
       showErrorMessage: true,
       errorTitle: 'Invalid Subject',
       error: 'Please select a valid subject for the chosen grade level',
     }
 
-    // Column D: Topic dropdown (dependent on Subject in column C)
-    // Uses INDIRECT to reference a named range based on column C value
-    sheet.getCell(`D${row}`).dataValidation = {
+    // Column D: Topic dropdown - references helper area for this row's topics
+    sheet.getCell(`D${dataRow}`).dataValidation = {
       type: 'list',
       allowBlank: true,
-      formulae: [`INDIRECT("Subject_"&SUBSTITUTE(C${row}," ","_"))`],
+      formulae: [`$S$${helperRow}:$S$${helperEndRow}`],
       showErrorMessage: true,
       errorTitle: 'Invalid Topic',
       error: 'Please select a valid topic for the chosen subject',
     }
 
-    // Column E: Sub-Topic dropdown (dependent on Topic in column D)
-    // Uses INDIRECT to reference a named range based on column D value
-    sheet.getCell(`E${row}`).dataValidation = {
+    // Column E: Sub-Topic dropdown - references helper area for this row's sub-topics
+    sheet.getCell(`E${dataRow}`).dataValidation = {
       type: 'list',
       allowBlank: true,
-      formulae: [`INDIRECT("Topic_"&SUBSTITUTE(D${row}," ","_"))`],
+      formulae: [`$T$${helperRow}:$T$${helperEndRow}`],
       showErrorMessage: true,
       errorTitle: 'Invalid Sub-Topic',
       error: 'Please select a valid sub-topic for the chosen topic',
@@ -432,9 +511,14 @@ function setupInstructionsSheet(sheet: ExcelJS.Worksheet) {
     ['TIPS:'],
     ['- Images should be small (recommended max 200x200 pixels)'],
     ['- To paste an image: Copy the image, then paste into the cell'],
-    ['- To insert an image: Insert > Picture, then position in the cell'],
+    ['- To insert an image: Insert > Image > Image in cell'],
     ['- Maximum 500 questions per upload'],
-    ['- This template works best in Microsoft Excel'],
+    [''],
+    ['IMPORTANT - USE GOOGLE SHEETS:'],
+    ['- This template must be opened in Google Sheets for cascading dropdowns to work'],
+    ['- Open the file in Google Sheets, fill in your questions, then download as .xlsx and upload'],
+    ['- Do NOT use Microsoft Excel - the cascading dropdowns will not work properly'],
+    ['- Hidden columns R, S, T contain helper formulas - do not modify or delete them'],
   ]
 
   instructions.forEach((row, index) => {
