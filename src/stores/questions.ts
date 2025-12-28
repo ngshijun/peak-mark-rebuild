@@ -27,6 +27,7 @@ export interface Question {
   options: MCQOption[] // For MCQ type
   createdAt: string | null
   updatedAt: string | null
+  imageHash: string | null // SHA-256 hash of all images for duplicate detection
   // Denormalized names for display
   gradeLevelName: string
   subjectName: string
@@ -56,6 +57,7 @@ export interface CreateQuestionInput {
   explanation?: string | null
   answer?: string | null
   options?: MCQOption[]
+  imageHash?: string | null // SHA-256 hash of all images for duplicate detection
 }
 
 export interface UpdateQuestionInput {
@@ -68,6 +70,7 @@ export interface UpdateQuestionInput {
   explanation?: string | null
   answer?: string | null
   options?: MCQOption[]
+  imageHash?: string | null // SHA-256 hash of all images for duplicate detection
 }
 
 /**
@@ -133,6 +136,7 @@ function rowToQuestion(
     options,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    imageHash: row.image_hash,
     gradeLevelName,
     subjectName,
     topicName,
@@ -229,6 +233,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         subject_id: input.subjectId ?? null,
         explanation: input.explanation ?? null,
         answer: input.type === 'short_answer' ? (input.answer ?? null) : null,
+        image_hash: input.imageHash ?? null,
       }
 
       // Add MCQ/MRQ options if present
@@ -293,6 +298,7 @@ export const useQuestionsStore = defineStore('questions', () => {
       if (input.subjectId !== undefined) updateData.subject_id = input.subjectId
       if (input.explanation !== undefined) updateData.explanation = input.explanation
       if (input.answer !== undefined) updateData.answer = input.answer
+      if (input.imageHash !== undefined) updateData.image_hash = input.imageHash
 
       // Update MCQ options if present
       if (input.options) {

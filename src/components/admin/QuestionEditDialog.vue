@@ -5,6 +5,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { useQuestionsStore, type MCQOption, type Question } from '@/stores/questions'
+import { computeQuestionImageHash } from '@/lib/imageHash'
 import type { Database } from '@/types/database.types'
 import { ImagePlus, X, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -470,6 +471,57 @@ const onSubmit = handleSubmit(async (formValues) => {
       return
     }
 
+    // Recompute image hash if any images were changed
+    const imagesChanged =
+      questionImageFile.value ||
+      questionImageRemoved.value ||
+      Object.values(optionImageFiles.value).some((f) => f !== null) ||
+      Object.values(optionImagesRemoved.value).some((removed) => removed)
+
+    if (imagesChanged) {
+      // Compute hash using File objects for new images (fast), URLs for existing (parallel fetch)
+      const imageHash = await computeQuestionImageHash({
+        // Use File if new, URL if existing unchanged, null if removed
+        questionImage: questionImageFile.value
+          ? questionImageFile.value
+          : questionImageRemoved.value
+            ? null
+            : questionImagePath
+              ? questionsStore.getQuestionImageUrl(questionImagePath)
+              : null,
+        optionAImage: optionImageFiles.value.a
+          ? optionImageFiles.value.a
+          : optionImagesRemoved.value.a
+            ? null
+            : optionImagePaths.a
+              ? questionsStore.getQuestionImageUrl(optionImagePaths.a)
+              : null,
+        optionBImage: optionImageFiles.value.b
+          ? optionImageFiles.value.b
+          : optionImagesRemoved.value.b
+            ? null
+            : optionImagePaths.b
+              ? questionsStore.getQuestionImageUrl(optionImagePaths.b)
+              : null,
+        optionCImage: optionImageFiles.value.c
+          ? optionImageFiles.value.c
+          : optionImagesRemoved.value.c
+            ? null
+            : optionImagePaths.c
+              ? questionsStore.getQuestionImageUrl(optionImagePaths.c)
+              : null,
+        optionDImage: optionImageFiles.value.d
+          ? optionImageFiles.value.d
+          : optionImagesRemoved.value.d
+            ? null
+            : optionImagePaths.d
+              ? questionsStore.getQuestionImageUrl(optionImagePaths.d)
+              : null,
+      })
+
+      await questionsStore.updateQuestion(questionId, { imageHash: imageHash || null })
+    }
+
     toast.success('Question updated successfully')
 
     emit('save')
@@ -791,13 +843,15 @@ function handleCancel() {
         <!-- Short Answer -->
         <VeeField
           v-if="values.type === 'short_answer'"
-          v-slot="{ field, errors: fieldErrors }"
+          v-slot="{ value, handleChange, handleBlur, errors: fieldErrors }"
           name="answer"
         >
           <Field :data-invalid="!!fieldErrors.length">
             <FieldLabel> Answer <span class="text-destructive">*</span> </FieldLabel>
             <Input
-              v-bind="field"
+              :model-value="value"
+              @update:model-value="handleChange"
+              @blur="handleBlur"
               placeholder="Enter the correct answer"
               :disabled="isSaving"
               :aria-invalid="!!fieldErrors.length"

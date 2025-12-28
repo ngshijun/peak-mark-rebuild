@@ -1,6 +1,7 @@
 import type { ParsedQuestion, ParsedQuestionImage } from './questionExcel'
 import { useQuestionsStore, type CreateQuestionInput } from '@/stores/questions'
 import { useCurriculumStore } from '@/stores/curriculum'
+import { computeQuestionImageHash } from '@/lib/imageHash'
 
 // ============================================
 // TYPES
@@ -22,8 +23,12 @@ export interface WithinFileDuplicate {
   question: string
 }
 
+export interface ValidatedQuestion extends ParsedQuestion {
+  imageHash: string | null // Pre-computed image hash for duplicate detection
+}
+
 export interface UploadValidationResult {
-  valid: ParsedQuestion[]
+  valid: ValidatedQuestion[]
   duplicates: DuplicateInfo[]
   invalid: InvalidInfo[]
   withinFileDuplicates: WithinFileDuplicate[]
@@ -31,7 +36,7 @@ export interface UploadValidationResult {
 }
 
 export interface BulkUploadOptions {
-  questions: ParsedQuestion[]
+  questions: ValidatedQuestion[]
   onProgress?: (current: number, total: number) => void
 }
 
@@ -54,8 +59,31 @@ function getQuestionKey(
   subject: string,
   topic: string,
   subTopic: string,
+  imageHash?: string | null,
 ): string {
-  return `${normalizeText(question)}|${normalizeText(gradeLevel)}|${normalizeText(subject)}|${normalizeText(topic)}|${normalizeText(subTopic)}`
+  const baseKey = `${normalizeText(question)}|${normalizeText(gradeLevel)}|${normalizeText(subject)}|${normalizeText(topic)}|${normalizeText(subTopic)}`
+  // Include image hash in key if present
+  return imageHash ? `${baseKey}|${imageHash}` : baseKey
+}
+
+/**
+ * Check if a parsed question has any images
+ */
+function hasImages(q: ParsedQuestion): boolean {
+  return !!(q.questionImage || q.optionAImage || q.optionBImage || q.optionCImage || q.optionDImage)
+}
+
+/**
+ * Compute image hash for a parsed question from base64 images
+ */
+async function computeParsedQuestionHash(q: ParsedQuestion): Promise<string> {
+  return computeQuestionImageHash({
+    questionImage: q.questionImage?.base64,
+    optionAImage: q.optionAImage?.base64,
+    optionBImage: q.optionBImage?.base64,
+    optionCImage: q.optionCImage?.base64,
+    optionDImage: q.optionDImage?.base64,
+  })
 }
 
 // ============================================
@@ -74,7 +102,7 @@ export async function validateQuestions(parsed: ParsedQuestion[]): Promise<Uploa
 
   const existingQuestions = questionsStore.questions
 
-  // Build lookup map for existing questions
+  // Build lookup map for existing questions (including image hash for questions with images)
   const existingMap = new Map<string, string>()
   for (const q of existingQuestions) {
     const key = getQuestionKey(
@@ -83,25 +111,39 @@ export async function validateQuestions(parsed: ParsedQuestion[]): Promise<Uploa
       q.subjectName,
       q.topicName,
       q.subTopicName,
+      q.imageHash, // Include image hash in key
     )
     existingMap.set(key, q.id)
   }
 
-  const valid: ParsedQuestion[] = []
+  // Pre-compute image hashes for all parsed questions with images
+  const parsedHashes = new Map<number, string>()
+  for (const q of parsed) {
+    if (hasImages(q)) {
+      const hash = await computeParsedQuestionHash(q)
+      parsedHashes.set(q.row, hash)
+    }
+  }
+
+  const valid: ValidatedQuestion[] = []
   const duplicates: DuplicateInfo[] = []
   const invalid: InvalidInfo[] = []
   const curriculumErrors: InvalidInfo[] = []
 
-  // Track within-file duplicates
-  const seenInFile = new Map<string, number[]>()
+  // Track within-file duplicates (maps key to {rows, imageHash})
+  const seenInFile = new Map<string, { rows: number[]; firstQuestion: ValidatedQuestion }>()
 
   for (const q of parsed) {
+    // Get the pre-computed image hash if this question has images
+    const imageHash = parsedHashes.get(q.row) || null
+
     const key = getQuestionKey(
       q.question,
       q.gradeLevelName,
       q.subjectName,
       q.topicName,
       q.subTopicName,
+      imageHash, // Include image hash in key
     )
     const errors: string[] = []
 
@@ -152,23 +194,25 @@ export async function validateQuestions(parsed: ParsedQuestion[]): Promise<Uploa
       continue
     }
 
+    // Create validated question with image hash
+    const validatedQuestion: ValidatedQuestion = { ...q, imageHash }
+
     // Track within-file duplicates
     if (seenInFile.has(key)) {
-      seenInFile.get(key)!.push(q.row)
+      seenInFile.get(key)!.rows.push(q.row)
     } else {
-      seenInFile.set(key, [q.row])
-      valid.push(q) // Only add first occurrence to valid
+      seenInFile.set(key, { rows: [q.row], firstQuestion: validatedQuestion })
+      valid.push(validatedQuestion) // Only add first occurrence to valid
     }
   }
 
   // Extract within-file duplicates (where there's more than one row with same key)
   const withinFileDuplicates: WithinFileDuplicate[] = []
-  for (const [key, rows] of seenInFile.entries()) {
-    if (rows.length > 1) {
-      const parts = key.split('|')
-      const questionText = parts[0] ?? ''
+  for (const [, data] of seenInFile.entries()) {
+    if (data.rows.length > 1) {
+      const questionText = data.firstQuestion.question
       withinFileDuplicates.push({
-        rows,
+        rows: data.rows,
         question: questionText.length > 100 ? questionText.slice(0, 100) + '...' : questionText,
       })
     }
@@ -217,7 +261,7 @@ export async function executeBulkUpload(options: BulkUploadOptions): Promise<Bul
         continue
       }
 
-      // Build question input
+      // Build question input (including pre-computed image hash for duplicate detection)
       const input: CreateQuestionInput = {
         type: q.type,
         gradeLevelId: gradeLevel.id,
@@ -225,6 +269,7 @@ export async function executeBulkUpload(options: BulkUploadOptions): Promise<Bul
         subTopicId: subTopic.id, // topic_id column references sub_topics
         question: q.question,
         explanation: q.explanation || undefined,
+        imageHash: q.imageHash, // Pre-computed during validation
       }
 
       if (q.type === 'mcq') {

@@ -854,6 +854,7 @@ export type Database = {
           explanation: string | null
           grade_level_id: string | null
           id: string
+          image_hash: string | null
           image_path: string | null
           option_1_image_path: string | null
           option_1_is_correct: boolean | null
@@ -879,6 +880,7 @@ export type Database = {
           explanation?: string | null
           grade_level_id?: string | null
           id?: string
+          image_hash?: string | null
           image_path?: string | null
           option_1_image_path?: string | null
           option_1_is_correct?: boolean | null
@@ -904,6 +906,7 @@ export type Database = {
           explanation?: string | null
           grade_level_id?: string | null
           id?: string
+          image_hash?: string | null
           image_path?: string | null
           option_1_image_path?: string | null
           option_1_is_correct?: boolean | null

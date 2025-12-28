@@ -5,6 +5,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { useQuestionsStore, type MCQOption } from '@/stores/questions'
+import { computeQuestionImageHash } from '@/lib/imageHash'
 import type { Database } from '@/types/database.types'
 import { ImagePlus, X, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -372,9 +373,19 @@ const onSubmit = handleSubmit(async (formValues) => {
             }))
           : undefined
 
+      // Compute image hash from File objects (no network fetch needed)
+      const imageHash = await computeQuestionImageHash({
+        questionImage: questionImageFile.value,
+        optionAImage: optionImageFiles.value.a,
+        optionBImage: optionImageFiles.value.b,
+        optionCImage: optionImageFiles.value.c,
+        optionDImage: optionImageFiles.value.d,
+      })
+
       await questionsStore.updateQuestion(questionId, {
         imagePath: questionImagePath,
         options: updateOptions,
+        imageHash: imageHash || null,
       })
     }
 
@@ -700,13 +711,15 @@ function handleCancel() {
         <!-- Short Answer -->
         <VeeField
           v-else-if="values.type === 'short_answer'"
-          v-slot="{ field, errors: fieldErrors }"
+          v-slot="{ value, handleChange, handleBlur, errors: fieldErrors }"
           name="answer"
         >
           <Field :data-invalid="!!fieldErrors.length">
             <FieldLabel> Answer <span class="text-destructive">*</span> </FieldLabel>
             <Input
-              v-bind="field"
+              :model-value="value"
+              @update:model-value="handleChange"
+              @blur="handleBlur"
               placeholder="Enter the correct answer"
               :disabled="isSaving"
               :aria-invalid="!!fieldErrors.length"
