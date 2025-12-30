@@ -69,7 +69,6 @@ const {
   },
 })
 
-const searchQuery = ref('')
 const isLoading = ref(false)
 
 // Fetch pets on mount
@@ -79,10 +78,11 @@ onMounted(async () => {
   }
 })
 
-// Filter pets based on search
+// Filter pets based on search (using store's search state)
 const filteredPets = computed(() => {
-  if (!searchQuery.value) return petsStore.allPets
-  const query = searchQuery.value.toLowerCase()
+  const searchQuery = petsStore.adminPetsFilters.search
+  if (!searchQuery) return petsStore.allPets
+  const query = searchQuery.toLowerCase()
   return petsStore.allPets.filter(
     (p) =>
       p.name.toLowerCase().includes(query) ||
@@ -421,7 +421,12 @@ const columns: ColumnDef<Pet>[] = [
       <div class="mb-4 flex items-center gap-2">
         <div class="relative max-w-sm flex-1">
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input v-model="searchQuery" placeholder="Search pets..." class="pl-9" />
+          <Input
+            :model-value="petsStore.adminPetsFilters.search"
+            placeholder="Search pets..."
+            class="pl-9"
+            @update:model-value="petsStore.setAdminPetsSearch(String($event))"
+          />
         </div>
       </div>
 
@@ -429,7 +434,10 @@ const columns: ColumnDef<Pet>[] = [
       <DataTable :columns="columns" :data="filteredPets" />
 
       <!-- Empty State -->
-      <div v-if="filteredPets.length === 0 && !searchQuery" class="py-12 text-center">
+      <div
+        v-if="filteredPets.length === 0 && !petsStore.adminPetsFilters.search"
+        class="py-12 text-center"
+      >
         <p class="text-muted-foreground">No pets yet. Add your first pet!</p>
       </div>
     </template>

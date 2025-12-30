@@ -88,6 +88,11 @@ export const usePetsStore = defineStore('pets', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // Admin PetsPage state (persisted across navigation)
+  const adminPetsFilters = ref({
+    search: '',
+  })
+
   // Fetch all pets from database
   async function fetchAllPets(): Promise<{ error: string | null }> {
     isLoading.value = true
@@ -694,12 +699,18 @@ export const usePetsStore = defineStore('pets', () => {
     }
   }
 
+  // Admin PetsPage filter setters
+  function setAdminPetsSearch(search: string) {
+    adminPetsFilters.value.search = search
+  }
+
   // Reset user-specific state (call on logout)
   // Note: allPets is shared data and doesn't need reset
   function $reset() {
     ownedPets.value = []
     isLoading.value = false
     error.value = null
+    adminPetsFilters.value = { search: '' }
   }
 
   return {
@@ -708,6 +719,10 @@ export const usePetsStore = defineStore('pets', () => {
     ownedPets,
     isLoading,
     error,
+
+    // Admin PetsPage filters
+    adminPetsFilters,
+    setAdminPetsSearch,
 
     // Fetch functions
     fetchAllPets,

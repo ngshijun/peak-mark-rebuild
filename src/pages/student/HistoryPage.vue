@@ -372,7 +372,15 @@ function handleRowClick(row: HistoryRow) {
         </Select>
       </div>
 
-      <DataTable :columns="columns" :data="historyData" :on-row-click="handleRowClick" />
+      <DataTable
+        :columns="columns"
+        :data="historyData"
+        :on-row-click="handleRowClick"
+        :page-index="practiceStore.historyPagination.pageIndex"
+        :page-size="practiceStore.historyPagination.pageSize"
+        :on-page-index-change="practiceStore.setHistoryPageIndex"
+        :on-page-size-change="practiceStore.setHistoryPageSize"
+      />
 
       <div v-if="historyData.length === 0" class="py-12 text-center">
         <p class="text-muted-foreground">No practice sessions found for the selected filters.</p>

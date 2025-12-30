@@ -123,6 +123,12 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     subTopic: '__all__',
   })
 
+  // Statistics page table pagination state (persisted across navigation)
+  const statisticsPagination = ref({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+
   /**
    * Fetch practice sessions for all linked children
    */
@@ -856,6 +862,17 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     statisticsFilters.value.subTopic = value
   }
 
+  // Pagination setters
+  function setStatisticsPageIndex(value: number) {
+    statisticsPagination.value.pageIndex = value
+  }
+
+  function setStatisticsPageSize(value: number) {
+    statisticsPagination.value.pageSize = value
+    // Reset to first page when page size changes
+    statisticsPagination.value.pageIndex = 0
+  }
+
   function resetStatisticsFilters() {
     statisticsFilters.value = {
       dateRange: 'today',
@@ -863,6 +880,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       subject: '__all__',
       topic: '__all__',
       subTopic: '__all__',
+    }
+    // Also reset pagination when filters are reset
+    statisticsPagination.value = {
+      pageIndex: 0,
+      pageSize: 10,
     }
   }
 
@@ -888,6 +910,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     setStatisticsTopic,
     setStatisticsSubTopic,
     resetStatisticsFilters,
+
+    // Statistics pagination
+    statisticsPagination,
+    setStatisticsPageIndex,
+    setStatisticsPageSize,
 
     // Computed
     linkedChildrenStatistics,

@@ -144,6 +144,8 @@ function rowToQuestion(
   }
 }
 
+const ALL_VALUE = '__all__'
+
 export const useQuestionsStore = defineStore('questions', () => {
   const curriculumStore = useCurriculumStore()
 
@@ -153,6 +155,50 @@ export const useQuestionsStore = defineStore('questions', () => {
 
   // Question statistics (fetched separately or computed from practice_answers)
   const questionStatistics = ref<QuestionStatistics[]>([])
+
+  // ============================================
+  // Question Bank Page State (persisted across navigation)
+  // ============================================
+  const questionBankFilters = ref({
+    gradeLevel: ALL_VALUE,
+    subject: ALL_VALUE,
+    topic: ALL_VALUE,
+    subTopic: ALL_VALUE,
+    search: '',
+  })
+
+  const questionBankPagination = ref({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+
+  // ============================================
+  // Question Feedback Page State (persisted across navigation)
+  // ============================================
+  const questionFeedbackFilters = ref({
+    search: '',
+  })
+
+  const questionFeedbackPagination = ref({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+
+  // ============================================
+  // Question Statistics Page State (persisted across navigation)
+  // ============================================
+  const questionStatisticsFilters = ref({
+    gradeLevel: ALL_VALUE,
+    subject: ALL_VALUE,
+    topic: ALL_VALUE,
+    subTopic: ALL_VALUE,
+    search: '',
+  })
+
+  const questionStatisticsPagination = ref({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
   /**
    * Fetch all questions from the database
@@ -619,6 +665,126 @@ export const useQuestionsStore = defineStore('questions', () => {
     return filtered
   }
 
+  // ============================================
+  // Question Bank Page Setters
+  // ============================================
+  function setQuestionBankGradeLevel(value: string) {
+    questionBankFilters.value.gradeLevel = value
+    // Reset dependent filters
+    questionBankFilters.value.subject = ALL_VALUE
+    questionBankFilters.value.topic = ALL_VALUE
+    questionBankFilters.value.subTopic = ALL_VALUE
+    // Reset pagination
+    questionBankPagination.value.pageIndex = 0
+  }
+
+  function setQuestionBankSubject(value: string) {
+    questionBankFilters.value.subject = value
+    // Reset dependent filters
+    questionBankFilters.value.topic = ALL_VALUE
+    questionBankFilters.value.subTopic = ALL_VALUE
+    // Reset pagination
+    questionBankPagination.value.pageIndex = 0
+  }
+
+  function setQuestionBankTopic(value: string) {
+    questionBankFilters.value.topic = value
+    // Reset dependent filter
+    questionBankFilters.value.subTopic = ALL_VALUE
+    // Reset pagination
+    questionBankPagination.value.pageIndex = 0
+  }
+
+  function setQuestionBankSubTopic(value: string) {
+    questionBankFilters.value.subTopic = value
+    // Reset pagination
+    questionBankPagination.value.pageIndex = 0
+  }
+
+  function setQuestionBankSearch(value: string) {
+    questionBankFilters.value.search = value
+    // Reset pagination
+    questionBankPagination.value.pageIndex = 0
+  }
+
+  function setQuestionBankPageIndex(value: number) {
+    questionBankPagination.value.pageIndex = value
+  }
+
+  function setQuestionBankPageSize(value: number) {
+    questionBankPagination.value.pageSize = value
+    questionBankPagination.value.pageIndex = 0
+  }
+
+  // ============================================
+  // Question Feedback Page Setters
+  // ============================================
+  function setQuestionFeedbackSearch(value: string) {
+    questionFeedbackFilters.value.search = value
+    // Reset pagination
+    questionFeedbackPagination.value.pageIndex = 0
+  }
+
+  function setQuestionFeedbackPageIndex(value: number) {
+    questionFeedbackPagination.value.pageIndex = value
+  }
+
+  function setQuestionFeedbackPageSize(value: number) {
+    questionFeedbackPagination.value.pageSize = value
+    questionFeedbackPagination.value.pageIndex = 0
+  }
+
+  // ============================================
+  // Question Statistics Page Setters
+  // ============================================
+  function setQuestionStatisticsGradeLevel(value: string) {
+    questionStatisticsFilters.value.gradeLevel = value
+    // Reset dependent filters
+    questionStatisticsFilters.value.subject = ALL_VALUE
+    questionStatisticsFilters.value.topic = ALL_VALUE
+    questionStatisticsFilters.value.subTopic = ALL_VALUE
+    // Reset pagination
+    questionStatisticsPagination.value.pageIndex = 0
+  }
+
+  function setQuestionStatisticsSubject(value: string) {
+    questionStatisticsFilters.value.subject = value
+    // Reset dependent filters
+    questionStatisticsFilters.value.topic = ALL_VALUE
+    questionStatisticsFilters.value.subTopic = ALL_VALUE
+    // Reset pagination
+    questionStatisticsPagination.value.pageIndex = 0
+  }
+
+  function setQuestionStatisticsTopic(value: string) {
+    questionStatisticsFilters.value.topic = value
+    // Reset dependent filter
+    questionStatisticsFilters.value.subTopic = ALL_VALUE
+    // Reset pagination
+    questionStatisticsPagination.value.pageIndex = 0
+  }
+
+  function setQuestionStatisticsSubTopic(value: string) {
+    questionStatisticsFilters.value.subTopic = value
+    // Reset pagination
+    questionStatisticsPagination.value.pageIndex = 0
+  }
+
+  function setQuestionStatisticsSearch(value: string) {
+    questionStatisticsFilters.value.search = value
+    // Reset pagination
+    questionStatisticsPagination.value.pageIndex = 0
+  }
+
+  function setQuestionStatisticsPageIndex(value: number) {
+    questionStatisticsPagination.value.pageIndex = value
+  }
+
+  function setQuestionStatisticsPageSize(value: number) {
+    questionStatisticsPagination.value.pageSize = value
+    questionStatisticsPagination.value.pageIndex = 0
+  }
+
   return {
     // State
     questions,
@@ -649,5 +815,34 @@ export const useQuestionsStore = defineStore('questions', () => {
     getSubTopics,
     getFilteredQuestions,
     getFilteredQuestionsWithStats,
+
+    // Question Bank Page State
+    questionBankFilters,
+    questionBankPagination,
+    setQuestionBankGradeLevel,
+    setQuestionBankSubject,
+    setQuestionBankTopic,
+    setQuestionBankSubTopic,
+    setQuestionBankSearch,
+    setQuestionBankPageIndex,
+    setQuestionBankPageSize,
+
+    // Question Feedback Page State
+    questionFeedbackFilters,
+    questionFeedbackPagination,
+    setQuestionFeedbackSearch,
+    setQuestionFeedbackPageIndex,
+    setQuestionFeedbackPageSize,
+
+    // Question Statistics Page State
+    questionStatisticsFilters,
+    questionStatisticsPagination,
+    setQuestionStatisticsGradeLevel,
+    setQuestionStatisticsSubject,
+    setQuestionStatisticsTopic,
+    setQuestionStatisticsSubTopic,
+    setQuestionStatisticsSearch,
+    setQuestionStatisticsPageIndex,
+    setQuestionStatisticsPageSize,
   }
 })

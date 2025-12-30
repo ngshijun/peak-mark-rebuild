@@ -50,6 +50,17 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
   const error = ref<string | null>(null)
   const unreadCount = ref(0)
 
+  // Admin AnnouncementsPage state (persisted across navigation)
+  const adminAnnouncementsFilters = ref({
+    search: '',
+  })
+
+  // Student AnnouncementsPage pagination state (persisted across navigation)
+  const studentAnnouncementsPagination = ref({
+    pageIndex: 0,
+    pageSize: 5,
+  })
+
   // Computed
   const unreadAnnouncements = computed(() => announcements.value.filter((a) => !a.isRead))
 
@@ -447,12 +458,29 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     }
   }
 
+  // Admin AnnouncementsPage filter setters
+  function setAdminAnnouncementsSearch(search: string) {
+    adminAnnouncementsFilters.value.search = search
+  }
+
+  // Student AnnouncementsPage pagination setters
+  function setStudentAnnouncementsPageIndex(index: number) {
+    studentAnnouncementsPagination.value.pageIndex = index
+  }
+
+  function setStudentAnnouncementsPageSize(size: number) {
+    studentAnnouncementsPagination.value.pageSize = size
+    studentAnnouncementsPagination.value.pageIndex = 0 // Reset to first page when page size changes
+  }
+
   // Reset store state (call on logout)
   function $reset() {
     announcements.value = []
     isLoading.value = false
     error.value = null
     unreadCount.value = 0
+    adminAnnouncementsFilters.value = { search: '' }
+    studentAnnouncementsPagination.value = { pageIndex: 0, pageSize: 5 }
   }
 
   return {
@@ -465,6 +493,15 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     // Computed
     unreadAnnouncements,
     latestAnnouncements,
+
+    // Admin AnnouncementsPage filters
+    adminAnnouncementsFilters,
+    setAdminAnnouncementsSearch,
+
+    // Student AnnouncementsPage pagination
+    studentAnnouncementsPagination,
+    setStudentAnnouncementsPageIndex,
+    setStudentAnnouncementsPageSize,
 
     // Actions
     fetchAnnouncements,

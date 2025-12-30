@@ -53,10 +53,19 @@ const { handleSubmit: handleAddSubmit, resetForm: resetAddForm } = useForm({
   },
 })
 
-// Navigation state
-const selectedGradeLevelId = ref<string | null>(null)
-const selectedSubjectId = ref<string | null>(null)
-const selectedTopicId = ref<string | null>(null)
+// Navigation state (from store for persistence)
+const selectedGradeLevelId = computed({
+  get: () => curriculumStore.adminCurriculumNavigation.selectedGradeLevelId,
+  set: (val) => curriculumStore.setAdminCurriculumGradeLevel(val),
+})
+const selectedSubjectId = computed({
+  get: () => curriculumStore.adminCurriculumNavigation.selectedSubjectId,
+  set: (val) => curriculumStore.setAdminCurriculumSubject(val),
+})
+const selectedTopicId = computed({
+  get: () => curriculumStore.adminCurriculumNavigation.selectedTopicId,
+  set: (val) => curriculumStore.setAdminCurriculumTopic(val),
+})
 
 // Loading states
 const isSaving = ref(false)

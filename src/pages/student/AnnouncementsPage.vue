@@ -19,15 +19,20 @@ const showDetailDialog = ref(false)
 const selectedAnnouncement = ref<Announcement | null>(null)
 const isMarkingAllRead = ref(false)
 
-// Pagination state
-const currentPage = ref(1)
-const itemsPerPage = 5
+// Pagination state (from store for persistence)
+const currentPage = computed({
+  get: () => announcementsStore.studentAnnouncementsPagination.pageIndex + 1, // Convert 0-indexed to 1-indexed
+  set: (val) => announcementsStore.setStudentAnnouncementsPageIndex(val - 1),
+})
+const itemsPerPage = computed(() => announcementsStore.studentAnnouncementsPagination.pageSize)
 
-const totalPages = computed(() => Math.ceil(announcementsStore.announcements.length / itemsPerPage))
+const totalPages = computed(() =>
+  Math.ceil(announcementsStore.announcements.length / itemsPerPage.value),
+)
 
 const paginatedAnnouncements = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
   return announcementsStore.announcements.slice(start, end)
 })
 
@@ -116,7 +121,7 @@ function goToPage(page: number) {
             show-edges
             :default-page="1"
             :page="currentPage"
-            @update:page="goToPage"
+            @update:page="(page: number) => (currentPage = page)"
           >
             <PaginationContent class="flex items-center gap-1">
               <PaginationPrevious

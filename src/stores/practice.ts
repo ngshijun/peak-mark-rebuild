@@ -94,6 +94,18 @@ export const usePracticeStore = defineStore('practice', () => {
     subTopic: '__all__',
   })
 
+  // History page pagination state (persisted across navigation)
+  const historyPagination = ref({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+
+  // Practice page navigation state (persisted across navigation)
+  const practiceNavigation = ref({
+    selectedSubjectId: null as string | null,
+    selectedTopicId: null as string | null,
+  })
+
   const questionsStore = useQuestionsStore()
   const authStore = useAuthStore()
   const curriculumStore = useCurriculumStore()
@@ -1267,6 +1279,34 @@ export const usePracticeStore = defineStore('practice', () => {
     }
   }
 
+  // History pagination setters
+  function setHistoryPageIndex(index: number) {
+    historyPagination.value.pageIndex = index
+  }
+
+  function setHistoryPageSize(size: number) {
+    historyPagination.value.pageSize = size
+    historyPagination.value.pageIndex = 0 // Reset to first page when page size changes
+  }
+
+  // Practice navigation setters
+  function setPracticeSubject(subjectId: string | null) {
+    practiceNavigation.value.selectedSubjectId = subjectId
+    // Reset topic when subject changes
+    practiceNavigation.value.selectedTopicId = null
+  }
+
+  function setPracticeTopic(topicId: string | null) {
+    practiceNavigation.value.selectedTopicId = topicId
+  }
+
+  function resetPracticeNavigation() {
+    practiceNavigation.value = {
+      selectedSubjectId: null,
+      selectedTopicId: null,
+    }
+  }
+
   // Reset store state (call on logout)
   function $reset() {
     currentSession.value = null
@@ -1274,6 +1314,8 @@ export const usePracticeStore = defineStore('practice', () => {
     isLoading.value = false
     error.value = null
     resetHistoryFilters()
+    historyPagination.value = { pageIndex: 0, pageSize: 10 }
+    resetPracticeNavigation()
   }
 
   return {
@@ -1296,6 +1338,15 @@ export const usePracticeStore = defineStore('practice', () => {
     setHistoryTopic,
     setHistorySubTopic,
     resetHistoryFilters,
+    // History pagination
+    historyPagination,
+    setHistoryPageIndex,
+    setHistoryPageSize,
+    // Practice navigation
+    practiceNavigation,
+    setPracticeSubject,
+    setPracticeTopic,
+    resetPracticeNavigation,
     // Actions
     fetchSessionHistory,
     startSession,

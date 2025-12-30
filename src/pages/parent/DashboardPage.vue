@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useChildLinkStore } from '@/stores/child-link'
 import { useChildStatisticsStore } from '@/stores/child-statistics'
 import { Loader2 } from 'lucide-vue-next'
@@ -15,11 +15,20 @@ import ChildMoodCalendar from '@/components/parent/ChildMoodCalendar.vue'
 import ChildSessionChart from '@/components/parent/ChildSessionChart.vue'
 import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget.vue'
 
+const SELECTED_CHILD_KEY = 'parent_selected_child_id'
+
 const childLinkStore = useChildLinkStore()
 const childStatisticsStore = useChildStatisticsStore()
 
 const isLoading = ref(true)
-const selectedChildId = ref<string>('')
+const selectedChildId = ref<string>(localStorage.getItem(SELECTED_CHILD_KEY) || '')
+
+// Persist selectedChildId to localStorage
+watch(selectedChildId, (newId) => {
+  if (newId) {
+    localStorage.setItem(SELECTED_CHILD_KEY, newId)
+  }
+})
 
 // Get linked children
 const linkedChildren = computed(() => childLinkStore.linkedChildren)
@@ -34,10 +43,18 @@ onMounted(async () => {
     await childLinkStore.fetchLinkedChildren()
     // Fetch statistics for all children
     await childStatisticsStore.fetchChildrenStatistics()
-    // Select first child by default
-    const firstChild = linkedChildren.value[0]
-    if (firstChild) {
-      selectedChildId.value = firstChild.id
+
+    // Restore saved selection or select first child
+    const savedChildId = localStorage.getItem(SELECTED_CHILD_KEY)
+    const isValidSelection = linkedChildren.value.some((c) => c.id === savedChildId)
+
+    if (savedChildId && isValidSelection) {
+      selectedChildId.value = savedChildId
+    } else {
+      const firstChild = linkedChildren.value[0]
+      if (firstChild) {
+        selectedChildId.value = firstChild.id
+      }
     }
   } catch {
     toast.error('Failed to load children data')

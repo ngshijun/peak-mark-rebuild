@@ -1,5 +1,10 @@
 <script setup lang="ts" generic="TData, TValue">
-import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/vue-table'
+import type {
+  ColumnDef,
+  SortingState,
+  ColumnFiltersState,
+  PaginationState,
+} from '@tanstack/vue-table'
 import {
   FlexRender,
   getCoreRowModel,
@@ -8,7 +13,7 @@ import {
   getFilteredRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { valueUpdater } from '@/lib/utils'
 import {
   Table,
@@ -34,10 +39,46 @@ const props = defineProps<{
   searchColumn?: string
   searchValue?: string
   onRowClick?: (row: TData) => void
+  // Optional external pagination state
+  pageIndex?: number
+  pageSize?: number
+  onPageIndexChange?: (index: number) => void
+  onPageSizeChange?: (size: number) => void
 }>()
 
 const sorting = ref<SortingState>([])
 const columnFilters = ref<ColumnFiltersState>([])
+
+// Internal pagination state (used when external state is not provided)
+const internalPagination = ref<PaginationState>({
+  pageIndex: 0,
+  pageSize: 10,
+})
+
+// Use external pagination if provided, otherwise use internal
+const pagination = computed<PaginationState>(() => ({
+  pageIndex: props.pageIndex ?? internalPagination.value.pageIndex,
+  pageSize: props.pageSize ?? internalPagination.value.pageSize,
+}))
+
+// Sync internal state with external props when they change
+watch(
+  () => props.pageIndex,
+  (newIndex) => {
+    if (newIndex !== undefined) {
+      internalPagination.value.pageIndex = newIndex
+    }
+  },
+)
+
+watch(
+  () => props.pageSize,
+  (newSize) => {
+    if (newSize !== undefined) {
+      internalPagination.value.pageSize = newSize
+    }
+  },
+)
 
 const table = useVueTable({
   get data() {
@@ -52,12 +93,30 @@ const table = useVueTable({
   getFilteredRowModel: getFilteredRowModel(),
   onSortingChange: (updaterOrValue) => valueUpdater(updaterOrValue, sorting),
   onColumnFiltersChange: (updaterOrValue) => valueUpdater(updaterOrValue, columnFilters),
+  onPaginationChange: (updaterOrValue) => {
+    const newPagination =
+      typeof updaterOrValue === 'function' ? updaterOrValue(pagination.value) : updaterOrValue
+
+    // Update internal state
+    internalPagination.value = newPagination
+
+    // Notify parent if callbacks provided
+    if (props.onPageIndexChange && newPagination.pageIndex !== pagination.value.pageIndex) {
+      props.onPageIndexChange(newPagination.pageIndex)
+    }
+    if (props.onPageSizeChange && newPagination.pageSize !== pagination.value.pageSize) {
+      props.onPageSizeChange(newPagination.pageSize)
+    }
+  },
   state: {
     get sorting() {
       return sorting.value
     },
     get columnFilters() {
       return columnFilters.value
+    },
+    get pagination() {
+      return pagination.value
     },
   },
   globalFilterFn: 'includesString',

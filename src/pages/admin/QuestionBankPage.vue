@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, h } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useQuestionsStore, type Question } from '@/stores/questions'
 import { useCurriculumStore } from '@/stores/curriculum'
@@ -53,7 +53,6 @@ const curriculumStore = useCurriculumStore()
 
 const ALL_VALUE = '__all__'
 
-const searchQuery = ref('')
 const showAddDialog = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -66,47 +65,31 @@ const previewQuestion = ref<Question | null>(null)
 const isDeleting = ref(false)
 const isExporting = ref(false)
 
-// Filter state
-const selectedGradeLevel = ref<string>(ALL_VALUE)
-const selectedSubject = ref<string>(ALL_VALUE)
-const selectedTopic = ref<string>(ALL_VALUE)
-const selectedSubTopic = ref<string>(ALL_VALUE)
-
 // Fetch questions on mount
 onMounted(async () => {
   await questionsStore.fetchQuestions()
 })
 
-// Reset subject, topic, and sub-topic when grade level changes
-watch(selectedGradeLevel, () => {
-  selectedSubject.value = ALL_VALUE
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
-})
-
-// Reset topic and sub-topic when subject changes
-watch(selectedSubject, () => {
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
-})
-
-// Reset sub-topic when topic changes
-watch(selectedTopic, () => {
-  selectedSubTopic.value = ALL_VALUE
-})
-
 // Helper to convert ALL_VALUE to undefined for store calls
 const gradeLevelFilter = computed(() =>
-  selectedGradeLevel.value === ALL_VALUE ? undefined : selectedGradeLevel.value,
+  questionsStore.questionBankFilters.gradeLevel === ALL_VALUE
+    ? undefined
+    : questionsStore.questionBankFilters.gradeLevel,
 )
 const subjectFilter = computed(() =>
-  selectedSubject.value === ALL_VALUE ? undefined : selectedSubject.value,
+  questionsStore.questionBankFilters.subject === ALL_VALUE
+    ? undefined
+    : questionsStore.questionBankFilters.subject,
 )
 const topicFilter = computed(() =>
-  selectedTopic.value === ALL_VALUE ? undefined : selectedTopic.value,
+  questionsStore.questionBankFilters.topic === ALL_VALUE
+    ? undefined
+    : questionsStore.questionBankFilters.topic,
 )
 const subTopicFilter = computed(() =>
-  selectedSubTopic.value === ALL_VALUE ? undefined : selectedSubTopic.value,
+  questionsStore.questionBankFilters.subTopic === ALL_VALUE
+    ? undefined
+    : questionsStore.questionBankFilters.subTopic,
 )
 
 // Get available filter options
@@ -130,8 +113,9 @@ const filteredQuestions = computed(() => {
   )
 
   // Then apply search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
+  const searchQuery = questionsStore.questionBankFilters.search
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase()
     filtered = filtered.filter(
       (q) =>
         q.question.toLowerCase().includes(query) ||
@@ -321,7 +305,8 @@ const exportSummary = computed(() => {
   if (subjectFilter.value) filters.push(`Subject: ${subjectFilter.value}`)
   if (topicFilter.value) filters.push(`Topic: ${topicFilter.value}`)
   if (subTopicFilter.value) filters.push(`Sub-Topic: ${subTopicFilter.value}`)
-  if (searchQuery.value) filters.push(`Search: "${searchQuery.value}"`)
+  if (questionsStore.questionBankFilters.search)
+    filters.push(`Search: "${questionsStore.questionBankFilters.search}"`)
   return {
     filters: filters.length > 0 ? filters : ['All questions (no filters applied)'],
     count: filteredQuestions.value.length,
@@ -423,11 +408,19 @@ async function confirmExport() {
         <!-- Search Bar -->
         <div class="relative w-[250px]">
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input v-model="searchQuery" placeholder="Search questions..." class="pl-9" />
+          <Input
+            :model-value="questionsStore.questionBankFilters.search"
+            placeholder="Search questions..."
+            class="pl-9"
+            @update:model-value="questionsStore.setQuestionBankSearch(String($event))"
+          />
         </div>
 
         <!-- Grade Level Selector -->
-        <Select v-model="selectedGradeLevel">
+        <Select
+          :model-value="questionsStore.questionBankFilters.gradeLevel"
+          @update:model-value="questionsStore.setQuestionBankGradeLevel(String($event))"
+        >
           <SelectTrigger class="w-[130px]">
             <SelectValue placeholder="All Grades" />
           </SelectTrigger>
@@ -440,7 +433,11 @@ async function confirmExport() {
         </Select>
 
         <!-- Subject Selector -->
-        <Select v-model="selectedSubject" :disabled="selectedGradeLevel === ALL_VALUE">
+        <Select
+          :model-value="questionsStore.questionBankFilters.subject"
+          :disabled="questionsStore.questionBankFilters.gradeLevel === ALL_VALUE"
+          @update:model-value="questionsStore.setQuestionBankSubject(String($event))"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Subjects" />
           </SelectTrigger>
@@ -453,7 +450,11 @@ async function confirmExport() {
         </Select>
 
         <!-- Topic Selector -->
-        <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
+        <Select
+          :model-value="questionsStore.questionBankFilters.topic"
+          :disabled="questionsStore.questionBankFilters.subject === ALL_VALUE"
+          @update:model-value="questionsStore.setQuestionBankTopic(String($event))"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Topics" />
           </SelectTrigger>
@@ -466,7 +467,11 @@ async function confirmExport() {
         </Select>
 
         <!-- Sub-Topic Selector -->
-        <Select v-model="selectedSubTopic" :disabled="selectedTopic === ALL_VALUE">
+        <Select
+          :model-value="questionsStore.questionBankFilters.subTopic"
+          :disabled="questionsStore.questionBankFilters.topic === ALL_VALUE"
+          @update:model-value="questionsStore.setQuestionBankSubTopic(String($event))"
+        >
           <SelectTrigger class="w-[140px]">
             <SelectValue placeholder="All Sub-Topics" />
           </SelectTrigger>
@@ -480,7 +485,15 @@ async function confirmExport() {
       </div>
 
       <!-- Data Table -->
-      <DataTable :columns="columns" :data="filteredQuestions" :on-row-click="handleRowClick" />
+      <DataTable
+        :columns="columns"
+        :data="filteredQuestions"
+        :on-row-click="handleRowClick"
+        :page-index="questionsStore.questionBankPagination.pageIndex"
+        :page-size="questionsStore.questionBankPagination.pageSize"
+        :on-page-index-change="questionsStore.setQuestionBankPageIndex"
+        :on-page-size-change="questionsStore.setQuestionBankPageSize"
+      />
     </template>
 
     <!-- Add Question Dialog -->

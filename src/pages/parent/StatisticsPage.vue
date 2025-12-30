@@ -522,6 +522,10 @@ function handleRowClick(row: ChildPracticeSession) {
             :columns="columns"
             :data="recentSessions"
             :on-row-click="handleRowClick"
+            :page-index="childStatisticsStore.statisticsPagination.pageIndex"
+            :page-size="childStatisticsStore.statisticsPagination.pageSize"
+            :on-page-index-change="childStatisticsStore.setStatisticsPageIndex"
+            :on-page-size-change="childStatisticsStore.setStatisticsPageSize"
           />
           <div v-else class="py-12 text-center">
             <BookOpen class="mx-auto size-12 text-muted-foreground/50" />

@@ -81,8 +81,6 @@ const {
   },
 })
 
-const searchQuery = ref('')
-
 // Fetch announcements on mount
 onMounted(async () => {
   if (announcementsStore.announcements.length === 0) {
@@ -90,10 +88,11 @@ onMounted(async () => {
   }
 })
 
-// Filter announcements based on search
+// Filter announcements based on search (using store's search state)
 const filteredAnnouncements = computed(() => {
-  if (!searchQuery.value) return announcementsStore.announcements
-  const query = searchQuery.value.toLowerCase()
+  const searchQuery = announcementsStore.adminAnnouncementsFilters.search
+  if (!searchQuery) return announcementsStore.announcements
+  const query = searchQuery.toLowerCase()
   return announcementsStore.announcements.filter(
     (a) =>
       a.title.toLowerCase().includes(query) ||
@@ -476,7 +475,12 @@ const columns: ColumnDef<Announcement>[] = [
       <div class="mb-4 flex items-center gap-2">
         <div class="relative max-w-sm flex-1">
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input v-model="searchQuery" placeholder="Search announcements..." class="pl-9" />
+          <Input
+            :model-value="announcementsStore.adminAnnouncementsFilters.search"
+            placeholder="Search announcements..."
+            class="pl-9"
+            @update:model-value="announcementsStore.setAdminAnnouncementsSearch(String($event))"
+          />
         </div>
       </div>
 
@@ -484,7 +488,12 @@ const columns: ColumnDef<Announcement>[] = [
       <DataTable :columns="columns" :data="filteredAnnouncements" :on-row-click="handleRowClick" />
 
       <!-- Empty State -->
-      <div v-if="filteredAnnouncements.length === 0 && !searchQuery" class="py-12 text-center">
+      <div
+        v-if="
+          filteredAnnouncements.length === 0 && !announcementsStore.adminAnnouncementsFilters.search
+        "
+        class="py-12 text-center"
+      >
         <p class="text-muted-foreground">No announcements yet. Create your first announcement!</p>
       </div>
     </template>

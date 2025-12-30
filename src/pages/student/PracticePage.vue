@@ -33,8 +33,15 @@ const authStore = useAuthStore()
 const curriculumStore = useCurriculumStore()
 const practiceStore = usePracticeStore()
 
-const selectedSubjectId = ref<string | null>(null)
-const selectedTopicId = ref<string | null>(null)
+// Navigation state (from store for persistence)
+const selectedSubjectId = computed({
+  get: () => practiceStore.practiceNavigation.selectedSubjectId,
+  set: (val) => practiceStore.setPracticeSubject(val),
+})
+const selectedTopicId = computed({
+  get: () => practiceStore.practiceNavigation.selectedTopicId,
+  set: (val) => practiceStore.setPracticeTopic(val),
+})
 const isStartingSession = ref(false)
 const sessionLimitStatus = ref<SessionLimitStatus | null>(null)
 const isLoadingLimit = ref(true)

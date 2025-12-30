@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h, watch, onMounted } from 'vue'
+import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useQuestionsStore, type QuestionWithStats } from '@/stores/questions'
 import { supabase } from '@/lib/supabaseClient'
@@ -47,46 +47,29 @@ async function refreshStatistics(): Promise<void> {
 
 const ALL_VALUE = '__all__'
 
-const searchQuery = ref('')
 const showPreviewDialog = ref(false)
 const previewQuestion = ref<QuestionWithStats | null>(null)
 
-// Filter state
-const selectedGradeLevel = ref<string>(ALL_VALUE)
-const selectedSubject = ref<string>(ALL_VALUE)
-const selectedTopic = ref<string>(ALL_VALUE)
-const selectedSubTopic = ref<string>(ALL_VALUE)
-
-// Reset subject, topic, and sub-topic when grade level changes
-watch(selectedGradeLevel, () => {
-  selectedSubject.value = ALL_VALUE
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
-})
-
-// Reset topic and sub-topic when subject changes
-watch(selectedSubject, () => {
-  selectedTopic.value = ALL_VALUE
-  selectedSubTopic.value = ALL_VALUE
-})
-
-// Reset sub-topic when topic changes
-watch(selectedTopic, () => {
-  selectedSubTopic.value = ALL_VALUE
-})
-
 // Helper to convert ALL_VALUE to undefined for store calls
 const gradeLevelFilter = computed(() =>
-  selectedGradeLevel.value === ALL_VALUE ? undefined : selectedGradeLevel.value,
+  questionsStore.questionStatisticsFilters.gradeLevel === ALL_VALUE
+    ? undefined
+    : questionsStore.questionStatisticsFilters.gradeLevel,
 )
 const subjectFilter = computed(() =>
-  selectedSubject.value === ALL_VALUE ? undefined : selectedSubject.value,
+  questionsStore.questionStatisticsFilters.subject === ALL_VALUE
+    ? undefined
+    : questionsStore.questionStatisticsFilters.subject,
 )
 const topicFilter = computed(() =>
-  selectedTopic.value === ALL_VALUE ? undefined : selectedTopic.value,
+  questionsStore.questionStatisticsFilters.topic === ALL_VALUE
+    ? undefined
+    : questionsStore.questionStatisticsFilters.topic,
 )
 const subTopicFilter = computed(() =>
-  selectedSubTopic.value === ALL_VALUE ? undefined : selectedSubTopic.value,
+  questionsStore.questionStatisticsFilters.subTopic === ALL_VALUE
+    ? undefined
+    : questionsStore.questionStatisticsFilters.subTopic,
 )
 
 // Get available filter options
@@ -110,8 +93,9 @@ const filteredQuestions = computed(() => {
   )
 
   // Then apply search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
+  const searchQuery = questionsStore.questionStatisticsFilters.search
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase()
     filtered = filtered.filter(
       (q) =>
         q.question.toLowerCase().includes(query) ||
@@ -287,11 +271,19 @@ function handleRowClick(question: QuestionWithStats) {
       <!-- Search Bar -->
       <div class="relative w-[250px]">
         <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input v-model="searchQuery" placeholder="Search questions..." class="pl-9" />
+        <Input
+          :model-value="questionsStore.questionStatisticsFilters.search"
+          placeholder="Search questions..."
+          class="pl-9"
+          @update:model-value="questionsStore.setQuestionStatisticsSearch(String($event))"
+        />
       </div>
 
       <!-- Grade Level Selector -->
-      <Select v-model="selectedGradeLevel">
+      <Select
+        :model-value="questionsStore.questionStatisticsFilters.gradeLevel"
+        @update:model-value="questionsStore.setQuestionStatisticsGradeLevel(String($event))"
+      >
         <SelectTrigger class="w-[130px]">
           <SelectValue placeholder="All Grades" />
         </SelectTrigger>
@@ -304,7 +296,11 @@ function handleRowClick(question: QuestionWithStats) {
       </Select>
 
       <!-- Subject Selector -->
-      <Select v-model="selectedSubject" :disabled="selectedGradeLevel === ALL_VALUE">
+      <Select
+        :model-value="questionsStore.questionStatisticsFilters.subject"
+        :disabled="questionsStore.questionStatisticsFilters.gradeLevel === ALL_VALUE"
+        @update:model-value="questionsStore.setQuestionStatisticsSubject(String($event))"
+      >
         <SelectTrigger class="w-[140px]">
           <SelectValue placeholder="All Subjects" />
         </SelectTrigger>
@@ -317,7 +313,11 @@ function handleRowClick(question: QuestionWithStats) {
       </Select>
 
       <!-- Topic Selector -->
-      <Select v-model="selectedTopic" :disabled="selectedSubject === ALL_VALUE">
+      <Select
+        :model-value="questionsStore.questionStatisticsFilters.topic"
+        :disabled="questionsStore.questionStatisticsFilters.subject === ALL_VALUE"
+        @update:model-value="questionsStore.setQuestionStatisticsTopic(String($event))"
+      >
         <SelectTrigger class="w-[140px]">
           <SelectValue placeholder="All Topics" />
         </SelectTrigger>
@@ -330,7 +330,11 @@ function handleRowClick(question: QuestionWithStats) {
       </Select>
 
       <!-- Sub-Topic Selector -->
-      <Select v-model="selectedSubTopic" :disabled="selectedTopic === ALL_VALUE">
+      <Select
+        :model-value="questionsStore.questionStatisticsFilters.subTopic"
+        :disabled="questionsStore.questionStatisticsFilters.topic === ALL_VALUE"
+        @update:model-value="questionsStore.setQuestionStatisticsSubTopic(String($event))"
+      >
         <SelectTrigger class="w-[140px]">
           <SelectValue placeholder="All Sub-Topics" />
         </SelectTrigger>
@@ -344,7 +348,15 @@ function handleRowClick(question: QuestionWithStats) {
     </div>
 
     <!-- Data Table -->
-    <DataTable :columns="columns" :data="filteredQuestions" :on-row-click="handleRowClick" />
+    <DataTable
+      :columns="columns"
+      :data="filteredQuestions"
+      :on-row-click="handleRowClick"
+      :page-index="questionsStore.questionStatisticsPagination.pageIndex"
+      :page-size="questionsStore.questionStatisticsPagination.pageSize"
+      :on-page-index-change="questionsStore.setQuestionStatisticsPageIndex"
+      :on-page-size-change="questionsStore.setQuestionStatisticsPageSize"
+    />
 
     <!-- Question Preview Dialog -->
     <QuestionPreviewDialog v-model:open="showPreviewDialog" :question="previewQuestion" />

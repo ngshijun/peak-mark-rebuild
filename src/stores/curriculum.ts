@@ -52,6 +52,13 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   const allTopics = ref<TopicRow[]>([])
   const allSubTopics = ref<SubTopicRow[]>([])
 
+  // Admin CurriculumPage navigation state (persisted across navigation)
+  const adminCurriculumNavigation = ref({
+    selectedGradeLevelId: null as string | null,
+    selectedSubjectId: null as string | null,
+    selectedTopicId: null as string | null,
+  })
+
   /**
    * Fetch all curriculum data (grade levels, subjects, topics, sub_topics)
    */
@@ -811,6 +818,36 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     return null
   }
 
+  // Admin CurriculumPage navigation setters
+  function setAdminCurriculumGradeLevel(gradeLevelId: string | null) {
+    adminCurriculumNavigation.value.selectedGradeLevelId = gradeLevelId
+    // Reset dependent selections when grade level changes
+    if (gradeLevelId === null) {
+      adminCurriculumNavigation.value.selectedSubjectId = null
+      adminCurriculumNavigation.value.selectedTopicId = null
+    }
+  }
+
+  function setAdminCurriculumSubject(subjectId: string | null) {
+    adminCurriculumNavigation.value.selectedSubjectId = subjectId
+    // Reset dependent selection when subject changes
+    if (subjectId === null) {
+      adminCurriculumNavigation.value.selectedTopicId = null
+    }
+  }
+
+  function setAdminCurriculumTopic(topicId: string | null) {
+    adminCurriculumNavigation.value.selectedTopicId = topicId
+  }
+
+  function resetAdminCurriculumNavigation() {
+    adminCurriculumNavigation.value = {
+      selectedGradeLevelId: null,
+      selectedSubjectId: null,
+      selectedTopicId: null,
+    }
+  }
+
   return {
     // State
     gradeLevels,
@@ -819,6 +856,13 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     allSubTopics,
     isLoading,
     error,
+
+    // Admin CurriculumPage navigation state
+    adminCurriculumNavigation,
+    setAdminCurriculumGradeLevel,
+    setAdminCurriculumSubject,
+    setAdminCurriculumTopic,
+    resetAdminCurriculumNavigation,
 
     // Actions
     fetchCurriculum,

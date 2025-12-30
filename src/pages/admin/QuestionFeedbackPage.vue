@@ -33,7 +33,6 @@ type FeedbackCategory = Database['public']['Enums']['feedback_category']
 const feedbackStore = useFeedbackStore()
 const questionsStore = useQuestionsStore()
 
-const searchQuery = ref('')
 const isDeleting = ref(false)
 const showPreviewDialog = ref(false)
 const showEditDialog = ref(false)
@@ -63,8 +62,9 @@ onMounted(async () => {
 
 // Filter feedbacks based on search
 const filteredFeedbacks = computed(() => {
-  if (!searchQuery.value) return feedbackStore.feedbacks
-  const query = searchQuery.value.toLowerCase()
+  const searchQuery = questionsStore.questionFeedbackFilters.search
+  if (!searchQuery) return feedbackStore.feedbacks
+  const query = searchQuery.toLowerCase()
   return feedbackStore.feedbacks.filter(
     (f) =>
       f.question.toLowerCase().includes(query) ||
@@ -273,12 +273,25 @@ const columns: ColumnDef<QuestionFeedback>[] = [
       <div class="mb-4 flex items-center gap-2">
         <div class="relative flex-1 max-w-sm">
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input v-model="searchQuery" placeholder="Search feedback..." class="pl-9" />
+          <Input
+            :model-value="questionsStore.questionFeedbackFilters.search"
+            placeholder="Search feedback..."
+            class="pl-9"
+            @update:model-value="questionsStore.setQuestionFeedbackSearch(String($event))"
+          />
         </div>
       </div>
 
       <!-- Data Table -->
-      <DataTable :columns="columns" :data="filteredFeedbacks" :on-row-click="handleRowClick" />
+      <DataTable
+        :columns="columns"
+        :data="filteredFeedbacks"
+        :on-row-click="handleRowClick"
+        :page-index="questionsStore.questionFeedbackPagination.pageIndex"
+        :page-size="questionsStore.questionFeedbackPagination.pageSize"
+        :on-page-index-change="questionsStore.setQuestionFeedbackPageIndex"
+        :on-page-size-change="questionsStore.setQuestionFeedbackPageSize"
+      />
     </template>
 
     <!-- Question Preview Dialog -->
