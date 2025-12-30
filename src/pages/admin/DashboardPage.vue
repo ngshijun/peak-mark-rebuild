@@ -72,7 +72,8 @@ onMounted(async () => {
           <div class="text-2xl font-bold">{{ dashboardStore.stats.users.total }}</div>
           <p class="text-xs text-muted-foreground">
             {{ dashboardStore.stats.users.students }} students,
-            {{ dashboardStore.stats.users.parents }} parents
+            {{ dashboardStore.stats.users.parents }} parents,
+            {{ dashboardStore.stats.users.admins }} admins
           </p>
         </CardContent>
       </Card>

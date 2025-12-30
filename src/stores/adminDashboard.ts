@@ -14,6 +14,7 @@ export interface DashboardStats {
     total: number
     students: number
     parents: number
+    admins: number
   }
   activeStudentsToday: number
   practiceSessionsToday: number
@@ -32,6 +33,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
       total: 0,
       students: 0,
       parents: 0,
+      admins: 0,
     },
     activeStudentsToday: 0,
     practiceSessionsToday: 0,
@@ -129,6 +131,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         stats.value.users.total = users.length
         stats.value.users.students = users.filter((u) => u.user_type === 'student').length
         stats.value.users.parents = users.filter((u) => u.user_type === 'parent').length
+        stats.value.users.admins = users.filter((u) => u.user_type === 'admin').length
       }
 
       // Process active students

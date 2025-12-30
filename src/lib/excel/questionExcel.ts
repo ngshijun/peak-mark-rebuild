@@ -544,6 +544,31 @@ export async function exportQuestionsToExcel(
   questions: Question[],
   getImageAsBase64: (path: string) => Promise<string | null>,
 ): Promise<void> {
+  // Step 1: Collect all unique image paths
+  const imagePaths = new Set<string>()
+  for (const q of questions) {
+    if (q.imagePath) imagePaths.add(q.imagePath)
+    if (q.type === 'mcq' && q.options) {
+      for (const opt of q.options) {
+        if (opt.imagePath) imagePaths.add(opt.imagePath)
+      }
+    }
+  }
+
+  // Step 2: Fetch all images in parallel
+  const imageCache = new Map<string, string>()
+  if (imagePaths.size > 0) {
+    const pathArray = Array.from(imagePaths)
+    const results = await Promise.all(pathArray.map((path) => getImageAsBase64(path)))
+    pathArray.forEach((path, index) => {
+      const base64 = results[index]
+      if (base64) {
+        imageCache.set(path, base64)
+      }
+    })
+  }
+
+  // Step 3: Create workbook and add data
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Peak Mark'
   workbook.created = new Date()
@@ -582,7 +607,7 @@ export async function exportQuestionsToExcel(
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
   headerRow.height = 25
 
-  // Add data rows with images
+  // Step 4: Add data rows with images from cache
   for (const [i, q] of questions.entries()) {
     const rowIndex = i + 2
     const row = sheet.getRow(rowIndex)
@@ -596,15 +621,15 @@ export async function exportQuestionsToExcel(
     row.getCell(COLUMNS.SUB_TOPIC).value = q.subTopicName
     row.getCell(COLUMNS.QUESTION_TEXT).value = q.question
 
-    // Question image
+    // Question image (from cache)
     if (q.imagePath) {
-      await addImageToCell(
+      addImageToCellFromCache(
         workbook,
         sheet,
         q.imagePath,
         COLUMNS.QUESTION_IMAGE - 1,
         rowIndex - 1,
-        getImageAsBase64,
+        imageCache,
       )
     }
 
@@ -622,13 +647,13 @@ export async function exportQuestionsToExcel(
         if (opt) {
           row.getCell(config.textCol).value = opt.text || ''
           if (opt.imagePath) {
-            await addImageToCell(
+            addImageToCellFromCache(
               workbook,
               sheet,
               opt.imagePath,
               config.imageCol - 1,
               rowIndex - 1,
-              getImageAsBase64,
+              imageCache,
             )
           }
           if (opt.isCorrect) {
@@ -653,16 +678,16 @@ export async function exportQuestionsToExcel(
   saveAs(blob, `questions_export_${timestamp}.xlsx`)
 }
 
-async function addImageToCell(
+function addImageToCellFromCache(
   workbook: ExcelJS.Workbook,
   sheet: ExcelJS.Worksheet,
   imagePath: string,
   col: number,
   row: number,
-  getImageAsBase64: (path: string) => Promise<string | null>,
-): Promise<void> {
+  imageCache: Map<string, string>,
+): void {
   try {
-    const base64 = await getImageAsBase64(imagePath)
+    const base64 = imageCache.get(imagePath)
     if (!base64) return
 
     const extension = getExtensionFromPath(imagePath)
