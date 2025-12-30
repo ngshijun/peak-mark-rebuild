@@ -856,7 +856,7 @@ async function handleEditName() {
         <Card
           v-for="subject in selectedGradeLevel.subjects"
           :key="subject.id"
-          class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+          class="group relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
           @click="selectSubject(subject.id)"
         >
           <div v-if="subject.coverImagePath" class="aspect-video w-full overflow-hidden">
@@ -866,7 +866,7 @@ async function handleEditName() {
               class="size-full object-cover transition-transform group-hover:scale-105"
             />
           </div>
-          <CardContent class="p-4">
+          <CardContent class="mt-auto p-4">
             <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
             <p class="text-sm text-muted-foreground">
               {{ subject.topics.length }} {{ subject.topics.length === 1 ? 'topic' : 'topics' }}
@@ -942,7 +942,7 @@ async function handleEditName() {
         <Card
           v-for="topic in selectedSubject.topics"
           :key="topic.id"
-          class="group relative cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+          class="group relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
           @click="selectTopic(topic.id)"
         >
           <div v-if="topic.coverImagePath" class="aspect-video w-full overflow-hidden">
@@ -952,7 +952,7 @@ async function handleEditName() {
               class="size-full object-cover transition-transform group-hover:scale-105"
             />
           </div>
-          <CardContent class="p-4">
+          <CardContent class="mt-auto p-4">
             <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
             <p class="text-sm text-muted-foreground">
               {{ topic.subTopics.length }}
@@ -1040,7 +1040,7 @@ async function handleEditName() {
         <Card
           v-for="subTopic in selectedTopic.subTopics"
           :key="subTopic.id"
-          class="group relative overflow-hidden transition-shadow hover:shadow-lg"
+          class="group relative flex h-full flex-col overflow-hidden transition-shadow hover:shadow-lg"
         >
           <div v-if="subTopic.coverImagePath" class="aspect-video w-full overflow-hidden">
             <img
@@ -1049,7 +1049,7 @@ async function handleEditName() {
               class="size-full object-cover transition-transform group-hover:scale-105"
             />
           </div>
-          <CardContent class="p-4">
+          <CardContent class="mt-auto p-4">
             <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
             <p class="text-sm text-muted-foreground">Sub-Topic</p>
           </CardContent>

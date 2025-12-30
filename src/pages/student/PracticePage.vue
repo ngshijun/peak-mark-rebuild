@@ -264,7 +264,7 @@ async function confirmStartSession() {
           <Card
             v-for="subject in availableSubjects"
             :key="subject.id"
-            class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+            class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
             @click="selectSubject(subject.id)"
           >
             <div v-if="subject.coverImagePath" class="aspect-video w-full overflow-hidden">
@@ -274,7 +274,7 @@ async function confirmStartSession() {
                 class="size-full object-cover transition-transform hover:scale-105"
               />
             </div>
-            <CardContent class="p-4">
+            <CardContent class="mt-auto p-4">
               <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
               <p class="text-sm text-muted-foreground">
                 {{ subject.topics.length }}
@@ -295,7 +295,7 @@ async function confirmStartSession() {
           <Card
             v-for="topic in selectedSubject.topics"
             :key="topic.id"
-            class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+            class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
             @click="selectTopic(topic.id)"
           >
             <div v-if="topic.coverImagePath" class="aspect-video w-full overflow-hidden">
@@ -305,7 +305,7 @@ async function confirmStartSession() {
                 class="size-full object-cover transition-transform hover:scale-105"
               />
             </div>
-            <CardContent class="p-4">
+            <CardContent class="mt-auto p-4">
               <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
               <p class="text-sm text-muted-foreground">
                 {{ topic.subTopics.length }}
@@ -326,7 +326,7 @@ async function confirmStartSession() {
           <Card
             v-for="subTopic in selectedTopic.subTopics"
             :key="subTopic.id"
-            class="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+            class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
             :class="{
               'opacity-50 pointer-events-none':
                 isStartingSession || !sessionLimitStatus?.canStartSession,
@@ -340,7 +340,7 @@ async function confirmStartSession() {
                 class="size-full object-cover transition-transform hover:scale-105"
               />
             </div>
-            <CardContent class="p-4">
+            <CardContent class="mt-auto p-4">
               <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
               <p class="text-sm text-muted-foreground">
                 {{ subTopic.questionCount }}
