@@ -7,7 +7,7 @@ import { signupFormSchema } from '@/lib/validations'
 import { Mountain, Loader2, CalendarIcon } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, PasswordInput } from '@/components/ui/input'
 import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
@@ -121,9 +121,8 @@ const onSubmit = handleSubmit(async (formValues) => {
               <FieldLabel for="password">
                 Password <span class="text-destructive">*</span>
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="Create a password (min 6 characters)"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
@@ -138,9 +137,8 @@ const onSubmit = handleSubmit(async (formValues) => {
               <FieldLabel for="confirmPassword">
                 Confirm Password <span class="text-destructive">*</span>
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 placeholder="Confirm your password"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"

@@ -114,6 +114,18 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/pages/auth/ForgotPasswordPage.vue'),
+      meta: { requiresGuest: true },
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/pages/auth/ResetPasswordPage.vue'),
+      // No requiresGuest - user may have a session from the reset link
+    },
+    {
       path: '/admin',
       component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true, allowedRoles: ['admin'] },

@@ -7,7 +7,7 @@ import { loginFormSchema } from '@/lib/validations'
 import { Mountain, Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, PasswordInput } from '@/components/ui/input'
 import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { toast } from 'vue-sonner'
 
@@ -87,9 +87,8 @@ const onSubmit = handleSubmit(async (values) => {
           <VeeField v-slot="{ field, errors }" name="password">
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="password">Password</FieldLabel>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="Enter your password"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
@@ -98,6 +97,12 @@ const onSubmit = handleSubmit(async (values) => {
               <FieldError :errors="errors" />
             </Field>
           </VeeField>
+
+          <div class="text-right">
+            <RouterLink to="/forgot-password" class="text-sm text-primary hover:underline">
+              Forgot password?
+            </RouterLink>
+          </div>
 
           <Button type="submit" class="w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
