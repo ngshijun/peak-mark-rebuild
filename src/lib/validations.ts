@@ -97,7 +97,6 @@ export const petFormSchema = toTypedSchema(
     rarity: z.enum(['common', 'rare', 'epic', 'legendary'], {
       required_error: 'Please select a rarity',
     }),
-    gachaWeight: z.number().min(0, 'Weight must be positive'),
   }),
 )
 
@@ -233,7 +232,6 @@ const petFormZodSchema = z.object({
   rarity: z.enum(['common', 'rare', 'epic', 'legendary'], {
     required_error: 'Please select a rarity',
   }),
-  gachaWeight: z.number().min(0, 'Weight must be positive'),
 })
 
 const announcementFormZodSchema = z.object({

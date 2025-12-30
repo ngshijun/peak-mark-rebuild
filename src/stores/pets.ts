@@ -13,7 +13,6 @@ export interface Pet {
   imagePath: string
   tier2ImagePath: string | null
   tier3ImagePath: string | null
-  gachaWeight: number
   createdAt: string | null
   updatedAt: string | null
 }
@@ -117,7 +116,6 @@ export const usePetsStore = defineStore('pets', () => {
         imagePath: pet.image_path,
         tier2ImagePath: pet.tier2_image_path,
         tier3ImagePath: pet.tier3_image_path,
-        gachaWeight: pet.gacha_weight ?? 100,
         createdAt: pet.created_at,
         updatedAt: pet.updated_at,
       }))
@@ -554,7 +552,6 @@ export const usePetsStore = defineStore('pets', () => {
     imagePath: string
     tier2ImagePath?: string | null
     tier3ImagePath?: string | null
-    gachaWeight?: number
   }): Promise<{ pet: Pet | null; error: string | null }> {
     try {
       const { data, error: insertError } = await supabase
@@ -565,7 +562,6 @@ export const usePetsStore = defineStore('pets', () => {
           image_path: pet.imagePath,
           tier2_image_path: pet.tier2ImagePath ?? null,
           tier3_image_path: pet.tier3ImagePath ?? null,
-          gacha_weight: pet.gachaWeight ?? 100,
         })
         .select()
         .single()
@@ -581,7 +577,6 @@ export const usePetsStore = defineStore('pets', () => {
         imagePath: data.image_path,
         tier2ImagePath: data.tier2_image_path,
         tier3ImagePath: data.tier3_image_path,
-        gachaWeight: data.gacha_weight ?? 100,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       }
@@ -603,7 +598,6 @@ export const usePetsStore = defineStore('pets', () => {
       imagePath?: string
       tier2ImagePath?: string | null
       tier3ImagePath?: string | null
-      gachaWeight?: number
     },
   ): Promise<{ error: string | null }> {
     try {
@@ -613,7 +607,6 @@ export const usePetsStore = defineStore('pets', () => {
       if (updates.imagePath !== undefined) updateData.image_path = updates.imagePath
       if (updates.tier2ImagePath !== undefined) updateData.tier2_image_path = updates.tier2ImagePath
       if (updates.tier3ImagePath !== undefined) updateData.tier3_image_path = updates.tier3ImagePath
-      if (updates.gachaWeight !== undefined) updateData.gacha_weight = updates.gachaWeight
 
       const { data: updatedData, error: updateError } = await supabase
         .from('pets')
@@ -636,7 +629,6 @@ export const usePetsStore = defineStore('pets', () => {
           if (updates.imagePath !== undefined) pet.imagePath = updates.imagePath
           if (updates.tier2ImagePath !== undefined) pet.tier2ImagePath = updates.tier2ImagePath
           if (updates.tier3ImagePath !== undefined) pet.tier3ImagePath = updates.tier3ImagePath
-          if (updates.gachaWeight !== undefined) pet.gachaWeight = updates.gachaWeight
           // Update the updatedAt for cache busting
           pet.updatedAt = updatedData?.updated_at ?? new Date().toISOString()
         }

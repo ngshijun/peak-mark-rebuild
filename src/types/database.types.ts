@@ -583,7 +583,6 @@ export type Database = {
       pets: {
         Row: {
           created_at: string | null
-          gacha_weight: number | null
           id: string
           image_path: string
           name: string
@@ -594,7 +593,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          gacha_weight?: number | null
           id?: string
           image_path: string
           name: string
@@ -605,7 +603,6 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          gacha_weight?: number | null
           id?: string
           image_path?: string
           name?: string

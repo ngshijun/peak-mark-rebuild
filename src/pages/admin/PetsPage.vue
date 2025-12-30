@@ -65,7 +65,6 @@ const {
   initialValues: {
     name: '',
     rarity: 'common' as PetRarity,
-    gachaWeight: 100,
   },
 })
 
@@ -129,7 +128,6 @@ async function openEditDialog(pet: Pet) {
   setPetValues({
     name: pet.name,
     rarity: pet.rarity,
-    gachaWeight: pet.gachaWeight,
   })
 }
 
@@ -223,7 +221,6 @@ const handleSave = handlePetSubmit(async (values) => {
       const { error } = await petsStore.updatePet(editingPet.value.id, {
         name: values.name,
         rarity: values.rarity,
-        gachaWeight: values.gachaWeight,
         imagePath,
         tier2ImagePath,
         tier3ImagePath,
@@ -242,7 +239,6 @@ const handleSave = handlePetSubmit(async (values) => {
       const { error } = await petsStore.createPet({
         name: values.name,
         rarity: values.rarity,
-        gachaWeight: values.gachaWeight,
         imagePath,
         tier2ImagePath,
         tier3ImagePath,
@@ -294,13 +290,51 @@ async function confirmDelete() {
 const columns: ColumnDef<Pet>[] = [
   {
     accessorKey: 'imagePath',
-    header: 'Image',
+    header: 'Tier 1',
     cell: ({ row }) => {
       const pet = row.original
       return h('img', {
         src: petsStore.getPetImageUrl(pet.imagePath, pet.updatedAt),
         alt: pet.name,
-        class: 'size-12 object-contain rounded-lg border',
+        class: 'size-16 object-contain rounded-lg border',
+      })
+    },
+  },
+  {
+    accessorKey: 'tier2ImagePath',
+    header: 'Tier 2',
+    cell: ({ row }) => {
+      const pet = row.original
+      if (!pet.tier2ImagePath) {
+        return h(
+          'div',
+          { class: 'size-16 flex items-center justify-center text-muted-foreground text-xs' },
+          '-',
+        )
+      }
+      return h('img', {
+        src: petsStore.getPetImageUrl(pet.tier2ImagePath, pet.updatedAt),
+        alt: `${pet.name} Tier 2`,
+        class: 'size-16 object-contain rounded-lg border',
+      })
+    },
+  },
+  {
+    accessorKey: 'tier3ImagePath',
+    header: 'Tier 3',
+    cell: ({ row }) => {
+      const pet = row.original
+      if (!pet.tier3ImagePath) {
+        return h(
+          'div',
+          { class: 'size-16 flex items-center justify-center text-muted-foreground text-xs' },
+          '-',
+        )
+      }
+      return h('img', {
+        src: petsStore.getPetImageUrl(pet.tier3ImagePath, pet.updatedAt),
+        alt: `${pet.name} Tier 3`,
+        class: 'size-16 object-contain rounded-lg border',
       })
     },
   },
@@ -333,22 +367,6 @@ const columns: ColumnDef<Pet>[] = [
         },
         () => rarityConfig[rarity].label,
       )
-    },
-  },
-  {
-    accessorKey: 'gachaWeight',
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: 'ghost',
-          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-        },
-        () => ['Weight', h(ArrowUpDown, { class: 'ml-2 size-4' })],
-      )
-    },
-    cell: ({ row }) => {
-      return h('div', { class: 'text-center' }, row.original.gachaWeight.toString())
     },
   },
   {
@@ -468,55 +486,27 @@ const columns: ColumnDef<Pet>[] = [
             </Field>
           </VeeField>
 
-          <!-- Rarity and Gacha Weight Row -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Rarity -->
-            <VeeField v-slot="{ handleChange, value, errors }" name="rarity">
-              <Field :data-invalid="!!errors.length">
-                <FieldLabel>Rarity</FieldLabel>
-                <Select
-                  :model-value="value"
-                  :disabled="isSaving"
-                  @update:model-value="handleChange"
-                >
-                  <SelectTrigger class="w-full" :class="{ 'border-destructive': !!errors.length }">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="(config, rarity) in rarityConfig"
-                      :key="rarity"
-                      :value="rarity"
-                    >
-                      <span :class="config.color">{{ config.label }}</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldError :errors="errors" />
-              </Field>
-            </VeeField>
-
-            <!-- Gacha Weight -->
-            <VeeField v-slot="{ field, errors }" name="gachaWeight">
-              <Field :data-invalid="!!errors.length">
-                <FieldLabel for="gacha-weight">Gacha Weight</FieldLabel>
-                <Input
-                  id="gacha-weight"
-                  type="number"
-                  min="0"
-                  placeholder="100"
-                  class="w-full"
-                  :disabled="isSaving"
-                  :aria-invalid="!!errors.length"
-                  v-bind="field"
-                />
-                <FieldError :errors="errors" />
-              </Field>
-            </VeeField>
-          </div>
-          <p class="text-xs text-muted-foreground">
-            Higher weight = more likely to be pulled within its rarity tier.
-          </p>
+          <!-- Rarity -->
+          <VeeField v-slot="{ handleChange, value, errors }" name="rarity">
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel>Rarity</FieldLabel>
+              <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
+                <SelectTrigger class="w-full" :class="{ 'border-destructive': !!errors.length }">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="(config, rarity) in rarityConfig"
+                    :key="rarity"
+                    :value="rarity"
+                  >
+                    <span :class="config.color">{{ config.label }}</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError :errors="errors" />
+            </Field>
+          </VeeField>
 
           <!-- Pet Images (3 Tiers) -->
           <div class="space-y-4">
