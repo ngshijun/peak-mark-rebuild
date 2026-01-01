@@ -915,9 +915,6 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   return {
     // State
     gradeLevels,
-    allSubjects,
-    allTopics,
-    allSubTopics,
     isLoading,
     error,
 

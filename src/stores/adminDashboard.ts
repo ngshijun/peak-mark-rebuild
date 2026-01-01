@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 
+// Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
+const STATS_CACHE_TTL = 5 * 60 * 1000
+
 export interface DashboardStats {
   revenue: {
     total: number
@@ -41,6 +44,15 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const lastFetched = ref<number | null>(null)
+
+  /**
+   * Check if cache is stale
+   */
+  function isCacheStale(): boolean {
+    if (!lastFetched.value) return true
+    return Date.now() - lastFetched.value > STATS_CACHE_TTL
+  }
 
   // Get today's date in YYYY-MM-DD format
   function getTodayString(): string {
@@ -65,8 +77,13 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
     }
   }
 
-  // Fetch all dashboard stats
-  async function fetchStats(): Promise<{ error: string | null }> {
+  // Fetch all dashboard stats (with cache check)
+  async function fetchStats(force = false): Promise<{ error: string | null }> {
+    // Skip if cache is still valid and not forced
+    if (!force && !isCacheStale()) {
+      return { error: null }
+    }
+
     isLoading.value = true
     error.value = null
 
@@ -179,6 +196,9 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         const sign = change >= 0 ? '+' : ''
         stats.value.revenue.change = `${sign}${change.toFixed(1)}%`
       }
+
+      // Update cache timestamp
+      lastFetched.value = Date.now()
 
       return { error: null }
     } catch (err) {
