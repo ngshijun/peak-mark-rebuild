@@ -87,6 +87,23 @@ export const usePetsStore = defineStore('pets', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // O(1) lookup Maps (computed from arrays for efficient access)
+  const ownedPetByPetId = computed(() => {
+    const map = new Map<string, OwnedPet>()
+    for (const op of ownedPets.value) {
+      map.set(op.petId, op)
+    }
+    return map
+  })
+
+  const petById = computed(() => {
+    const map = new Map<string, Pet>()
+    for (const pet of allPets.value) {
+      map.set(pet.id, pet)
+    }
+    return map
+  })
+
   // Admin PetsPage state (persisted across navigation)
   const adminPetsFilters = ref({
     search: '',
@@ -305,19 +322,19 @@ export const usePetsStore = defineStore('pets', () => {
     return grouped
   })
 
-  // Check if a pet is owned
+  // Check if a pet is owned (O(1) via Map)
   function isPetOwned(petId: string): boolean {
-    return ownedPets.value.some((op) => op.petId === petId)
+    return ownedPetByPetId.value.has(petId)
   }
 
-  // Get owned pet data
+  // Get owned pet data (O(1) via Map)
   function getOwnedPet(petId: string): OwnedPet | undefined {
-    return ownedPets.value.find((op) => op.petId === petId)
+    return ownedPetByPetId.value.get(petId)
   }
 
-  // Get pet by ID
+  // Get pet by ID (O(1) via Map)
   function getPetById(petId: string): Pet | undefined {
-    return allPets.value.find((p) => p.id === petId)
+    return petById.value.get(petId)
   }
 
   // Add a pet to collection (from gacha)
@@ -328,8 +345,8 @@ export const usePetsStore = defineStore('pets', () => {
     }
 
     try {
-      // Check if already owned
-      const existing = ownedPets.value.find((op) => op.petId === petId)
+      // Check if already owned (O(1) via Map)
+      const existing = getOwnedPet(petId)
 
       if (existing) {
         // Increment count

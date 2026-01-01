@@ -27,6 +27,15 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
   const error = ref<string | null>(null)
   const selectedGradeLevelId = ref<string | null>(null)
 
+  // O(1) lookup Map for students by ID
+  const studentById = computed(() => {
+    const map = new Map<string, LeaderboardStudent>()
+    for (const student of students.value) {
+      map.set(student.id, student)
+    }
+    return map
+  })
+
   /**
    * Fetch leaderboard data from Supabase
    */
@@ -114,22 +123,16 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     }))
   }
 
-  // Get all students sorted by XP
-  const rankedStudents = computed(() => {
-    return [...students.value].sort((a, b) => b.xp - a.xp)
-  })
+  // Get all students sorted by rank (data is already sorted from fetch, no re-sort needed)
+  const rankedStudents = computed(() => students.value)
 
-  // Get top 20 students
-  const top20Students = computed(() => {
-    return rankedStudents.value.slice(0, 20)
-  })
+  // Get top 20 students (already sorted by rank from fetch)
+  const top20Students = computed(() => students.value.slice(0, 20))
 
-  // Get current student's rank (overall)
+  // Get current student's rank (O(1) via Map)
   const currentStudentRank = computed(() => {
     if (!authStore.user || !authStore.isStudent) return null
-
-    const student = students.value.find((s) => s.id === authStore.user!.id)
-    return student?.rank ?? null
+    return studentById.value.get(authStore.user.id)?.rank ?? null
   })
 
   // Check if current student is in top 20
@@ -138,10 +141,10 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     return currentStudentRank.value <= 20
   })
 
-  // Get current student's data from leaderboard
+  // Get current student's data from leaderboard (O(1) via Map)
   const currentStudent = computed(() => {
     if (!authStore.user || !authStore.isStudent) return null
-    return students.value.find((s) => s.id === authStore.user!.id) ?? null
+    return studentById.value.get(authStore.user.id) ?? null
   })
 
   // Get avatar URL for a student

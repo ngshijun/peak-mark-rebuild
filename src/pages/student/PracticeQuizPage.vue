@@ -129,6 +129,17 @@ const allQuestionsAnswered = computed(() => {
   return practiceStore.currentSession?.answers.length === practiceStore.totalQuestions
 })
 
+// O(1) lookup Map for answers by question ID (avoids repeated .find() calls in template)
+const answerByQuestionId = computed(() => {
+  const map = new Map<string, { isCorrect: boolean }>()
+  for (const answer of practiceStore.currentSession?.answers ?? []) {
+    if (answer.questionId) {
+      map.set(answer.questionId, { isCorrect: answer.isCorrect })
+    }
+  }
+  return map
+})
+
 // Get correct answer for display
 const correctAnswer = computed(() => {
   if (!currentQuestion.value) return ''
@@ -504,11 +515,9 @@ function handleOptionClick(optionId: string) {
               'border-primary bg-primary text-primary-foreground':
                 index === practiceStore.currentQuestionNumber - 1,
               'border-green-500 bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-300':
-                practiceStore.currentSession?.answers.find((a) => a.questionId === q.id)?.isCorrect,
+                answerByQuestionId.get(q.id)?.isCorrect,
               'border-red-500 bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300':
-                practiceStore.currentSession?.answers.find((a) => a.questionId === q.id) &&
-                !practiceStore.currentSession?.answers.find((a) => a.questionId === q.id)
-                  ?.isCorrect,
+                answerByQuestionId.has(q.id) && !answerByQuestionId.get(q.id)?.isCorrect,
               'hover:border-primary/50': index !== practiceStore.currentQuestionNumber - 1,
             }"
             @click="goToQuestion(index)"

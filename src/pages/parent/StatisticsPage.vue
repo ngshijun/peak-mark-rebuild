@@ -142,10 +142,10 @@ const availableSubTopics = computed(() => {
   )
 })
 
-// Get filtered statistics
-const averageScore = computed(() => {
-  if (!selectedChildId.value) return 0
-  return childStatisticsStore.getAverageScore(
+// Get filtered sessions once (memoized) - avoids calling getFilteredSessions multiple times
+const filteredSessions = computed(() => {
+  if (!selectedChildId.value) return []
+  return childStatisticsStore.getFilteredSessions(
     selectedChildId.value,
     gradeLevelFilter.value,
     subjectFilter.value,
@@ -155,52 +155,47 @@ const averageScore = computed(() => {
   )
 })
 
-const totalSessions = computed(() => {
-  if (!selectedChildId.value) return 0
-  return childStatisticsStore.getTotalSessions(
-    selectedChildId.value,
-    gradeLevelFilter.value,
-    subjectFilter.value,
-    topicFilter.value,
-    subTopicFilter.value,
-    childStatisticsStore.statisticsFilters.dateRange,
-  )
+// Derive all metrics from the cached filtered sessions (O(1) access to filtered data)
+const averageScore = computed(() => {
+  const sessions = filteredSessions.value
+  if (sessions.length === 0) return 0
+  const totalScore = sessions.reduce((sum, s) => sum + s.score, 0)
+  return Math.round(totalScore / sessions.length)
 })
+
+const totalSessions = computed(() => filteredSessions.value.length)
 
 const totalStudyTime = computed(() => {
-  if (!selectedChildId.value) return 0
-  return childStatisticsStore.getTotalStudyTime(
-    selectedChildId.value,
-    gradeLevelFilter.value,
-    subjectFilter.value,
-    topicFilter.value,
-    subTopicFilter.value,
-    childStatisticsStore.statisticsFilters.dateRange,
-  )
+  return filteredSessions.value.reduce((sum, s) => sum + s.durationSeconds, 0)
 })
 
 const subTopicsPracticed = computed(() => {
-  if (!selectedChildId.value) return []
-  return childStatisticsStore.getSubTopicsPracticed(
-    selectedChildId.value,
-    gradeLevelFilter.value,
-    subjectFilter.value,
-    topicFilter.value,
-    subTopicFilter.value,
-    childStatisticsStore.statisticsFilters.dateRange,
-  )
+  const sessions = filteredSessions.value
+  const subTopicMap = new Map<
+    string,
+    { subTopicName: string; topicName: string; subjectName: string; count: number }
+  >()
+  for (const s of sessions) {
+    const key = `${s.subjectName}-${s.topicName}-${s.subTopicName}`
+    const existing = subTopicMap.get(key)
+    if (existing) {
+      existing.count++
+    } else {
+      subTopicMap.set(key, {
+        subTopicName: s.subTopicName,
+        topicName: s.topicName,
+        subjectName: s.subjectName,
+        count: 1,
+      })
+    }
+  }
+  return Array.from(subTopicMap.values()).sort((a, b) => b.count - a.count)
 })
 
-// Get recent sessions for table
+// Get recent sessions for table (sorted by date descending)
 const recentSessions = computed(() => {
-  if (!selectedChildId.value) return []
-  return childStatisticsStore.getRecentSessions(
-    selectedChildId.value,
-    gradeLevelFilter.value,
-    subjectFilter.value,
-    topicFilter.value,
-    subTopicFilter.value,
-    childStatisticsStore.statisticsFilters.dateRange,
+  return [...filteredSessions.value].sort(
+    (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
   )
 })
 
