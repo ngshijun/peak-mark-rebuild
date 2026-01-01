@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -16,11 +16,32 @@ import { Gift, CirclePoundSterling } from 'lucide-vue-next'
 const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
 const isSpinning = ref(false)
-const reward = ref<number | null>(null)
 const rotation = ref(0)
 
 const segments = [5, 10, 15, 5, 10, 15, 5, 10] // 8 segments (multiples of 5)
 const segmentAngle = 360 / segments.length
+
+// Single source of truth: derive reward from store
+const reward = computed(() => dashboardStore.todayStatus?.spinReward ?? null)
+
+// Calculate rotation needed to point at a specific reward segment
+function getRotationForReward(rewardValue: number): number {
+  const segmentIndex = segments.findIndex((s) => s === rewardValue)
+  if (segmentIndex === -1) return 0
+  const targetAngle = segmentIndex * segmentAngle + segmentAngle / 2
+  return 360 - targetAngle
+}
+
+// Sync rotation with store when data loads (handles page refresh)
+watch(
+  () => dashboardStore.todayStatus?.spinReward,
+  (spinReward) => {
+    if (!isSpinning.value && spinReward != null) {
+      rotation.value = getRotationForReward(spinReward)
+    }
+  },
+  { immediate: true },
+)
 
 const wheelStyle = computed(() => ({
   transform: `rotate(${rotation.value}deg)`,
@@ -31,9 +52,7 @@ async function spin() {
   if (isSpinning.value || dashboardStore.hasSpunToday) return
 
   isSpinning.value = true
-  reward.value = null
 
-  // Call async spinWheel
   const result = await dashboardStore.spinWheel()
   const wonReward = result.reward
 
@@ -42,31 +61,24 @@ async function spin() {
     return
   }
 
-  // Find the segment index for this reward (exact match)
-  const segmentIndex = segments.findIndex((s) => s === wonReward)
-
   // Calculate final rotation: multiple full spins + landing on correct segment
-  // IMPORTANT: fullSpins must be an integer so fullSpins * 360 is a multiple of 360
   const fullSpins = 5 + Math.floor(Math.random() * 4) // 5, 6, 7, or 8 full rotations
-  const targetAngle = segmentIndex * segmentAngle + segmentAngle / 2 // Center of segment
-  const targetRotation = 360 - targetAngle // The rotation angle (mod 360) needed to land on target
-  const currentAngle = rotation.value % 360 // Current wheel position
+  const targetRotation = getRotationForReward(wonReward)
+  const currentAngle = rotation.value % 360
   let deltaToTarget = targetRotation - currentAngle
   if (deltaToTarget <= 0) deltaToTarget += 360 // Always rotate forward (clockwise)
   const finalRotation = rotation.value + fullSpins * 360 + deltaToTarget
 
   rotation.value = finalRotation
 
-  // Show reward after animation
+  // End spinning state after animation completes
   setTimeout(() => {
     isSpinning.value = false
-    reward.value = wonReward
   }, 4000)
 }
 
 function closeDialog() {
   isOpen.value = false
-  reward.value = null
 }
 </script>
 
