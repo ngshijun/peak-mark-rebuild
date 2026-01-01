@@ -847,13 +847,9 @@ export const usePracticeStore = defineStore('practice', () => {
       const answer = rowToAnswer(answerData)
       currentSession.value.answers.push(answer)
 
-      // Update correct count if correct
+      // Update local correct count for UI (DB is updated by trigger automatically)
       if (isCorrect) {
         currentSession.value.correctCount++
-        await supabase
-          .from('practice_sessions')
-          .update({ correct_count: currentSession.value.correctCount })
-          .eq('id', currentSession.value.id)
       }
 
       return { answer, error: null }
