@@ -27,9 +27,10 @@ export interface AuthUser {
   }
 }
 
-// Track loading and error states
-const isLoading = ref(false)
-const error = ref<string | null>(null)
+// Module-level loading/error state (used by exported functions)
+// Note: For component-specific state, use the useAuth() composable which provides instance-local refs
+const moduleIsLoading = ref(false)
+const moduleError = ref<string | null>(null)
 
 /**
  * Sign up a new user with email and password
@@ -41,8 +42,8 @@ export async function signUp(
   userType: 'student' | 'parent',
   dateOfBirth?: string,
 ): Promise<{ user: SupabaseUser | null; error: string | null }> {
-  isLoading.value = true
-  error.value = null
+  moduleIsLoading.value = true
+  moduleError.value = null
 
   try {
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -58,17 +59,17 @@ export async function signUp(
     })
 
     if (signUpError) {
-      error.value = signUpError.message
+      moduleError.value = signUpError.message
       return { user: null, error: signUpError.message }
     }
 
     return { user: data.user, error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unexpected error occurred'
-    error.value = message
+    moduleError.value = message
     return { user: null, error: message }
   } finally {
-    isLoading.value = false
+    moduleIsLoading.value = false
   }
 }
 
@@ -79,8 +80,8 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<{ user: SupabaseUser | null; session: Session | null; error: string | null }> {
-  isLoading.value = true
-  error.value = null
+  moduleIsLoading.value = true
+  moduleError.value = null
 
   try {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -89,17 +90,17 @@ export async function signIn(
     })
 
     if (signInError) {
-      error.value = signInError.message
+      moduleError.value = signInError.message
       return { user: null, session: null, error: signInError.message }
     }
 
     return { user: data.user, session: data.session, error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unexpected error occurred'
-    error.value = message
+    moduleError.value = message
     return { user: null, session: null, error: message }
   } finally {
-    isLoading.value = false
+    moduleIsLoading.value = false
   }
 }
 
@@ -107,8 +108,8 @@ export async function signIn(
  * Sign out the current user
  */
 export async function signOut(): Promise<{ error: string | null }> {
-  isLoading.value = true
-  error.value = null
+  moduleIsLoading.value = true
+  moduleError.value = null
 
   try {
     const { error: signOutError } = await supabase.auth.signOut()
@@ -121,7 +122,7 @@ export async function signOut(): Promise<{ error: string | null }> {
         signOutError.code === 'session_not_found'
 
       if (!isSessionGone) {
-        error.value = signOutError.message
+        moduleError.value = signOutError.message
         return { error: signOutError.message }
       }
     }
@@ -129,10 +130,10 @@ export async function signOut(): Promise<{ error: string | null }> {
     return { error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unexpected error occurred'
-    error.value = message
+    moduleError.value = message
     return { error: message }
   } finally {
-    isLoading.value = false
+    moduleIsLoading.value = false
   }
 }
 
@@ -293,8 +294,8 @@ export async function ensureProfileExists(
  * Send password reset email
  */
 export async function resetPassword(email: string): Promise<{ error: string | null }> {
-  isLoading.value = true
-  error.value = null
+  moduleIsLoading.value = true
+  moduleError.value = null
 
   try {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -302,17 +303,17 @@ export async function resetPassword(email: string): Promise<{ error: string | nu
     })
 
     if (resetError) {
-      error.value = resetError.message
+      moduleError.value = resetError.message
       return { error: resetError.message }
     }
 
     return { error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unexpected error occurred'
-    error.value = message
+    moduleError.value = message
     return { error: message }
   } finally {
-    isLoading.value = false
+    moduleIsLoading.value = false
   }
 }
 
@@ -320,8 +321,8 @@ export async function resetPassword(email: string): Promise<{ error: string | nu
  * Update user password
  */
 export async function updatePassword(newPassword: string): Promise<{ error: string | null }> {
-  isLoading.value = true
-  error.value = null
+  moduleIsLoading.value = true
+  moduleError.value = null
 
   try {
     const { error: updateError } = await supabase.auth.updateUser({
@@ -329,27 +330,66 @@ export async function updatePassword(newPassword: string): Promise<{ error: stri
     })
 
     if (updateError) {
-      error.value = updateError.message
+      moduleError.value = updateError.message
       return { error: updateError.message }
     }
 
     return { error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unexpected error occurred'
-    error.value = message
+    moduleError.value = message
     return { error: message }
   } finally {
-    isLoading.value = false
+    moduleIsLoading.value = false
   }
 }
 
 /**
  * Composable hook for auth functionality
+ * Returns instance-local refs to prevent state pollution between components
  */
 export function useAuth() {
+  // Instance-local state to prevent pollution between components
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Wrapper functions that use instance-local state
+  async function wrappedResetPassword(email: string): Promise<{ error: string | null }> {
+    isLoading.value = true
+    error.value = null
+    try {
+      const result = await resetPassword(email)
+      if (result.error) {
+        error.value = result.error
+      }
+      return result
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function wrappedUpdatePassword(newPassword: string): Promise<{ error: string | null }> {
+    isLoading.value = true
+    error.value = null
+    try {
+      const result = await updatePassword(newPassword)
+      if (result.error) {
+        error.value = result.error
+      }
+      return result
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
+    // Instance-local state
     isLoading,
     error,
+    // Functions that use instance-local state
+    resetPassword: wrappedResetPassword,
+    updatePassword: wrappedUpdatePassword,
+    // Other functions (don't need local state tracking as they return errors directly)
     signUp,
     signIn,
     signOut,
@@ -357,7 +397,5 @@ export function useAuth() {
     getCurrentUser,
     fetchUserProfile,
     ensureProfileExists,
-    resetPassword,
-    updatePassword,
   }
 }

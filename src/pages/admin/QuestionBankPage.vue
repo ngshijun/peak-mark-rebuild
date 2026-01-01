@@ -257,8 +257,7 @@ async function handleDelete() {
     toast.success('Question deleted successfully')
     showDeleteDialog.value = false
     selectedQuestion.value = null
-    // Refresh questions list after delete
-    await questionsStore.fetchQuestions()
+    // Note: Store already removes from local array, no refetch needed
   } finally {
     isDeleting.value = false
   }
@@ -267,15 +266,13 @@ async function handleDelete() {
 async function handleSave() {
   showAddDialog.value = false
   selectedQuestion.value = null
-  // Refresh questions list after add
-  await questionsStore.fetchQuestions()
+  // Note: Store already adds to local array, no refetch needed
 }
 
 async function handleEditSave() {
   showEditDialog.value = false
   editingQuestion.value = null
-  // Refresh questions list after edit
-  await questionsStore.fetchQuestions()
+  // Note: Store already updates local array, no refetch needed
 }
 
 async function handleBulkUploadComplete() {

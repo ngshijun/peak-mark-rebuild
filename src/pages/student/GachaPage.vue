@@ -94,9 +94,8 @@ async function multiPull() {
   setTimeout(async () => {
     const pets = Array.from({ length: 10 }, () => getRandomPet())
     pullResults.value = pets
-    for (const pet of pets) {
-      await petsStore.addPet(pet.id)
-    }
+    // Parallelize pet additions instead of sequential awaits
+    await Promise.all(pets.map((pet) => petsStore.addPet(pet.id)))
     isRolling.value = false
     showResultDialog.value = true
   }, 2000)

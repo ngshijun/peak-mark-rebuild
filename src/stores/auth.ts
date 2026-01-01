@@ -30,6 +30,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const isInitialized = ref(false)
 
+  // Store auth listener unsubscribe function to prevent memory leaks
+  let authListenerUnsubscribe: (() => void) | null = null
+
   const isAuthenticated = computed(() => user.value !== null)
   const userType = computed<UserType | null>(() => user.value?.userType ?? null)
 
@@ -90,10 +93,18 @@ export const useAuthStore = defineStore('auth', () => {
       isInitialized.value = true
     }
 
+    // Clean up any existing auth listener before creating a new one
+    if (authListenerUnsubscribe) {
+      authListenerUnsubscribe()
+      authListenerUnsubscribe = null
+    }
+
     // Listen for auth state changes
     // IMPORTANT: Callback must NOT be async to avoid deadlock
     // See: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
-    supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         // Defer Supabase calls to avoid deadlock
         setTimeout(async () => {
@@ -115,6 +126,9 @@ export const useAuthStore = defineStore('auth', () => {
         }, 0)
       }
     })
+
+    // Store unsubscribe function to prevent memory leaks
+    authListenerUnsubscribe = subscription.unsubscribe
   }
 
   /**
@@ -168,6 +182,12 @@ export const useAuthStore = defineStore('auth', () => {
       // Always clear local user state when signing out
       // Even if the server returns an error, we want to clear the local session
       user.value = null
+
+      // Clean up auth listener to prevent memory leaks
+      if (authListenerUnsubscribe) {
+        authListenerUnsubscribe()
+        authListenerUnsubscribe = null
+      }
 
       // Reset all user-specific stores to prevent stale data on next login
       // This is an industry best practice for security and data integrity

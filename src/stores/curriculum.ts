@@ -45,6 +45,20 @@ export interface GradeLevel {
 // Cache TTL for curriculum data (rarely changes)
 const CURRICULUM_CACHE_TTL = 10 * 60 * 1000 // 10 minutes
 
+// Type for sub-topic with full hierarchy info (for O(1) lookups)
+export interface SubTopicWithHierarchy {
+  subTopic: SubTopic
+  topic: Topic
+  subject: Subject
+  gradeLevel: GradeLevel
+}
+
+export interface TopicWithHierarchy {
+  topic: Topic
+  subject: Subject
+  gradeLevel: GradeLevel
+}
+
 export const useCurriculumStore = defineStore('curriculum', () => {
   const gradeLevels = ref<GradeLevel[]>([])
   const isLoading = ref(false)
@@ -57,6 +71,16 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
   // Cache timestamp for staleness tracking
   const lastFetched = ref<number | null>(null)
+
+  // ============================================
+  // O(1) Lookup Maps (built after fetch, updated on CRUD)
+  // ============================================
+  const gradeLevelMap = ref<Map<string, GradeLevel>>(new Map())
+  const subjectMap = ref<Map<string, Subject>>(new Map())
+  const topicMap = ref<Map<string, Topic>>(new Map())
+  const subTopicMap = ref<Map<string, SubTopic>>(new Map())
+  const subTopicHierarchyMap = ref<Map<string, SubTopicWithHierarchy>>(new Map())
+  const topicHierarchyMap = ref<Map<string, TopicWithHierarchy>>(new Map())
 
   // Admin CurriculumPage navigation state (persisted across navigation)
   const adminCurriculumNavigation = ref({
@@ -71,6 +95,42 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   function isCacheStale(): boolean {
     if (!lastFetched.value || gradeLevels.value.length === 0) return true
     return Date.now() - lastFetched.value > CURRICULUM_CACHE_TTL
+  }
+
+  /**
+   * Build O(1) lookup maps from hierarchical data
+   * Called after fetchCurriculum() and after CRUD operations
+   */
+  function buildLookupMaps(): void {
+    gradeLevelMap.value.clear()
+    subjectMap.value.clear()
+    topicMap.value.clear()
+    subTopicMap.value.clear()
+    subTopicHierarchyMap.value.clear()
+    topicHierarchyMap.value.clear()
+
+    for (const gradeLevel of gradeLevels.value) {
+      gradeLevelMap.value.set(gradeLevel.id, gradeLevel)
+
+      for (const subject of gradeLevel.subjects) {
+        subjectMap.value.set(subject.id, subject)
+
+        for (const topic of subject.topics) {
+          topicMap.value.set(topic.id, topic)
+          topicHierarchyMap.value.set(topic.id, { topic, subject, gradeLevel })
+
+          for (const subTopic of topic.subTopics) {
+            subTopicMap.value.set(subTopic.id, subTopic)
+            subTopicHierarchyMap.value.set(subTopic.id, {
+              subTopic,
+              topic,
+              subject,
+              gradeLevel,
+            })
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -188,6 +248,9 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
       gradeLevels.value = Array.from(gradeMap.values())
       lastFetched.value = Date.now()
+
+      // Build O(1) lookup maps after hierarchy is constructed
+      buildLookupMaps()
     } catch (err) {
       console.error('Error fetching curriculum:', err)
       error.value = err instanceof Error ? err.message : 'Failed to fetch curriculum'
@@ -218,12 +281,16 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       if (insertError) throw insertError
 
       // Add to local state
-      gradeLevels.value.push({
+      const newGradeLevel: GradeLevel = {
         id: data.id,
         name: data.name,
         displayOrder: data.display_order ?? 0,
         subjects: [],
-      })
+      }
+      gradeLevels.value.push(newGradeLevel)
+
+      // Update lookup map
+      gradeLevelMap.value.set(newGradeLevel.id, newGradeLevel)
 
       return { success: true, error: null, id: data.id }
     } catch (err) {
@@ -271,10 +338,12 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
       if (deleteError) throw deleteError
 
-      // Remove from local state
+      // Remove from local state and rebuild maps (cascade removes subjects/topics/subtopics)
       const index = gradeLevels.value.findIndex((g) => g.id === id)
       if (index !== -1) {
         gradeLevels.value.splice(index, 1)
+        // Rebuild all maps to remove cascaded items
+        buildLookupMaps()
       }
 
       return { success: true, error: null }
@@ -316,14 +385,18 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       if (insertError) throw insertError
 
       // Add to local state
-      gradeLevel.subjects.push({
+      const newSubject: Subject = {
         id: data.id,
         name: data.name,
         coverImagePath: data.cover_image_path,
         displayOrder: data.display_order ?? 0,
         gradeLevelId: data.grade_level_id,
         topics: [],
-      })
+      }
+      gradeLevel.subjects.push(newSubject)
+
+      // Update lookup map
+      subjectMap.value.set(newSubject.id, newSubject)
 
       return { success: true, error: null, id: data.id }
     } catch (err) {
@@ -392,12 +465,14 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
       if (deleteError) throw deleteError
 
-      // Remove from local state
+      // Remove from local state and rebuild maps (cascade removes topics/subtopics)
       const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
       if (gradeLevel) {
         const index = gradeLevel.subjects.findIndex((s) => s.id === subjectId)
         if (index !== -1) {
           gradeLevel.subjects.splice(index, 1)
+          // Rebuild all maps to remove cascaded items
+          buildLookupMaps()
         }
       }
 
@@ -442,14 +517,21 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       if (insertError) throw insertError
 
       // Add to local state
-      subject.topics.push({
+      const newTopic: Topic = {
         id: data.id,
         name: data.name,
         coverImagePath: data.cover_image_path,
         displayOrder: data.display_order ?? 0,
         subjectId: data.subject_id,
         subTopics: [],
-      })
+      }
+      subject.topics.push(newTopic)
+
+      // Update lookup maps (gradeLevel already available from earlier lookup)
+      if (gradeLevel && subject) {
+        topicMap.value.set(newTopic.id, newTopic)
+        topicHierarchyMap.value.set(newTopic.id, { topic: newTopic, subject, gradeLevel })
+      }
 
       return { success: true, error: null, id: data.id }
     } catch (err) {
@@ -522,13 +604,15 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
       if (deleteError) throw deleteError
 
-      // Remove from local state
+      // Remove from local state and rebuild maps (cascade removes subtopics)
       const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
       const subject = gradeLevel?.subjects.find((s) => s.id === subjectId)
       if (subject) {
         const index = subject.topics.findIndex((t) => t.id === topicId)
         if (index !== -1) {
           subject.topics.splice(index, 1)
+          // Rebuild all maps to remove cascaded items
+          buildLookupMaps()
         }
       }
 
@@ -575,14 +659,26 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       if (insertError) throw insertError
 
       // Add to local state
-      topic.subTopics.push({
+      const newSubTopic: SubTopic = {
         id: data.id,
         name: data.name,
         coverImagePath: data.cover_image_path,
         displayOrder: data.display_order ?? 0,
         topicId: data.topic_id,
         questionCount: 0,
-      })
+      }
+      topic.subTopics.push(newSubTopic)
+
+      // Update lookup maps (gradeLevel/subject already available from earlier lookup)
+      if (gradeLevel && subject && topic) {
+        subTopicMap.value.set(newSubTopic.id, newSubTopic)
+        subTopicHierarchyMap.value.set(newSubTopic.id, {
+          subTopic: newSubTopic,
+          topic,
+          subject,
+          gradeLevel,
+        })
+      }
 
       return { success: true, error: null, id: data.id }
     } catch (err) {
@@ -659,7 +755,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
       if (deleteError) throw deleteError
 
-      // Remove from local state
+      // Remove from local state and maps
       const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
       const subject = gradeLevel?.subjects.find((s) => s.id === subjectId)
       const topic = subject?.topics.find((t) => t.id === topicId)
@@ -667,6 +763,9 @@ export const useCurriculumStore = defineStore('curriculum', () => {
         const index = topic.subTopics.findIndex((st) => st.id === subTopicId)
         if (index !== -1) {
           topic.subTopics.splice(index, 1)
+          // Remove from maps
+          subTopicMap.value.delete(subTopicId)
+          subTopicHierarchyMap.value.delete(subTopicId)
         }
       }
 
@@ -748,79 +847,39 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     return getCurriculumImageUrl(path, { width: 400, quality: 80 })
   }
 
-  // Helper to find a grade level by ID
+  // ============================================
+  // O(1) Lookup Helpers (using pre-built maps)
+  // ============================================
+
+  // Helper to find a grade level by ID - O(1)
   function getGradeLevelById(id: string): GradeLevel | undefined {
-    return gradeLevels.value.find((g) => g.id === id)
+    return gradeLevelMap.value.get(id)
   }
 
-  // Helper to find a subject by ID
+  // Helper to find a subject by ID - O(1)
   function getSubjectById(subjectId: string): Subject | undefined {
-    for (const grade of gradeLevels.value) {
-      const subject = grade.subjects.find((s) => s.id === subjectId)
-      if (subject) return subject
-    }
-    return undefined
+    return subjectMap.value.get(subjectId)
   }
 
-  // Helper to find a topic by ID
+  // Helper to find a topic by ID - O(1)
   function getTopicById(topicId: string): Topic | undefined {
-    for (const grade of gradeLevels.value) {
-      for (const subject of grade.subjects) {
-        const topic = subject.topics.find((t) => t.id === topicId)
-        if (topic) return topic
-      }
-    }
-    return undefined
+    return topicMap.value.get(topicId)
   }
 
-  // Get topic with full hierarchy info
-  function getTopicWithHierarchy(topicId: string): {
-    topic: Topic
-    subject: Subject
-    gradeLevel: GradeLevel
-  } | null {
-    for (const gradeLevel of gradeLevels.value) {
-      for (const subject of gradeLevel.subjects) {
-        const topic = subject.topics.find((t) => t.id === topicId)
-        if (topic) {
-          return { topic, subject, gradeLevel }
-        }
-      }
-    }
-    return null
+  // Get topic with full hierarchy info - O(1)
+  function getTopicWithHierarchy(topicId: string): TopicWithHierarchy | null {
+    return topicHierarchyMap.value.get(topicId) ?? null
   }
 
-  // Helper to find a sub_topic by ID
+  // Helper to find a sub_topic by ID - O(1)
   function getSubTopicById(subTopicId: string): SubTopic | undefined {
-    for (const grade of gradeLevels.value) {
-      for (const subject of grade.subjects) {
-        for (const topic of subject.topics) {
-          const subTopic = topic.subTopics.find((st) => st.id === subTopicId)
-          if (subTopic) return subTopic
-        }
-      }
-    }
-    return undefined
+    return subTopicMap.value.get(subTopicId)
   }
 
-  // Get sub_topic with full hierarchy info (now used by questions/practice stores)
-  function getSubTopicWithHierarchy(subTopicId: string): {
-    subTopic: SubTopic
-    topic: Topic
-    subject: Subject
-    gradeLevel: GradeLevel
-  } | null {
-    for (const gradeLevel of gradeLevels.value) {
-      for (const subject of gradeLevel.subjects) {
-        for (const topic of subject.topics) {
-          const subTopic = topic.subTopics.find((st) => st.id === subTopicId)
-          if (subTopic) {
-            return { subTopic, topic, subject, gradeLevel }
-          }
-        }
-      }
-    }
-    return null
+  // Get sub_topic with full hierarchy info - O(1)
+  // (now used by questions/practice stores - major performance improvement)
+  function getSubTopicWithHierarchy(subTopicId: string): SubTopicWithHierarchy | null {
+    return subTopicHierarchyMap.value.get(subTopicId) ?? null
   }
 
   // Admin CurriculumPage navigation setters
