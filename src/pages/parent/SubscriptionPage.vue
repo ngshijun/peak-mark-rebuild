@@ -248,11 +248,8 @@ function resetUpgradeState() {
   pendingUpgradeTier.value = null
 }
 
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency.toUpperCase(),
-  }).format(amount / 100)
+function formatCurrency(amount: number) {
+  return `RM ${(amount / 100).toFixed(2)}`
 }
 
 async function handleCancel() {
@@ -485,7 +482,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
               </div>
               <div class="text-right">
                 <div class="text-3xl font-bold">
-                  ${{ currentPlan.price.toFixed(2) }}
+                  RM {{ currentPlan.price.toFixed(2) }}
                   <span class="text-base font-normal text-muted-foreground">/month</span>
                 </div>
                 <p class="text-sm text-muted-foreground">
@@ -559,7 +556,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                 <CardTitle>{{ plan.name }}</CardTitle>
               </div>
               <CardDescription>
-                <span class="text-2xl font-bold text-foreground">${{ plan.price.toFixed(2) }}</span>
+                <span class="text-2xl font-bold text-foreground"
+                  >RM {{ plan.price.toFixed(2) }}</span
+                >
                 <span class="text-muted-foreground">/month</span>
               </CardDescription>
             </CardHeader>
@@ -646,19 +645,14 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                             {{ item.description }}
                           </span>
                           <span :class="{ 'text-green-600': item.amount < 0 }">
-                            {{ formatCurrency(item.amount, item.currency) }}
+                            {{ formatCurrency(item.amount) }}
                           </span>
                         </li>
                       </ul>
                       <div class="mt-2 flex justify-between border-t pt-2 font-medium">
                         <span>Total due today</span>
                         <span>
-                          {{
-                            formatCurrency(
-                              upgradePreview.amountDue ?? 0,
-                              upgradePreview.currency ?? 'usd',
-                            )
-                          }}
+                          {{ formatCurrency(upgradePreview.amountDue ?? 0) }}
                         </span>
                       </div>
                     </div>
@@ -720,8 +714,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                 @click="confirmPlanChange"
               >
                 <template v-if="upgradePreview?.isUpgrade && upgradePreview.amountDue">
-                  Pay
-                  {{ formatCurrency(upgradePreview.amountDue, upgradePreview.currency ?? 'usd') }}
+                  Pay {{ formatCurrency(upgradePreview.amountDue) }}
                 </template>
                 <template v-else> Confirm </template>
               </AlertDialogAction>
