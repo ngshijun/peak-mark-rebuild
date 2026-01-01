@@ -293,42 +293,26 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     }
 
     try {
-      // Update invitation status
-      const { error: updateError } = await supabase
-        .from('parent_student_invitations')
-        .update({
-          status: 'accepted',
-          responded_at: new Date().toISOString(),
-          student_id: authStore.user.id,
+      // Accept invitation atomically using RPC function
+      // This updates invitation status and creates the link in a single transaction
+      const { data, error: rpcError } = await supabase.rpc('accept_parent_student_invitation', {
+        p_invitation_id: invitationId,
+        p_accepting_user_id: authStore.user.id,
+        p_is_parent: false,
+      })
+
+      if (rpcError) throw rpcError
+
+      // RPC returns an array, get the first (and only) result
+      const result = data?.[0]
+      if (result) {
+        // Add to linked parents using data from RPC response
+        linkedParents.value.push({
+          id: result.parent_id,
+          name: result.parent_name,
+          email: result.parent_email,
+          linkedAt: result.linked_at,
         })
-        .eq('id', invitationId)
-
-      if (updateError) throw updateError
-
-      // Create the link
-      if (invitation.parentId) {
-        const { error: linkError } = await supabase.from('parent_student_links').insert({
-          parent_id: invitation.parentId,
-          student_id: authStore.user.id,
-        })
-
-        if (linkError) throw linkError
-
-        // Get parent profile for linked parents list
-        const { data: parentProfile } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .eq('id', invitation.parentId)
-          .single()
-
-        if (parentProfile) {
-          linkedParents.value.push({
-            id: parentProfile.id,
-            name: parentProfile.name,
-            email: parentProfile.email,
-            linkedAt: new Date().toISOString(),
-          })
-        }
       }
 
       // Remove from invitations

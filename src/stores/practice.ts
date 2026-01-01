@@ -388,6 +388,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
     try {
       // Fetch parent link, subscription data, and subscription plans in parallel
+      // fetchSubscriptionPlans() is fire-and-forget (returns void), errors are handled internally
       const [linksResult, subscriptionResult] = await Promise.all([
         supabase
           .from('parent_student_links')
@@ -402,7 +403,10 @@ export const usePracticeStore = defineStore('practice', () => {
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        fetchSubscriptionPlans(), // Pre-fetch plans in parallel
+        fetchSubscriptionPlans().catch((err) => {
+          // Log warning if plans fetch failed (non-critical, will use fallback)
+          console.warn('Failed to fetch subscription plans:', err)
+        }),
       ])
 
       if (linksResult.error) {
@@ -690,79 +694,47 @@ export const usePracticeStore = defineStore('practice', () => {
         selectedQuestions = shuffle(selectedQuestions)
       }
 
-      // Create session in database
-      const { data: sessionData, error: insertError } = await supabase
-        .from('practice_sessions')
-        .insert({
-          student_id: authStore.user.id,
-          topic_id: subTopicId, // topic_id column references sub_topics
-          grade_level_id: hierarchy.gradeLevel.id,
-          subject_id: hierarchy.subject.id,
-          total_questions: selectedQuestions.length,
-          current_question_index: 0,
-          correct_count: 0,
-        })
-        .select()
-        .single()
-
-      if (insertError) {
-        return { session: null, error: insertError.message }
-      }
-
-      // Insert selected questions into session_questions table to preserve order
-      const sessionQuestionsData = selectedQuestions.map((question, index) => ({
-        session_id: sessionData.id,
+      // Create session atomically using RPC function
+      // This inserts session, questions, and progress in a single transaction
+      const questionsPayload = selectedQuestions.map((question, index) => ({
         question_id: question.id,
         question_order: index,
       }))
 
-      const { error: questionsInsertError } = await supabase
-        .from('session_questions')
-        .insert(sessionQuestionsData)
+      const { data: sessionId, error: createError } = await supabase.rpc(
+        'create_practice_session',
+        {
+          p_student_id: authStore.user.id,
+          p_topic_id: subTopicId,
+          p_grade_level_id: hierarchy.gradeLevel.id,
+          p_subject_id: hierarchy.subject.id,
+          p_questions: questionsPayload,
+          p_cycle_number: currentCycle,
+        },
+      )
 
-      if (questionsInsertError) {
-        // If we fail to insert questions, delete the session and return error
-        await supabase.from('practice_sessions').delete().eq('id', sessionData.id)
-        return { session: null, error: questionsInsertError.message }
-      }
-
-      // Record question progress for cycling - mark all selected questions as "used" in current cycle
-      const progressInsertData = selectedQuestions.map((question) => ({
-        student_id: authStore.user!.id,
-        topic_id: subTopicId, // topic_id column references sub_topics
-        question_id: question.id,
-        cycle_number: currentCycle,
-      }))
-
-      // Use upsert to handle any edge cases where a question might already be recorded
-      // Requires unique constraint on (student_id, topic_id, question_id, cycle_number)
-      const { error: progressError } = await supabase
-        .from('student_question_progress')
-        .upsert(progressInsertData, { onConflict: 'student_id,topic_id,question_id,cycle_number' })
-
-      if (progressError) {
-        console.error('Failed to record question progress:', progressError)
-        // Don't fail the session, but log for debugging
+      if (createError) {
+        return { session: null, error: createError.message }
       }
 
       const session: PracticeSession = {
-        id: sessionData.id,
-        studentId: sessionData.student_id,
-        gradeLevelId: sessionData.grade_level_id,
+        id: sessionId,
+        studentId: authStore.user.id,
+        gradeLevelId: hierarchy.gradeLevel.id,
         gradeLevelName: hierarchy.gradeLevel.name,
-        subjectId: sessionData.subject_id,
+        subjectId: hierarchy.subject.id,
         subjectName: hierarchy.subject.name,
-        subTopicId: sessionData.topic_id, // topic_id column references sub_topics
+        subTopicId: subTopicId,
         topicName: hierarchy.topic.name,
         subTopicName: hierarchy.subTopic.name,
-        totalQuestions: sessionData.total_questions,
+        totalQuestions: selectedQuestions.length,
         currentQuestionIndex: 0,
         correctCount: 0,
         totalTimeSeconds: 0,
         xpEarned: null,
         coinsEarned: null,
         aiSummary: null,
-        createdAt: sessionData.created_at,
+        createdAt: new Date().toISOString(),
         completedAt: null,
         questions: selectedQuestions,
         answers: [],
@@ -947,29 +919,28 @@ export const usePracticeStore = defineStore('practice', () => {
       const bonusCoins = correctAnswers * 5
       const totalCoins = baseCoins + bonusCoins
 
-      // Update session in database
-      const { error: updateError } = await supabase
-        .from('practice_sessions')
-        .update({
-          completed_at: new Date().toISOString(),
-          total_time_seconds: totalTimeSeconds,
-          xp_earned: totalXp,
-          coins_earned: totalCoins,
-        })
-        .eq('id', currentSession.value.id)
+      // Complete session atomically using RPC function
+      // This updates session and awards XP/coins in a single transaction
+      const { error: completeError } = await supabase.rpc('complete_practice_session', {
+        p_session_id: currentSession.value.id,
+        p_total_time_seconds: totalTimeSeconds,
+        p_xp_earned: totalXp,
+        p_coins_earned: totalCoins,
+      })
 
-      if (updateError) {
-        return { session: null, error: updateError.message }
+      if (completeError) {
+        return { session: null, error: completeError.message }
       }
 
+      // Update local session state
       currentSession.value.completedAt = new Date().toISOString()
       currentSession.value.totalTimeSeconds = totalTimeSeconds
       currentSession.value.xpEarned = totalXp
       currentSession.value.coinsEarned = totalCoins
 
-      // Award XP and coins to user
-      authStore.addXp(totalXp)
-      authStore.addCoins(totalCoins)
+      // Refresh auth store to get updated XP/coins from database
+      // (RPC already updated the database, we just need to sync local state)
+      await authStore.refreshProfile()
 
       // Invalidate session limit cache (session count changed)
       invalidateSessionLimitCache()

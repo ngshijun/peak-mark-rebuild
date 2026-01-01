@@ -1291,15 +1291,65 @@ export type Database = {
       }
     }
     Functions: {
+      accept_parent_student_invitation: {
+        Args: {
+          p_accepting_user_id: string
+          p_invitation_id: string
+          p_is_parent: boolean
+        }
+        Returns: {
+          link_id: string
+          linked_at: string
+          parent_email: string
+          parent_id: string
+          parent_name: string
+          student_avatar_path: string
+          student_email: string
+          student_grade_level_name: string
+          student_id: string
+          student_name: string
+        }[]
+      }
       calculate_display_streak: {
         Args: { p_student_id: string }
         Returns: number
       }
-      complete_practice_session: {
+      complete_practice_session:
+        | {
+            Args: {
+              p_correct_count: number
+              p_session_id: string
+              p_total_questions: number
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_coins_earned: number
+              p_session_id: string
+              p_total_time_seconds: number
+              p_xp_earned: number
+            }
+            Returns: undefined
+          }
+      create_practice_session: {
         Args: {
-          p_correct_count: number
-          p_session_id: string
-          p_total_questions: number
+          p_cycle_number: number
+          p_grade_level_id: string
+          p_questions: Json
+          p_student_id: string
+          p_subject_id: string
+          p_topic_id: string
+        }
+        Returns: string
+      }
+      create_user_profile: {
+        Args: {
+          p_date_of_birth?: string
+          p_email: string
+          p_name: string
+          p_user_id: string
+          p_user_type: string
         }
         Returns: undefined
       }
@@ -1335,6 +1385,18 @@ export type Database = {
         Returns: Database['public']['Enums']['subscription_tier']
       }
       get_unread_announcement_count: { Args: never; Returns: number }
+      mark_daily_practiced: {
+        Args: { p_daily_status_id: string; p_student_id: string }
+        Returns: number
+      }
+      record_spin_reward: {
+        Args: {
+          p_daily_status_id: string
+          p_reward: number
+          p_student_id: string
+        }
+        Returns: undefined
+      }
       refresh_question_statistics: { Args: never; Returns: undefined }
       update_student_streak: { Args: { p_student_id: string }; Returns: number }
     }

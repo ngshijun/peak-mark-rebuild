@@ -191,15 +191,35 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Reset all user-specific stores to prevent stale data on next login
       // This is an industry best practice for security and data integrity
-      useAnnouncementsStore().$reset()
-      useChildLinkStore().$reset()
-      useParentLinkStore().$reset()
-      usePetsStore().$reset()
-      useStudentDashboardStore().$reset()
-      usePracticeStore().$reset()
-      useSubscriptionStore().$reset()
-      useChildStatisticsStore().$reset()
-      useLeaderboardStore().$reset()
+      // Wrap in try-catch to ensure all stores get reset even if one fails
+      const stores = [
+        useAnnouncementsStore,
+        useChildLinkStore,
+        useParentLinkStore,
+        usePetsStore,
+        useStudentDashboardStore,
+        usePracticeStore,
+        useSubscriptionStore,
+        useChildStatisticsStore,
+        useLeaderboardStore,
+      ]
+
+      let resetFailed = false
+      for (const getStore of stores) {
+        try {
+          getStore().$reset()
+        } catch (err) {
+          console.error('Failed to reset store:', err)
+          resetFailed = true
+        }
+      }
+
+      // If any store reset failed, force a page reload to ensure clean state
+      if (resetFailed) {
+        console.warn('Some stores failed to reset, forcing page reload for security')
+        window.location.href = '/login'
+        return result
+      }
 
       return result
     } finally {
@@ -293,6 +313,8 @@ export const useAuthStore = defineStore('auth', () => {
       // Update the avatar path in the database
       const updateResult = await updateAvatar(filePath)
       if (updateResult.error) {
+        // Cleanup: delete the uploaded file since DB update failed
+        await supabase.storage.from('avatars').remove([filePath])
         return { path: null, error: updateResult.error }
       }
 
@@ -336,6 +358,8 @@ export const useAuthStore = defineStore('auth', () => {
       // Update the avatar path in the database
       const updateResult = await updateAvatar(filePath)
       if (updateResult.error) {
+        // Cleanup: delete the uploaded file since DB update failed
+        await supabase.storage.from('avatars').remove([filePath])
         return { path: null, error: updateResult.error }
       }
 

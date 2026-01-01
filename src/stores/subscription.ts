@@ -442,8 +442,15 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       if (invokeError) throw invokeError
       if (data.error) throw new Error(data.error)
 
-      // Refresh subscriptions to get updated data
-      await fetchChildrenSubscriptions()
+      // Refresh subscriptions to get updated data (non-blocking, non-critical)
+      // If refresh fails, the modification still succeeded - just log a warning
+      try {
+        await fetchChildrenSubscriptions(true) // Force refresh
+      } catch (refreshErr) {
+        console.warn('Failed to refresh subscriptions after modification:', refreshErr)
+        // Invalidate cache so next access will fetch fresh data
+        subscriptionsLastFetched.value = null
+      }
 
       return {
         success: true,

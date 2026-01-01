@@ -160,11 +160,11 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
   }
 
-  // Spin the wheel and get a random reward (1-5 coins)
-  async function spinWheel(): Promise<{ reward: number | null; error: string | null }> {
+  // Record spin reward after animation completes (called by component with pre-determined reward)
+  async function recordSpinReward(reward: number): Promise<{ error: string | null }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { reward: null, error: 'Not logged in' }
+      return { error: 'Not logged in' }
     }
 
     if (!todayStatus.value) {
@@ -172,41 +172,36 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
 
     if (!todayStatus.value) {
-      return { reward: null, error: 'Could not create daily status' }
+      return { error: 'Could not create daily status' }
     }
 
     if (todayStatus.value.hasSpun) {
-      return { reward: null, error: 'Already spun today' }
+      return { error: 'Already spun today' }
     }
 
-    // Generate random reward (multiples of 5: 5, 10, or 15 coins)
-    const possibleRewards = [5, 10, 15] as const
-    const reward = possibleRewards[Math.floor(Math.random() * possibleRewards.length)] as number
-
     try {
-      // Update daily status
-      const { error: updateError } = await supabase
-        .from('daily_statuses')
-        .update({
-          has_spun: true,
-          spin_reward: reward,
-        })
-        .eq('id', todayStatus.value.id)
+      // Record spin and credit coins atomically using RPC function
+      const { error: rpcError } = await supabase.rpc('record_spin_reward', {
+        p_daily_status_id: todayStatus.value.id,
+        p_student_id: studentId,
+        p_reward: reward,
+      })
 
-      if (updateError) {
-        return { reward: null, error: updateError.message }
+      if (rpcError) {
+        return { error: rpcError.message }
       }
 
+      // Update local state
       todayStatus.value.hasSpun = true
       todayStatus.value.spinReward = reward
 
-      // Add coins to user
-      await authStore.addCoins(reward)
+      // Refresh auth store to get updated coins from database
+      await authStore.refreshProfile()
 
-      return { reward, error: null }
+      return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to spin wheel'
-      return { reward: null, error: message }
+      const message = err instanceof Error ? err.message : 'Failed to record spin'
+      return { error: message }
     }
   }
 
@@ -231,8 +226,13 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     return todayStatus.value?.hasPracticed ?? false
   })
 
-  // Mark that user has practiced today
+  // Mark that user has practiced today (atomically updates status and returns new streak)
   async function markPracticedToday(): Promise<{ error: string | null }> {
+    const studentId = authStore.user?.id
+    if (!studentId) {
+      return { error: 'Not logged in' }
+    }
+
     if (!todayStatus.value) {
       await fetchTodayStatus()
     }
@@ -246,16 +246,20 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
 
     try {
-      const { error: updateError } = await supabase
-        .from('daily_statuses')
-        .update({ has_practiced: true })
-        .eq('id', todayStatus.value.id)
+      // Use atomic RPC that updates has_practiced and returns new streak in one transaction
+      const { data: newStreak, error: rpcError } = await supabase.rpc('mark_daily_practiced', {
+        p_daily_status_id: todayStatus.value.id,
+        p_student_id: studentId,
+      })
 
-      if (updateError) {
-        return { error: updateError.message }
+      if (rpcError) {
+        return { error: rpcError.message }
       }
 
+      // Update local state with results from the atomic operation
       todayStatus.value.hasPracticed = true
+      currentStreak.value = newStreak ?? 0
+
       return { error: null }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to mark practiced'
@@ -281,7 +285,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     hasPracticedToday,
     fetchTodayStatus,
     setMood,
-    spinWheel,
+    recordSpinReward,
     refreshStreak,
     markPracticedToday,
     getTodayString,

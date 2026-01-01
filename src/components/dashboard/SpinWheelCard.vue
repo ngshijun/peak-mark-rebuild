@@ -17,6 +17,7 @@ const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
 const isSpinning = ref(false)
 const rotation = ref(0)
+const justSpun = ref(false) // Tracks if user just spun (for animation)
 
 const segments = [5, 10, 15, 5, 10, 15, 5, 10] // 8 segments (multiples of 5)
 const segmentAngle = 360 / segments.length
@@ -48,18 +49,20 @@ const wheelStyle = computed(() => ({
   transition: isSpinning.value ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
 }))
 
+const pendingReward = ref<number | null>(null)
+const spinError = ref<string | null>(null)
+
 async function spin() {
   if (isSpinning.value || dashboardStore.hasSpunToday) return
 
   isSpinning.value = true
+  spinError.value = null
 
-  const result = await dashboardStore.spinWheel()
-  const wonReward = result.reward
-
-  if (wonReward === null) {
-    isSpinning.value = false
-    return
-  }
+  // Generate reward locally before animation starts
+  const possibleRewards = [5, 10, 15] as const
+  const randomIndex = Math.floor(Math.random() * possibleRewards.length)
+  const wonReward = possibleRewards[randomIndex] as number
+  pendingReward.value = wonReward
 
   // Calculate final rotation: multiple full spins + landing on correct segment
   const fullSpins = 5 + Math.floor(Math.random() * 4) // 5, 6, 7, or 8 full rotations
@@ -71,15 +74,31 @@ async function spin() {
 
   rotation.value = finalRotation
 
-  // End spinning state after animation completes
-  setTimeout(() => {
+  // Call RPC after animation completes (4 seconds matches CSS transition)
+  setTimeout(async () => {
+    const result = await dashboardStore.recordSpinReward(wonReward)
+
+    if (result.error) {
+      // RPC failed - show error but keep wheel in position
+      spinError.value = result.error
+      pendingReward.value = null
+    }
+
     isSpinning.value = false
+    justSpun.value = true
   }, 4000)
 }
 
 function closeDialog() {
   isOpen.value = false
 }
+
+// Reset bounce animation state when dialog closes (any method)
+watch(isOpen, (open) => {
+  if (!open) {
+    justSpun.value = false
+  }
+})
 </script>
 
 <template>
@@ -171,13 +190,23 @@ function closeDialog() {
           </div>
         </div>
 
-        <!-- Reward Display -->
-        <div v-if="reward !== null" class="animate-bounce text-center">
+        <!-- Reward Display (only shown after wheel stops successfully) -->
+        <div
+          v-if="reward !== null && !isSpinning && !spinError"
+          :class="['text-center', { 'animate-bounce': justSpun }]"
+        >
           <p class="text-lg font-bold text-green-600">Congratulations!</p>
           <div class="mt-2 flex items-center justify-center gap-2">
             <span class="text-2xl font-bold">+{{ reward }}</span>
             <CirclePoundSterling class="size-7 text-amber-700 dark:text-amber-400" />
           </div>
+        </div>
+
+        <!-- Error Display (if RPC failed after animation) -->
+        <div v-if="spinError && !isSpinning" class="text-center">
+          <p class="text-lg font-bold text-red-600">Oops!</p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ spinError }}</p>
+          <p class="mt-1 text-xs text-muted-foreground">Please try again</p>
         </div>
 
         <!-- Spin Button -->

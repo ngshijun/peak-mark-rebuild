@@ -321,62 +321,28 @@ export const useChildLinkStore = defineStore('childLink', () => {
     }
 
     try {
-      // Update invitation status
-      const { error: updateError } = await supabase
-        .from('parent_student_invitations')
-        .update({
-          status: 'accepted',
-          responded_at: new Date().toISOString(),
-          parent_id: authStore.user.id,
+      // Accept invitation atomically using RPC function
+      // This updates invitation status and creates the link in a single transaction
+      const { data, error: rpcError } = await supabase.rpc('accept_parent_student_invitation', {
+        p_invitation_id: invitationId,
+        p_accepting_user_id: authStore.user.id,
+        p_is_parent: true,
+      })
+
+      if (rpcError) throw rpcError
+
+      // RPC returns an array, get the first (and only) result
+      const result = data?.[0]
+      if (result) {
+        // Add to linked children using data from RPC response
+        linkedChildren.value.push({
+          id: result.student_id,
+          name: result.student_name,
+          email: result.student_email,
+          avatarPath: result.student_avatar_path,
+          gradeLevelName: result.student_grade_level_name,
+          linkedAt: result.linked_at,
         })
-        .eq('id', invitationId)
-
-      if (updateError) throw updateError
-
-      // Create the link
-      if (invitation.studentId) {
-        const { error: linkError } = await supabase.from('parent_student_links').insert({
-          parent_id: authStore.user.id,
-          student_id: invitation.studentId,
-        })
-
-        if (linkError) throw linkError
-
-        // Get student profile for linked children list
-        const { data: studentData } = await supabase
-          .from('profiles')
-          .select(
-            `
-            id,
-            name,
-            email,
-            avatar_path,
-            student_profiles (
-              grade_level_id,
-              grade_levels (
-                name
-              )
-            )
-          `,
-          )
-          .eq('id', invitation.studentId)
-          .single()
-
-        if (studentData) {
-          const studentProfile = studentData.student_profiles as unknown as {
-            grade_level_id: string | null
-            grade_levels: { name: string } | null
-          }
-
-          linkedChildren.value.push({
-            id: studentData.id,
-            name: studentData.name,
-            email: studentData.email,
-            avatarPath: studentData.avatar_path,
-            gradeLevelName: studentProfile?.grade_levels?.name ?? null,
-            linkedAt: new Date().toISOString(),
-          })
-        }
       }
 
       // Remove from invitations

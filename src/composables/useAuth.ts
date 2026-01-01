@@ -246,41 +246,24 @@ export async function ensureProfileExists(
       return { success: false, error: checkError.message }
     }
 
-    // Profile doesn't exist, create it
+    // Profile doesn't exist, create it atomically using RPC function
     const userMetadata = user.user_metadata || {}
     const userType = (userMetadata.user_type as UserType) || 'student'
     const name = (userMetadata.name as string) || 'User'
     const dateOfBirth = userMetadata.date_of_birth as string | undefined
 
-    // Create main profile
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: user.id,
-      email: user.email!,
-      name,
-      user_type: userType,
-      date_of_birth: dateOfBirth || null,
+    // Create main profile and type-specific profile atomically
+    const { error: rpcError } = await supabase.rpc('create_user_profile', {
+      p_user_id: user.id,
+      p_email: user.email!,
+      p_name: name,
+      p_user_type: userType,
+      p_date_of_birth: dateOfBirth,
     })
 
-    if (profileError) {
-      console.error('Error creating profile:', profileError)
-      return { success: false, error: profileError.message }
-    }
-
-    // Create type-specific profile
-    if (userType === 'student') {
-      const { error: studentError } = await supabase.from('student_profiles').insert({
-        id: user.id,
-      })
-      if (studentError) {
-        console.error('Error creating student profile:', studentError)
-      }
-    } else if (userType === 'parent') {
-      const { error: parentError } = await supabase.from('parent_profiles').insert({
-        id: user.id,
-      })
-      if (parentError) {
-        console.error('Error creating parent profile:', parentError)
-      }
+    if (rpcError) {
+      console.error('Error creating profile:', rpcError)
+      return { success: false, error: rpcError.message }
     }
 
     return { success: true, error: null }

@@ -483,10 +483,15 @@ export const usePetsStore = defineStore('pets', () => {
         return { success: false, error: result.error }
       }
 
-      // Update local state
-      const ownedPet = ownedPets.value.find((op) => op.id === ownedPetId)
-      if (ownedPet) {
-        ownedPet.foodFed = result.food_fed ?? ownedPet.foodFed
+      // Update local state with fallback refresh on error
+      try {
+        const ownedPet = ownedPets.value.find((op) => op.id === ownedPetId)
+        if (ownedPet) {
+          ownedPet.foodFed = result.food_fed ?? ownedPet.foodFed
+        }
+      } catch {
+        // Local state update failed, re-fetch from DB
+        await fetchOwnedPets()
       }
 
       // Refresh auth store to get updated food count
@@ -536,11 +541,16 @@ export const usePetsStore = defineStore('pets', () => {
         return { success: false, error: result.error }
       }
 
-      // Update local state
-      const ownedPet = ownedPets.value.find((op) => op.id === ownedPetId)
-      if (ownedPet) {
-        ownedPet.tier = result.new_tier ?? ownedPet.tier
-        ownedPet.foodFed = 0
+      // Update local state with fallback refresh on error
+      try {
+        const ownedPet = ownedPets.value.find((op) => op.id === ownedPetId)
+        if (ownedPet) {
+          ownedPet.tier = result.new_tier ?? ownedPet.tier
+          ownedPet.foodFed = 0
+        }
+      } catch {
+        // Local state update failed, re-fetch from DB
+        await fetchOwnedPets()
       }
 
       return {
