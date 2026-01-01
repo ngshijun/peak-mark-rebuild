@@ -168,6 +168,7 @@ async function handleSelectPet(petId: string) {
                   <img
                     :src="getPetDisplayImage(pet)"
                     :alt="pet.name"
+                    loading="lazy"
                     class="size-14 object-contain"
                   />
                 </template>
@@ -244,6 +245,7 @@ async function handleSelectPet(petId: string) {
                     <img
                       :src="getTierImageUrl(selectedPetForDialog, tier)"
                       :alt="`${selectedPetForDialog.name} Tier ${tier}`"
+                      loading="lazy"
                       class="size-full object-contain transition-all"
                       :class="{
                         'brightness-0 opacity-20': !isTierUnlocked(selectedPetForDialog.id, tier),

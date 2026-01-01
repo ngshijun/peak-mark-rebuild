@@ -1,7 +1,7 @@
 import type { UnwrapRefCarouselApi as CarouselApi, CarouselEmits, CarouselProps } from './interface'
 import { createInjectionState } from '@vueuse/core'
 import emblaCarouselVue from 'embla-carousel-vue'
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const [useProvideCarousel, useInjectCarousel] = createInjectionState(
   ({ opts, orientation, plugins }: CarouselProps, emits: CarouselEmits) => {
@@ -36,6 +36,14 @@ const [useProvideCarousel, useInjectCarousel] = createInjectionState(
       emblaApi.value?.on('select', onSelect)
 
       emits('init-api', emblaApi.value)
+    })
+
+    onBeforeUnmount(() => {
+      if (!emblaApi.value) return
+
+      emblaApi.value?.off('init', onSelect)
+      emblaApi.value?.off('reInit', onSelect)
+      emblaApi.value?.off('select', onSelect)
     })
 
     return {

@@ -215,7 +215,13 @@ function getRankBg(rank: number): string {
               <div class="w-12 text-center">
                 <p class="text-sm text-muted-foreground">Streak</p>
                 <p class="flex items-center justify-center gap-1 font-semibold">
-                  <img v-if="student.currentStreak > 0" :src="fireGif" alt="fire" class="size-4" />
+                  <img
+                    v-if="student.currentStreak > 0"
+                    :src="fireGif"
+                    alt="fire"
+                    loading="lazy"
+                    class="size-4"
+                  />
                   {{ student.currentStreak }}
                 </p>
               </div>
@@ -275,6 +281,7 @@ function getRankBg(rank: number): string {
                       v-if="currentStudentInfo.currentStreak > 0"
                       :src="fireGif"
                       alt="fire"
+                      loading="lazy"
                       class="size-4"
                     />
                     {{ currentStudentInfo.currentStreak }}

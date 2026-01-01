@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import { useChildLinkStore } from '@/stores/child-link'
 import { useChildStatisticsStore } from '@/stores/child-statistics'
 import { Loader2 } from 'lucide-vue-next'
@@ -23,10 +24,15 @@ const childStatisticsStore = useChildStatisticsStore()
 const isLoading = ref(true)
 const selectedChildId = ref<string>(localStorage.getItem(SELECTED_CHILD_KEY) || '')
 
-// Persist selectedChildId to localStorage
+// Debounced localStorage write to avoid blocking UI on rapid changes
+const saveToStorage = useDebounceFn((id: string) => {
+  localStorage.setItem(SELECTED_CHILD_KEY, id)
+}, 300)
+
+// Persist selectedChildId to localStorage (debounced)
 watch(selectedChildId, (newId) => {
   if (newId) {
-    localStorage.setItem(SELECTED_CHILD_KEY, newId)
+    saveToStorage(newId)
   }
 })
 

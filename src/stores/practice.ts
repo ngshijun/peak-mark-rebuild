@@ -19,6 +19,19 @@ const SESSION_LIMIT_CACHE_TTL = 30 * 1000 // 30 seconds
 // Cache TTL for subscription plans (rarely change)
 const SUBSCRIPTION_PLANS_CACHE_TTL = 10 * 60 * 1000 // 10 minutes
 
+/**
+ * Fisher-Yates shuffle - O(n) time, uniform distribution
+ * Preferred over sort(() => Math.random() - 0.5) which is O(n log n) and biased
+ */
+function shuffle<T>(array: T[]): T[] {
+  const result = [...array]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j]!, result[i]!]
+  }
+  return result
+}
+
 export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
 
 export interface PracticeAnswer {
@@ -653,7 +666,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       if (unansweredQuestions.length >= questionCount) {
         // Enough unanswered questions - select randomly from them
-        const shuffled = [...unansweredQuestions].sort(() => Math.random() - 0.5)
+        const shuffled = shuffle(unansweredQuestions)
         selectedQuestions = shuffled.slice(0, questionCount)
       } else {
         // Not enough - use all remaining + start new cycle for the rest
@@ -665,7 +678,7 @@ export const usePracticeStore = defineStore('practice', () => {
           // Select additional questions from the full pool (excluding already selected)
           const selectedIds = new Set(selectedQuestions.map((q) => q.id))
           const remainingPool = allQuestions.filter((q) => !selectedIds.has(q.id))
-          const shuffledRemaining = [...remainingPool].sort(() => Math.random() - 0.5)
+          const shuffledRemaining = shuffle(remainingPool)
           const additionalQuestions = shuffledRemaining.slice(
             0,
             Math.min(questionsFromNewCycle, shuffledRemaining.length),
@@ -674,7 +687,7 @@ export const usePracticeStore = defineStore('practice', () => {
         }
 
         // Shuffle final selection so old/new cycle questions are mixed
-        selectedQuestions = selectedQuestions.sort(() => Math.random() - 0.5)
+        selectedQuestions = shuffle(selectedQuestions)
       }
 
       // Create session in database

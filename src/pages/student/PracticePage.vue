@@ -271,6 +271,7 @@ async function confirmStartSession() {
               <img
                 :src="getImageUrl(subject.coverImagePath)"
                 :alt="subject.name"
+                loading="lazy"
                 class="size-full object-cover transition-transform hover:scale-105"
               />
             </div>
@@ -302,6 +303,7 @@ async function confirmStartSession() {
               <img
                 :src="getImageUrl(topic.coverImagePath)"
                 :alt="topic.name"
+                loading="lazy"
                 class="size-full object-cover transition-transform hover:scale-105"
               />
             </div>
@@ -337,6 +339,7 @@ async function confirmStartSession() {
               <img
                 :src="getImageUrl(subTopic.coverImagePath)"
                 :alt="subTopic.name"
+                loading="lazy"
                 class="size-full object-cover transition-transform hover:scale-105"
               />
             </div>
