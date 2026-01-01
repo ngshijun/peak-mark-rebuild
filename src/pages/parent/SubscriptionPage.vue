@@ -58,9 +58,10 @@ const previewError = ref<string | null>(null)
 const upgradeDialogOpen = ref(false)
 const pendingUpgradeTier = ref<SubscriptionTier | null>(null)
 
-// Fetch data on mount and handle checkout redirect
+// Handle checkout redirect on mount
+// Note: Plans and subscriptions are preloaded by the route guard for faster initial render
 onMounted(async () => {
-  // Set default selected child first (linkedChildren already loaded by route guard)
+  // Set default selected child (linkedChildren already loaded by route guard)
   if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
     selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
   }
@@ -82,6 +83,8 @@ onMounted(async () => {
       toast.success('Subscription activated!', {
         description: 'Your subscription has been successfully activated.',
       })
+      // Refresh subscriptions to show the new status
+      await subscriptionStore.fetchChildrenSubscriptions(true)
     } else {
       toast.error('Sync issue', {
         description: error || 'Subscription may not be fully synced. Please refresh the page.',
@@ -94,32 +97,6 @@ onMounted(async () => {
       description: 'You cancelled the checkout process.',
     })
     window.history.replaceState({}, '', window.location.pathname)
-  }
-
-  // Fetch plans and subscriptions
-  await Promise.all([
-    subscriptionStore.fetchPlans(),
-    subscriptionStore.fetchChildrenSubscriptions(),
-  ])
-
-  // Background sync: verify Stripe state for children with active subscriptions
-  // This catches any missed webhooks without blocking the UI
-  const childrenWithStripe = childLinkStore.linkedChildren.filter((child) =>
-    subscriptionStore.hasActiveStripeSubscription(child.id),
-  )
-
-  if (childrenWithStripe.length > 0) {
-    // Sync in background - don't await, don't show errors (silent reconciliation)
-    Promise.all(
-      childrenWithStripe.map((child) =>
-        subscriptionStore.syncSubscription(child.id).catch((err) => {
-          console.warn(`Background sync failed for child ${child.id}:`, err)
-        }),
-      ),
-    ).then(() => {
-      // Refresh subscriptions after background sync completes
-      subscriptionStore.fetchChildrenSubscriptions()
-    })
   }
 })
 

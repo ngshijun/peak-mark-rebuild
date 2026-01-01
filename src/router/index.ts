@@ -7,16 +7,18 @@ import { useCurriculumStore } from '@/stores/curriculum'
 import { usePetsStore } from '@/stores/pets'
 import { useQuestionsStore } from '@/stores/questions'
 import { useAnnouncementsStore } from '@/stores/announcements'
+import { useSubscriptionStore } from '@/stores/subscription'
 
 /**
  * Route guards for data preloading
  * These ensure required store data is loaded before entering routes
  */
 
-// Parent routes require linked children data and announcements
+// Parent routes require linked children data, announcements, and subscription plans
 async function parentRouteGuard() {
   const childLinkStore = useChildLinkStore()
   const announcementsStore = useAnnouncementsStore()
+  const subscriptionStore = useSubscriptionStore()
 
   const promises: Promise<unknown>[] = []
 
@@ -28,8 +30,16 @@ async function parentRouteGuard() {
     promises.push(announcementsStore.fetchAnnouncements())
   }
 
+  // Preload subscription plans (static data, cached with TTL)
+  promises.push(subscriptionStore.fetchPlans())
+
   if (promises.length > 0) {
     await Promise.all(promises)
+  }
+
+  // After children are loaded, preload their subscriptions
+  if (childLinkStore.linkedChildren.length > 0) {
+    await subscriptionStore.fetchChildrenSubscriptions()
   }
 }
 

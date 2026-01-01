@@ -70,6 +70,10 @@ export interface ChildSubscription {
   scheduledChange?: ScheduledChange
 }
 
+// Cache TTL constants
+const PLANS_CACHE_TTL = 10 * 60 * 1000 // 10 minutes - plans rarely change
+const SUBSCRIPTIONS_CACHE_TTL = 2 * 60 * 1000 // 2 minutes - subscriptions may change more often
+
 export const useSubscriptionStore = defineStore('subscription', () => {
   const childLinkStore = useChildLinkStore()
   const authStore = useAuthStore()
@@ -82,10 +86,35 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   const isProcessingPayment = ref(false)
   const paymentError = ref<string | null>(null)
 
+  // Cache timestamps for staleness tracking
+  const plansLastFetched = ref<number | null>(null)
+  const subscriptionsLastFetched = ref<number | null>(null)
+
   /**
-   * Fetch subscription plans from the database
+   * Check if plans cache is still valid
    */
-  async function fetchPlans(): Promise<{ error: string | null }> {
+  function isPlansStale(): boolean {
+    if (!plansLastFetched.value || plans.value.length === 0) return true
+    return Date.now() - plansLastFetched.value > PLANS_CACHE_TTL
+  }
+
+  /**
+   * Check if subscriptions cache is still valid
+   */
+  function isSubscriptionsStale(): boolean {
+    if (!subscriptionsLastFetched.value) return true
+    return Date.now() - subscriptionsLastFetched.value > SUBSCRIPTIONS_CACHE_TTL
+  }
+
+  /**
+   * Fetch subscription plans from the database (with caching)
+   */
+  async function fetchPlans(force = false): Promise<{ error: string | null }> {
+    // Skip if cache is still valid and not forced
+    if (!force && !isPlansStale()) {
+      return { error: null }
+    }
+
     try {
       const { data, error: fetchError } = await supabase
         .from('subscription_plans')
@@ -104,6 +133,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         stripePriceId: row.stripe_price_id ?? undefined,
       }))
 
+      plansLastFetched.value = Date.now()
       return { error: null }
     } catch (err) {
       console.error('Error fetching subscription plans:', err)
@@ -113,15 +143,20 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   }
 
   /**
-   * Fetch subscriptions for all linked children
+   * Fetch subscriptions for all linked children (with caching)
    */
-  async function fetchChildrenSubscriptions(): Promise<{ error: string | null }> {
+  async function fetchChildrenSubscriptions(force = false): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
       return { error: 'Not authenticated as parent' }
     }
 
     if (childLinkStore.linkedChildren.length === 0) {
       childSubscriptions.value = []
+      return { error: null }
+    }
+
+    // Skip if cache is still valid and not forced
+    if (!force && !isSubscriptionsStale() && childSubscriptions.value.length > 0) {
       return { error: null }
     }
 
@@ -185,6 +220,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         }
       })
 
+      subscriptionsLastFetched.value = Date.now()
       return { error: null }
     } catch (err) {
       console.error('Error fetching children subscriptions:', err)
