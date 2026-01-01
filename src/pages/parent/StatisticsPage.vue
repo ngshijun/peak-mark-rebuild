@@ -35,7 +35,7 @@ const router = useRouter()
 const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
 
-// Fetch data on mount
+// Fetch data on mount - uses lazy loading (only selected child)
 // Note: linkedChildren is preloaded by parentRouteGuard in router/index.ts
 onMounted(async () => {
   try {
@@ -43,7 +43,10 @@ onMounted(async () => {
     if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
       selectedChildId.value = getInitialChildId()
     }
-    await childStatisticsStore.fetchChildrenStatistics()
+    // Only load the selected child's statistics (lazy loading)
+    if (selectedChildId.value) {
+      await childStatisticsStore.fetchChildStatistics(selectedChildId.value)
+    }
   } catch {
     toast.error('Failed to load statistics')
   }
@@ -71,14 +74,16 @@ const dateRangeOptions = [
   { value: 'alltime' as DateRangeFilter, label: 'All Time' },
 ]
 
-// Reset filters when child changes and save to localStorage
-watch(selectedChildId, (newChildId) => {
+// Fetch statistics and reset filters when child changes
+watch(selectedChildId, async (newChildId) => {
   // Reset all filters when switching children
   childStatisticsStore.resetStatisticsFilters()
 
   // Persist selected child to localStorage (user preference)
   if (newChildId) {
     localStorage.setItem(SELECTED_CHILD_KEY, newChildId)
+    // Lazy load this child's statistics if not already loaded
+    await childStatisticsStore.fetchChildStatistics(newChildId)
   }
 })
 

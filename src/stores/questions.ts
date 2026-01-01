@@ -424,6 +424,40 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   /**
+   * Fetch a single question by ID and add/update it in the store
+   * Used for on-demand loading (e.g., feedback page preview)
+   */
+  async function fetchQuestionById(id: string): Promise<{ error: string | null }> {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) {
+        return { error: fetchError.message }
+      }
+
+      if (data) {
+        const question = rowToQuestion(data, curriculumStore)
+        // Update existing or add new
+        const existingIndex = questions.value.findIndex((q) => q.id === id)
+        if (existingIndex >= 0) {
+          questions.value[existingIndex] = question
+        } else {
+          questions.value.push(question)
+        }
+      }
+
+      return { error: null }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch question'
+      return { error: message }
+    }
+  }
+
+  /**
    * Upload a question or option image
    * Sets high cache-control value for better CDN caching (1 year)
    */
@@ -796,6 +830,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     // Actions
     fetchQuestions,
     fetchQuestionsBySubTopic,
+    fetchQuestionById,
     addQuestion,
     updateQuestion,
     deleteQuestion,

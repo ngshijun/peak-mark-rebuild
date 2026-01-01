@@ -10,6 +10,9 @@ export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
 type QuestionRow = Database['public']['Tables']['questions']['Row']
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
 
+// Cache TTL for child subscription status
+const SUBSCRIPTION_CACHE_TTL = 2 * 60 * 1000 // 2 minutes
+
 export interface ChildSubscriptionStatus {
   tier: SubscriptionTier
   canViewDetailedResults: boolean // Pro and Max tiers only
@@ -113,6 +116,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // Cache for child subscription statuses (keyed by childId)
+  const subscriptionStatusCache = ref<
+    Map<string, { status: ChildSubscriptionStatus; lastFetched: number }>
+  >(new Map())
+
   // Statistics page filter state (persisted across navigation)
   // Note: selectedChildId is persisted via localStorage in the component (user preference)
   const statisticsFilters = ref({
@@ -129,16 +137,25 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     pageSize: 10,
   })
 
+  // Track which children have been loaded (for lazy loading)
+  const loadedChildIds = ref<Set<string>>(new Set())
+
   /**
-   * Fetch practice sessions for all linked children
+   * Fetch practice sessions for a specific child (lazy loading)
    */
-  async function fetchChildrenStatistics(): Promise<{ error: string | null }> {
+  async function fetchChildStatistics(childId: string): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
       return { error: 'Not authenticated as parent' }
     }
 
-    if (childLinkStore.linkedChildren.length === 0) {
-      childrenStatistics.value = []
+    // Check if child is linked
+    const child = childLinkStore.linkedChildren.find((c) => c.id === childId)
+    if (!child) {
+      return { error: 'Child not linked to your account' }
+    }
+
+    // Skip if already loaded
+    if (loadedChildIds.value.has(childId)) {
       return { error: null }
     }
 
@@ -146,10 +163,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     error.value = null
 
     try {
-      const childIds = childLinkStore.linkedChildren.map((c) => c.id)
-
-      // Fetch completed practice sessions for all linked children
-      // Note: topic_id column now references sub_topics table
+      // Fetch completed practice sessions for this child
       const { data: sessionsData, error: fetchError } = await supabase
         .from('practice_sessions')
         .select(
@@ -178,7 +192,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           )
         `,
         )
-        .in('student_id', childIds)
+        .eq('student_id', childId)
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
 
@@ -187,34 +201,40 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       // Get all session IDs for batch query
       const sessionIds = (sessionsData ?? []).map((s) => s.id)
 
-      // Batch fetch all answers in a single request instead of N+1 queries
-      const { data: allAnswersData } = await supabase
-        .from('practice_answers')
-        .select('session_id, is_correct, time_spent_seconds')
-        .in('session_id', sessionIds)
+      // Batch fetch all answers in a single request
+      let allAnswersData: {
+        session_id: string
+        is_correct: boolean | null
+        time_spent_seconds: number | null
+      }[] = []
+      if (sessionIds.length > 0) {
+        const { data } = await supabase
+          .from('practice_answers')
+          .select('session_id, is_correct, time_spent_seconds')
+          .in('session_id', sessionIds)
+        allAnswersData = data ?? []
+      }
 
       // Group answers by session_id
       const answersBySession = new Map<
         string,
         { is_correct: boolean | null; time_spent_seconds: number | null }[]
       >()
-      for (const answer of allAnswersData ?? []) {
+      for (const answer of allAnswersData) {
         if (!answersBySession.has(answer.session_id)) {
           answersBySession.set(answer.session_id, [])
         }
         answersBySession.get(answer.session_id)!.push(answer)
       }
 
-      // Build sessions with scores using the grouped answers
-      const sessionsWithScores: ChildPracticeSession[] = []
+      // Build sessions with scores
+      const sessions: ChildPracticeSession[] = []
 
       for (const session of sessionsData ?? []) {
         const answersData = answersBySession.get(session.id) ?? []
-
         const correctAnswers = answersData.filter((a) => a.is_correct).length
         const totalQuestions = session.total_questions ?? answersData.length
 
-        // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
         const subTopic = session.sub_topics as unknown as {
           id: string
           name: string
@@ -229,11 +249,9 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           }
         }
 
-        // Calculate duration from sum of time_spent_seconds in answers
-        // This accurately tracks actual time spent, even if student left and came back
         const durationSeconds = answersData.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
 
-        sessionsWithScores.push({
+        sessions.push({
           id: session.id,
           gradeLevelName: subTopic?.topics?.subjects?.grade_levels?.name ?? 'Unknown',
           subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
@@ -247,30 +265,26 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         })
       }
 
-      // Group sessions by child
-      const statsByChild = new Map<string, ChildPracticeSession[]>()
-
-      for (const session of sessionsWithScores) {
-        const originalSession = sessionsData?.find((s) => s.id === session.id)
-        const studentId = originalSession?.student_id
-        if (!studentId) continue
-
-        if (!statsByChild.has(studentId)) {
-          statsByChild.set(studentId, [])
-        }
-        statsByChild.get(studentId)!.push(session)
+      // Update or add this child's statistics
+      const existingIndex = childrenStatistics.value.findIndex((s) => s.childId === childId)
+      const childStats: ChildStatistics = {
+        childId,
+        childName: child.name,
+        sessions,
       }
 
-      // Build statistics array
-      childrenStatistics.value = childLinkStore.linkedChildren.map((child) => ({
-        childId: child.id,
-        childName: child.name,
-        sessions: statsByChild.get(child.id) ?? [],
-      }))
+      if (existingIndex >= 0) {
+        childrenStatistics.value[existingIndex] = childStats
+      } else {
+        childrenStatistics.value.push(childStats)
+      }
+
+      // Mark as loaded
+      loadedChildIds.value.add(childId)
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching children statistics:', err)
+      console.error('Error fetching child statistics:', err)
       const message = err instanceof Error ? err.message : 'Failed to fetch statistics'
       error.value = message
       return { error: message }
@@ -280,11 +294,55 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   }
 
   /**
-   * Get subscription status for a child
+   * Fetch practice sessions for all linked children
+   * @deprecated Use fetchChildStatistics for lazy loading instead
    */
-  async function getChildSubscriptionStatus(childId: string): Promise<ChildSubscriptionStatus> {
+  async function fetchChildrenStatistics(): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { tier: 'basic', canViewDetailedResults: false }
+      return { error: 'Not authenticated as parent' }
+    }
+
+    if (childLinkStore.linkedChildren.length === 0) {
+      childrenStatistics.value = []
+      return { error: null }
+    }
+
+    // Fetch all children's statistics in parallel
+    const results = await Promise.all(
+      childLinkStore.linkedChildren.map((child) => fetchChildStatistics(child.id)),
+    )
+
+    // Return first error if any
+    const errorResult = results.find((r) => r.error)
+    return { error: errorResult?.error ?? null }
+  }
+
+  /**
+   * Check if subscription status cache is stale for a specific child
+   */
+  function isSubscriptionCacheStale(childId: string): boolean {
+    const cached = subscriptionStatusCache.value.get(childId)
+    if (!cached) return true
+    return Date.now() - cached.lastFetched > SUBSCRIPTION_CACHE_TTL
+  }
+
+  /**
+   * Get subscription status for a child (with caching)
+   */
+  async function getChildSubscriptionStatus(
+    childId: string,
+    force = false,
+  ): Promise<ChildSubscriptionStatus> {
+    // Return cached status if still valid
+    if (!force && !isSubscriptionCacheStale(childId)) {
+      const cached = subscriptionStatusCache.value.get(childId)
+      if (cached) return cached.status
+    }
+
+    if (!authStore.user || !authStore.isParent) {
+      const status: ChildSubscriptionStatus = { tier: 'basic', canViewDetailedResults: false }
+      subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
+      return status
     }
 
     try {
@@ -295,24 +353,31 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         .eq('parent_id', authStore.user.id)
         .eq('student_id', childId)
         .eq('is_active', true)
-        .single()
+        .maybeSingle()
 
       if (subError || !subscriptionData) {
-        return { tier: 'basic', canViewDetailedResults: false }
+        const status: ChildSubscriptionStatus = { tier: 'basic', canViewDetailedResults: false }
+        subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
+        return status
       }
 
       const tier = subscriptionData.tier as SubscriptionTier
       const canViewDetailedResults = tier === 'pro' || tier === 'max'
 
-      return { tier, canViewDetailedResults }
+      const status: ChildSubscriptionStatus = { tier, canViewDetailedResults }
+      subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
+      return status
     } catch (err) {
       console.error('Error getting child subscription status:', err)
-      return { tier: 'basic', canViewDetailedResults: false }
+      const status: ChildSubscriptionStatus = { tier: 'basic', canViewDetailedResults: false }
+      subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
+      return status
     }
   }
 
   /**
    * Fetch full session details by child ID and session ID
+   * Uses parallel queries for better performance
    */
   async function getSessionById(
     childId: string,
@@ -332,7 +397,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       return { session: null, error: 'Child is not linked to your account' }
     }
 
-    // Check subscription status before fetching detailed results
+    // Check subscription status (cached) - runs in parallel with data fetches won't block
     const subscriptionStatus = await getChildSubscriptionStatus(childId)
     if (!subscriptionStatus.canViewDetailedResults) {
       return {
@@ -344,54 +409,56 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     }
 
     try {
-      // Fetch the session
+      // Fetch session and answers in parallel
       // Note: topic_id column now references sub_topics table
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('practice_sessions')
-        .select(
-          `
-          id,
-          student_id,
-          topic_id,
-          total_questions,
-          created_at,
-          completed_at,
-          ai_summary,
-          sub_topics (
+      const [sessionResult, answersResult] = await Promise.all([
+        supabase
+          .from('practice_sessions')
+          .select(
+            `
             id,
-            name,
-            topics (
+            student_id,
+            topic_id,
+            total_questions,
+            created_at,
+            completed_at,
+            ai_summary,
+            sub_topics (
               id,
               name,
-              subjects (
+              topics (
                 id,
                 name,
-                grade_levels (
+                subjects (
                   id,
-                  name
+                  name,
+                  grade_levels (
+                    id,
+                    name
+                  )
                 )
               )
             )
+          `,
           )
-        `,
-        )
-        .eq('id', sessionId)
-        .eq('student_id', childId)
-        .single()
+          .eq('id', sessionId)
+          .eq('student_id', childId)
+          .single(),
+        supabase
+          .from('practice_answers')
+          .select('*')
+          .eq('session_id', sessionId)
+          .order('answered_at', { ascending: true }),
+      ])
 
-      if (sessionError) throw sessionError
-      if (!sessionData) return { session: null, error: 'Session not found' }
+      if (sessionResult.error) throw sessionResult.error
+      if (!sessionResult.data) return { session: null, error: 'Session not found' }
+      if (answersResult.error) throw answersResult.error
 
-      // Fetch answers
-      const { data: answersData, error: answersError } = await supabase
-        .from('practice_answers')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('answered_at', { ascending: true })
+      const sessionData = sessionResult.data
+      const answersData = answersResult.data
 
-      if (answersError) throw answersError
-
-      // Fetch questions
+      // Fetch questions (depends on answer data)
       const questionIds = (answersData ?? []).map((a) => a.question_id).filter(Boolean) as string[]
 
       let questionsData: QuestionRow[] = []
@@ -893,6 +960,8 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     childrenStatistics.value = []
     isLoading.value = false
     error.value = null
+    loadedChildIds.value.clear()
+    subscriptionStatusCache.value.clear()
     resetStatisticsFilters()
   }
 
@@ -920,6 +989,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     linkedChildrenStatistics,
 
     // Actions
+    fetchChildStatistics,
     fetchChildrenStatistics,
     getChildStatistics,
     getFilteredSessions,

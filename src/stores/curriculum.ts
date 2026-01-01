@@ -42,6 +42,9 @@ export interface GradeLevel {
   subjects: Subject[]
 }
 
+// Cache TTL for curriculum data (rarely changes)
+const CURRICULUM_CACHE_TTL = 10 * 60 * 1000 // 10 minutes
+
 export const useCurriculumStore = defineStore('curriculum', () => {
   const gradeLevels = ref<GradeLevel[]>([])
   const isLoading = ref(false)
@@ -52,6 +55,9 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   const allTopics = ref<TopicRow[]>([])
   const allSubTopics = ref<SubTopicRow[]>([])
 
+  // Cache timestamp for staleness tracking
+  const lastFetched = ref<number | null>(null)
+
   // Admin CurriculumPage navigation state (persisted across navigation)
   const adminCurriculumNavigation = ref({
     selectedGradeLevelId: null as string | null,
@@ -60,51 +66,49 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   })
 
   /**
-   * Fetch all curriculum data (grade levels, subjects, topics, sub_topics)
+   * Check if curriculum cache is stale
    */
-  async function fetchCurriculum(): Promise<void> {
+  function isCacheStale(): boolean {
+    if (!lastFetched.value || gradeLevels.value.length === 0) return true
+    return Date.now() - lastFetched.value > CURRICULUM_CACHE_TTL
+  }
+
+  /**
+   * Fetch all curriculum data (grade levels, subjects, topics, sub_topics)
+   * Uses parallel queries for better performance
+   */
+  async function fetchCurriculum(force = false): Promise<void> {
+    // Skip if cache is still valid and not forced
+    if (!force && !isCacheStale()) {
+      return
+    }
+
     isLoading.value = true
     error.value = null
 
     try {
-      // Fetch all grade levels
-      const { data: gradeData, error: gradeError } = await supabase
-        .from('grade_levels')
-        .select('*')
-        .order('display_order', { ascending: true })
+      // Fetch all data in parallel for better performance
+      const [gradeResult, subjectResult, topicResult, subTopicResult, questionCountResult] =
+        await Promise.all([
+          supabase.from('grade_levels').select('*').order('display_order', { ascending: true }),
+          supabase.from('subjects').select('*').order('display_order', { ascending: true }),
+          supabase.from('topics').select('*').order('display_order', { ascending: true }),
+          supabase.from('sub_topics').select('*').order('display_order', { ascending: true }),
+          supabase.from('questions').select('topic_id'),
+        ])
 
-      if (gradeError) throw gradeError
+      // Check for errors
+      if (gradeResult.error) throw gradeResult.error
+      if (subjectResult.error) throw subjectResult.error
+      if (topicResult.error) throw topicResult.error
+      if (subTopicResult.error) throw subTopicResult.error
+      if (questionCountResult.error) throw questionCountResult.error
 
-      // Fetch all subjects
-      const { data: subjectData, error: subjectError } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('display_order', { ascending: true })
-
-      if (subjectError) throw subjectError
-
-      // Fetch all topics
-      const { data: topicData, error: topicError } = await supabase
-        .from('topics')
-        .select('*')
-        .order('display_order', { ascending: true })
-
-      if (topicError) throw topicError
-
-      // Fetch all sub_topics
-      const { data: subTopicData, error: subTopicError } = await supabase
-        .from('sub_topics')
-        .select('*')
-        .order('display_order', { ascending: true })
-
-      if (subTopicError) throw subTopicError
-
-      // Fetch question counts per subtopic
-      const { data: questionCounts, error: questionCountError } = await supabase
-        .from('questions')
-        .select('topic_id')
-
-      if (questionCountError) throw questionCountError
+      const gradeData = gradeResult.data
+      const subjectData = subjectResult.data
+      const topicData = topicResult.data
+      const subTopicData = subTopicResult.data
+      const questionCounts = questionCountResult.data
 
       // Build question count map
       const questionCountMap = new Map<string, number>()
@@ -183,6 +187,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       }
 
       gradeLevels.value = Array.from(gradeMap.values())
+      lastFetched.value = Date.now()
     } catch (err) {
       console.error('Error fetching curriculum:', err)
       error.value = err instanceof Error ? err.message : 'Failed to fetch curriculum'

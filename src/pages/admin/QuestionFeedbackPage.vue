@@ -55,9 +55,10 @@ const categoryConfig: Record<FeedbackCategory, { label: string; color: string; b
     other: { label: 'Other', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   }
 
-// Fetch feedbacks and questions on mount
+// Fetch feedbacks on mount (question text is already joined in the feedback query)
+// Full question data is fetched on-demand when preview/edit is needed
 onMounted(async () => {
-  await Promise.all([feedbackStore.fetchFeedbacks(), questionsStore.fetchQuestions()])
+  await feedbackStore.fetchFeedbacks()
 })
 
 // Filter feedbacks based on search
@@ -95,36 +96,62 @@ function openDeleteDialog(feedback: QuestionFeedback, event: Event) {
   showDeleteDialog.value = true
 }
 
-function openEditDialog(feedback: QuestionFeedback, event: Event) {
+const isLoadingQuestion = ref(false)
+
+async function openEditDialog(feedback: QuestionFeedback, event: Event) {
   event.stopPropagation()
-  const question = questionsStore.getQuestionById(feedback.questionId)
-  if (question) {
-    editingQuestion.value = question
-    showEditDialog.value = true
-  } else {
-    toast.error('Question not found', {
-      description: 'The question may have been deleted.',
-    })
+  isLoadingQuestion.value = true
+  try {
+    // Try cache first, then fetch on-demand
+    let question = questionsStore.getQuestionById(feedback.questionId)
+    if (!question) {
+      await questionsStore.fetchQuestionById(feedback.questionId)
+      question = questionsStore.getQuestionById(feedback.questionId)
+    }
+    if (question) {
+      editingQuestion.value = question
+      showEditDialog.value = true
+    } else {
+      toast.error('Question not found', {
+        description: 'The question may have been deleted.',
+      })
+    }
+  } finally {
+    isLoadingQuestion.value = false
   }
 }
 
 async function handleEditSave() {
+  // Save the question id before clearing state
+  const questionId = editingQuestion.value?.id
   showEditDialog.value = false
   editingQuestion.value = null
-  // Refresh questions list after edit
-  await questionsStore.fetchQuestions()
+  // Refresh only the edited question, not all questions
+  if (questionId) {
+    await questionsStore.fetchQuestionById(questionId)
+  }
 }
 
-function handleRowClick(feedback: QuestionFeedback) {
-  const question = questionsStore.getQuestionById(feedback.questionId)
-  if (question) {
-    previewQuestion.value = question
-    previewFeedback.value = feedback
-    showPreviewDialog.value = true
-  } else {
-    toast.error('Question not found', {
-      description: 'The question may have been deleted.',
-    })
+async function handleRowClick(feedback: QuestionFeedback) {
+  isLoadingQuestion.value = true
+  try {
+    // Try cache first, then fetch on-demand
+    let question = questionsStore.getQuestionById(feedback.questionId)
+    if (!question) {
+      await questionsStore.fetchQuestionById(feedback.questionId)
+      question = questionsStore.getQuestionById(feedback.questionId)
+    }
+    if (question) {
+      previewQuestion.value = question
+      previewFeedback.value = feedback
+      showPreviewDialog.value = true
+    } else {
+      toast.error('Question not found', {
+        description: 'The question may have been deleted.',
+      })
+    }
+  } finally {
+    isLoadingQuestion.value = false
   }
 }
 

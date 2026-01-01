@@ -12,6 +12,9 @@ type SubscriptionTier = Database['public']['Enums']['subscription_tier']
 
 const FALLBACK_SESSIONS_PER_DAY = 3 // Fallback if database fetch fails
 
+// Cache TTL for subscription status (check frequently enough to catch changes)
+const SUBSCRIPTION_CACHE_TTL = 2 * 60 * 1000 // 2 minutes
+
 export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
 
 export interface PracticeAnswer {
@@ -85,6 +88,15 @@ export const usePracticeStore = defineStore('practice', () => {
   const sessionHistory = ref<PracticeSession[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+
+  // Subscription status cache
+  const subscriptionStatusCache = ref<{
+    status: StudentSubscriptionStatus | null
+    lastFetched: number | null
+  }>({
+    status: null,
+    lastFetched: null,
+  })
 
   // History page filter state (persisted across navigation)
   const historyFilters = ref({
@@ -281,73 +293,95 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
-   * Get student's subscription status - checks if linked to parent and their subscription tier
+   * Check if subscription status cache is stale
    */
-  async function getStudentSubscriptionStatus(): Promise<StudentSubscriptionStatus> {
+  function isSubscriptionCacheStale(): boolean {
+    if (!subscriptionStatusCache.value.status || !subscriptionStatusCache.value.lastFetched) {
+      return true
+    }
+    return Date.now() - subscriptionStatusCache.value.lastFetched > SUBSCRIPTION_CACHE_TTL
+  }
+
+  /**
+   * Get student's subscription status - checks if linked to parent and their subscription tier
+   * Uses cache to avoid repeated database calls
+   */
+  async function getStudentSubscriptionStatus(force = false): Promise<StudentSubscriptionStatus> {
+    // Return cached status if still valid
+    if (!force && !isSubscriptionCacheStale() && subscriptionStatusCache.value.status) {
+      return subscriptionStatusCache.value.status
+    }
+
     if (!authStore.user || authStore.user.userType !== 'student') {
       const basicSessionsPerDay = await getBasicTierSessionsPerDay()
-      return {
+      const status: StudentSubscriptionStatus = {
         isLinkedToParent: false,
         tier: 'basic',
         sessionsPerDay: basicSessionsPerDay,
         canViewDetailedResults: false,
       }
+      subscriptionStatusCache.value = { status, lastFetched: Date.now() }
+      return status
     }
 
     try {
-      // Check if student is linked to any parent
-      const { data: linksData, error: linksError } = await supabase
-        .from('parent_student_links')
-        .select('parent_id')
-        .eq('student_id', authStore.user.id)
-        .limit(1)
+      // Fetch parent link and subscription data in parallel
+      const [linksResult, subscriptionResult] = await Promise.all([
+        supabase
+          .from('parent_student_links')
+          .select('parent_id')
+          .eq('student_id', authStore.user.id)
+          .limit(1),
+        supabase
+          .from('child_subscriptions')
+          .select('tier')
+          .eq('student_id', authStore.user.id)
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
 
-      if (linksError) {
-        console.error('Error checking parent links:', linksError)
+      if (linksResult.error) {
+        console.error('Error checking parent links:', linksResult.error)
         const basicSessionsPerDay = await getBasicTierSessionsPerDay()
-        return {
+        const status: StudentSubscriptionStatus = {
           isLinkedToParent: false,
           tier: 'basic',
           sessionsPerDay: basicSessionsPerDay,
           canViewDetailedResults: false,
         }
+        subscriptionStatusCache.value = { status, lastFetched: Date.now() }
+        return status
       }
 
-      const isLinkedToParent = (linksData?.length ?? 0) > 0
+      const isLinkedToParent = (linksResult.data?.length ?? 0) > 0
 
       if (!isLinkedToParent) {
-        // Not linked to any parent - use basic tier limits from database
         const basicSessionsPerDay = await getBasicTierSessionsPerDay()
-        return {
+        const status: StudentSubscriptionStatus = {
           isLinkedToParent: false,
           tier: 'basic',
           sessionsPerDay: basicSessionsPerDay,
           canViewDetailedResults: false,
         }
+        subscriptionStatusCache.value = { status, lastFetched: Date.now() }
+        return status
       }
 
-      // Get the subscription for this student (from any linked parent)
-      const { data: subscriptionData, error: subError } = await supabase
-        .from('child_subscriptions')
-        .select('tier')
-        .eq('student_id', authStore.user.id)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (subError || !subscriptionData) {
-        // Linked but no active subscription - treat as basic
+      if (subscriptionResult.error || !subscriptionResult.data) {
         const basicSessionsPerDay = await getBasicTierSessionsPerDay()
-        return {
+        const status: StudentSubscriptionStatus = {
           isLinkedToParent: true,
           tier: 'basic',
           sessionsPerDay: basicSessionsPerDay,
           canViewDetailedResults: false,
         }
+        subscriptionStatusCache.value = { status, lastFetched: Date.now() }
+        return status
       }
 
-      const tier = subscriptionData.tier as SubscriptionTier
+      const tier = subscriptionResult.data.tier as SubscriptionTier
 
       // Fetch sessions_per_day from subscription_plans
       const { data: planData } = await supabase
@@ -357,25 +391,27 @@ export const usePracticeStore = defineStore('practice', () => {
         .single()
 
       const sessionsPerDay = planData?.sessions_per_day ?? FALLBACK_SESSIONS_PER_DAY
-
-      // Pro and Max tiers can view detailed session results
       const canViewDetailedResults = tier === 'pro' || tier === 'max'
 
-      return {
+      const status: StudentSubscriptionStatus = {
         isLinkedToParent: true,
         tier,
         sessionsPerDay,
         canViewDetailedResults,
       }
+      subscriptionStatusCache.value = { status, lastFetched: Date.now() }
+      return status
     } catch (err) {
       console.error('Error getting subscription status:', err)
       const basicSessionsPerDay = await getBasicTierSessionsPerDay()
-      return {
+      const status: StudentSubscriptionStatus = {
         isLinkedToParent: false,
         tier: 'basic',
         sessionsPerDay: basicSessionsPerDay,
         canViewDetailedResults: false,
       }
+      subscriptionStatusCache.value = { status, lastFetched: Date.now() }
+      return status
     }
   }
 
@@ -1009,44 +1045,36 @@ export const usePracticeStore = defineStore('practice', () => {
 
   /**
    * Get a specific session by ID with full details
+   * Uses parallel queries for better performance
    */
   async function getSessionById(
     sessionId: string,
   ): Promise<{ session: PracticeSession | null; error: string | null }> {
-    // Check if already in history
-    const cachedSession = sessionHistory.value.find((s) => s.id === sessionId)
-
     try {
-      // Ensure curriculum is loaded
+      // Ensure curriculum is loaded (uses cache)
       if (curriculumStore.gradeLevels.length === 0) {
         await curriculumStore.fetchCurriculum()
       }
 
-      // Fetch session from database
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('practice_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single()
+      // Fetch session and answers in parallel
+      const [sessionResult, answersResult] = await Promise.all([
+        supabase.from('practice_sessions').select('*').eq('id', sessionId).single(),
+        supabase
+          .from('practice_answers')
+          .select('*')
+          .eq('session_id', sessionId)
+          .order('answered_at', { ascending: true }),
+      ])
 
-      if (sessionError) {
-        return { session: null, error: sessionError.message }
+      if (sessionResult.error) {
+        return { session: null, error: sessionResult.error.message }
+      }
+      if (answersResult.error) {
+        return { session: null, error: answersResult.error.message }
       }
 
-      const session = rowToSession(sessionData)
-
-      // Fetch answers for this session
-      const { data: answersData, error: answersError } = await supabase
-        .from('practice_answers')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('answered_at', { ascending: true })
-
-      if (answersError) {
-        return { session: null, error: answersError.message }
-      }
-
-      session.answers = (answersData ?? []).map(rowToAnswer)
+      const session = rowToSession(sessionResult.data)
+      session.answers = (answersResult.data ?? []).map(rowToAnswer)
 
       // Get all question IDs from answers (including null for deleted questions)
       const questionIds = session.answers.map((a) => a.questionId).filter(Boolean) as string[]
@@ -1313,6 +1341,7 @@ export const usePracticeStore = defineStore('practice', () => {
     sessionHistory.value = []
     isLoading.value = false
     error.value = null
+    subscriptionStatusCache.value = { status: null, lastFetched: null }
     resetHistoryFilters()
     historyPagination.value = { pageIndex: 0, pageSize: 10 }
     resetPracticeNavigation()

@@ -40,6 +40,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
   /**
    * Fetch linked children for current parent
+   * Uses a single query with joins for better performance
    */
   async function fetchLinkedChildren(): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
@@ -50,10 +51,29 @@ export const useChildLinkStore = defineStore('childLink', () => {
     error.value = null
 
     try {
-      // First, fetch the links
+      // Single query with joins - fetches links, profiles, and student profiles together
+      // student_profiles is nested within profiles since student_profiles.id references profiles.id
       const { data: linksData, error: linksError } = await supabase
         .from('parent_student_links')
-        .select('id, student_id, linked_at')
+        .select(
+          `
+          id,
+          student_id,
+          linked_at,
+          profiles!parent_student_links_student_id_fkey (
+            id,
+            name,
+            email,
+            avatar_path,
+            student_profiles (
+              grade_level_id,
+              grade_levels (
+                name
+              )
+            )
+          )
+        `,
+        )
         .eq('parent_id', authStore.user.id)
 
       if (linksError) throw linksError
@@ -63,45 +83,25 @@ export const useChildLinkStore = defineStore('childLink', () => {
         return { error: null }
       }
 
-      // Get student IDs
-      const studentIds = linksData.map((link) => link.student_id)
-
-      // Fetch profiles for all linked students
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name, email, avatar_path')
-        .in('id', studentIds)
-
-      if (profilesError) throw profilesError
-
-      // Fetch student profiles with grade levels
-      const { data: studentProfilesData, error: studentProfilesError } = await supabase
-        .from('student_profiles')
-        .select('id, grade_level_id, grade_levels (name)')
-        .in('id', studentIds)
-
-      if (studentProfilesError) throw studentProfilesError
-
-      // Create maps for quick lookup
-      const profilesMap = new Map(profilesData?.map((p) => [p.id, p]) ?? [])
-      const studentProfilesMap = new Map(studentProfilesData?.map((sp) => [sp.id, sp]) ?? [])
-
+      // Map the joined data to LinkedChild format
       linkedChildren.value = linksData.map((link) => {
-        const profile = profilesMap.get(link.student_id)
-        const studentProfile = studentProfilesMap.get(link.student_id) as
-          | {
-              id: string
-              grade_level_id: string | null
-              grade_levels: { name: string } | null
-            }
-          | undefined
+        const profile = link.profiles as {
+          id: string
+          name: string
+          email: string
+          avatar_path: string | null
+          student_profiles: {
+            grade_level_id: string | null
+            grade_levels: { name: string } | null
+          } | null
+        } | null
 
         return {
           id: link.student_id,
           name: profile?.name ?? 'Unknown',
           email: profile?.email ?? '',
           avatarPath: profile?.avatar_path ?? null,
-          gradeLevelName: studentProfile?.grade_levels?.name ?? null,
+          gradeLevelName: profile?.student_profiles?.grade_levels?.name ?? null,
           linkedAt: link.linked_at ?? new Date().toISOString(),
         }
       })
