@@ -5,6 +5,12 @@ import { supabase } from '@/lib/supabaseClient'
 // Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
 const STATS_CACHE_TTL = 5 * 60 * 1000
 
+export interface MonthlyRevenue {
+  month: string // YYYY-MM format
+  label: string // e.g., "Jan 2026"
+  amount: number // in currency units (not cents)
+}
+
 export interface DashboardStats {
   revenue: {
     total: number
@@ -12,6 +18,7 @@ export interface DashboardStats {
     previousMonth: number
     change: string
     currency: string
+    monthly: MonthlyRevenue[] // Last 12 months
   }
   users: {
     total: number
@@ -31,6 +38,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
       previousMonth: 0,
       change: '0%',
       currency: 'MYR',
+      monthly: [],
     },
     users: {
       total: 0,
@@ -77,6 +85,13 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
     }
   }
 
+  // Get range for last 12 months (including current month)
+  function getLast12MonthsStart(): string {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1)
+    return start.toISOString()
+  }
+
   // Fetch all dashboard stats (with cache check)
   async function fetchStats(force = false): Promise<{ error: string | null }> {
     // Skip if cache is still valid and not forced
@@ -91,6 +106,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
       const today = getTodayString()
       const currentMonthStart = getCurrentMonthStart()
       const previousMonth = getPreviousMonthRange()
+      const last12MonthsStart = getLast12MonthsStart()
 
       // Fetch all stats in parallel
       const [
@@ -100,6 +116,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         totalRevenueResult,
         currentMonthRevenueResult,
         previousMonthRevenueResult,
+        monthlyRevenueResult,
       ] = await Promise.all([
         // Total users by type
         supabase.from('profiles').select('user_type'),
@@ -134,6 +151,14 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           .eq('status', 'succeeded')
           .gte('created_at', previousMonth.start)
           .lte('created_at', previousMonth.end),
+
+        // Monthly revenue for last 12 months
+        supabase
+          .from('payment_history')
+          .select('amount_cents, created_at')
+          .eq('status', 'succeeded')
+          .gte('created_at', last12MonthsStart)
+          .order('created_at', { ascending: true }),
       ])
 
       // Check for errors
@@ -195,6 +220,41 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         const change = ((current - previous) / previous) * 100
         const sign = change >= 0 ? '+' : ''
         stats.value.revenue.change = `${sign}${change.toFixed(1)}%`
+      }
+
+      // Process monthly revenue for chart
+      if (monthlyRevenueResult.data) {
+        // Create a map of all 12 months with 0 as default
+        const now = new Date()
+        const monthlyMap = new Map<string, number>()
+
+        // Initialize all 12 months with 0
+        for (let i = 11; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+          monthlyMap.set(key, 0)
+        }
+
+        // Aggregate payments by month
+        for (const payment of monthlyRevenueResult.data) {
+          if (payment.created_at) {
+            const date = new Date(payment.created_at)
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+            const existing = monthlyMap.get(key) ?? 0
+            monthlyMap.set(key, existing + (payment.amount_cents ?? 0))
+          }
+        }
+
+        // Convert to array with labels
+        stats.value.revenue.monthly = Array.from(monthlyMap.entries()).map(([month, cents]) => {
+          const [year, monthNum] = month.split('-')
+          const date = new Date(Number(year), Number(monthNum) - 1, 1)
+          return {
+            month,
+            label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            amount: cents / 100,
+          }
+        })
       }
 
       // Update cache timestamp

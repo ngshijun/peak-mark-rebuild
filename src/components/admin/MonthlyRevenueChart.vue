@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useChildStatisticsStore, type DailySessionCount } from '@/stores/child-statistics'
+import { useAdminDashboardStore, type MonthlyRevenue } from '@/stores/adminDashboard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ChartContainer,
@@ -11,22 +11,18 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { VisAxis, VisGroupedBar, VisXYContainer } from '@unovis/vue'
-import { BarChart3 } from 'lucide-vue-next'
+import { TrendingUp } from 'lucide-vue-next'
 
-const props = defineProps<{
-  childId: string
-}>()
+const dashboardStore = useAdminDashboardStore()
 
-const childStatisticsStore = useChildStatisticsStore()
-
-// Get daily session counts for the last 30 days
-const chartData = computed<DailySessionCount[]>(() => {
-  return childStatisticsStore.getDailySessionCounts(props.childId, 30)
+// Get monthly revenue data
+const chartData = computed<MonthlyRevenue[]>(() => {
+  return dashboardStore.stats.revenue.monthly
 })
 
 const chartConfig = {
-  count: {
-    label: 'Sessions',
+  amount: {
+    label: 'Revenue',
     color: 'var(--chart-1)',
   },
 } satisfies ChartConfig
@@ -36,10 +32,10 @@ const chartConfig = {
   <Card class="flex h-full flex-col">
     <CardHeader class="space-y-0 pb-2">
       <div class="flex flex-row items-center justify-between">
-        <CardTitle class="text-sm font-medium">Practice Sessions</CardTitle>
-        <BarChart3 class="size-4 text-muted-foreground" />
+        <CardTitle class="text-sm font-medium">Monthly Revenue</CardTitle>
+        <TrendingUp class="size-4 text-muted-foreground" />
       </div>
-      <CardDescription>Daily sessions over the last 30 days</CardDescription>
+      <CardDescription>Last 12 months</CardDescription>
     </CardHeader>
     <CardContent class="flex-1">
       <ChartContainer :config="chartConfig" class="h-full max-h-[280px] w-full" cursor>
@@ -49,36 +45,29 @@ const chartConfig = {
           :y-domain="[0, undefined]"
         >
           <VisGroupedBar
-            :x="(d: DailySessionCount) => new Date(d.date)"
-            :y="(d: DailySessionCount) => d.count"
-            :color="chartConfig.count.color"
-            :bar-padding="0.1"
+            :x="(_d: MonthlyRevenue, i: number) => i"
+            :y="(d: MonthlyRevenue) => d.amount"
+            :color="chartConfig.amount.color"
+            :bar-padding="0.2"
             :rounded-corners="2"
           />
           <VisAxis
             type="x"
-            :x="(d: DailySessionCount) => new Date(d.date)"
+            :x="(_d: MonthlyRevenue, i: number) => i"
             :tick-line="false"
             :domain-line="false"
             :grid-line="false"
-            :tick-format="
-              (d: number) => {
-                const date = new Date(d)
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-              }
-            "
+            :num-ticks="12"
+            :tick-format="(i: number) => chartData[i]?.label?.split(' ')[0] ?? ''"
           />
           <VisAxis type="y" :num-ticks="3" :tick-line="false" :domain-line="false" />
           <ChartTooltip />
           <ChartCrosshair
             :template="
               componentToString(chartConfig, ChartTooltipContent, {
-                labelFormatter(d: number | Date) {
-                  return new Date(d).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
+                labelFormatter(i: number | Date) {
+                  const index = typeof i === 'number' ? Math.round(i) : 0
+                  return chartData[index]?.label ?? ''
                 },
               })
             "
