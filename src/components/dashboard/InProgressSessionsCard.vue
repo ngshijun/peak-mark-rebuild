@@ -28,15 +28,13 @@ const inProgressData = computed<InProgressRow[]>(() => {
   return practiceStore.studentHistory
     .filter((session) => !session.completedAt)
     .map((session) => {
-      // Use currentQuestionIndex and correctCount from session data
-      // since answers array is not populated in history fetch
       return {
         id: session.id,
         createdAt: session.createdAt ?? new Date().toISOString(),
         subjectName: session.subjectName,
         topicName: session.topicName,
         subTopicName: session.subTopicName,
-        answeredQuestions: session.currentQuestionIndex,
+        answeredQuestions: session.answerCount,
         totalQuestions: session.totalQuestions,
         correctAnswers: session.correctCount,
       }

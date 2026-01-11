@@ -57,6 +57,7 @@ export interface PracticeSession {
   totalQuestions: number
   currentQuestionIndex: number
   correctCount: number
+  answerCount: number // Actual number of answered questions
   totalTimeSeconds: number
   xpEarned: number | null
   coinsEarned: number | null
@@ -283,8 +284,9 @@ export const usePracticeStore = defineStore('practice', () => {
   /**
    * Convert database row to PracticeSession (without questions/answers)
    * Note: topic_id column in DB now references sub_topics table
+   * @param answerCount - Optional answer count from nested query, defaults to 0
    */
-  function rowToSession(row: PracticeSessionRow): PracticeSession {
+  function rowToSession(row: PracticeSessionRow, answerCount: number = 0): PracticeSession {
     const names = getCurriculumNames(row.topic_id, row.grade_level_id, row.subject_id)
     return {
       id: row.id,
@@ -299,6 +301,7 @@ export const usePracticeStore = defineStore('practice', () => {
       totalQuestions: row.total_questions,
       currentQuestionIndex: row.current_question_index ?? 0,
       correctCount: row.correct_count ?? 0,
+      answerCount,
       totalTimeSeconds: row.total_time_seconds ?? 0,
       xpEarned: row.xp_earned,
       coinsEarned: row.coins_earned,
@@ -566,9 +569,10 @@ export const usePracticeStore = defineStore('practice', () => {
         await curriculumStore.fetchCurriculum()
       }
 
+      // Include answer count using nested query
       const { data, error: fetchError } = await supabase
         .from('practice_sessions')
-        .select('*')
+        .select('*, practice_answers(count)')
         .eq('student_id', authStore.user.id)
         .order('created_at', { ascending: false })
 
@@ -577,7 +581,11 @@ export const usePracticeStore = defineStore('practice', () => {
         return { error: fetchError.message }
       }
 
-      sessionHistory.value = (data ?? []).map(rowToSession)
+      sessionHistory.value = (data ?? []).map((row) => {
+        // Extract answer count from nested query result
+        const answerCount = (row.practice_answers as { count: number }[])?.[0]?.count ?? 0
+        return rowToSession(row, answerCount)
+      })
       return { error: null }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch session history'
@@ -730,6 +738,7 @@ export const usePracticeStore = defineStore('practice', () => {
         totalQuestions: selectedQuestions.length,
         currentQuestionIndex: 0,
         correctCount: 0,
+        answerCount: 0,
         totalTimeSeconds: 0,
         xpEarned: null,
         coinsEarned: null,
@@ -819,7 +828,8 @@ export const usePracticeStore = defineStore('practice', () => {
       const answer = rowToAnswer(answerData)
       currentSession.value.answers.push(answer)
 
-      // Update local correct count for UI (DB is updated by trigger automatically)
+      // Update local counts for UI
+      currentSession.value.answerCount++
       if (isCorrect) {
         currentSession.value.correctCount++
       }

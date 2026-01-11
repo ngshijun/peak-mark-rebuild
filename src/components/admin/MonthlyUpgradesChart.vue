@@ -54,7 +54,11 @@ const chartConfig = {
         >
           <VisStackedBar
             :x="(_d: MonthlyUpgrades, i: number) => i"
-            :y="[(d: MonthlyUpgrades) => d.plus, (d: MonthlyUpgrades) => d.pro, (d: MonthlyUpgrades) => d.max]"
+            :y="[
+              (d: MonthlyUpgrades) => d.plus,
+              (d: MonthlyUpgrades) => d.pro,
+              (d: MonthlyUpgrades) => d.max,
+            ]"
             :color="[chartConfig.plus.color, chartConfig.pro.color, chartConfig.max.color]"
             :bar-padding="0.2"
             :rounded-corners="2"
