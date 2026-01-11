@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
     if (cancelImmediately) {
       // Cancel immediately - subscription is deleted in Stripe
       await stripe.subscriptions.cancel(subscription.stripe_subscription_id)
-      // Sync deletion to database (downgrades to basic)
+      // Sync deletion to database (downgrades to core)
       await syncSubscriptionDeletion(subscription.stripe_subscription_id, supabaseAdmin)
     } else {
       // Cancel at period end - subscription remains active until period ends

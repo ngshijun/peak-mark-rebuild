@@ -1414,7 +1414,7 @@ export type Database = {
       mood_type: 'sad' | 'neutral' | 'happy'
       pet_rarity: 'common' | 'rare' | 'epic' | 'legendary'
       question_type: 'mcq' | 'short_answer' | 'mrq'
-      subscription_tier: 'basic' | 'plus' | 'pro' | 'max'
+      subscription_tier: 'core' | 'plus' | 'pro' | 'max'
       user_type: 'admin' | 'student' | 'parent'
     }
     CompositeTypes: {
@@ -1558,7 +1558,7 @@ export const Constants = {
       mood_type: ['sad', 'neutral', 'happy'],
       pet_rarity: ['common', 'rare', 'epic', 'legendary'],
       question_type: ['mcq', 'short_answer', 'mrq'],
-      subscription_tier: ['basic', 'plus', 'pro', 'max'],
+      subscription_tier: ['core', 'plus', 'pro', 'max'],
       user_type: ['admin', 'student', 'parent'],
     },
   },

@@ -53,7 +53,7 @@ async function syncWithIds(
     .eq('stripe_price_id', priceId)
     .single()
 
-  const tier = plan?.id || 'basic'
+  const tier = plan?.id || 'core'
   const isActive = ['active', 'trialing'].includes(subscription.status)
 
   // Convert Unix timestamps to ISO strings
@@ -130,11 +130,11 @@ export async function syncSubscriptionDeletion(
   const { error } = await supabaseAdmin
     .from('child_subscriptions')
     .update({
-      tier: 'basic',
+      tier: 'core',
       stripe_subscription_id: null,
       stripe_price_id: null,
       stripe_status: 'canceled',
-      is_active: true, // Keep active on basic tier
+      is_active: true, // Keep active on core tier
       cancel_at_period_end: false,
       current_period_start: null,
       current_period_end: null,
@@ -152,6 +152,6 @@ export async function syncSubscriptionDeletion(
     return { success: false, error: error.message }
   }
 
-  console.log(`Subscription ${subscriptionId} deleted, downgraded to basic`)
+  console.log(`Subscription ${subscriptionId} deleted, downgraded to core`)
   return { success: true }
 }

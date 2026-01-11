@@ -130,7 +130,7 @@ async function handlePlanChange(tier: SubscriptionTier) {
   if (!selectedChildId.value) return
 
   // For basic tier, directly show cancel dialog (handled separately)
-  if (tier === 'basic') {
+  if (tier === 'core') {
     pendingUpgradeTier.value = tier
     upgradeDialogOpen.value = true
     return
@@ -171,7 +171,7 @@ async function confirmPlanChange() {
   upgradeDialogOpen.value = false
 
   // For basic tier, cancel the subscription
-  if (tier === 'basic') {
+  if (tier === 'core') {
     await handleCancel()
     resetUpgradeState()
     return
@@ -287,9 +287,9 @@ function getButtonText(planTier: SubscriptionTier, currentTier: SubscriptionTier
     return 'Scheduled'
   }
 
-  if (planTier === 'basic') return 'Downgrade'
+  if (planTier === 'core') return 'Downgrade'
 
-  const tierOrder: SubscriptionTier[] = ['basic', 'plus', 'pro', 'max']
+  const tierOrder: SubscriptionTier[] = ['core', 'plus', 'pro', 'max']
   const planIndex = tierOrder.indexOf(planTier)
   const currentIndex = tierOrder.indexOf(currentTier)
 
@@ -418,7 +418,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                     </Badge>
                   </template>
                   <template v-else>
-                    <Badge v-if="currentSubscription.tier !== 'basic'" variant="default">
+                    <Badge v-if="currentSubscription.tier !== 'core'" variant="default">
                       Active
                     </Badge>
                     <Badge v-else variant="secondary">Free Tier</Badge>
@@ -470,7 +470,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
           </CardContent>
           <CardFooter
             v-if="
-              currentSubscription.tier !== 'basic' && !currentSubscription.stripe?.cancelAtPeriodEnd
+              currentSubscription.tier !== 'core' && !currentSubscription.stripe?.cancelAtPeriodEnd
             "
           >
             <AlertDialog>
@@ -584,7 +584,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {{
-                  getButtonText(pendingUpgradeTier ?? 'basic', currentSubscription?.tier ?? 'basic')
+                  getButtonText(pendingUpgradeTier ?? 'core', currentSubscription?.tier ?? 'core')
                 }}
                 to
                 {{ subscriptionStore.plans.find((p) => p.id === pendingUpgradeTier)?.name }}
@@ -657,10 +657,10 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                 </template>
 
                 <!-- Downgrade to basic -->
-                <template v-else-if="pendingUpgradeTier === 'basic'">
+                <template v-else-if="pendingUpgradeTier === 'core'">
                   {{ selectedChild?.name }} will be downgraded to the free Basic plan. Their
                   sessions will be limited to
-                  {{ subscriptionStore.plans.find((p) => p.id === 'basic')?.sessionsPerDay }} per
+                  {{ subscriptionStore.plans.find((p) => p.id === 'core')?.sessionsPerDay }} per
                   day.
                 </template>
 

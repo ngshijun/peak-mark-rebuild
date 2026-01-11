@@ -214,7 +214,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         // Default to basic subscription
         return {
           childId,
-          tier: 'basic' as SubscriptionTier,
+          tier: 'core' as SubscriptionTier,
           startDate: new Date().toISOString(),
           isActive: true,
         }
@@ -240,7 +240,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     // Return default basic subscription if not found
     return {
       childId,
-      tier: 'basic',
+      tier: 'core',
       startDate: new Date().toISOString(),
       isActive: true,
     }
@@ -271,7 +271,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { url: null, error: 'Not authenticated as parent' }
     }
 
-    if (tier === 'basic') {
+    if (tier === 'core') {
       return { url: null, error: 'Cannot checkout for basic tier' }
     }
 
@@ -417,7 +417,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     scheduledDate?: string
     message?: string
   }> {
-    if (newTier === 'basic') {
+    if (newTier === 'core') {
       // Downgrade to basic = cancel at period end (user keeps access until period ends)
       const result = await cancelStripeSubscription(childId, false)
       return { ...result, type: 'scheduled' }
@@ -515,7 +515,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
     try {
       const nextBillingDate =
-        tier !== 'basic' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null
+        tier !== 'core' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null
 
       // Check if subscription exists
       const { data: existing } = await supabase
@@ -583,7 +583,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   async function cancelSubscription(
     childId: string,
   ): Promise<{ success: boolean; error: string | null }> {
-    return upgradePlan(childId, 'basic')
+    return upgradePlan(childId, 'core')
   }
 
   // Get total monthly cost across all children

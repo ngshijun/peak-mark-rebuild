@@ -6,22 +6,26 @@ const features = [
   {
     icon: BookOpen,
     title: 'Interactive Practice',
-    description: 'Engage with MCQ and MRQ questions across various subjects. Track your progress through each topic and sub-topic.',
+    description:
+      'Engage with MCQ and MRQ questions across various subjects. Track your progress through each topic and sub-topic.',
   },
   {
     icon: BarChart3,
     title: 'Progress Tracking',
-    description: 'View detailed statistics, session history, and performance analytics. Identify strengths and areas for improvement.',
+    description:
+      'View detailed statistics, session history, and performance analytics. Identify strengths and areas for improvement.',
   },
   {
     icon: Trophy,
     title: 'Gamification & Rewards',
-    description: 'Earn XP, coins, and food. Collect and evolve cute pets through the gacha system. Compete on the leaderboard.',
+    description:
+      'Earn XP, coins, and food. Collect and evolve cute pets through the gacha system. Compete on the leaderboard.',
   },
   {
     icon: Users,
     title: 'Parent Dashboard',
-    description: 'Parents can link with children, monitor their progress, view detailed statistics, and manage subscriptions.',
+    description:
+      'Parents can link with children, monitor their progress, view detailed statistics, and manage subscriptions.',
   },
 ]
 </script>

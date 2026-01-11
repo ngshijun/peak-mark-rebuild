@@ -6,10 +6,15 @@ import { Check } from 'lucide-vue-next'
 
 const plans = [
   {
-    name: 'Basic',
+    name: 'Core',
     price: 'Free',
     description: 'Perfect for getting started',
-    features: ['3 practice sessions per day', 'Basic progress tracking', 'Pet collection', 'Leaderboard access'],
+    features: [
+      '3 practice sessions per day',
+      'Basic progress tracking',
+      'Pet collection',
+      'Leaderboard access',
+    ],
     popular: false,
   },
   {
@@ -17,7 +22,12 @@ const plans = [
     price: 'RM 9.90',
     period: '/month',
     description: 'For dedicated learners',
-    features: ['5 practice sessions per day', 'Basic progress tracking', 'Pet collection', 'Leaderboard access'],
+    features: [
+      '5 practice sessions per day',
+      'Basic progress tracking',
+      'Pet collection',
+      'Leaderboard access',
+    ],
     popular: false,
   },
   {
@@ -25,7 +35,12 @@ const plans = [
     price: 'RM 19.90',
     period: '/month',
     description: 'For serious students',
-    features: ['10 practice sessions per day', 'Detailed analytics', 'Pet collection', 'Priority support'],
+    features: [
+      '10 practice sessions per day',
+      'Detailed analytics',
+      'Pet collection',
+      'Priority support',
+    ],
     popular: true,
   },
   {
@@ -53,10 +68,7 @@ const plans = [
         <Card
           v-for="plan in plans"
           :key="plan.name"
-          :class="[
-            'relative flex flex-col',
-            plan.popular ? 'border-primary shadow-lg' : '',
-          ]"
+          :class="['relative flex flex-col', plan.popular ? 'border-primary shadow-lg' : '']"
         >
           <Badge v-if="plan.popular" class="absolute -top-3 left-1/2 -translate-x-1/2">
             Most Popular

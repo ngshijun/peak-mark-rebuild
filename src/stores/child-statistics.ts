@@ -340,7 +340,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     }
 
     if (!authStore.user || !authStore.isParent) {
-      const status: ChildSubscriptionStatus = { tier: 'basic', canViewDetailedResults: false }
+      const status: ChildSubscriptionStatus = { tier: 'core', canViewDetailedResults: false }
       subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
       return status
     }
@@ -356,7 +356,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         .maybeSingle()
 
       if (subError || !subscriptionData) {
-        const status: ChildSubscriptionStatus = { tier: 'basic', canViewDetailedResults: false }
+        const status: ChildSubscriptionStatus = { tier: 'core', canViewDetailedResults: false }
         subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
         return status
       }
@@ -369,7 +369,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       return status
     } catch (err) {
       console.error('Error getting child subscription status:', err)
-      const status: ChildSubscriptionStatus = { tier: 'basic', canViewDetailedResults: false }
+      const status: ChildSubscriptionStatus = { tier: 'core', canViewDetailedResults: false }
       subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
       return status
     }

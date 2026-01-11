@@ -354,7 +354,7 @@ export const usePracticeStore = defineStore('practice', () => {
    */
   async function getBasicTierSessionsPerDay(): Promise<number> {
     await fetchSubscriptionPlans()
-    return getSessionsPerDayForTier('basic')
+    return getSessionsPerDayForTier('core')
   }
 
   /**
@@ -381,7 +381,7 @@ export const usePracticeStore = defineStore('practice', () => {
       const basicSessionsPerDay = await getBasicTierSessionsPerDay()
       const status: StudentSubscriptionStatus = {
         isLinkedToParent: false,
-        tier: 'basic',
+        tier: 'core',
         sessionsPerDay: basicSessionsPerDay,
         canViewDetailedResults: false,
       }
@@ -416,8 +416,8 @@ export const usePracticeStore = defineStore('practice', () => {
         console.error('Error checking parent links:', linksResult.error)
         const status: StudentSubscriptionStatus = {
           isLinkedToParent: false,
-          tier: 'basic',
-          sessionsPerDay: getSessionsPerDayForTier('basic'),
+          tier: 'core',
+          sessionsPerDay: getSessionsPerDayForTier('core'),
           canViewDetailedResults: false,
         }
         subscriptionStatusCache.value = { status, lastFetched: Date.now() }
@@ -429,8 +429,8 @@ export const usePracticeStore = defineStore('practice', () => {
       if (!isLinkedToParent) {
         const status: StudentSubscriptionStatus = {
           isLinkedToParent: false,
-          tier: 'basic',
-          sessionsPerDay: getSessionsPerDayForTier('basic'),
+          tier: 'core',
+          sessionsPerDay: getSessionsPerDayForTier('core'),
           canViewDetailedResults: false,
         }
         subscriptionStatusCache.value = { status, lastFetched: Date.now() }
@@ -440,8 +440,8 @@ export const usePracticeStore = defineStore('practice', () => {
       if (subscriptionResult.error || !subscriptionResult.data) {
         const status: StudentSubscriptionStatus = {
           isLinkedToParent: true,
-          tier: 'basic',
-          sessionsPerDay: getSessionsPerDayForTier('basic'),
+          tier: 'core',
+          sessionsPerDay: getSessionsPerDayForTier('core'),
           canViewDetailedResults: false,
         }
         subscriptionStatusCache.value = { status, lastFetched: Date.now() }
@@ -467,7 +467,7 @@ export const usePracticeStore = defineStore('practice', () => {
       const basicSessionsPerDay = await getBasicTierSessionsPerDay()
       const status: StudentSubscriptionStatus = {
         isLinkedToParent: false,
-        tier: 'basic',
+        tier: 'core',
         sessionsPerDay: basicSessionsPerDay,
         canViewDetailedResults: false,
       }

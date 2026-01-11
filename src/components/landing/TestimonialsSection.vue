@@ -5,19 +5,22 @@ import { Quote } from 'lucide-vue-next'
 
 const testimonials = [
   {
-    quote: 'My son loves collecting pets while learning! His grades have improved significantly since we started using Peak Mark.',
+    quote:
+      'My son loves collecting pets while learning! His grades have improved significantly since we started using Peak Mark.',
     name: 'Sarah L.',
     role: 'Parent',
     initials: 'SL',
   },
   {
-    quote: 'The gamification makes studying feel like playing a game. I actually look forward to my daily practice sessions now!',
+    quote:
+      'The gamification makes studying feel like playing a game. I actually look forward to my daily practice sessions now!',
     name: 'Ahmad K.',
     role: 'Student',
     initials: 'AK',
   },
   {
-    quote: 'Being able to track my children\'s progress in real-time gives me peace of mind. The detailed statistics are incredibly helpful.',
+    quote:
+      "Being able to track my children's progress in real-time gives me peace of mind. The detailed statistics are incredibly helpful.",
     name: 'Michelle T.',
     role: 'Parent',
     initials: 'MT',

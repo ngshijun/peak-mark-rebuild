@@ -5,7 +5,9 @@ import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  <header
+    class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+  >
     <div class="container mx-auto flex h-16 items-center justify-between px-4">
       <RouterLink to="/" class="flex items-center gap-2">
         <div class="flex size-8 items-center justify-center rounded-lg bg-primary">

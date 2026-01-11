@@ -14,13 +14,22 @@ import { Mountain } from 'lucide-vue-next'
         </div>
 
         <nav class="flex flex-wrap justify-center gap-6">
-          <RouterLink to="/login" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <RouterLink
+            to="/login"
+            class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
             Login
           </RouterLink>
-          <RouterLink to="/signup" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <RouterLink
+            to="/signup"
+            class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
             Sign Up
           </RouterLink>
-          <RouterLink to="/forgot-password" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <RouterLink
+            to="/forgot-password"
+            class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
             Forgot Password
           </RouterLink>
         </nav>
