@@ -109,7 +109,9 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      name: 'landing',
+      component: () => import('@/pages/LandingPage.vue'),
+      meta: { requiresGuest: true },
     },
     {
       path: '/login',

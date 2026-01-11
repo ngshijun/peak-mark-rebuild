@@ -32,7 +32,8 @@
       "mcp__stripe__list_subscriptions",
       "mcp__supabase__get_logs",
       "mcp__context7__resolve-library-id",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
