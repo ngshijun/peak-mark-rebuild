@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Users, Activity, BookOpen, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import MonthlyRevenueChart from '@/components/admin/MonthlyRevenueChart.vue'
+import MonthlyUpgradesChart from '@/components/admin/MonthlyUpgradesChart.vue'
 
 const dashboardStore = useAdminDashboardStore()
 
@@ -105,10 +106,13 @@ onMounted(async () => {
         </Card>
       </div>
 
-      <!-- Monthly Revenue Chart (1/4 width) -->
+      <!-- Charts Row (1/4 width each) -->
       <div class="grid gap-4 lg:grid-cols-4">
         <div class="lg:col-span-1">
           <MonthlyRevenueChart />
+        </div>
+        <div class="lg:col-span-1">
+          <MonthlyUpgradesChart />
         </div>
       </div>
     </div>

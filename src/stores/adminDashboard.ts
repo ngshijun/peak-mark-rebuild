@@ -11,6 +11,14 @@ export interface MonthlyRevenue {
   amount: number // in currency units (not cents)
 }
 
+export interface MonthlyUpgrades {
+  month: string // YYYY-MM format
+  label: string // e.g., "Jan 2026"
+  plus: number
+  pro: number
+  max: number
+}
+
 export interface DashboardStats {
   revenue: {
     total: number
@@ -20,6 +28,7 @@ export interface DashboardStats {
     currency: string
     monthly: MonthlyRevenue[] // Last 12 months
   }
+  upgrades: MonthlyUpgrades[] // Last 12 months
   users: {
     total: number
     students: number
@@ -40,6 +49,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
       currency: 'MYR',
       monthly: [],
     },
+    upgrades: [],
     users: {
       total: 0,
       students: 0,
@@ -117,6 +127,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         currentMonthRevenueResult,
         previousMonthRevenueResult,
         monthlyRevenueResult,
+        monthlyUpgradesResult,
       ] = await Promise.all([
         // Total users by type
         supabase.from('profiles').select('user_type'),
@@ -157,6 +168,15 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           .from('payment_history')
           .select('amount_cents, created_at')
           .eq('status', 'succeeded')
+          .gte('created_at', last12MonthsStart)
+          .order('created_at', { ascending: true }),
+
+        // Monthly upgrades by tier for last 12 months (excluding basic tier)
+        supabase
+          .from('payment_history')
+          .select('tier, created_at')
+          .eq('status', 'succeeded')
+          .in('tier', ['plus', 'pro', 'max'])
           .gte('created_at', last12MonthsStart)
           .order('created_at', { ascending: true }),
       ])
@@ -253,6 +273,45 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
             month,
             label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
             amount: cents / 100,
+          }
+        })
+      }
+
+      // Process monthly upgrades for stacked bar chart
+      if (monthlyUpgradesResult.data) {
+        const now = new Date()
+        const upgradesMap = new Map<string, { plus: number; pro: number; max: number }>()
+
+        // Initialize all 12 months with 0 for each tier
+        for (let i = 11; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+          upgradesMap.set(key, { plus: 0, pro: 0, max: 0 })
+        }
+
+        // Aggregate upgrades by month and tier
+        for (const upgrade of monthlyUpgradesResult.data) {
+          if (upgrade.created_at && upgrade.tier) {
+            const date = new Date(upgrade.created_at)
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+            const existing = upgradesMap.get(key)
+            if (existing) {
+              const tier = upgrade.tier as 'plus' | 'pro' | 'max'
+              existing[tier] = (existing[tier] ?? 0) + 1
+            }
+          }
+        }
+
+        // Convert to array with labels
+        stats.value.upgrades = Array.from(upgradesMap.entries()).map(([month, counts]) => {
+          const [year, monthNum] = month.split('-')
+          const date = new Date(Number(year), Number(monthNum) - 1, 1)
+          return {
+            month,
+            label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            plus: counts.plus,
+            pro: counts.pro,
+            max: counts.max,
           }
         })
       }
