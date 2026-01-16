@@ -1105,11 +1105,17 @@ export const usePracticeStore = defineStore('practice', () => {
   /**
    * Get a specific session by ID with full details
    * Uses parallel queries for better performance
+   * Includes ownership verification to prevent IDOR attacks
    */
   async function getSessionById(
     sessionId: string,
   ): Promise<{ session: PracticeSession | null; error: string | null }> {
     try {
+      // Authentication check
+      if (!authStore.user) {
+        return { session: null, error: 'Authentication required' }
+      }
+
       // Ensure curriculum is loaded (uses cache)
       if (curriculumStore.gradeLevels.length === 0) {
         await curriculumStore.fetchCurriculum()
@@ -1130,6 +1136,12 @@ export const usePracticeStore = defineStore('practice', () => {
       }
       if (answersResult.error) {
         return { session: null, error: answersResult.error.message }
+      }
+
+      // SECURITY: Verify session ownership to prevent IDOR attacks
+      // This is defense-in-depth alongside RLS policies
+      if (sessionResult.data.student_id !== authStore.user.id) {
+        return { session: null, error: 'Unauthorized: You do not have access to this session' }
       }
 
       const session = rowToSession(sessionResult.data)

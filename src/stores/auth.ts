@@ -18,6 +18,10 @@ import { usePracticeStore } from './practice'
 import { useSubscriptionStore } from './subscription'
 import { useChildStatisticsStore } from './child-statistics'
 import { useLeaderboardStore } from './leaderboard'
+import { useFeedbackStore } from './feedback'
+import { useQuestionsStore } from './questions'
+import { useAdminDashboardStore } from './adminDashboard'
+import { useCurriculumStore } from './curriculum'
 import type { Database } from '@/types/database.types'
 
 type UserType = Database['public']['Enums']['user_type']
@@ -189,10 +193,12 @@ export const useAuthStore = defineStore('auth', () => {
         authListenerUnsubscribe = null
       }
 
-      // Reset all user-specific stores to prevent stale data on next login
-      // This is an industry best practice for security and data integrity
-      // Wrap in try-catch to ensure all stores get reset even if one fails
+      // SECURITY: Reset ALL stores to prevent data leakage after logout
+      // This is critical for shared devices where another user may log in
+      // All stores must be included here - missing stores are a security vulnerability
+      // Theme store is intentionally excluded as it's a device preference, not user data
       const stores = [
+        // User-specific data stores
         useAnnouncementsStore,
         useChildLinkStore,
         useParentLinkStore,
@@ -202,6 +208,12 @@ export const useAuthStore = defineStore('auth', () => {
         useSubscriptionStore,
         useChildStatisticsStore,
         useLeaderboardStore,
+        useFeedbackStore,
+        // Cached data stores (may contain user-specific context)
+        useQuestionsStore,
+        useCurriculumStore,
+        // Admin stores
+        useAdminDashboardStore,
       ]
 
       let resetFailed = false
