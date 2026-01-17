@@ -17,52 +17,15 @@ interface QuestionData {
   studentAnswer: string | null
   correctAnswer: string | null
   questionImageUrl: string | null
-  questionImageBase64: string | null
   options: {
     label: string
     text: string | null
     imageUrl: string | null
-    imageBase64: string | null
     isCorrect: boolean
     isStudentAnswer: boolean
   }[]
 }
 
-/**
- * Fetch an image and convert it to base64 data URI
- * Returns null if fetch fails (with timeout protection)
- */
-async function fetchImageAsBase64(url: string, timeoutMs = 5000): Promise<string | null> {
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-
-    const response = await fetch(url, { signal: controller.signal })
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      console.warn(`Failed to fetch image: ${url} - Status: ${response.status}`)
-      return null
-    }
-
-    const arrayBuffer = await response.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
-    let binary = ''
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
-    const base64 = btoa(binary)
-
-    // Determine content type from response or URL
-    const contentType = response.headers.get('content-type') || 'image/png'
-    const imageType = contentType.split('/')[1]?.split(';')[0] || 'png'
-
-    return `data:image/${imageType};base64,${base64}`
-  } catch (error) {
-    console.warn(`Error fetching image: ${url}`, error)
-    return null
-  }
-}
 
 interface SessionData {
   gradeLevelName: string
@@ -78,7 +41,9 @@ interface SessionData {
 function getImagePublicUrl(path: string | null): string | null {
   if (!path) return null
   if (path.startsWith('http')) return path
-  return `${supabaseUrl}/storage/v1/object/public/question-images/${path}`
+  // Use Supabase image transformation to resize images to 512x512
+  // This matches OpenAI's detail: 'low' processing size and speeds up image fetching
+  return `${supabaseUrl}/storage/v1/render/image/public/question-images/${path}?width=512&height=512&resize=contain`
 }
 
 Deno.serve(async (req: Request) => {
@@ -203,7 +168,6 @@ Deno.serve(async (req: Request) => {
               label,
               text: opt.text,
               imageUrl: getImagePublicUrl(opt.imagePath),
-              imageBase64: null, // Will be populated later for incorrect questions
               isCorrect: opt.isCorrect ?? false,
               isStudentAnswer,
             })
@@ -227,40 +191,9 @@ Deno.serve(async (req: Request) => {
         studentAnswer,
         correctAnswer,
         questionImageUrl: getImagePublicUrl(q.image_path),
-        questionImageBase64: null, // Will be populated later for incorrect questions
         options,
       }
     })
-
-    // Pre-fetch images as base64 for incorrect questions only (to reduce API calls)
-    // This avoids OpenAI's timeout issues when fetching from URLs
-    const incorrectQuestions = questionsData.filter((q) => !q.isCorrect)
-    const imagePromises: Promise<void>[] = []
-
-    for (const q of incorrectQuestions) {
-      // Fetch question image
-      if (q.questionImageUrl) {
-        imagePromises.push(
-          fetchImageAsBase64(q.questionImageUrl).then((base64) => {
-            q.questionImageBase64 = base64
-          })
-        )
-      }
-
-      // Fetch option images
-      for (const opt of q.options) {
-        if (opt.imageUrl) {
-          imagePromises.push(
-            fetchImageAsBase64(opt.imageUrl).then((base64) => {
-              opt.imageBase64 = base64
-            })
-          )
-        }
-      }
-    }
-
-    // Wait for all image fetches to complete (with individual timeouts)
-    await Promise.all(imagePromises)
 
     // Extract names from nested sub_topic structure
     // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
@@ -291,10 +224,10 @@ Deno.serve(async (req: Request) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        // gpt-4o-mini is better for summarization (no reasoning token overhead)
         model: 'gpt-4o-mini',
         messages,
-        max_tokens: 300,
+        max_tokens: 1000,
+        temperature: 0,
       }),
     })
 
@@ -350,20 +283,38 @@ function buildMessages(data: SessionData): any[] {
   const seconds = data.totalTimeSeconds % 60
   const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
 
-  const incorrectQuestions = data.questions.filter((q) => !q.isCorrect)
-
   // Build system message
   const systemMessage = {
     role: 'system',
-    content: `You are a friendly and encouraging educational tutor providing feedback to students.
-Your task is to write a short, personalized summary (2-3 sentences) of a practice session.
-The summary should:
-1. Acknowledge what the student did well
-2. Gently mention one area for improvement if applicable
-3. End with encouragement
-Keep the tone warm, supportive, and age-appropriate for students.
-Write in second person ("You did great...").
-Do not use bullet points or lists - write flowing sentences.`,
+    content: `You are a friendly tutor giving feedback to a primary school student (ages 7-12) after a practice session. Parents may also read this.
+
+Write a detailed but easy-to-read feedback that a child can understand.
+
+Structure:
+1. Start positive (1 sentence) - mention something good (effort, what they got right)
+2. Go through EACH wrong question and explain specifically what went wrong (1-2 sentences per wrong question)
+   - Use the ORIGINAL question number (e.g., "Question 3" not "1st wrong question")
+   - Mention the actual content: "For Question 3 about 'menaiki tangga' (climbing stairs), you picked the picture of someone going down instead of up"
+   - Explain the correct answer simply: "The right answer was B because..."
+   - If there are many wrong questions, group similar mistakes together
+3. Summarize the main area to focus on (1 sentence)
+4. End with warm encouragement (1 sentence)
+
+Formatting:
+- Format each question as: "**Question X**: explanation here" (with colon after the bold question number)
+- Use **bold** for question numbers and key Malay words/phrases
+- Keep it compact - NO horizontal rules (---), NO excessive line breaks
+- Group all wrong questions together in one section without separators between them
+- Use a single blank line only between major sections (intro, questions, focus area, encouragement)
+
+Rules:
+- Use simple words a 7-year-old can understand
+- Be VERY specific - mention actual words, phrases, or content from the questions
+- Cover ALL wrong questions, don't skip any
+- Keep sentences short and clear
+- Be warm and encouraging, but honest about mistakes
+- Never be harsh or discouraging
+- If score is perfect, celebrate and suggest trying harder questions next time`,
   }
 
   // Build user message content (can include text and images)
@@ -390,57 +341,43 @@ Do not use bullet points or lists - write flowing sentences.`,
 
   userContent.push({ type: 'text', text: summaryText })
 
-  // Add incorrect questions with images
-  if (incorrectQuestions.length > 0) {
-    userContent.push({ type: 'text', text: '\n\nQuestions answered incorrectly:' })
+  // Add all questions with images (both correct and incorrect)
+  userContent.push({ type: 'text', text: '\n\nAll questions:' })
 
-    incorrectQuestions.forEach((q, index) => {
-      // Add question text
-      userContent.push({
-        type: 'text',
-        text: `\n${index + 1}. Question: ${q.question}\n   Student's answer: ${q.studentAnswer || 'No answer'}\n   Correct answer: ${q.correctAnswer || 'N/A'}`,
-      })
+  data.questions.forEach((q, index) => {
+    const status = q.isCorrect ? '✓ CORRECT' : '✗ WRONG'
 
-      // Add question image if exists (prefer base64, fallback to URL)
-      // Using base64 avoids OpenAI's timeout issues when fetching URLs
-      if (q.questionImageBase64) {
-        userContent.push({
-          type: 'image_url',
-          image_url: { url: q.questionImageBase64 },
-        })
-      } else if (q.questionImageUrl) {
-        // Fallback to URL if base64 fetch failed (OpenAI may still timeout)
-        userContent.push({
-          type: 'image_url',
-          image_url: { url: q.questionImageUrl },
-        })
-      }
-
-      // Add option images for MCQ/MRQ (only for options that have images)
-      if ((q.type === 'mcq' || q.type === 'mrq') && q.options.length > 0) {
-        const optionsWithImages = q.options.filter((opt) => opt.imageUrl || opt.imageBase64)
-        if (optionsWithImages.length > 0) {
-          userContent.push({ type: 'text', text: '   Options:' })
-          optionsWithImages.forEach((opt) => {
-            const marker = opt.isCorrect ? '(correct)' : opt.isStudentAnswer ? '(student chose)' : ''
-            userContent.push({ type: 'text', text: `   ${opt.label}${marker}:` })
-            // Prefer base64 over URL to avoid timeout issues
-            if (opt.imageBase64) {
-              userContent.push({
-                type: 'image_url',
-                image_url: { url: opt.imageBase64 },
-              })
-            } else if (opt.imageUrl) {
-              userContent.push({
-                type: 'image_url',
-                image_url: { url: opt.imageUrl },
-              })
-            }
-          })
-        }
-      }
+    // Add question text with status
+    userContent.push({
+      type: 'text',
+      text: `\n${index + 1}. [${status}] Question: ${q.question}\n   Student's answer: ${q.studentAnswer || 'No answer'}\n   Correct answer: ${q.correctAnswer || 'N/A'}`,
     })
-  }
+
+    // Add question image if exists
+    // Using detail: 'low' for efficient processing (512x512, 85 tokens per image)
+    if (q.questionImageUrl) {
+      userContent.push({
+        type: 'image_url',
+        image_url: { url: q.questionImageUrl, detail: 'low' },
+      })
+    }
+
+    // Add option images for MCQ/MRQ (only for options that have images)
+    if ((q.type === 'mcq' || q.type === 'mrq') && q.options.length > 0) {
+      const optionsWithImages = q.options.filter((opt) => opt.imageUrl)
+      if (optionsWithImages.length > 0) {
+        userContent.push({ type: 'text', text: '   Options:' })
+        optionsWithImages.forEach((opt) => {
+          const marker = opt.isCorrect ? '(correct)' : opt.isStudentAnswer ? '(student chose)' : ''
+          userContent.push({ type: 'text', text: `   ${opt.label}${marker}:` })
+          userContent.push({
+            type: 'image_url',
+            image_url: { url: opt.imageUrl!, detail: 'low' },
+          })
+        })
+      }
+    }
+  })
 
   return [
     systemMessage,

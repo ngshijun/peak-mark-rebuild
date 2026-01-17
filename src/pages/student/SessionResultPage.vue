@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   usePracticeStore,
@@ -9,6 +9,8 @@ import {
 } from '@/stores/practice'
 import { useQuestionsStore } from '@/stores/questions'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
+import { supabase } from '@/lib/supabaseClient'
+import { parseSimpleMarkdown } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +26,9 @@ import {
   Sparkles,
   CirclePoundSterling,
   BotMessageSquare,
+  RefreshCw,
+  AlertCircle,
+  Crown,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -37,7 +42,11 @@ const session = ref<PracticeSession | null>(null)
 const isLoading = ref(true)
 const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)
 const subscriptionRequired = ref(false)
-const isGeneratingAiSummary = ref(false)
+
+// AI Summary status: 'idle' | 'loading' | 'success' | 'failed'
+const aiSummaryStatus = ref<'idle' | 'loading' | 'success' | 'failed'>('idle')
+// Track if this is a just-completed session vs viewing from history
+const isCurrentSession = ref(false)
 
 const summary = computed(() => {
   if (!session.value) return null
@@ -76,30 +85,23 @@ onMounted(async () => {
     if (result.session.completedAt) {
       await dashboardStore.markPracticedToday()
     }
-    // Show loading state for AI summary only if:
-    // 1. Max tier subscription
-    // 2. No summary yet
-    // 3. This is the current session (just completed, not viewing from history)
-    const isCurrentSession = practiceStore.currentSession?.id === result.session.id
-    if (subscriptionStatus.value?.tier === 'max' && !result.session.aiSummary && isCurrentSession) {
-      isGeneratingAiSummary.value = true
+
+    // Check if this is the current session (just completed) vs viewing from history
+    isCurrentSession.value = practiceStore.currentSession?.id === result.session.id
+
+    // Set AI summary status based on current state
+    if (result.session.aiSummary) {
+      aiSummaryStatus.value = 'success'
+    } else if (subscriptionStatus.value?.tier === 'max' && isCurrentSession.value) {
+      // Just completed session without summary - trigger generation and track status
+      generateAiSummary()
     }
+    // For history sessions without summary, status stays 'idle' (will show "No summary")
   } else {
     router.push('/student/history')
   }
   isLoading.value = false
 })
-
-// Watch for AI summary updates from the store (generated async after session completes)
-watch(
-  () => practiceStore.currentSession?.aiSummary,
-  (newSummary) => {
-    if (newSummary && session.value && practiceStore.currentSession?.id === session.value.id) {
-      session.value.aiSummary = newSummary
-      isGeneratingAiSummary.value = false
-    }
-  },
-)
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) {
@@ -160,6 +162,34 @@ function goBack() {
 
 function goToHistory() {
   router.push('/student/history')
+}
+
+// Manually trigger AI summary generation
+async function generateAiSummary() {
+  if (!session.value || aiSummaryStatus.value === 'loading') return
+
+  aiSummaryStatus.value = 'loading'
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-session-summary', {
+      body: { sessionId: session.value.id },
+    })
+
+    if (error) {
+      console.error('Failed to generate AI summary:', error)
+      aiSummaryStatus.value = 'failed'
+      return
+    }
+
+    if (data?.summary) {
+      session.value.aiSummary = data.summary
+      aiSummaryStatus.value = 'success'
+    } else {
+      aiSummaryStatus.value = 'failed'
+    }
+  } catch (err) {
+    console.error('Error generating AI summary:', err)
+    aiSummaryStatus.value = 'failed'
+  }
 }
 </script>
 
@@ -248,26 +278,75 @@ function goToHistory() {
         Completed: {{ formatDate(session.completedAt) }}
       </div>
 
-      <!-- AI Summary (Max tier only) -->
+      <!-- AI Summary Card (always visible) -->
       <Card
-        v-if="session.aiSummary || isGeneratingAiSummary"
         class="mb-6 border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20"
       >
         <CardHeader class="pb-2">
           <CardTitle
-            class="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300"
+            class="flex items-center justify-between text-sm font-medium text-purple-700 dark:text-purple-300"
           >
-            <BotMessageSquare class="size-4" />
-            AI Summary
+            <div class="flex items-center gap-2">
+              <BotMessageSquare class="size-4" />
+              AI Summary
+            </div>
+            <!-- Generate button for Max tier when failed (current session) or no summary (history) -->
+            <Button
+              v-if="
+                subscriptionStatus?.tier === 'max' &&
+                !session.aiSummary &&
+                aiSummaryStatus !== 'loading'
+              "
+              variant="outline"
+              size="sm"
+              class="h-7 text-xs"
+              @click="generateAiSummary"
+            >
+              <RefreshCw class="mr-1 size-3" />
+              {{ aiSummaryStatus === 'failed' ? 'Retry' : 'Generate Summary' }}
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p v-if="session.aiSummary" class="text-sm leading-relaxed">
-            {{ session.aiSummary }}
-          </p>
-          <div v-else class="flex items-center gap-2 text-sm text-muted-foreground">
+          <!-- Non-Max tier: Upgrade message -->
+          <div
+            v-if="subscriptionStatus?.tier !== 'max'"
+            class="flex items-center gap-3 text-sm text-muted-foreground"
+          >
+            <Crown class="size-5 text-amber-500" />
+            <span
+              >Upgrade to <strong>Max</strong> to unlock AI-powered feedback for each session.</span
+            >
+          </div>
+
+          <!-- Max tier: Loading state -->
+          <div
+            v-else-if="aiSummaryStatus === 'loading'"
+            class="flex items-center gap-2 text-sm text-muted-foreground"
+          >
             <Loader2 class="size-4 animate-spin" />
             Generating summary...
+          </div>
+
+          <!-- Max tier: Success - show summary -->
+          <div
+            v-else-if="session.aiSummary"
+            class="text-sm leading-relaxed"
+            v-html="parseSimpleMarkdown(session.aiSummary)"
+          />
+
+          <!-- Max tier: Failed state (only for current session) -->
+          <div
+            v-else-if="aiSummaryStatus === 'failed' && isCurrentSession"
+            class="flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <AlertCircle class="size-4 text-red-500" />
+            Failed to generate summary. Click "Retry" to try again.
+          </div>
+
+          <!-- Max tier: No summary (history sessions) -->
+          <div v-else class="text-sm text-muted-foreground">
+            No summary available for this session.
           </div>
         </CardContent>
       </Card>

@@ -8,6 +8,7 @@ import {
 } from '@/stores/child-statistics'
 import { useChildLinkStore } from '@/stores/child-link'
 import { useQuestionsStore } from '@/stores/questions'
+import { parseSimpleMarkdown } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -215,7 +216,7 @@ function goBack() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p class="text-sm leading-relaxed">{{ session.aiSummary }}</p>
+          <div class="text-sm leading-relaxed" v-html="parseSimpleMarkdown(session.aiSummary)" />
         </CardContent>
       </Card>
 

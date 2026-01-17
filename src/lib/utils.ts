@@ -11,3 +11,29 @@ export function cn(...inputs: ClassValue[]) {
 export function valueUpdater<T extends Updater<unknown>>(updaterOrValue: T, ref: Ref) {
   ref.value = typeof updaterOrValue === 'function' ? updaterOrValue(ref.value) : updaterOrValue
 }
+
+/**
+ * Parses simple markdown to HTML.
+ * Supports: **bold**, *italic*, and newlines.
+ * Escapes HTML to prevent XSS.
+ */
+export function parseSimpleMarkdown(text: string): string {
+  // Escape HTML first to prevent XSS
+  let result = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+  // Convert **bold** to <strong>
+  result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
+  // Convert *italic* to <em> (but not inside **)
+  result = result.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>')
+
+  // Convert newlines to <br>
+  result = result.replace(/\n/g, '<br>')
+
+  return result
+}
