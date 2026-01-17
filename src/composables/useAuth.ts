@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, clearSupabaseAuth } from '@/lib/supabaseClient'
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
@@ -106,6 +106,11 @@ export async function signIn(
 
 /**
  * Sign out the current user
+ *
+ * Note: When the session is already invalid (e.g., logged out from another domain),
+ * Supabase's signOut() cannot clear localStorage because _useSession() fails first.
+ * In this case, we treat the error as success since the user IS logged out server-side.
+ * The auth store handles clearing local app state.
  */
 export async function signOut(): Promise<{ error: string | null }> {
   moduleIsLoading.value = true
@@ -115,16 +120,28 @@ export async function signOut(): Promise<{ error: string | null }> {
     const { error: signOutError } = await supabase.auth.signOut()
 
     if (signOutError) {
-      // If session is not found, the user is effectively already logged out
-      // Treat this as a successful logout rather than an error
+      // Check if the error indicates the session is already invalid/gone
+      // This commonly happens when:
+      // 1. User logged out from another domain (e.g., localhost vs production)
+      // 2. Session expired or was revoked
+      // 3. Refresh token was already invalidated
       const isSessionGone =
         signOutError.message.includes('session_not_found') ||
-        signOutError.code === 'session_not_found'
+        signOutError.code === 'session_not_found' ||
+        signOutError.message.includes('Invalid Refresh Token') ||
+        signOutError.message.includes('invalid_grant') ||
+        signOutError.message.includes('Auth session missing') ||
+        signOutError.status === 403 ||
+        signOutError.status === 401
 
       if (!isSessionGone) {
+        // Only return error for unexpected failures
         moduleError.value = signOutError.message
         return { error: signOutError.message }
       }
+      // For session-gone errors: user IS logged out server-side
+      // Clear localStorage since Supabase couldn't do it
+      clearSupabaseAuth()
     }
 
     return { error: null }
