@@ -154,6 +154,9 @@ export const usePracticeStore = defineStore('practice', () => {
     selectedTopicId: null as string | null,
   })
 
+  // Sub-topic progress tracking (unique questions answered per sub-topic)
+  const subTopicProgress = ref<Map<string, number>>(new Map())
+
   const questionsStore = useQuestionsStore()
   const authStore = useAuthStore()
   const curriculumStore = useCurriculumStore()
@@ -1406,6 +1409,53 @@ export const usePracticeStore = defineStore('practice', () => {
     }
   }
 
+  /**
+   * Fetch unique questions answered per sub-topic for the current student
+   * This counts distinct question_ids from student_question_progress
+   */
+  async function fetchSubTopicProgress(): Promise<void> {
+    if (!authStore.user) return
+
+    try {
+      // Query distinct question_ids per topic_id (which references sub_topics)
+      const { data, error: fetchError } = await supabase
+        .from('student_question_progress')
+        .select('topic_id, question_id')
+        .eq('student_id', authStore.user.id)
+
+      if (fetchError) {
+        console.error('Error fetching sub-topic progress:', fetchError)
+        return
+      }
+
+      // Count unique questions per sub-topic
+      const progressMap = new Map<string, Set<string>>()
+      for (const row of data ?? []) {
+        if (!progressMap.has(row.topic_id)) {
+          progressMap.set(row.topic_id, new Set())
+        }
+        progressMap.get(row.topic_id)!.add(row.question_id)
+      }
+
+      // Convert to count map
+      const countMap = new Map<string, number>()
+      for (const [topicId, questionIds] of progressMap) {
+        countMap.set(topicId, questionIds.size)
+      }
+
+      subTopicProgress.value = countMap
+    } catch (err) {
+      console.error('Error fetching sub-topic progress:', err)
+    }
+  }
+
+  /**
+   * Get answered question count for a specific sub-topic
+   */
+  function getSubTopicAnsweredCount(subTopicId: string): number {
+    return subTopicProgress.value.get(subTopicId) ?? 0
+  }
+
   // Reset store state (call on logout)
   function $reset() {
     currentSession.value = null
@@ -1415,6 +1465,7 @@ export const usePracticeStore = defineStore('practice', () => {
     subscriptionStatusCache.value = { status: null, lastFetched: null }
     sessionLimitCache.value = { status: null, lastFetched: null }
     subscriptionPlansCache.value = { plans: new Map(), lastFetched: null }
+    subTopicProgress.value = new Map()
     resetHistoryFilters()
     historyPagination.value = { pageIndex: 0, pageSize: 10 }
     resetPracticeNavigation()
@@ -1449,6 +1500,10 @@ export const usePracticeStore = defineStore('practice', () => {
     setPracticeSubject,
     setPracticeTopic,
     resetPracticeNavigation,
+    // Sub-topic progress
+    subTopicProgress,
+    fetchSubTopicProgress,
+    getSubTopicAnsweredCount,
     // Actions
     fetchSessionHistory,
     startSession,

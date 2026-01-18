@@ -50,13 +50,17 @@ const isLoadingLimit = ref(true)
 const showConfirmDialog = ref(false)
 const pendingSubTopicId = ref<string | null>(null)
 
-// Fetch curriculum and session limit on mount
+// Fetch curriculum, session limit, and sub-topic progress on mount
 onMounted(async () => {
   if (curriculumStore.gradeLevels.length === 0) {
     await curriculumStore.fetchCurriculum()
   }
-  // Check session limit status
-  sessionLimitStatus.value = await practiceStore.checkSessionLimit()
+  // Check session limit status and fetch sub-topic progress in parallel
+  const [limitStatus] = await Promise.all([
+    practiceStore.checkSessionLimit(),
+    practiceStore.fetchSubTopicProgress(),
+  ])
+  sessionLimitStatus.value = limitStatus
   isLoadingLimit.value = false
 })
 
@@ -332,6 +336,9 @@ async function confirmStartSession() {
             :class="{
               'opacity-50 pointer-events-none':
                 isStartingSession || !sessionLimitStatus?.canStartSession,
+              'border-2 border-green-500 bg-green-50 dark:bg-green-950':
+                subTopic.questionCount > 0 &&
+                practiceStore.getSubTopicAnsweredCount(subTopic.id) >= subTopic.questionCount,
             }"
             @click="selectSubTopic(subTopic.id)"
           >
@@ -345,8 +352,18 @@ async function confirmStartSession() {
             </div>
             <CardContent class="mt-auto p-4">
               <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
-              <p class="text-sm text-muted-foreground">
-                {{ subTopic.questionCount }}
+              <p
+                class="text-sm"
+                :class="
+                  subTopic.questionCount > 0 &&
+                  practiceStore.getSubTopicAnsweredCount(subTopic.id) >= subTopic.questionCount
+                    ? 'text-green-600'
+                    : 'text-muted-foreground'
+                "
+              >
+                {{ practiceStore.getSubTopicAnsweredCount(subTopic.id) }}/{{
+                  subTopic.questionCount
+                }}
                 {{ subTopic.questionCount === 1 ? 'question' : 'questions' }}
               </p>
             </CardContent>
