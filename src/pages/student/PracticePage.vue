@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore, type SubTopic } from '@/stores/curriculum'
 import { usePracticeStore, type SessionLimitStatus } from '@/stores/practice'
-import { Loader2, AlertCircle } from 'lucide-vue-next'
+import { Loader2, AlertCircle, CircleCheck } from 'lucide-vue-next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -26,6 +26,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Card, CardContent } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
@@ -110,6 +111,36 @@ function getImageUrl(coverImagePath: string | null): string {
     return coverImagePath
   }
   return curriculumStore.getOptimizedImageUrl(coverImagePath)
+}
+
+// Progress calculation helpers
+function isSubTopicFullyPracticed(subTopic: { id: string; questionCount: number }) {
+  return (
+    subTopic.questionCount > 0 &&
+    practiceStore.getSubTopicAnsweredCount(subTopic.id) >= subTopic.questionCount
+  )
+}
+
+function getTopicProgress(topic: (typeof availableSubjects.value)[0]['topics'][0]) {
+  const totalSubTopics = topic.subTopics.length
+  const completedSubTopics = topic.subTopics.filter(isSubTopicFullyPracticed).length
+  return { total: totalSubTopics, completed: completedSubTopics }
+}
+
+function isTopicFullyPracticed(topic: (typeof availableSubjects.value)[0]['topics'][0]) {
+  const { total, completed } = getTopicProgress(topic)
+  return total > 0 && completed >= total
+}
+
+function getSubjectProgress(subject: (typeof availableSubjects.value)[0]) {
+  const totalTopics = subject.topics.length
+  const completedTopics = subject.topics.filter(isTopicFullyPracticed).length
+  return { total: totalTopics, completed: completedTopics }
+}
+
+function isSubjectFullyPracticed(subject: (typeof availableSubjects.value)[0]) {
+  const { total, completed } = getSubjectProgress(subject)
+  return total > 0 && completed >= total
 }
 
 function selectSubject(subjectId: string) {
@@ -269,6 +300,10 @@ async function confirmStartSession() {
             v-for="subject in availableSubjects"
             :key="subject.id"
             class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
+            :class="{
+              'border-2 border-green-500 bg-green-50 dark:bg-green-950':
+                isSubjectFullyPracticed(subject),
+            }"
             @click="selectSubject(subject.id)"
           >
             <div v-if="subject.coverImagePath" class="aspect-video w-full overflow-hidden">
@@ -280,11 +315,32 @@ async function confirmStartSession() {
               />
             </div>
             <CardContent class="mt-auto p-4">
-              <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
-              <p class="text-sm text-muted-foreground">
-                {{ subject.topics.length }}
-                {{ subject.topics.length === 1 ? 'topic' : 'topics' }} available
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
+                <CircleCheck
+                  v-if="isSubjectFullyPracticed(subject)"
+                  class="size-5 text-green-600"
+                />
+              </div>
+              <p
+                class="text-sm"
+                :class="
+                  isSubjectFullyPracticed(subject) ? 'text-green-600' : 'text-muted-foreground'
+                "
+              >
+                {{ getSubjectProgress(subject).completed }}/{{ getSubjectProgress(subject).total }}
+                {{ getSubjectProgress(subject).total === 1 ? 'topic' : 'topics' }} completed
               </p>
+              <Progress
+                :model-value="
+                  getSubjectProgress(subject).total > 0
+                    ? (getSubjectProgress(subject).completed / getSubjectProgress(subject).total) *
+                      100
+                    : 0
+                "
+                class="mt-2 h-1.5"
+                :class="isSubjectFullyPracticed(subject) ? '[&>div]:bg-green-500' : ''"
+              />
             </CardContent>
           </Card>
         </div>
@@ -301,6 +357,10 @@ async function confirmStartSession() {
             v-for="topic in selectedSubject.topics"
             :key="topic.id"
             class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
+            :class="{
+              'border-2 border-green-500 bg-green-50 dark:bg-green-950':
+                isTopicFullyPracticed(topic),
+            }"
             @click="selectTopic(topic.id)"
           >
             <div v-if="topic.coverImagePath" class="aspect-video w-full overflow-hidden">
@@ -312,11 +372,26 @@ async function confirmStartSession() {
               />
             </div>
             <CardContent class="mt-auto p-4">
-              <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
-              <p class="text-sm text-muted-foreground">
-                {{ topic.subTopics.length }}
-                {{ topic.subTopics.length === 1 ? 'sub-topic' : 'sub-topics' }} available
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
+                <CircleCheck v-if="isTopicFullyPracticed(topic)" class="size-5 text-green-600" />
+              </div>
+              <p
+                class="text-sm"
+                :class="isTopicFullyPracticed(topic) ? 'text-green-600' : 'text-muted-foreground'"
+              >
+                {{ getTopicProgress(topic).completed }}/{{ getTopicProgress(topic).total }}
+                {{ getTopicProgress(topic).total === 1 ? 'sub-topic' : 'sub-topics' }} completed
               </p>
+              <Progress
+                :model-value="
+                  getTopicProgress(topic).total > 0
+                    ? (getTopicProgress(topic).completed / getTopicProgress(topic).total) * 100
+                    : 0
+                "
+                class="mt-2 h-1.5"
+                :class="isTopicFullyPracticed(topic) ? '[&>div]:bg-green-500' : ''"
+              />
             </CardContent>
           </Card>
         </div>
@@ -351,7 +426,13 @@ async function confirmStartSession() {
               />
             </div>
             <CardContent class="mt-auto p-4">
-              <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
+                <CircleCheck
+                  v-if="isSubTopicFullyPracticed(subTopic)"
+                  class="size-5 text-green-600"
+                />
+              </div>
               <p
                 class="text-sm"
                 :class="
@@ -364,8 +445,19 @@ async function confirmStartSession() {
                 {{ practiceStore.getSubTopicAnsweredCount(subTopic.id) }}/{{
                   subTopic.questionCount
                 }}
-                {{ subTopic.questionCount === 1 ? 'question' : 'questions' }}
+                {{ subTopic.questionCount === 1 ? 'question' : 'questions' }} practiced
               </p>
+              <Progress
+                :model-value="
+                  subTopic.questionCount > 0
+                    ? (practiceStore.getSubTopicAnsweredCount(subTopic.id) /
+                        subTopic.questionCount) *
+                      100
+                    : 0
+                "
+                class="mt-2 h-1.5"
+                :class="isSubTopicFullyPracticed(subTopic) ? '[&>div]:bg-green-500' : ''"
+              />
             </CardContent>
           </Card>
         </div>
