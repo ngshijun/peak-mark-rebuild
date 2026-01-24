@@ -305,20 +305,38 @@ function goBack() {
                   :key="option.id"
                   class="flex items-center gap-2 rounded-md border p-2 text-sm"
                   :class="{
-                    'border-green-500 bg-green-100 dark:bg-green-900/30': option.isCorrect,
+                    'border-green-500 bg-green-100 dark:bg-green-900/30':
+                      option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id),
+                    'border-amber-500 bg-amber-50 dark:bg-amber-900/20':
+                      option.isCorrect && !wasOptionSelected(getAnswerByIndex(index), option.id),
                     'border-red-500 bg-red-100 dark:bg-red-900/30':
                       !option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id),
                   }"
                 >
-                  <span v-if="option.isCorrect" class="text-green-600">
+                  <!-- Correct and selected -->
+                  <span
+                    v-if="option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id)"
+                    class="text-green-600"
+                  >
                     <CheckCircle2 class="size-4" />
                   </span>
+                  <!-- Correct but NOT selected (missed) -->
+                  <span
+                    v-else-if="
+                      option.isCorrect && !wasOptionSelected(getAnswerByIndex(index), option.id)
+                    "
+                    class="text-amber-600"
+                  >
+                    <CheckCircle2 class="size-4" />
+                  </span>
+                  <!-- Incorrect and selected -->
                   <span
                     v-else-if="wasOptionSelected(getAnswerByIndex(index), option.id)"
                     class="text-red-600"
                   >
                     <XCircle class="size-4" />
                   </span>
+                  <!-- Incorrect and not selected -->
                   <span v-else class="size-4" />
                   <div class="flex flex-1 items-center gap-2">
                     <span v-if="option.text">{{ option.text }}</span>
@@ -330,6 +348,30 @@ function goBack() {
                       loading="lazy"
                     />
                   </div>
+                  <!-- Labels for clarity -->
+                  <Badge
+                    v-if="option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id)"
+                    variant="outline"
+                    class="ml-auto shrink-0 border-green-500 text-green-600"
+                  >
+                    Your answer
+                  </Badge>
+                  <Badge
+                    v-else-if="
+                      option.isCorrect && !wasOptionSelected(getAnswerByIndex(index), option.id)
+                    "
+                    variant="outline"
+                    class="ml-auto shrink-0 border-amber-500 text-amber-600"
+                  >
+                    Missed
+                  </Badge>
+                  <Badge
+                    v-else-if="wasOptionSelected(getAnswerByIndex(index), option.id)"
+                    variant="outline"
+                    class="ml-auto shrink-0 border-red-500 text-red-600"
+                  >
+                    Your answer
+                  </Badge>
                 </div>
               </div>
 

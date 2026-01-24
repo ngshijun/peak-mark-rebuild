@@ -352,7 +352,9 @@ function handleOptionClick(optionId: string) {
                     !isAnswered && !selectedOptionIds.has(option.id),
                   'cursor-not-allowed': isAnswered,
                   'border-green-500 bg-green-50 dark:bg-green-950/20':
-                    isAnswered && option.isCorrect,
+                    isAnswered && option.isCorrect && answeredOptionIds.includes(option.id),
+                  'border-amber-500 bg-amber-50 dark:bg-amber-950/20':
+                    isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id),
                   'border-red-500 bg-red-50 dark:bg-red-950/20':
                     isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
                 }"
@@ -367,17 +369,29 @@ function handleOptionClick(optionId: string) {
                       :class="{
                         'border-primary bg-primary text-primary-foreground':
                           selectedOptionIds.has(option.id) && !isAnswered,
-                        'border-green-500 bg-green-500 text-white': isAnswered && option.isCorrect,
+                        'border-green-500 bg-green-500 text-white':
+                          isAnswered && option.isCorrect && answeredOptionIds.includes(option.id),
+                        'border-amber-500 bg-amber-500 text-white':
+                          isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id),
                         'border-red-500 bg-red-500 text-white':
                           isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
                       }"
                     >
                       {{ String.fromCharCode(65 + index) }}
                     </span>
+                    <!-- Correct and selected -->
                     <CheckCircle2
-                      v-if="isAnswered && option.isCorrect"
+                      v-if="isAnswered && option.isCorrect && answeredOptionIds.includes(option.id)"
                       class="size-5 text-green-500"
                     />
+                    <!-- Correct but NOT selected (missed) -->
+                    <CheckCircle2
+                      v-else-if="
+                        isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id)
+                      "
+                      class="size-5 text-amber-500"
+                    />
+                    <!-- Incorrect and selected -->
                     <XCircle
                       v-if="
                         isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect
@@ -401,7 +415,10 @@ function handleOptionClick(optionId: string) {
                     :class="{
                       'border-primary bg-primary text-primary-foreground':
                         selectedOptionIds.has(option.id) && !isAnswered,
-                      'border-green-500 bg-green-500 text-white': isAnswered && option.isCorrect,
+                      'border-green-500 bg-green-500 text-white':
+                        isAnswered && option.isCorrect && answeredOptionIds.includes(option.id),
+                      'border-amber-500 bg-amber-500 text-white':
+                        isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id),
                       'border-red-500 bg-red-500 text-white':
                         isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
                     }"
@@ -419,10 +436,19 @@ function handleOptionClick(optionId: string) {
                       loading="lazy"
                     />
                   </div>
+                  <!-- Correct and selected -->
                   <CheckCircle2
-                    v-if="isAnswered && option.isCorrect"
+                    v-if="isAnswered && option.isCorrect && answeredOptionIds.includes(option.id)"
                     class="ml-auto size-5 text-green-500"
                   />
+                  <!-- Correct but NOT selected (missed) -->
+                  <CheckCircle2
+                    v-else-if="
+                      isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id)
+                    "
+                    class="ml-auto size-5 text-amber-500"
+                  />
+                  <!-- Incorrect and selected -->
                   <XCircle
                     v-if="isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect"
                     class="ml-auto size-5 text-red-500"
