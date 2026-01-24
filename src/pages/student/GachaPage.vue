@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Gift, Star, Sparkles, Loader2, CirclePoundSterling } from 'lucide-vue-next'
+import { Sparkles, Loader2, CirclePoundSterling, Info } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
@@ -28,7 +28,17 @@ const MULTI_PULL_COST = 900 // 10 pulls for price of 9
 const isRolling = ref(false)
 const showResultDialog = ref(false)
 const pullResults = ref<Pet[]>([])
+const newPetIds = ref<Set<string>>(new Set()) // Track which pulled pets are new
 const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
+const capsuleColor = ref('purple') // Color of the dispensing capsule
+
+// Capsule colors for different rarities
+const rarityColors: Record<PetRarity, string> = {
+  common: '#9CA3AF', // gray
+  rare: '#3B82F6', // blue
+  epic: '#A855F7', // purple
+  legendary: '#F59E0B', // gold
+}
 
 // Fetch pets on mount
 onMounted(async () => {
@@ -68,6 +78,11 @@ function getRandomPet(): Pet {
   return randomPet
 }
 
+// Check if a pet is new (not currently owned)
+function isPetNew(petId: string): boolean {
+  return !petsStore.ownedPets.some((p) => p.petId === petId)
+}
+
 // Single pull
 async function singlePull() {
   if (currentCoins.value < SINGLE_PULL_COST) return
@@ -75,13 +90,19 @@ async function singlePull() {
   isRolling.value = true
   authStore.spendCoins(SINGLE_PULL_COST)
 
+  // Determine result first to set capsule color
+  const pet = getRandomPet()
+  capsuleColor.value = rarityColors[pet.rarity]
+
+  // Track if this pet is new BEFORE adding it
+  newPetIds.value = new Set(isPetNew(pet.id) ? [pet.id] : [])
+
   setTimeout(async () => {
-    const pet = getRandomPet()
     pullResults.value = [pet]
     await petsStore.addPet(pet.id)
     isRolling.value = false
     showResultDialog.value = true
-  }, 1500)
+  }, 2000)
 }
 
 // Multi pull (10x)
@@ -91,27 +112,45 @@ async function multiPull() {
   isRolling.value = true
   authStore.spendCoins(MULTI_PULL_COST)
 
+  // Set to rainbow/gold for multi pull
+  capsuleColor.value = '#F59E0B'
+
+  // Generate all pets first
+  const pets = Array.from({ length: 10 }, () => getRandomPet())
+
+  // Track which pets are new BEFORE adding them
+  const newIds = new Set<string>()
+  const seenInThisPull = new Set<string>()
+  for (const pet of pets) {
+    if (isPetNew(pet.id) && !seenInThisPull.has(pet.id)) {
+      newIds.add(pet.id)
+    }
+    seenInThisPull.add(pet.id)
+  }
+  newPetIds.value = newIds
+
   setTimeout(async () => {
-    const pets = Array.from({ length: 10 }, () => getRandomPet())
     pullResults.value = pets
     // Parallelize pet additions instead of sequential awaits
     await Promise.all(pets.map((pet) => petsStore.addPet(pet.id)))
     isRolling.value = false
     showResultDialog.value = true
-  }, 2000)
+  }, 2500)
 }
 
 function closeResults() {
   showResultDialog.value = false
   pullResults.value = []
+  newPetIds.value = new Set()
 }
 </script>
 
 <template>
   <div class="space-y-6 p-6">
+    <!-- Header -->
     <div>
-      <h1 class="text-2xl font-bold">Gacha</h1>
-      <p class="text-muted-foreground">Spend coins to get new pets!</p>
+      <h1 class="text-2xl font-bold">Gacha Machine</h1>
+      <p class="text-muted-foreground">Spend coins to collect amazing pets!</p>
     </div>
 
     <!-- Loading State -->
@@ -122,88 +161,181 @@ function closeResults() {
     <template v-else>
       <div class="grid gap-6 lg:grid-cols-4">
         <!-- Gacha Machine -->
-        <Card class="overflow-hidden lg:col-span-3">
-          <CardHeader class="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-            <CardTitle class="flex items-center gap-2">
-              <Gift class="size-6" />
-              Lucky Draw
-            </CardTitle>
-            <CardDescription class="text-white/80"
-              >Try your luck and win amazing items!</CardDescription
-            >
-          </CardHeader>
-          <CardContent class="p-6">
-            <div class="flex flex-col items-center gap-6">
-              <!-- Gacha Animation Area -->
-              <div
-                class="flex size-48 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100"
-              >
+        <Card
+          class="overflow-hidden border-2 border-purple-200 bg-gradient-to-b from-purple-50 to-fuchsia-50 dark:border-purple-800 dark:from-purple-950/50 dark:to-fuchsia-950/50 lg:col-span-3"
+        >
+          <CardContent class="p-8">
+            <div class="flex flex-col items-center gap-8">
+              <!-- Gacha Machine Visual -->
+              <div class="relative">
+                <!-- Machine Body -->
                 <div
-                  class="flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-purple-200 to-pink-200"
-                  :class="{ 'animate-pulse': isRolling }"
+                  class="relative flex h-72 w-56 flex-col items-center rounded-3xl border-4 border-purple-400 bg-gradient-to-b from-purple-600 via-purple-500 to-fuchsia-600 p-4 shadow-2xl dark:border-purple-600 dark:from-purple-800 dark:via-purple-700 dark:to-fuchsia-800"
+                  :class="{ 'animate-shake': isRolling }"
                 >
-                  <Gift v-if="!isRolling" class="size-16 text-purple-500" />
-                  <Sparkles v-else class="size-16 animate-spin text-pink-500" />
+                  <!-- Glass Dome with Capsules -->
+                  <div
+                    class="relative h-36 w-full overflow-hidden rounded-t-full border-4 border-purple-300 bg-gradient-to-b from-white/90 to-white/70 dark:border-purple-500 dark:from-gray-200/90 dark:to-gray-300/70"
+                  >
+                    <!-- Decorative capsules inside -->
+                    <div
+                      class="absolute inset-0 flex flex-wrap items-center justify-center gap-1 p-3"
+                    >
+                      <div
+                        v-for="i in 12"
+                        :key="i"
+                        class="size-6 rounded-full shadow-sm"
+                        :class="[
+                          i % 4 === 0
+                            ? 'bg-gradient-to-br from-yellow-400 to-amber-500'
+                            : i % 3 === 0
+                              ? 'bg-gradient-to-br from-purple-400 to-fuchsia-500'
+                              : i % 2 === 0
+                                ? 'bg-gradient-to-br from-blue-400 to-cyan-500'
+                                : 'bg-gradient-to-br from-gray-300 to-gray-400',
+                        ]"
+                        :style="{
+                          transform: `translate(${Math.sin(i * 1.5) * 8}px, ${Math.cos(i * 2) * 4}px)`,
+                        }"
+                      />
+                    </div>
+                    <!-- Glass shine effect -->
+                    <div
+                      class="absolute left-2 top-2 h-16 w-8 rotate-12 rounded-full bg-white/40"
+                    />
+                  </div>
+
+                  <!-- Machine Label -->
+                  <div
+                    class="mt-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-400 px-6 py-1 shadow-md"
+                  >
+                    <span class="text-sm font-bold text-amber-900">LUCKY PETS</span>
+                  </div>
+
+                  <!-- Dispenser Opening -->
+                  <div class="mt-auto flex flex-col items-center">
+                    <div class="h-4 w-20 rounded-t-lg bg-gradient-to-b from-gray-700 to-gray-800" />
+                    <div
+                      class="flex h-12 w-24 items-center justify-center rounded-b-2xl border-4 border-gray-700 bg-gray-900"
+                    >
+                      <!-- Dispensing capsule animation -->
+                      <div
+                        v-if="isRolling"
+                        class="size-8 animate-bounce rounded-full shadow-lg"
+                        :style="{
+                          background: `linear-gradient(135deg, ${capsuleColor}, ${capsuleColor}dd)`,
+                        }"
+                      />
+                      <div v-else class="text-2xl">🎁</div>
+                    </div>
+                  </div>
                 </div>
+
+                <!-- Decorative stars -->
+                <Sparkles
+                  class="absolute -left-4 -top-2 size-8 text-yellow-400"
+                  :class="{ 'animate-pulse': isRolling }"
+                />
+                <Sparkles
+                  class="absolute -right-4 top-8 size-6 text-pink-400"
+                  :class="{ 'animate-pulse': isRolling }"
+                />
+                <Sparkles
+                  class="absolute -left-2 bottom-16 size-5 text-purple-400"
+                  :class="{ 'animate-pulse': isRolling }"
+                />
               </div>
 
               <!-- Pull Buttons -->
               <div class="flex flex-col gap-4 sm:flex-row">
                 <Button
                   size="lg"
-                  class="min-w-40 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  class="min-w-44 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white shadow-lg transition-all hover:from-purple-600 hover:to-fuchsia-600 hover:shadow-xl disabled:opacity-50"
                   :disabled="isRolling || currentCoins < SINGLE_PULL_COST"
                   @click="singlePull"
                 >
-                  <Star class="mr-2 size-5" />
+                  <span class="mr-2 text-lg">🎰</span>
                   Single Pull
-                  <Badge variant="secondary" class="ml-2 gap-1">
-                    <CirclePoundSterling class="size-3 text-amber-700 dark:text-amber-400" />
+                  <Badge
+                    variant="secondary"
+                    class="ml-2 gap-1 bg-white/20 text-white hover:bg-white/20"
+                  >
+                    <CirclePoundSterling class="size-3" />
                     {{ SINGLE_PULL_COST }}
                   </Badge>
                 </Button>
                 <Button
                   size="lg"
-                  class="min-w-40 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                  class="min-w-44 bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg transition-all hover:from-amber-600 hover:to-orange-600 hover:shadow-xl disabled:opacity-50"
                   :disabled="isRolling || currentCoins < MULTI_PULL_COST"
                   @click="multiPull"
                 >
-                  <Sparkles class="mr-2 size-5" />
+                  <span class="mr-2 text-lg">✨</span>
                   10x Pull
-                  <Badge variant="secondary" class="ml-2 gap-1">
-                    <CirclePoundSterling class="size-3 text-amber-700 dark:text-amber-400" />
+                  <Badge
+                    variant="secondary"
+                    class="ml-2 gap-1 bg-white/20 text-white hover:bg-white/20"
+                  >
+                    <CirclePoundSterling class="size-3" />
                     {{ MULTI_PULL_COST }}
                   </Badge>
                 </Button>
               </div>
 
-              <p v-if="currentCoins < SINGLE_PULL_COST" class="text-sm text-muted-foreground">
+              <p
+                v-if="currentCoins < SINGLE_PULL_COST"
+                class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400"
+              >
                 Not enough coins! Complete practice sessions to earn more.
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <!-- Rarity Info -->
-        <Card class="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Drop Rates</CardTitle>
-            <CardDescription>Chances of getting each rarity</CardDescription>
+        <!-- Drop Rates Card -->
+        <Card class="border-purple-200 dark:border-purple-800 lg:col-span-1">
+          <CardHeader class="pb-3">
+            <CardTitle class="flex items-center gap-2 text-lg">
+              <Info class="size-4" />
+              Drop Rates
+            </CardTitle>
+            <CardDescription>Chances for each rarity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-2">
               <div
                 v-for="rarity in rarityOrder"
                 :key="rarity"
-                class="rounded-lg p-4 text-center"
-                :class="rarityConfig[rarity].bgColor"
+                class="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                :class="[rarityConfig[rarity].borderColor]"
               >
-                <p class="text-sm font-medium" :class="rarityConfig[rarity].color">
-                  {{ rarityConfig[rarity].label }}
-                </p>
-                <p class="text-2xl font-bold" :class="rarityConfig[rarity].color">
+                <div class="flex items-center gap-2">
+                  <div class="size-4 rounded-full" :style="{ background: rarityColors[rarity] }" />
+                  <span class="text-sm font-medium" :class="rarityConfig[rarity].color">
+                    {{ rarityConfig[rarity].label }}
+                  </span>
+                </div>
+                <span class="font-bold" :class="rarityConfig[rarity].color">
                   {{ rarityConfig[rarity].chance }}%
-                </p>
+                </span>
+              </div>
+            </div>
+
+            <!-- Pricing Info -->
+            <div class="mt-4 rounded-lg bg-muted/50 p-3">
+              <p class="mb-2 text-xs font-medium text-muted-foreground">Pricing</p>
+              <div class="space-y-1 text-sm">
+                <div class="flex justify-between">
+                  <span>Single Pull</span>
+                  <span class="font-medium">{{ SINGLE_PULL_COST }} coins</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>10x Pull</span>
+                  <span class="font-medium"
+                    >{{ MULTI_PULL_COST }} coins
+                    <span class="text-xs text-green-600">(10% off)</span></span
+                  >
+                </div>
               </div>
             </div>
           </CardContent>
@@ -213,39 +345,82 @@ function closeResults() {
 
     <!-- Results Dialog -->
     <Dialog :open="showResultDialog" @update:open="closeResults">
-      <DialogContent class="max-w-2xl">
+      <DialogContent class="max-w-2xl border-2 border-purple-300 dark:border-purple-700">
         <DialogHeader>
-          <DialogTitle class="flex items-center gap-2">
-            <Sparkles class="size-5 text-yellow-500" />
-            You Got {{ pullResults.length }} Pet{{ pullResults.length > 1 ? 's' : '' }}!
+          <DialogTitle class="flex items-center gap-2 text-xl">
+            <span class="text-2xl">🎉</span>
+            Congratulations!
           </DialogTitle>
-          <DialogDescription>Here are your new pets</DialogDescription>
+          <DialogDescription>
+            You got {{ pullResults.length }} new pet{{ pullResults.length > 1 ? 's' : '' }}!
+          </DialogDescription>
         </DialogHeader>
         <div
-          class="grid gap-3"
-          :class="pullResults.length > 1 ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-1'"
+          class="grid gap-3 py-4"
+          :class="pullResults.length > 1 ? 'grid-cols-2 sm:grid-cols-5' : 'place-items-center'"
         >
           <div
             v-for="(pet, index) in pullResults"
             :key="index"
-            class="flex flex-col items-center rounded-lg border p-4"
-            :class="rarityConfig[pet.rarity].bgColor"
+            class="flex flex-col items-center rounded-xl border-2 p-4 transition-transform hover:scale-105"
+            :class="[rarityConfig[pet.rarity].bgColor, rarityConfig[pet.rarity].borderColor]"
           >
-            <img
-              :src="petsStore.getThumbnailPetImageUrl(pet.imagePath, pet.updatedAt)"
-              :alt="pet.name"
-              class="size-16 object-contain"
-            />
-            <p class="mt-2 text-center text-sm font-medium">{{ pet.name }}</p>
-            <Badge :class="rarityConfig[pet.rarity].color" variant="outline" class="mt-1">
+            <div class="relative">
+              <img
+                :src="petsStore.getThumbnailPetImageUrl(pet.imagePath, pet.updatedAt)"
+                :alt="pet.name"
+                class="size-16 object-contain drop-shadow-md"
+              />
+              <!-- New badge for first-time pets -->
+              <Badge
+                v-if="newPetIds.has(pet.id)"
+                class="absolute -right-2 -top-2 bg-green-500 px-1.5 text-[10px]"
+              >
+                NEW!
+              </Badge>
+            </div>
+            <p class="mt-2 text-center text-sm font-semibold">{{ pet.name }}</p>
+            <Badge :class="rarityConfig[pet.rarity].color" variant="outline" class="mt-1 text-xs">
               {{ rarityConfig[pet.rarity].label }}
             </Badge>
           </div>
         </div>
-        <div class="flex justify-end">
-          <Button @click="closeResults">Awesome!</Button>
+        <div class="flex justify-end gap-2">
+          <Button variant="outline" @click="closeResults">Close</Button>
+          <Button
+            class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
+            @click="closeResults"
+          >
+            Awesome! 🎊
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
   </div>
 </template>
+
+<style scoped>
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px) rotate(-1deg);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px) rotate(1deg);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.6s ease-in-out infinite;
+}
+</style>

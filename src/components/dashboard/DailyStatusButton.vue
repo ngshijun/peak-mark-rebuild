@@ -74,7 +74,7 @@ defineExpose({
 <template>
   <Dialog v-model:open="isOpen">
     <button
-      class="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 transition-colors hover:bg-accent"
+      class="flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 shadow-sm transition-colors hover:bg-accent"
       @click="isOpen = true"
     >
       <span class="text-sm font-medium">Daily Status</span>

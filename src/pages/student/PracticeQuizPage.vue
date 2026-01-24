@@ -352,11 +352,15 @@ function handleOptionClick(optionId: string) {
                     !isAnswered && !selectedOptionIds.has(option.id),
                   'cursor-not-allowed': isAnswered,
                   'border-green-500 bg-green-50 dark:bg-green-950/20':
-                    isAnswered && option.isCorrect && answeredOptionIds.includes(option.id),
-                  'border-amber-500 bg-amber-50 dark:bg-amber-950/20':
-                    isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id),
+                    isAnswered &&
+                    option.isCorrect &&
+                    (currentQuestion?.type === 'mcq' || answeredOptionIds.includes(option.id)),
                   'border-red-500 bg-red-50 dark:bg-red-950/20':
-                    isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
+                    isAnswered &&
+                    ((answeredOptionIds.includes(option.id) && !option.isCorrect) ||
+                      (currentQuestion?.type === 'mrq' &&
+                        option.isCorrect &&
+                        !answeredOptionIds.includes(option.id))),
                 }"
                 :disabled="isAnswered"
                 @click="handleOptionClick(option.id)"
@@ -370,34 +374,72 @@ function handleOptionClick(optionId: string) {
                         'border-primary bg-primary text-primary-foreground':
                           selectedOptionIds.has(option.id) && !isAnswered,
                         'border-green-500 bg-green-500 text-white':
-                          isAnswered && option.isCorrect && answeredOptionIds.includes(option.id),
-                        'border-amber-500 bg-amber-500 text-white':
-                          isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id),
+                          isAnswered &&
+                          option.isCorrect &&
+                          (currentQuestion?.type === 'mcq' ||
+                            answeredOptionIds.includes(option.id)),
                         'border-red-500 bg-red-500 text-white':
-                          isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
+                          isAnswered &&
+                          ((answeredOptionIds.includes(option.id) && !option.isCorrect) ||
+                            (currentQuestion?.type === 'mrq' &&
+                              option.isCorrect &&
+                              !answeredOptionIds.includes(option.id))),
                       }"
                     >
                       {{ String.fromCharCode(65 + index) }}
                     </span>
-                    <!-- Correct and selected -->
-                    <CheckCircle2
-                      v-if="isAnswered && option.isCorrect && answeredOptionIds.includes(option.id)"
-                      class="size-5 text-green-500"
-                    />
-                    <!-- Correct but NOT selected (missed) -->
-                    <CheckCircle2
-                      v-else-if="
-                        isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id)
-                      "
-                      class="size-5 text-amber-500"
-                    />
-                    <!-- Incorrect and selected -->
-                    <XCircle
-                      v-if="
-                        isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect
-                      "
-                      class="size-5 text-red-500"
-                    />
+                    <div class="flex items-center gap-1">
+                      <!-- Correct and selected -->
+                      <template
+                        v-if="
+                          isAnswered && option.isCorrect && answeredOptionIds.includes(option.id)
+                        "
+                      >
+                        <CheckCircle2 class="size-5 text-green-500" />
+                        <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                          Your answer
+                        </Badge>
+                      </template>
+                      <!-- MCQ: Correct but NOT selected (show correct answer) -->
+                      <template
+                        v-else-if="
+                          isAnswered &&
+                          currentQuestion?.type === 'mcq' &&
+                          option.isCorrect &&
+                          !answeredOptionIds.includes(option.id)
+                        "
+                      >
+                        <CheckCircle2 class="size-5 text-green-500" />
+                        <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                          Correct answer
+                        </Badge>
+                      </template>
+                      <!-- MRQ: Correct but NOT selected (missed - show as error) -->
+                      <template
+                        v-else-if="
+                          isAnswered &&
+                          currentQuestion?.type === 'mrq' &&
+                          option.isCorrect &&
+                          !answeredOptionIds.includes(option.id)
+                        "
+                      >
+                        <XCircle class="size-5 text-red-500" />
+                        <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                          Correct answer
+                        </Badge>
+                      </template>
+                      <!-- Incorrect and selected -->
+                      <template
+                        v-if="
+                          isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect
+                        "
+                      >
+                        <XCircle class="size-5 text-red-500" />
+                        <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                          Your answer
+                        </Badge>
+                      </template>
+                    </div>
                   </div>
                   <img
                     v-if="option.imagePath"
@@ -416,11 +458,15 @@ function handleOptionClick(optionId: string) {
                       'border-primary bg-primary text-primary-foreground':
                         selectedOptionIds.has(option.id) && !isAnswered,
                       'border-green-500 bg-green-500 text-white':
-                        isAnswered && option.isCorrect && answeredOptionIds.includes(option.id),
-                      'border-amber-500 bg-amber-500 text-white':
-                        isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id),
+                        isAnswered &&
+                        option.isCorrect &&
+                        (currentQuestion?.type === 'mcq' || answeredOptionIds.includes(option.id)),
                       'border-red-500 bg-red-500 text-white':
-                        isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect,
+                        isAnswered &&
+                        ((answeredOptionIds.includes(option.id) && !option.isCorrect) ||
+                          (currentQuestion?.type === 'mrq' &&
+                            option.isCorrect &&
+                            !answeredOptionIds.includes(option.id))),
                     }"
                   >
                     {{ String.fromCharCode(65 + index) }}
@@ -437,22 +483,55 @@ function handleOptionClick(optionId: string) {
                     />
                   </div>
                   <!-- Correct and selected -->
-                  <CheckCircle2
+                  <div
                     v-if="isAnswered && option.isCorrect && answeredOptionIds.includes(option.id)"
-                    class="ml-auto size-5 text-green-500"
-                  />
-                  <!-- Correct but NOT selected (missed) -->
-                  <CheckCircle2
+                    class="ml-auto flex items-center gap-1"
+                  >
+                    <CheckCircle2 class="size-5 text-green-500" />
+                    <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                      Your answer
+                    </Badge>
+                  </div>
+                  <!-- MCQ: Correct but NOT selected (show correct answer) -->
+                  <div
                     v-else-if="
-                      isAnswered && option.isCorrect && !answeredOptionIds.includes(option.id)
+                      isAnswered &&
+                      currentQuestion?.type === 'mcq' &&
+                      option.isCorrect &&
+                      !answeredOptionIds.includes(option.id)
                     "
-                    class="ml-auto size-5 text-amber-500"
-                  />
+                    class="ml-auto flex items-center gap-1"
+                  >
+                    <CheckCircle2 class="size-5 text-green-500" />
+                    <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                      Correct answer
+                    </Badge>
+                  </div>
+                  <!-- MRQ: Correct but NOT selected (missed - show as error) -->
+                  <div
+                    v-else-if="
+                      isAnswered &&
+                      currentQuestion?.type === 'mrq' &&
+                      option.isCorrect &&
+                      !answeredOptionIds.includes(option.id)
+                    "
+                    class="ml-auto flex items-center gap-1"
+                  >
+                    <XCircle class="size-5 text-red-500" />
+                    <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                      Correct answer
+                    </Badge>
+                  </div>
                   <!-- Incorrect and selected -->
-                  <XCircle
+                  <div
                     v-if="isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect"
-                    class="ml-auto size-5 text-red-500"
-                  />
+                    class="ml-auto flex items-center gap-1"
+                  >
+                    <XCircle class="size-5 text-red-500" />
+                    <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                      Your answer
+                    </Badge>
+                  </div>
                 </div>
               </button>
             </div>

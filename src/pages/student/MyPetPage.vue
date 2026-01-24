@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, Transition } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, rarityConfig, EVOLUTION_COSTS } from '@/stores/pets'
@@ -39,6 +39,48 @@ const selectedPet = computed(() => petsStore.selectedPet)
 const selectedOwnedPet = computed(() => petsStore.selectedOwnedPet)
 const currentFood = computed(() => authStore.studentProfile?.food ?? 0)
 
+// Pet conversation messages pool - motivational messages for students
+const pettingMessages = [
+  "You're doing amazing! Keep it up!",
+  'Every practice makes you stronger!',
+  "I believe in you! You've got this!",
+  'Hard work always pays off!',
+  "You're smarter than you think!",
+  'Mistakes help us learn and grow!',
+  'Keep going, champion!',
+  'Your effort inspires me!',
+  "You're making great progress!",
+  'Never give up on your dreams!',
+  "One step at a time, you'll get there!",
+  "I'm so proud of how hard you work!",
+]
+
+const feedingMessages = [
+  "Thanks! Now let's ace that next quiz!",
+  'Yum! Ready to learn together?',
+  "Feeling energized! Let's study!",
+  'Brain food! Time to get smarter!',
+  "Thanks! You're the best study buddy!",
+  "Nom nom! Let's conquer those topics!",
+  'Delicious! Now back to learning!',
+  'I feel stronger! Just like your brain!',
+]
+
+const hungryMessages = [
+  'A little snack helps us think better!',
+  "Feed me and let's practice together!",
+  'Learning is easier on a full tummy!',
+  "Let's refuel and tackle more questions!",
+]
+
+const maxTierMessages = [
+  "We've grown so much together!",
+  'Your dedication got us here!',
+  'Nothing can stop us now!',
+  "We're an unstoppable team!",
+  'All that hard work paid off!',
+]
+
 // Evolution progress
 const evolutionProgress = computed(() => {
   if (!selectedOwnedPet.value) return null
@@ -57,6 +99,13 @@ const isFeeding = ref(false)
 const isEvolving = ref(false)
 const showHearts = ref(false)
 const showSparkles = ref(false)
+const showFoodParticles = ref(false)
+
+// Pet conversation bubble state
+const showConversationBubble = ref(false)
+const currentMessage = ref('')
+const conversationType = ref<'petting' | 'feeding' | 'hungry' | 'maxTier'>('petting')
+let conversationTimeout: ReturnType<typeof setTimeout> | null = null
 
 // Food exchange dialog state
 const showFoodExchangeDialog = ref(false)
@@ -67,6 +116,46 @@ const FOOD_PRICE = 50 // coins per food
 const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
 const exchangeCost = computed(() => foodAmount.value * FOOD_PRICE)
 const canAffordExchange = computed(() => currentCoins.value >= exchangeCost.value)
+
+// Helper to get random message from pool
+function getRandomMessage(messages: string[]): string {
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+// Show pet conversation bubble
+function showPetConversation(type: 'petting' | 'feeding' | 'hungry' | 'maxTier') {
+  // Clear any existing timeout
+  if (conversationTimeout) {
+    clearTimeout(conversationTimeout)
+  }
+
+  conversationType.value = type
+  switch (type) {
+    case 'petting':
+      currentMessage.value = getRandomMessage(pettingMessages)
+      break
+    case 'feeding':
+      currentMessage.value = getRandomMessage(feedingMessages)
+      break
+    case 'hungry':
+      currentMessage.value = getRandomMessage(hungryMessages)
+      break
+    case 'maxTier':
+      currentMessage.value = getRandomMessage(maxTierMessages)
+      break
+  }
+  showConversationBubble.value = true
+
+  // Auto-hide bubble after 3 seconds
+  conversationTimeout = setTimeout(() => {
+    showConversationBubble.value = false
+  }, 3000)
+}
+
+// Click on pet to interact (same as Pet button)
+function onPetClick() {
+  petPet()
+}
 
 function incrementFood() {
   const maxAffordable = Math.floor(currentCoins.value / FOOD_PRICE)
@@ -112,14 +201,15 @@ function petPet() {
 
   isPetting.value = true
   showHearts.value = true
+  showPetConversation('petting')
 
   setTimeout(() => {
     isPetting.value = false
-  }, 500)
+  }, 600)
 
   setTimeout(() => {
     showHearts.value = false
-  }, 1000)
+  }, 1500)
 }
 
 // Feed the pet for evolution
@@ -138,31 +228,33 @@ async function feedPet() {
 
   if (currentFood.value <= 0) {
     toast.warning('No food available!')
+    showPetConversation('hungry')
     return
   }
 
   isFeeding.value = true
   showSparkles.value = true
+  showFoodParticles.value = true
 
   const result = await petsStore.feedPetForEvolution(selectedOwnedPet.value.id, 1)
 
   if (!result.success) {
     toast.error(result.error ?? 'Failed to feed pet')
   } else {
+    showPetConversation('feeding')
     if (result.canEvolve) {
       toast.success('Your pet is ready to evolve!')
-    } else {
-      toast.success(`Fed your pet! (${result.foodFed}/${result.requiredFood})`)
     }
   }
 
   setTimeout(() => {
     isFeeding.value = false
-  }, 500)
+    showFoodParticles.value = false
+  }, 800)
 
   setTimeout(() => {
     showSparkles.value = false
-  }, 1000)
+  }, 1200)
 }
 
 // Evolve the pet
@@ -189,7 +281,7 @@ async function evolvePet() {
 
   setTimeout(() => {
     isEvolving.value = false
-  }, 1000)
+  }, 1500)
 }
 
 function goToCollections() {
@@ -221,7 +313,9 @@ function getTierLabel(tier: number): string {
       </div>
       <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
         <DialogTrigger as-child>
-          <Button>
+          <Button
+            class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
+          >
             <ShoppingCart class="mr-2 size-4" />
             Buy Food
           </Button>
@@ -285,7 +379,11 @@ function getTierLabel(tier: number): string {
           </div>
           <DialogFooter>
             <Button variant="outline" @click="showFoodExchangeDialog = false">Cancel</Button>
-            <Button :disabled="!canAffordExchange || isExchanging" @click="handleExchangeFood">
+            <Button
+              :disabled="!canAffordExchange || isExchanging"
+              class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
+              @click="handleExchangeFood"
+            >
               <Loader2 v-if="isExchanging" class="mr-2 size-4 animate-spin" />
               Buy Food
             </Button>
@@ -295,16 +393,26 @@ function getTierLabel(tier: number): string {
     </div>
 
     <!-- No Pet Selected -->
-    <Card v-if="!selectedPet" class="text-center">
+    <Card
+      v-if="!selectedPet"
+      class="border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 text-center dark:border-purple-800 dark:from-purple-950/30 dark:to-fuchsia-950/30"
+    >
       <CardContent class="py-12">
-        <div class="mx-auto mb-4 flex size-24 items-center justify-center rounded-full bg-muted">
-          <Heart class="size-12 text-muted-foreground" />
+        <div
+          class="mx-auto mb-4 flex size-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50"
+        >
+          <Heart class="size-12 text-purple-400" />
         </div>
         <h2 class="text-xl font-semibold">No Pet Selected</h2>
         <p class="mt-2 text-muted-foreground">
           Select a pet from your collection to display it here!
         </p>
-        <Button class="mt-4" @click="goToCollections">Go to Collections</Button>
+        <Button
+          class="mt-4 bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
+          @click="goToCollections"
+        >
+          Go to Collections
+        </Button>
       </CardContent>
     </Card>
 
@@ -312,7 +420,9 @@ function getTierLabel(tier: number): string {
     <template v-else>
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Pet Card -->
-        <Card class="lg:col-span-2">
+        <Card
+          class="border-purple-200 bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:border-purple-800 dark:from-purple-950/20 dark:to-fuchsia-950/20 lg:col-span-2"
+        >
           <CardHeader>
             <div class="flex items-center justify-between">
               <div>
@@ -335,39 +445,98 @@ function getTierLabel(tier: number): string {
           <CardContent>
             <!-- Pet Display Area -->
             <div
-              class="relative flex h-80 items-center justify-center rounded-xl bg-gradient-to-b from-sky-100 to-green-100 dark:from-sky-900/30 dark:to-green-900/30"
-              :class="rarityConfig[selectedPet.rarity].bgColor"
+              class="relative flex h-80 cursor-pointer items-center justify-center overflow-hidden rounded-xl transition-all"
+              :class="[
+                rarityConfig[selectedPet.rarity].bgColor,
+                { 'ring-4 ring-purple-400 ring-offset-2': isPetting },
+              ]"
+              @click="onPetClick"
             >
               <!-- Floating hearts animation -->
-              <div v-if="showHearts" class="absolute top-1/3 animate-bounce">
-                <Heart class="size-8 fill-red-500 text-red-500" />
+              <div v-if="showHearts" class="pointer-events-none absolute inset-0">
+                <Heart
+                  v-for="i in 5"
+                  :key="i"
+                  class="absolute size-6 fill-red-500 text-red-500 animate-float-up"
+                  :style="{
+                    left: `${20 + i * 15}%`,
+                    animationDelay: `${i * 0.1}s`,
+                  }"
+                />
               </div>
 
-              <!-- Sparkles animation -->
-              <div v-if="showSparkles" class="absolute top-1/3 animate-ping">
-                <Sparkles class="size-8 text-yellow-500" />
+              <!-- Sparkles animation for feeding -->
+              <div v-if="showSparkles" class="pointer-events-none absolute inset-0">
+                <Sparkles
+                  v-for="i in 6"
+                  :key="i"
+                  class="absolute size-5 text-yellow-400 animate-sparkle"
+                  :style="{
+                    left: `${10 + i * 14}%`,
+                    top: `${20 + (i % 3) * 20}%`,
+                    animationDelay: `${i * 0.15}s`,
+                  }"
+                />
+              </div>
+
+              <!-- Food particles animation -->
+              <div v-if="showFoodParticles" class="pointer-events-none absolute inset-0">
+                <div
+                  v-for="i in 4"
+                  :key="i"
+                  class="absolute animate-food-fall text-2xl"
+                  :style="{
+                    left: `${30 + i * 10}%`,
+                    animationDelay: `${i * 0.1}s`,
+                  }"
+                >
+                  🍖
+                </div>
               </div>
 
               <!-- Evolution animation -->
-              <div v-if="isEvolving" class="absolute inset-0 flex items-center justify-center">
-                <div class="animate-ping rounded-full bg-yellow-400/50 p-16"></div>
+              <div
+                v-if="isEvolving"
+                class="pointer-events-none absolute inset-0 flex items-center justify-center"
+              >
+                <div class="absolute size-40 animate-ping rounded-full bg-yellow-400/30"></div>
+                <div class="absolute size-60 animate-pulse rounded-full bg-yellow-400/20"></div>
               </div>
 
-              <!-- Pet -->
+              <!-- Pet with animations -->
               <div
-                class="transition-transform duration-200"
+                class="relative transition-all duration-300"
                 :class="{
-                  'scale-110': isPetting,
-                  'animate-bounce': isFeeding,
-                  'scale-125': isEvolving,
+                  'scale-110 -rotate-3': isPetting,
+                  'scale-105 animate-wiggle': isFeeding,
+                  'scale-125 animate-glow': isEvolving,
                 }"
               >
                 <img
                   :src="currentTierImage"
                   :alt="selectedPet.name"
-                  class="size-80 object-contain"
+                  class="size-72 object-contain drop-shadow-lg"
+                  :class="{ 'animate-bounce-slow': !isPetting && !isFeeding && !isEvolving }"
                 />
               </div>
+
+              <!-- Conversation Bubble (right-skewed) -->
+              <Transition name="bubble">
+                <div
+                  v-if="showConversationBubble"
+                  class="absolute right-4 top-1/2 z-20 -translate-y-1/2"
+                >
+                  <div
+                    class="relative rounded-2xl border-2 border-purple-300 bg-white px-4 py-3 shadow-lg dark:border-purple-600 dark:bg-gray-800"
+                  >
+                    <p class="max-w-44 text-sm font-medium">{{ currentMessage }}</p>
+                    <!-- Speech bubble tail pointing left (toward pet) -->
+                    <div
+                      class="absolute -left-2 top-1/2 size-3 -translate-y-1/2 rotate-45 border-b-2 border-l-2 border-purple-300 bg-white dark:border-purple-600 dark:bg-gray-800"
+                    ></div>
+                  </div>
+                </div>
+              </Transition>
             </div>
 
             <!-- Interaction Buttons -->
@@ -375,17 +544,18 @@ function getTierLabel(tier: number): string {
               <Button
                 size="lg"
                 variant="outline"
-                class="flex-1"
+                class="flex-1 border-pink-300 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/30 dark:text-pink-400 dark:hover:bg-pink-950/50"
                 :disabled="isPetting"
                 @click="petPet"
               >
                 <Hand class="mr-2 size-5" />
                 Pet
+                <Heart class="ml-2 size-4 fill-pink-400 text-pink-400" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                class="flex-1"
+                class="flex-1 border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:hover:bg-orange-950/50"
                 :disabled="
                   isFeeding ||
                   currentFood <= 0 ||
@@ -394,27 +564,30 @@ function getTierLabel(tier: number): string {
                 "
                 @click="feedPet"
               >
-                <Beef class="mr-2 size-5 text-red-700 dark:text-red-400" />
+                <Beef class="mr-2 size-5" />
                 Feed
+                <span class="ml-2 text-xs opacity-70">({{ currentFood }})</span>
               </Button>
             </div>
           </CardContent>
         </Card>
 
         <!-- Evolution Card -->
-        <Card>
+        <Card class="border-purple-200 dark:border-purple-800">
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
-              <ArrowUp class="size-5" />
+              <ArrowUp class="size-5 text-purple-500" />
               Evolution
             </CardTitle>
             <CardDescription>Feed your pet to evolve it!</CardDescription>
           </CardHeader>
           <CardContent class="space-y-6">
             <!-- Current Tier -->
-            <div class="rounded-lg bg-muted p-4 text-center">
+            <div
+              class="rounded-lg bg-gradient-to-r from-purple-100 to-fuchsia-100 p-4 text-center dark:from-purple-900/30 dark:to-fuchsia-900/30"
+            >
               <p class="text-sm text-muted-foreground">Current Tier</p>
-              <p class="text-2xl font-bold">
+              <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">
                 {{ selectedOwnedPet?.tier ?? 1 }}
                 <span class="text-base font-normal text-muted-foreground">/ 3</span>
               </p>
@@ -441,7 +614,7 @@ function getTierLabel(tier: number): string {
             <!-- Max Tier Message -->
             <div
               v-else-if="evolutionProgress?.isMaxTier"
-              class="rounded-lg bg-yellow-100 p-4 text-center dark:bg-yellow-900/30"
+              class="rounded-lg bg-gradient-to-r from-yellow-100 to-amber-100 p-4 text-center dark:from-yellow-900/30 dark:to-amber-900/30"
             >
               <Star class="mx-auto size-8 text-yellow-500" />
               <p class="mt-2 font-medium text-yellow-700 dark:text-yellow-400">Max Tier Reached!</p>
@@ -456,35 +629,159 @@ function getTierLabel(tier: number): string {
               :disabled="isEvolving"
               @click="evolvePet"
             >
-              <ArrowUp class="mr-2 size-5" />
+              <Loader2 v-if="isEvolving" class="mr-2 size-5 animate-spin" />
+              <ArrowUp v-else class="mr-2 size-5" />
               Evolve to Tier {{ (selectedOwnedPet?.tier ?? 1) + 1 }}!
             </Button>
 
             <!-- Evolution Costs Info -->
-            <div class="rounded-lg border p-4">
+            <div class="rounded-lg border border-purple-200 p-4 dark:border-purple-800">
               <h4 class="mb-2 text-sm font-medium">Evolution Costs</h4>
               <ul class="space-y-1 text-sm text-muted-foreground">
                 <li class="flex justify-between">
                   <span>Tier 1 → 2</span>
-                  <span>{{ EVOLUTION_COSTS.tier1to2 }} food</span>
+                  <span class="font-medium">{{ EVOLUTION_COSTS.tier1to2 }} food</span>
                 </li>
                 <li class="flex justify-between">
                   <span>Tier 2 → 3</span>
-                  <span>{{ EVOLUTION_COSTS.tier2to3 }} food</span>
+                  <span class="font-medium">{{ EVOLUTION_COSTS.tier2to3 }} food</span>
                 </li>
               </ul>
             </div>
 
             <!-- Quick Actions -->
-            <div class="space-y-2">
-              <Button variant="outline" class="w-full" @click="goToCollections">
-                <Sparkles class="mr-2 size-4" />
-                View Collection
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              class="w-full border-purple-300 dark:border-purple-700"
+              @click="goToCollections"
+            >
+              <Sparkles class="mr-2 size-4 text-purple-500" />
+              View Collection
+            </Button>
           </CardContent>
         </Card>
       </div>
     </template>
   </div>
 </template>
+
+<style scoped>
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100px) scale(0.5);
+  }
+}
+
+.animate-float-up {
+  animation: float-up 1.5s ease-out forwards;
+}
+
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 1s ease-in-out infinite;
+}
+
+@keyframes food-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(-20px) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(80px) rotate(360deg);
+  }
+}
+
+.animate-food-fall {
+  animation: food-fall 0.8s ease-in forwards;
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.3s ease-in-out infinite;
+}
+
+@keyframes bounce-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(234, 179, 8, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(234, 179, 8, 0.8));
+  }
+}
+
+.animate-glow {
+  animation: glow 0.5s ease-in-out infinite;
+}
+
+/* Speech bubble transition (right-skewed) */
+.bubble-enter-active {
+  animation: bubble-in 0.3s ease-out;
+}
+
+.bubble-leave-active {
+  animation: bubble-out 0.2s ease-in;
+}
+
+@keyframes bubble-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-20px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+}
+
+@keyframes bubble-out {
+  0% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(20px) scale(0.8);
+  }
+}
+</style>
