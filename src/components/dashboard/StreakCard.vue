@@ -28,7 +28,11 @@ function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
 </script>
 
 <template>
-  <Card class="cursor-pointer" @click="goToPractice">
+  <!-- Warm orange/amber tint - fire/streak association -->
+  <Card
+    class="cursor-pointer border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 dark:border-orange-900/50 dark:from-orange-950/30 dark:to-amber-950/30"
+    @click="goToPractice"
+  >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle class="text-sm font-medium">Practice Streak</CardTitle>
       <Flame class="size-4 text-muted-foreground" />

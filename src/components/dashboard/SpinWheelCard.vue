@@ -104,7 +104,10 @@ watch(isOpen, (open) => {
 <template>
   <Dialog v-model:open="isOpen">
     <DialogTrigger as-child>
-      <Card class="cursor-pointer">
+      <!-- Soft green/teal tint - reward/positive association -->
+      <Card
+        class="cursor-pointer border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:border-emerald-900/50 dark:from-emerald-950/30 dark:to-teal-950/30"
+      >
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Daily Spin</CardTitle>
           <Gift class="size-4 text-muted-foreground" />

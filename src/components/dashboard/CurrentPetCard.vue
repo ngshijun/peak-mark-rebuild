@@ -24,7 +24,11 @@ function goToCollections() {
 </script>
 
 <template>
-  <Card class="cursor-pointer" @click="goToCollections">
+  <!-- Soft purple tint - brand color, emotional connection -->
+  <Card
+    class="cursor-pointer border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:border-purple-900/50 dark:from-purple-950/30 dark:to-fuchsia-950/30"
+    @click="goToCollections"
+  >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle class="text-sm font-medium">My Pet</CardTitle>
       <PawPrint class="size-4 text-muted-foreground" />

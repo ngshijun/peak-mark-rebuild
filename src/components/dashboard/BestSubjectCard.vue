@@ -80,7 +80,11 @@ function goToHistory() {
 </script>
 
 <template>
-  <Card class="cursor-pointer" @click="goToHistory">
+  <!-- Soft blue tint - knowledge/learning association -->
+  <Card
+    class="cursor-pointer border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
+    @click="goToHistory"
+  >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle class="text-sm font-medium">Best Subject</CardTitle>
       <Trophy class="size-4 text-muted-foreground" />
