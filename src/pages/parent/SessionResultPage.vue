@@ -254,13 +254,23 @@ function goBack() {
                 <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
                   Deleted
                 </Badge>
-                <Badge
-                  v-else
-                  :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
-                  class="shrink-0"
-                >
-                  {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
-                </Badge>
+                <template v-else>
+                  <Badge variant="outline" class="shrink-0">
+                    {{
+                      question.type === 'mcq'
+                        ? 'MCQ'
+                        : question.type === 'mrq'
+                          ? 'MRQ'
+                          : 'Short Answer'
+                    }}
+                  </Badge>
+                  <Badge
+                    :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
+                    class="shrink-0"
+                  >
+                    {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
+                  </Badge>
+                </template>
               </div>
             </div>
           </CardHeader>

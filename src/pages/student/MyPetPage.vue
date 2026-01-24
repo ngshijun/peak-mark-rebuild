@@ -452,42 +452,67 @@ function getTierLabel(tier: number): string {
               ]"
               @click="onPetClick"
             >
-              <!-- Floating hearts animation -->
+              <!-- Floating hearts animation (scattered around the pet) -->
               <div v-if="showHearts" class="pointer-events-none absolute inset-0">
                 <Heart
-                  v-for="i in 5"
+                  v-for="(pos, i) in [
+                    { left: '25%', top: '30%' },
+                    { left: '70%', top: '25%' },
+                    { left: '15%', top: '55%' },
+                    { left: '80%', top: '50%' },
+                    { left: '35%', top: '65%' },
+                    { left: '60%', top: '70%' },
+                    { left: '45%', top: '40%' },
+                    { left: '55%', top: '55%' },
+                  ]"
                   :key="i"
-                  class="absolute size-6 fill-red-500 text-red-500 animate-float-up"
+                  class="absolute size-6 fill-red-500 text-red-500 animate-heart-float"
                   :style="{
-                    left: `${20 + i * 15}%`,
+                    left: pos.left,
+                    top: pos.top,
                     animationDelay: `${i * 0.1}s`,
                   }"
                 />
               </div>
 
-              <!-- Sparkles animation for feeding -->
+              <!-- Sparkles animation for feeding (scattered) -->
               <div v-if="showSparkles" class="pointer-events-none absolute inset-0">
                 <Sparkles
-                  v-for="i in 6"
+                  v-for="(pos, i) in [
+                    { left: '20%', top: '25%' },
+                    { left: '75%', top: '30%' },
+                    { left: '30%', top: '60%' },
+                    { left: '65%', top: '55%' },
+                    { left: '45%', top: '35%' },
+                    { left: '55%', top: '70%' },
+                    { left: '15%', top: '45%' },
+                    { left: '80%', top: '65%' },
+                  ]"
                   :key="i"
                   class="absolute size-5 text-yellow-400 animate-sparkle"
                   :style="{
-                    left: `${10 + i * 14}%`,
-                    top: `${20 + (i % 3) * 20}%`,
-                    animationDelay: `${i * 0.15}s`,
+                    left: pos.left,
+                    top: pos.top,
+                    animationDelay: `${i * 0.12}s`,
                   }"
                 />
               </div>
 
-              <!-- Food particles animation -->
+              <!-- Food particles animation (scattered) -->
               <div v-if="showFoodParticles" class="pointer-events-none absolute inset-0">
                 <div
-                  v-for="i in 4"
+                  v-for="(pos, i) in [
+                    { left: '25%' },
+                    { left: '45%' },
+                    { left: '60%' },
+                    { left: '75%' },
+                    { left: '35%' },
+                  ]"
                   :key="i"
                   class="absolute animate-food-fall text-2xl"
                   :style="{
-                    left: `${30 + i * 10}%`,
-                    animationDelay: `${i * 0.1}s`,
+                    left: pos.left,
+                    animationDelay: `${i * 0.12}s`,
                   }"
                 >
                   🍖
@@ -679,6 +704,25 @@ function getTierLabel(tier: number): string {
 
 .animate-float-up {
   animation: float-up 1.5s ease-out forwards;
+}
+
+@keyframes heart-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) scale(0.6);
+  }
+}
+
+.animate-heart-float {
+  animation: heart-float 1.5s ease-out forwards;
 }
 
 @keyframes sparkle {
