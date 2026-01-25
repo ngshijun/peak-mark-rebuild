@@ -313,9 +313,7 @@ function getTierLabel(tier: number): string {
       </div>
       <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
         <DialogTrigger as-child>
-          <Button
-            class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
-          >
+          <Button>
             <ShoppingCart class="mr-2 size-4" />
             Buy Food
           </Button>

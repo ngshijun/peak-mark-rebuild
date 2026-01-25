@@ -34,7 +34,7 @@ const capsuleColor = ref('purple') // Color of the dispensing capsule
 
 // Capsule colors for different rarities
 const rarityColors: Record<PetRarity, string> = {
-  common: '#9CA3AF', // gray
+  common: '#22C55E', // green
   rare: '#3B82F6', // blue
   epic: '#A855F7', // purple
   legendary: '#F59E0B', // gold

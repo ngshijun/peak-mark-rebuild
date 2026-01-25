@@ -299,7 +299,7 @@ async function confirmStartSession() {
           <Card
             v-for="subject in availableSubjects"
             :key="subject.id"
-            class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
+            class="flex h-full cursor-pointer flex-col overflow-hidden transition-all hover:scale-[1.02] hover:shadow-lg"
             :class="{
               'border-2 border-green-500 bg-green-50 dark:bg-green-950':
                 isSubjectFullyPracticed(subject),
@@ -311,7 +311,7 @@ async function confirmStartSession() {
                 :src="getImageUrl(subject.coverImagePath)"
                 :alt="subject.name"
                 loading="lazy"
-                class="size-full object-cover transition-transform hover:scale-105"
+                class="size-full object-cover"
               />
             </div>
             <CardContent class="mt-auto p-4">
@@ -356,7 +356,7 @@ async function confirmStartSession() {
           <Card
             v-for="topic in selectedSubject.topics"
             :key="topic.id"
-            class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
+            class="flex h-full cursor-pointer flex-col overflow-hidden transition-all hover:scale-[1.02] hover:shadow-lg"
             :class="{
               'border-2 border-green-500 bg-green-50 dark:bg-green-950':
                 isTopicFullyPracticed(topic),
@@ -368,7 +368,7 @@ async function confirmStartSession() {
                 :src="getImageUrl(topic.coverImagePath)"
                 :alt="topic.name"
                 loading="lazy"
-                class="size-full object-cover transition-transform hover:scale-105"
+                class="size-full object-cover"
               />
             </div>
             <CardContent class="mt-auto p-4">
@@ -407,7 +407,7 @@ async function confirmStartSession() {
           <Card
             v-for="subTopic in selectedTopic.subTopics"
             :key="subTopic.id"
-            class="flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
+            class="flex h-full cursor-pointer flex-col overflow-hidden transition-all hover:scale-[1.02] hover:shadow-lg"
             :class="{
               'opacity-50 pointer-events-none':
                 isStartingSession || !sessionLimitStatus?.canStartSession,
@@ -422,7 +422,7 @@ async function confirmStartSession() {
                 :src="getImageUrl(subTopic.coverImagePath)"
                 :alt="subTopic.name"
                 loading="lazy"
-                class="size-full object-cover transition-transform hover:scale-105"
+                class="size-full object-cover"
               />
             </div>
             <CardContent class="mt-auto p-4">
