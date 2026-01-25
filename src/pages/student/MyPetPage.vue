@@ -119,7 +119,7 @@ const canAffordExchange = computed(() => currentCoins.value >= exchangeCost.valu
 
 // Helper to get random message from pool
 function getRandomMessage(messages: string[]): string {
-  return messages[Math.floor(Math.random() * messages.length)]
+  return messages[Math.floor(Math.random() * messages.length)]!
 }
 
 // Show pet conversation bubble
