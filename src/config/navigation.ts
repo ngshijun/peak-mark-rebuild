@@ -11,7 +11,6 @@ import {
   Baby,
   PieChart,
   CreditCard,
-  Gift,
   PawPrint,
   Megaphone,
 } from 'lucide-vue-next'
@@ -33,7 +32,6 @@ export const sidebarNavConfig: SidebarNavConfig = {
     { title: 'Practice', path: '/student/practice', icon: PenTool },
     { title: 'Statistics', path: '/student/statistics', icon: PieChart },
     { title: 'Leaderboard', path: '/student/leaderboard', icon: Trophy },
-    { title: 'Gacha', path: '/student/gacha', icon: Gift },
     { title: 'My Pet', path: '/student/my-pet', icon: PawPrint },
     { title: 'Collections', path: '/student/collections', icon: FolderHeart },
   ],

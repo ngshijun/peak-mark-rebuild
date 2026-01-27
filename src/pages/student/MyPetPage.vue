@@ -28,6 +28,7 @@ import {
   ShoppingCart,
   Beef,
   CirclePoundSterling,
+  Gift,
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
@@ -305,89 +306,97 @@ function getTierLabel(tier: number): string {
 
 <template>
   <div class="space-y-6 p-6">
-    <!-- Header with Buy Food Button -->
+    <!-- Header with Gacha and Buy Food Buttons -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold">My Pet</h1>
         <p class="text-muted-foreground">Take care of your pet companion</p>
       </div>
-      <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
-        <DialogTrigger as-child>
-          <Button>
-            <ShoppingCart class="mr-2 size-4" />
-            Buy Food
-          </Button>
-        </DialogTrigger>
-        <DialogContent class="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Buy Food</DialogTitle>
-            <DialogDescription>Exchange coins for food to feed your pet.</DialogDescription>
-          </DialogHeader>
-          <div class="space-y-4 py-4">
-            <!-- Exchange Rate Info -->
-            <div class="rounded-lg bg-muted p-3 text-center text-sm">
-              <span class="text-muted-foreground">Exchange Rate: </span>
-              <span class="font-semibold">{{ FOOD_PRICE }} coins = 1 food</span>
-            </div>
-
-            <!-- Amount Selector -->
-            <div class="flex items-center justify-center gap-4">
-              <button
-                class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="foodAmount <= 1"
-                @click="decrementFood"
-              >
-                <Minus class="size-5" />
-              </button>
-              <div class="flex min-w-20 flex-col items-center">
-                <div class="flex items-center gap-2">
-                  <Beef class="size-6 text-red-700 dark:text-red-400" />
-                  <span class="text-3xl font-bold">{{ foodAmount }}</span>
-                </div>
-              </div>
-              <button
-                class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="!canAffordExchange || currentCoins < (foodAmount + 1) * FOOD_PRICE"
-                @click="incrementFood"
-              >
-                <Plus class="size-5" />
-              </button>
-            </div>
-
-            <!-- Cost Display -->
-            <div class="flex items-center justify-center gap-2 text-lg">
-              <span class="text-muted-foreground">Cost:</span>
-              <div class="flex items-center gap-1">
-                <CirclePoundSterling class="size-5 text-amber-700 dark:text-amber-400" />
-                <span
-                  class="font-bold"
-                  :class="canAffordExchange ? 'text-amber-600' : 'text-red-500'"
-                >
-                  {{ exchangeCost.toLocaleString() }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Current Balance -->
-            <div class="text-center text-sm text-muted-foreground">
-              Your balance:
-              <span class="font-semibold text-amber-600">{{ currentCoins.toLocaleString() }}</span>
-              coins
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" @click="showFoodExchangeDialog = false">Cancel</Button>
-            <Button
-              :disabled="!canAffordExchange || isExchanging"
-              class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
-              @click="handleExchangeFood"
-            >
-              <Loader2 v-if="isExchanging" class="mr-2 size-4 animate-spin" />
+      <div class="flex items-center gap-2">
+        <Button variant="outline" @click="router.push('/student/gacha')">
+          <Gift class="mr-2 size-4" />
+          Get Pets
+        </Button>
+        <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
+          <DialogTrigger as-child>
+            <Button>
+              <ShoppingCart class="mr-2 size-4" />
               Buy Food
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogTrigger>
+          <DialogContent class="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Buy Food</DialogTitle>
+              <DialogDescription>Exchange coins for food to feed your pet.</DialogDescription>
+            </DialogHeader>
+            <div class="space-y-4 py-4">
+              <!-- Exchange Rate Info -->
+              <div class="rounded-lg bg-muted p-3 text-center text-sm">
+                <span class="text-muted-foreground">Exchange Rate: </span>
+                <span class="font-semibold">{{ FOOD_PRICE }} coins = 1 food</span>
+              </div>
+
+              <!-- Amount Selector -->
+              <div class="flex items-center justify-center gap-4">
+                <button
+                  class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="foodAmount <= 1"
+                  @click="decrementFood"
+                >
+                  <Minus class="size-5" />
+                </button>
+                <div class="flex min-w-20 flex-col items-center">
+                  <div class="flex items-center gap-2">
+                    <Beef class="size-6 text-red-700 dark:text-red-400" />
+                    <span class="text-3xl font-bold">{{ foodAmount }}</span>
+                  </div>
+                </div>
+                <button
+                  class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="!canAffordExchange || currentCoins < (foodAmount + 1) * FOOD_PRICE"
+                  @click="incrementFood"
+                >
+                  <Plus class="size-5" />
+                </button>
+              </div>
+
+              <!-- Cost Display -->
+              <div class="flex items-center justify-center gap-2 text-lg">
+                <span class="text-muted-foreground">Cost:</span>
+                <div class="flex items-center gap-1">
+                  <CirclePoundSterling class="size-5 text-amber-700 dark:text-amber-400" />
+                  <span
+                    class="font-bold"
+                    :class="canAffordExchange ? 'text-amber-600' : 'text-red-500'"
+                  >
+                    {{ exchangeCost.toLocaleString() }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Current Balance -->
+              <div class="text-center text-sm text-muted-foreground">
+                Your balance:
+                <span class="font-semibold text-amber-600">{{
+                  currentCoins.toLocaleString()
+                }}</span>
+                coins
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" @click="showFoodExchangeDialog = false">Cancel</Button>
+              <Button
+                :disabled="!canAffordExchange || isExchanging"
+                class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
+                @click="handleExchangeFood"
+              >
+                <Loader2 v-if="isExchanging" class="mr-2 size-4 animate-spin" />
+                Buy Food
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
 
     <!-- No Pet Selected -->

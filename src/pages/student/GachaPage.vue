@@ -12,8 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Sparkles, Loader2, CirclePoundSterling, Info } from 'lucide-vue-next'
+import { Sparkles, Loader2, CirclePoundSterling, Info, PawPrint } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
 
@@ -148,9 +150,15 @@ function closeResults() {
 <template>
   <div class="space-y-6 p-6">
     <!-- Header -->
-    <div>
-      <h1 class="text-2xl font-bold">Gacha Machine</h1>
-      <p class="text-muted-foreground">Spend coins to collect amazing pets!</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Get Pets</h1>
+        <p class="text-muted-foreground">Spend coins to collect amazing pets!</p>
+      </div>
+      <Button variant="outline" @click="router.push('/student/my-pet')">
+        <PawPrint class="mr-2 size-4" />
+        My Pet
+      </Button>
     </div>
 
     <!-- Loading State -->
