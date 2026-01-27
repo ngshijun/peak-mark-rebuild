@@ -50,11 +50,13 @@ export interface ChildPracticeSession {
   subjectName: string
   topicName: string
   subTopicName: string
-  score: number
+  score: number | null
   totalQuestions: number
   correctAnswers: number
-  durationSeconds: number
-  completedAt: string
+  durationSeconds: number | null
+  createdAt: string
+  completedAt: string | null
+  status: 'completed' | 'in_progress'
 }
 
 export interface PracticeAnswer {
@@ -77,7 +79,8 @@ export interface Question {
   isDeleted?: boolean
 }
 
-export interface ChildPracticeSessionFull extends ChildPracticeSession {
+export interface ChildPracticeSessionFull
+  extends Omit<ChildPracticeSession, 'score' | 'durationSeconds' | 'completedAt'> {
   subjectId: string
   subTopicId: string // topic_id column now references sub_topics
   topicId: string
@@ -86,6 +89,9 @@ export interface ChildPracticeSessionFull extends ChildPracticeSession {
   answers: PracticeAnswer[]
   startedAt: string
   aiSummary: string | null
+  score: number
+  durationSeconds: number
+  completedAt: string
 }
 
 export interface ChildStatistics {
@@ -124,7 +130,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   // Statistics page filter state (persisted across navigation)
   // Note: selectedChildId is persisted via localStorage in the component (user preference)
   const statisticsFilters = ref({
-    dateRange: 'today' as DateRangeFilter,
+    dateRange: 'alltime' as DateRangeFilter,
     gradeLevel: '__all__',
     subject: '__all__',
     topic: '__all__',
@@ -163,7 +169,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     error.value = null
 
     try {
-      // Fetch completed practice sessions for this child
+      // Fetch all practice sessions for this child (including in-progress)
       const { data: sessionsData, error: fetchError } = await supabase
         .from('practice_sessions')
         .select(
@@ -193,8 +199,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         `,
         )
         .eq('student_id', childId)
-        .not('completed_at', 'is', null)
-        .order('completed_at', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
 
@@ -234,6 +239,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         const answersData = answersBySession.get(session.id) ?? []
         const correctAnswers = answersData.filter((a) => a.is_correct).length
         const totalQuestions = session.total_questions ?? answersData.length
+        const isCompleted = !!session.completed_at
 
         const subTopic = session.sub_topics as unknown as {
           id: string
@@ -249,7 +255,9 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           }
         }
 
-        const durationSeconds = answersData.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
+        const durationSeconds = isCompleted
+          ? answersData.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
+          : null
 
         sessions.push({
           id: session.id,
@@ -257,11 +265,16 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
           topicName: subTopic?.topics?.name ?? 'Unknown',
           subTopicName: subTopic?.name ?? 'Unknown',
-          score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+          score:
+            isCompleted && totalQuestions > 0
+              ? Math.round((correctAnswers / totalQuestions) * 100)
+              : null,
           totalQuestions,
           correctAnswers,
           durationSeconds,
-          completedAt: session.completed_at!,
+          createdAt: session.created_at ?? new Date().toISOString(),
+          completedAt: session.completed_at,
+          status: isCompleted ? 'completed' : 'in_progress',
         })
       }
 
@@ -581,8 +594,10 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         totalQuestions,
         correctAnswers,
         durationSeconds,
+        createdAt: sessionData.created_at ?? '',
         startedAt: sessionData.created_at ?? '',
         completedAt: sessionData.completed_at!,
+        status: 'completed',
         questions,
         answers,
         aiSummary: sessionData.ai_summary ?? null,
@@ -627,7 +642,8 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       if (topicName && s.topicName !== topicName) return false
       if (subTopicName && s.subTopicName !== subTopicName) return false
       if (dateRangeStart) {
-        const sessionDate = new Date(s.completedAt)
+        // Use completedAt for completed sessions, createdAt for in-progress
+        const sessionDate = new Date(s.completedAt ?? s.createdAt)
         if (sessionDate < dateRangeStart) return false
       }
       return true
@@ -651,9 +667,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       subTopicName,
       dateRange,
     )
-    if (sessions.length === 0) return 0
-    const totalScore = sessions.reduce((sum, s) => sum + s.score, 0)
-    return Math.round(totalScore / sessions.length)
+    // Only count completed sessions with scores
+    const completedSessions = sessions.filter((s) => s.status === 'completed' && s.score !== null)
+    if (completedSessions.length === 0) return 0
+    const totalScore = completedSessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
+    return Math.round(totalScore / completedSessions.length)
   }
 
   // Get total practice sessions count for filtered sessions
@@ -692,7 +710,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       subTopicName,
       dateRange,
     )
-    return sessions.reduce((sum, s) => sum + s.durationSeconds, 0)
+    return sessions.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
   }
 
   // Get unique sub-topics practiced by a child (from filtered sessions)
@@ -809,9 +827,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       subTopicName,
       dateRange,
     )
-    const sorted = [...sessions].sort(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
-    )
+    const sorted = [...sessions].sort((a, b) => {
+      const dateA = new Date(a.completedAt ?? a.createdAt).getTime()
+      const dateB = new Date(b.completedAt ?? b.createdAt).getTime()
+      return dateB - dateA
+    })
     return limit ? sorted.slice(0, limit) : sorted
   }
 
@@ -884,14 +904,16 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       countsMap.set(dateStr, 0)
     }
 
-    // Count sessions per day
-    sessions.forEach((session) => {
-      const completedDate = new Date(session.completedAt)
-      const dateStr = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, '0')}-${String(completedDate.getDate()).padStart(2, '0')}`
-      if (countsMap.has(dateStr)) {
-        countsMap.set(dateStr, (countsMap.get(dateStr) ?? 0) + 1)
-      }
-    })
+    // Count completed sessions per day
+    sessions
+      .filter((s) => s.status === 'completed' && s.completedAt)
+      .forEach((session) => {
+        const completedDate = new Date(session.completedAt!)
+        const dateStr = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, '0')}-${String(completedDate.getDate()).padStart(2, '0')}`
+        if (countsMap.has(dateStr)) {
+          countsMap.set(dateStr, (countsMap.get(dateStr) ?? 0) + 1)
+        }
+      })
 
     // Convert to array sorted by date
     return Array.from(countsMap.entries())

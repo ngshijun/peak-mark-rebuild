@@ -4,7 +4,17 @@ import { useRouter } from 'vue-router'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { usePracticeStore, type DateRangeFilter } from '@/stores/practice'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowUpDown, Calendar, Loader2 } from 'lucide-vue-next'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  ArrowUpDown,
+  Calendar,
+  Loader2,
+  Target,
+  BookOpen,
+  Clock,
+  Layers,
+  History,
+} from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -149,6 +159,47 @@ const historyData = computed<HistoryRow[]>(() => {
   })
 })
 
+// Statistics computed values (only from completed sessions)
+const completedSessions = computed(() => historyData.value.filter((s) => s.status === 'completed'))
+
+const averageScore = computed(() => {
+  const sessions = completedSessions.value
+  if (sessions.length === 0) return 0
+  const totalScore = sessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
+  return Math.round(totalScore / sessions.length)
+})
+
+const totalSessions = computed(() => completedSessions.value.length)
+
+const totalStudyTime = computed(() => {
+  return completedSessions.value.reduce((sum, s) => sum + (s.timeUsedSeconds ?? 0), 0)
+})
+
+const subTopicsPracticed = computed(() => {
+  const sessions = completedSessions.value
+  const subTopicSet = new Set<string>()
+  for (const s of sessions) {
+    subTopicSet.add(`${s.subjectName}-${s.topicName}-${s.subTopicName}`)
+  }
+  return subTopicSet.size
+})
+
+function formatStudyTime(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds} sec`
+  }
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes} min`
+  }
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  if (remainingMinutes === 0) {
+    return `${hours} hr`
+  }
+  return `${hours} hr ${remainingMinutes} min`
+}
+
 // Format date
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
@@ -215,7 +266,16 @@ const columns: ColumnDef<HistoryRow>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Status', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
     cell: ({ row }) => {
       const status = row.original.status
       const config = statusConfig[status]
@@ -279,18 +339,21 @@ const columns: ColumnDef<HistoryRow>[] = [
 ]
 
 function handleRowClick(row: HistoryRow) {
-  // Only navigate to result page for completed sessions
   if (row.status === 'completed') {
+    // Navigate to result page for completed sessions
     router.push(`/student/session/${row.id}`)
+  } else {
+    // Resume in-progress sessions
+    router.push({ path: '/student/practice/quiz', query: { sessionId: row.id } })
   }
 }
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold">Practice History</h1>
-      <p class="text-muted-foreground">View your past practice sessions and scores.</p>
+  <div class="space-y-6 p-6">
+    <div>
+      <h1 class="text-2xl font-bold">Statistics</h1>
+      <p class="text-muted-foreground">View your learning progress and practice history.</p>
     </div>
 
     <!-- Loading State -->
@@ -300,7 +363,7 @@ function handleRowClick(row: HistoryRow) {
 
     <template v-else>
       <!-- Filters Row -->
-      <div class="mb-4 flex flex-wrap items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <!-- Date Range Selector -->
         <Select
           :model-value="practiceStore.historyFilters.dateRange"
@@ -372,19 +435,81 @@ function handleRowClick(row: HistoryRow) {
         </Select>
       </div>
 
-      <DataTable
-        :columns="columns"
-        :data="historyData"
-        :on-row-click="handleRowClick"
-        :page-index="practiceStore.historyPagination.pageIndex"
-        :page-size="practiceStore.historyPagination.pageSize"
-        :on-page-index-change="practiceStore.setHistoryPageIndex"
-        :on-page-size-change="practiceStore.setHistoryPageSize"
-      />
+      <!-- Statistics Cards -->
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <!-- Average Score Card -->
+        <Card>
+          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle class="text-sm font-medium">Average Score</CardTitle>
+            <Target class="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div class="text-3xl font-bold">{{ averageScore }}%</div>
+          </CardContent>
+        </Card>
 
-      <div v-if="historyData.length === 0" class="py-12 text-center">
-        <p class="text-muted-foreground">No practice sessions found for the selected filters.</p>
+        <!-- Total Sessions Card -->
+        <Card>
+          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle class="text-sm font-medium">Practice Sessions</CardTitle>
+            <BookOpen class="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div class="text-3xl font-bold">{{ totalSessions }}</div>
+          </CardContent>
+        </Card>
+
+        <!-- Study Time Card -->
+        <Card>
+          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle class="text-sm font-medium">Study Time</CardTitle>
+            <Clock class="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div class="text-3xl font-bold">{{ formatStudyTime(totalStudyTime) }}</div>
+          </CardContent>
+        </Card>
+
+        <!-- Sub-Topics Practiced Card -->
+        <Card>
+          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle class="text-sm font-medium">Sub-Topics Practiced</CardTitle>
+            <Layers class="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div class="text-3xl font-bold">{{ subTopicsPracticed }}</div>
+          </CardContent>
+        </Card>
       </div>
+
+      <!-- Practice History Table -->
+      <Card>
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2">
+            <History class="size-5" />
+            Practice History
+          </CardTitle>
+          <CardDescription>View your past practice sessions and scores.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            v-if="historyData.length > 0"
+            :columns="columns"
+            :data="historyData"
+            :on-row-click="handleRowClick"
+            :page-index="practiceStore.historyPagination.pageIndex"
+            :page-size="practiceStore.historyPagination.pageSize"
+            :on-page-index-change="practiceStore.setHistoryPageIndex"
+            :on-page-size-change="practiceStore.setHistoryPageSize"
+          />
+          <div v-else class="py-12 text-center">
+            <BookOpen class="mx-auto size-12 text-muted-foreground/50" />
+            <p class="mt-2 text-muted-foreground">
+              No practice sessions found for the selected filters.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </template>
   </div>
 </template>

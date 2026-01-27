@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { DataTable } from '@/components/ui/data-table'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Target,
   BookOpen,
@@ -30,6 +31,20 @@ import {
   Calendar,
   Loader2,
 } from 'lucide-vue-next'
+
+// Status config for badge styling
+const statusConfig = {
+  completed: {
+    label: 'Completed',
+    bgColor: 'bg-green-100 dark:bg-green-950/30',
+    color: 'text-green-700 dark:text-green-400',
+  },
+  in_progress: {
+    label: 'In Progress',
+    bgColor: 'bg-amber-100 dark:bg-amber-950/30',
+    color: 'text-amber-700 dark:text-amber-400',
+  },
+} as const
 
 const router = useRouter()
 const childStatisticsStore = useChildStatisticsStore()
@@ -155,22 +170,27 @@ const filteredSessions = computed(() => {
   )
 })
 
-// Derive all metrics from the cached filtered sessions (O(1) access to filtered data)
+// Get only completed sessions for statistics
+const completedSessions = computed(() =>
+  filteredSessions.value.filter((s) => s.status === 'completed'),
+)
+
+// Derive all metrics from completed sessions only
 const averageScore = computed(() => {
-  const sessions = filteredSessions.value
+  const sessions = completedSessions.value
   if (sessions.length === 0) return 0
-  const totalScore = sessions.reduce((sum, s) => sum + s.score, 0)
+  const totalScore = sessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
   return Math.round(totalScore / sessions.length)
 })
 
-const totalSessions = computed(() => filteredSessions.value.length)
+const totalSessions = computed(() => completedSessions.value.length)
 
 const totalStudyTime = computed(() => {
-  return filteredSessions.value.reduce((sum, s) => sum + s.durationSeconds, 0)
+  return completedSessions.value.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
 })
 
 const subTopicsPracticed = computed(() => {
-  const sessions = filteredSessions.value
+  const sessions = completedSessions.value
   const subTopicMap = new Map<
     string,
     { subTopicName: string; topicName: string; subjectName: string; count: number }
@@ -194,9 +214,11 @@ const subTopicsPracticed = computed(() => {
 
 // Get recent sessions for table (sorted by date descending)
 const recentSessions = computed(() => {
-  return [...filteredSessions.value].sort(
-    (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
-  )
+  return [...filteredSessions.value].sort((a, b) => {
+    const dateA = new Date(a.completedAt ?? a.createdAt).getTime()
+    const dateB = new Date(b.completedAt ?? b.createdAt).getTime()
+    return dateB - dateA
+  })
 })
 
 function formatStudyTime(seconds: number): string {
@@ -241,7 +263,7 @@ function formatDuration(seconds: number): string {
 // Column definitions for recent sessions table
 const columns: ColumnDef<ChildPracticeSession>[] = [
   {
-    accessorKey: 'completedAt',
+    accessorKey: 'createdAt',
     header: ({ column }) => {
       return h(
         Button,
@@ -253,7 +275,8 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
       )
     },
     cell: ({ row }) => {
-      return h('div', { class: 'text-sm' }, formatDate(row.original.completedAt))
+      const dateStr = row.original.completedAt ?? row.original.createdAt
+      return h('div', { class: 'text-sm' }, formatDate(dateStr))
     },
   },
   {
@@ -278,6 +301,31 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
     },
   },
   {
+    accessorKey: 'status',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Status', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
+    cell: ({ row }) => {
+      const status = row.original.status
+      const config = statusConfig[status]
+      return h(
+        Badge,
+        {
+          variant: 'secondary',
+          class: `${config.bgColor} ${config.color}`,
+        },
+        () => config.label,
+      )
+    },
+  },
+  {
     accessorKey: 'score',
     header: ({ column }) => {
       return h(
@@ -293,6 +341,10 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
       const score = row.original.score
       const correct = row.original.correctAnswers
       const total = row.original.totalQuestions
+
+      if (score === null) {
+        return h('div', { class: 'text-muted-foreground' }, '-')
+      }
 
       const colorClass =
         score >= 80 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'
@@ -323,8 +375,10 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
 ]
 
 function handleRowClick(row: ChildPracticeSession) {
-  // Navigate to session detail page
-  router.push(`/parent/session/${selectedChildId.value}/${row.id}`)
+  // Only navigate to result page for completed sessions
+  if (row.status === 'completed') {
+    router.push(`/parent/session/${selectedChildId.value}/${row.id}`)
+  }
 }
 </script>
 
@@ -507,14 +561,14 @@ function handleRowClick(row: ChildPracticeSession) {
         </Card>
       </div>
 
-      <!-- Recent Practice Sessions Table -->
+      <!-- Practice History Table -->
       <Card v-if="selectedChildId">
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <History class="size-5" />
-            Recent Practice Sessions
+            Practice History
           </CardTitle>
-          <CardDescription> View recent practice session history </CardDescription>
+          <CardDescription>View your child's past practice sessions and scores.</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -529,7 +583,9 @@ function handleRowClick(row: ChildPracticeSession) {
           />
           <div v-else class="py-12 text-center">
             <BookOpen class="mx-auto size-12 text-muted-foreground/50" />
-            <p class="mt-2 text-muted-foreground">No practice sessions found</p>
+            <p class="mt-2 text-muted-foreground">
+              No practice sessions found for the selected filters.
+            </p>
           </div>
         </CardContent>
       </Card>

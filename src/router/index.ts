@@ -214,9 +214,9 @@ const router = createRouter({
           component: () => import('@/pages/student/SessionResultPage.vue'),
         },
         {
-          path: 'history',
-          name: 'student-history',
-          component: () => import('@/pages/student/HistoryPage.vue'),
+          path: 'statistics',
+          name: 'student-statistics',
+          component: () => import('@/pages/student/StatisticsPage.vue'),
         },
         {
           path: 'parent',
