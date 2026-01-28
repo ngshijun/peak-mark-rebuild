@@ -33,6 +33,7 @@ const pullResults = ref<Pet[]>([])
 const newPetIds = ref<Set<string>>(new Set()) // Track which pulled pets are new
 const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
 const capsuleColor = ref('purple') // Color of the dispensing capsule
+const lastPullType = ref<'single' | 'multi'>('single') // Track last pull type for dialog
 
 // Capsule colors for different rarities
 const rarityColors: Record<PetRarity, string> = {
@@ -90,6 +91,7 @@ async function singlePull() {
   if (currentCoins.value < SINGLE_PULL_COST) return
 
   isRolling.value = true
+  lastPullType.value = 'single'
   authStore.spendCoins(SINGLE_PULL_COST)
 
   // Determine result first to set capsule color
@@ -112,6 +114,7 @@ async function multiPull() {
   if (currentCoins.value < MULTI_PULL_COST) return
 
   isRolling.value = true
+  lastPullType.value = 'multi'
   authStore.spendCoins(MULTI_PULL_COST)
 
   // Set to rainbow/gold for multi pull
@@ -395,11 +398,33 @@ function closeResults() {
         </div>
         <div class="flex justify-end gap-2">
           <Button variant="outline" @click="closeResults">Close</Button>
+          <!-- Single pull again button -->
           <Button
+            v-if="lastPullType === 'single'"
             class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
-            @click="closeResults"
+            :disabled="currentCoins < SINGLE_PULL_COST"
+            @click="(closeResults(), singlePull())"
           >
-            Awesome! 🎊
+            <span class="mr-1">🎰</span>
+            Pull 1 More
+            <Badge variant="secondary" class="ml-2 gap-1 bg-white/20 text-white hover:bg-white/20">
+              <CirclePoundSterling class="size-3" />
+              {{ SINGLE_PULL_COST }}
+            </Badge>
+          </Button>
+          <!-- Multi pull again button -->
+          <Button
+            v-else
+            class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            :disabled="currentCoins < MULTI_PULL_COST"
+            @click="(closeResults(), multiPull())"
+          >
+            <span class="mr-1">✨</span>
+            Pull 10 More
+            <Badge variant="secondary" class="ml-2 gap-1 bg-white/20 text-white hover:bg-white/20">
+              <CirclePoundSterling class="size-3" />
+              {{ MULTI_PULL_COST }}
+            </Badge>
           </Button>
         </div>
       </DialogContent>

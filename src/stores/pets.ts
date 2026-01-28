@@ -33,6 +33,13 @@ export const EVOLUTION_COSTS = {
   tier2to3: 25,
 } as const
 
+// Combine success rates (Korean MMO style)
+export const COMBINE_SUCCESS_RATES: Record<Exclude<PetRarity, 'legendary'>, number> = {
+  common: 50, // Common -> Rare: 50%
+  rare: 35, // Rare -> Epic: 35%
+  epic: 25, // Epic -> Legendary: 25%
+} as const
+
 export const rarityConfig: Record<
   PetRarity,
   {
@@ -570,6 +577,77 @@ export const usePetsStore = defineStore('pets', () => {
     return ownedPets.value.find((op) => op.petId === petId) ?? null
   })
 
+  // Get owned pets grouped by rarity (for combining)
+  const ownedPetsByRarity = computed(() => {
+    const grouped: Record<PetRarity, OwnedPet[]> = {
+      common: [],
+      rare: [],
+      epic: [],
+      legendary: [],
+    }
+    for (const ownedPet of ownedPets.value) {
+      const pet = getPetById(ownedPet.petId)
+      if (pet) {
+        grouped[pet.rarity].push(ownedPet)
+      }
+    }
+    return grouped
+  })
+
+  // Combine 4 pets of same rarity for chance at higher rarity
+  async function combinePets(ownedPetIds: string[]): Promise<{
+    success: boolean
+    upgraded?: boolean
+    resultPetId?: string
+    resultRarity?: PetRarity
+    error?: string
+  }> {
+    const studentId = authStore.user?.id
+    if (!studentId) {
+      return { success: false, error: 'Not logged in' }
+    }
+
+    if (ownedPetIds.length !== 4) {
+      return { success: false, error: 'Must select exactly 4 pets' }
+    }
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('combine_pets', {
+        p_student_id: studentId,
+        p_owned_pet_ids: ownedPetIds,
+      })
+
+      if (rpcError) {
+        return { success: false, error: rpcError.message }
+      }
+
+      const result = data as {
+        success: boolean
+        error?: string
+        upgraded?: boolean
+        result_pet_id?: string
+        result_rarity?: PetRarity
+      }
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      // Refresh owned pets to reflect changes
+      await fetchOwnedPets()
+
+      return {
+        success: true,
+        upgraded: result.upgraded,
+        resultPetId: result.result_pet_id,
+        resultRarity: result.result_rarity,
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to combine pets'
+      return { success: false, error: message }
+    }
+  }
+
   // ========== ADMIN FUNCTIONS ==========
 
   // Add a new pet (admin only)
@@ -754,6 +832,7 @@ export const usePetsStore = defineStore('pets', () => {
     totalPets,
     selectedPet,
     selectedOwnedPet,
+    ownedPetsByRarity,
 
     // Helper functions
     getPetImageUrl,
@@ -773,6 +852,7 @@ export const usePetsStore = defineStore('pets', () => {
     deselectPet,
     feedPetForEvolution,
     evolvePet,
+    combinePets,
 
     // Admin actions
     createPet,

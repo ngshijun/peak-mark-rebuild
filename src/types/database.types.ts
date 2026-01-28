@@ -1314,6 +1314,10 @@ export type Database = {
         Args: { p_student_id: string }
         Returns: number
       }
+      combine_pets: {
+        Args: { p_owned_pet_ids: string[]; p_student_id: string }
+        Returns: Json
+      }
       complete_practice_session:
         | {
             Args: {

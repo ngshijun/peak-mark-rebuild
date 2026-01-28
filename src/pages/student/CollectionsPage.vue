@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, type PetRarity, type Pet } from '@/stores/pets'
+import {
+  usePetsStore,
+  rarityConfig,
+  COMBINE_SUCCESS_RATES,
+  type PetRarity,
+  type Pet,
+  type OwnedPet,
+} from '@/stores/pets'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Carousel,
   CarouselContent,
@@ -22,7 +30,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from '@/components/ui/carousel'
-import { HelpCircle, Check, Star, Lock } from 'lucide-vue-next'
+import { HelpCircle, Check, Star, Lock, Combine, Sparkles, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
@@ -55,6 +63,11 @@ function getPetDisplayImage(pet: Pet): string {
 // Get pet tier for display
 function getPetTier(petId: string): number {
   return petsStore.getOwnedPet(petId)?.tier ?? 1
+}
+
+// Get pet count (duplicates)
+function getPetCount(petId: string): number {
+  return petsStore.getOwnedPet(petId)?.count ?? 0
 }
 
 // Open pet detail dialog
@@ -104,6 +117,250 @@ async function handleSelectPet(petId: string) {
     toast.success(`${pet?.name ?? 'Pet'} selected!`)
   }
 }
+
+// ========== COMBINE FEATURE ==========
+type CombineRarity = Exclude<PetRarity, 'legendary'>
+const combineRarityOrder: CombineRarity[] = ['common', 'rare', 'epic']
+
+// Dialog states
+const showCombineDialog = ref(false)
+const selectedCombineRarity = ref<CombineRarity>('common')
+// Track selection count per owned pet (allows selecting same pet multiple times)
+const petSelectionCounts = ref<Map<string, number>>(new Map())
+const isCombining = ref(false)
+const showCombineResultDialog = ref(false)
+const combineResults = ref<
+  Array<{
+    upgraded: boolean
+    resultPet: Pet | null
+    resultRarity: PetRarity | null
+  }>
+>([])
+
+// Get next rarity after combining
+function getNextRarity(rarity: CombineRarity): PetRarity {
+  const nextMap: Record<CombineRarity, PetRarity> = {
+    common: 'rare',
+    rare: 'epic',
+    epic: 'legendary',
+  }
+  return nextMap[rarity]
+}
+
+// Get owned pets for the selected combine rarity
+const ownedPetsForCombine = computed(() => {
+  return petsStore.ownedPetsByRarity[selectedCombineRarity.value]
+})
+
+// Total selected count
+const totalSelectedCount = computed(() => {
+  let total = 0
+  for (const count of petSelectionCounts.value.values()) {
+    total += count
+  }
+  return total
+})
+
+// Get selection count for a pet
+function getSelectionCount(ownedPetId: string): number {
+  return petSelectionCounts.value.get(ownedPetId) ?? 0
+}
+
+// Get available count for selection (owned count minus already selected)
+function getAvailableCount(ownedPet: OwnedPet): number {
+  const selected = getSelectionCount(ownedPet.id)
+  return ownedPet.count - selected
+}
+
+// Increment pet selection
+function incrementSelection(ownedPet: OwnedPet) {
+  if (totalSelectedCount.value >= 4) return
+  if (getAvailableCount(ownedPet) <= 0) return
+
+  const newMap = new Map(petSelectionCounts.value)
+  const current = newMap.get(ownedPet.id) ?? 0
+  newMap.set(ownedPet.id, current + 1)
+  petSelectionCounts.value = newMap
+}
+
+// Decrement pet selection
+function decrementSelection(ownedPet: OwnedPet) {
+  const current = getSelectionCount(ownedPet.id)
+  if (current <= 0) return
+
+  const newMap = new Map(petSelectionCounts.value)
+  if (current === 1) {
+    newMap.delete(ownedPet.id)
+  } else {
+    newMap.set(ownedPet.id, current - 1)
+  }
+  petSelectionCounts.value = newMap
+}
+
+// Clear selection when changing rarity
+function handleCombineRarityChange(rarity: CombineRarity) {
+  selectedCombineRarity.value = rarity
+  petSelectionCounts.value = new Map()
+}
+
+// Open combine dialog
+function openCombineDialog() {
+  showCombineDialog.value = true
+  petSelectionCounts.value = new Map()
+}
+
+// Close combine dialog
+function closeCombineDialog() {
+  showCombineDialog.value = false
+  petSelectionCounts.value = new Map()
+}
+
+// Get Pet data for an owned pet
+function getPetForOwnedPet(ownedPet: OwnedPet): Pet | undefined {
+  return petsStore.getPetById(ownedPet.petId)
+}
+
+// Build array of owned pet IDs for combining (with duplicates for same pet)
+function buildCombineIds(): string[] {
+  const ids: string[] = []
+  for (const [ownedPetId, count] of petSelectionCounts.value.entries()) {
+    for (let i = 0; i < count; i++) {
+      ids.push(ownedPetId)
+    }
+  }
+  return ids
+}
+
+// Get selected pets as array for preview (with duplicates)
+const selectedPetsPreview = computed(() => {
+  const pets: Array<{ ownedPet: OwnedPet; pet: Pet }> = []
+  for (const [ownedPetId, count] of petSelectionCounts.value.entries()) {
+    const ownedPet = ownedPetsForCombine.value.find((op) => op.id === ownedPetId)
+    if (ownedPet) {
+      const pet = getPetForOwnedPet(ownedPet)
+      if (pet) {
+        for (let i = 0; i < count; i++) {
+          pets.push({ ownedPet, pet })
+        }
+      }
+    }
+  }
+  return pets
+})
+
+// Clear all selections
+function clearAllSelections() {
+  petSelectionCounts.value = new Map()
+}
+
+// Calculate total pets available for quick combine (sum of all counts / 4)
+const quickCombineCount = computed(() => {
+  let totalPets = 0
+  for (const ownedPet of ownedPetsForCombine.value) {
+    totalPets += ownedPet.count
+  }
+  return Math.floor(totalPets / 4)
+})
+
+// Get combine count for a specific rarity
+function getCombineCountForRarity(rarity: CombineRarity): number {
+  let totalPets = 0
+  for (const ownedPet of petsStore.ownedPetsByRarity[rarity]) {
+    totalPets += ownedPet.count
+  }
+  return Math.floor(totalPets / 4)
+}
+
+// Perform single combine
+async function handleCombine() {
+  if (totalSelectedCount.value !== 4) return
+
+  isCombining.value = true
+  const ownedPetIds = buildCombineIds()
+
+  try {
+    const result = await petsStore.combinePets(ownedPetIds)
+
+    if (!result.success) {
+      toast.error(result.error ?? 'Failed to combine pets')
+      return
+    }
+
+    // Show result dialog
+    const resultPet = result.resultPetId ? petsStore.getPetById(result.resultPetId) : null
+    combineResults.value = [
+      {
+        upgraded: result.upgraded ?? false,
+        resultPet: resultPet ?? null,
+        resultRarity: result.resultRarity ?? null,
+      },
+    ]
+    showCombineResultDialog.value = true
+    showCombineDialog.value = false
+    petSelectionCounts.value = new Map()
+  } catch {
+    toast.error('Failed to combine pets')
+  } finally {
+    isCombining.value = false
+  }
+}
+
+// Perform quick combine (all available sets)
+async function handleQuickCombine() {
+  if (quickCombineCount.value === 0) return
+
+  isCombining.value = true
+  const results: Array<{
+    upgraded: boolean
+    resultPet: Pet | null
+    resultRarity: PetRarity | null
+  }> = []
+
+  try {
+    // Build list of all pet IDs with their counts
+    const petPool: string[] = []
+    for (const ownedPet of ownedPetsForCombine.value) {
+      for (let i = 0; i < ownedPet.count; i++) {
+        petPool.push(ownedPet.id)
+      }
+    }
+
+    // Combine in sets of 4
+    const combineCount = Math.floor(petPool.length / 4)
+    for (let i = 0; i < combineCount; i++) {
+      const idsToUse = petPool.slice(i * 4, (i + 1) * 4)
+      const result = await petsStore.combinePets(idsToUse)
+
+      if (result.success) {
+        const resultPet = result.resultPetId ? petsStore.getPetById(result.resultPetId) : null
+        results.push({
+          upgraded: result.upgraded ?? false,
+          resultPet: resultPet ?? null,
+          resultRarity: result.resultRarity ?? null,
+        })
+      }
+    }
+
+    if (results.length > 0) {
+      combineResults.value = results
+      showCombineResultDialog.value = true
+      showCombineDialog.value = false
+    } else {
+      toast.error('Failed to combine pets')
+    }
+
+    petSelectionCounts.value = new Map()
+  } catch {
+    toast.error('Failed to combine pets')
+  } finally {
+    isCombining.value = false
+  }
+}
+
+function closeCombineResult() {
+  showCombineResultDialog.value = false
+  combineResults.value = []
+}
 </script>
 
 <template>
@@ -113,9 +370,15 @@ async function handleSelectPet(petId: string) {
         <h1 class="text-2xl font-bold">Collections</h1>
         <p class="text-muted-foreground">View all available pets and track your collection</p>
       </div>
-      <div class="text-right">
-        <p class="text-2xl font-bold">{{ petsStore.totalOwned }} / {{ petsStore.totalPets }}</p>
-        <p class="text-sm text-muted-foreground">Pets Collected</p>
+      <div class="flex items-center gap-4">
+        <Button @click="openCombineDialog">
+          <Combine class="mr-2 size-4" />
+          Combine
+        </Button>
+        <div class="text-right">
+          <p class="text-2xl font-bold">{{ petsStore.totalOwned }} / {{ petsStore.totalPets }}</p>
+          <p class="text-sm text-muted-foreground">Pets Collected</p>
+        </div>
       </div>
     </div>
 
@@ -162,18 +425,26 @@ async function handleSelectPet(petId: string) {
                 <Check class="size-3" />
               </div>
 
+              <!-- Duplicate count badge -->
+              <div
+                v-if="petsStore.isPetOwned(pet.id) && getPetCount(pet.id) > 1"
+                class="absolute -left-1 -top-1 flex size-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white"
+              >
+                {{ getPetCount(pet.id) }}
+              </div>
+
               <!-- Pet Image or Question Mark -->
-              <div class="flex size-16 items-center justify-center">
+              <div class="flex size-24 items-center justify-center">
                 <template v-if="petsStore.isPetOwned(pet.id)">
                   <img
                     :src="getPetDisplayImage(pet)"
                     :alt="pet.name"
                     loading="lazy"
-                    class="size-14 object-contain"
+                    class="size-20 object-contain"
                   />
                 </template>
                 <template v-else>
-                  <HelpCircle class="size-10 text-gray-500" />
+                  <HelpCircle class="size-14 text-gray-500" />
                 </template>
               </div>
 
@@ -184,7 +455,7 @@ async function handleSelectPet(petId: string) {
                   petsStore.isPetOwned(pet.id) ? rarityConfig[rarity].textColor : 'text-gray-500'
                 "
               >
-                {{ petsStore.isPetOwned(pet.id) ? pet.name : '???' }}
+                {{ pet.name }}
               </p>
 
               <!-- Tier Badge -->
@@ -197,6 +468,345 @@ async function handleSelectPet(petId: string) {
         </CardContent>
       </Card>
     </div>
+
+    <!-- Combine Pets Dialog -->
+    <Dialog :open="showCombineDialog" @update:open="closeCombineDialog">
+      <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <Combine class="size-5 text-purple-500" />
+            Combine Pets
+          </DialogTitle>
+          <DialogDescription>
+            Select 4 pets of the same rarity to combine them for a chance at a higher rarity pet
+          </DialogDescription>
+        </DialogHeader>
+
+        <!-- Rarity Tabs -->
+        <Tabs :model-value="selectedCombineRarity" class="w-full">
+          <TabsList class="grid w-full grid-cols-3">
+            <TabsTrigger
+              v-for="rarity in combineRarityOrder"
+              :key="rarity"
+              :value="rarity"
+              :class="rarityConfig[rarity].color"
+              @click="handleCombineRarityChange(rarity)"
+            >
+              {{ rarityConfig[rarity].label }}
+              <Badge variant="secondary" class="ml-2">
+                {{ getCombineCountForRarity(rarity) }}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <!-- Main Content: Grid + Preview Panel -->
+        <div class="flex gap-4">
+          <!-- Left: Pet Selection Grid -->
+          <div class="flex-1 space-y-3">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium">Select Pets</p>
+              <p class="text-xs text-muted-foreground">Click to add, right-click to remove</p>
+            </div>
+
+            <!-- Pet Grid (scrollable) -->
+            <div
+              v-if="ownedPetsForCombine.length > 0"
+              class="max-h-[300px] overflow-y-auto rounded-lg border p-2"
+            >
+              <div class="grid grid-cols-4 gap-2">
+                <div
+                  v-for="ownedPet in ownedPetsForCombine"
+                  :key="ownedPet.id"
+                  class="relative flex cursor-pointer flex-col items-center rounded-lg border-2 p-2 transition-all hover:scale-105"
+                  :class="[
+                    getSelectionCount(ownedPet.id) > 0
+                      ? 'border-purple-500 bg-purple-100 dark:bg-purple-950/50'
+                      : [
+                          rarityConfig[selectedCombineRarity].bgColor,
+                          rarityConfig[selectedCombineRarity].borderColor,
+                        ],
+                    getAvailableCount(ownedPet) === 0 && totalSelectedCount < 4 ? 'opacity-50' : '',
+                  ]"
+                  @click="incrementSelection(ownedPet)"
+                  @contextmenu.prevent="decrementSelection(ownedPet)"
+                >
+                  <!-- Selection count badge -->
+                  <div
+                    v-if="getSelectionCount(ownedPet.id) > 0"
+                    class="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-purple-500 text-xs font-bold text-white"
+                  >
+                    {{ getSelectionCount(ownedPet.id) }}
+                  </div>
+
+                  <!-- Pet Image -->
+                  <img
+                    v-if="getPetForOwnedPet(ownedPet)"
+                    :src="
+                      petsStore.getThumbnailPetImageUrl(
+                        getPetForOwnedPet(ownedPet)!.imagePath,
+                        getPetForOwnedPet(ownedPet)!.updatedAt,
+                      )
+                    "
+                    :alt="getPetForOwnedPet(ownedPet)!.name"
+                    loading="lazy"
+                    class="size-24 object-contain"
+                  />
+
+                  <!-- Pet Name & Count -->
+                  <p class="mt-1 truncate text-center text-[9px] font-medium">
+                    {{ getPetForOwnedPet(ownedPet)?.name }}
+                  </p>
+                  <p class="text-[8px] text-muted-foreground">x{{ ownedPet.count }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div
+              v-else
+              class="flex flex-col items-center justify-center rounded-lg border py-8 text-center text-muted-foreground"
+            >
+              <HelpCircle class="mb-2 size-10 opacity-50" />
+              <p class="text-sm">No {{ rarityConfig[selectedCombineRarity].label }} pets</p>
+            </div>
+          </div>
+
+          <!-- Right: Preview Panel -->
+          <div class="w-48 space-y-3">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium">Combine</p>
+              <Button
+                v-if="totalSelectedCount > 0"
+                variant="ghost"
+                size="sm"
+                class="h-6 px-2 text-xs"
+                @click="clearAllSelections"
+              >
+                Clear
+              </Button>
+            </div>
+
+            <!-- 4 Slots Preview -->
+            <div class="grid grid-cols-2 gap-2">
+              <div
+                v-for="i in 4"
+                :key="i"
+                class="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed p-2"
+                :class="[
+                  selectedPetsPreview[i - 1]
+                    ? [
+                        'border-solid',
+                        rarityConfig[selectedCombineRarity].bgColor,
+                        rarityConfig[selectedCombineRarity].borderColor,
+                      ]
+                    : 'border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900',
+                ]"
+              >
+                <template v-if="selectedPetsPreview[i - 1]">
+                  <img
+                    :src="
+                      petsStore.getThumbnailPetImageUrl(
+                        selectedPetsPreview[i - 1]!.pet.imagePath,
+                        selectedPetsPreview[i - 1]!.pet.updatedAt,
+                      )
+                    "
+                    :alt="selectedPetsPreview[i - 1]!.pet.name"
+                    class="size-24 object-contain"
+                  />
+                  <p class="mt-1 truncate text-center text-[8px] font-medium">
+                    {{ selectedPetsPreview[i - 1]!.pet.name }}
+                  </p>
+                </template>
+                <template v-else>
+                  <div
+                    class="flex size-10 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-800"
+                  >
+                    <span class="text-lg text-gray-400">{{ i }}</span>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Success Rate -->
+            <div class="rounded-lg bg-muted/50 p-3 text-center">
+              <p class="text-xs text-muted-foreground">
+                {{ rarityConfig[selectedCombineRarity].label }} →
+                {{ rarityConfig[getNextRarity(selectedCombineRarity)].label }}
+              </p>
+              <p
+                class="mt-1 text-lg font-bold"
+                :class="rarityConfig[getNextRarity(selectedCombineRarity)].color"
+              >
+                {{ COMBINE_SUCCESS_RATES[selectedCombineRarity] }}%
+              </p>
+              <p class="text-[10px] text-muted-foreground">Success Rate</p>
+            </div>
+
+            <!-- Combine Button -->
+            <Button
+              class="w-full bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
+              :disabled="totalSelectedCount !== 4 || isCombining"
+              @click="handleCombine"
+            >
+              <Loader2 v-if="isCombining" class="mr-2 size-4 animate-spin" />
+              <Combine v-else class="mr-2 size-4" />
+              {{ isCombining ? 'Combining...' : 'Combine' }}
+            </Button>
+          </div>
+        </div>
+
+        <!-- Quick Combine Section -->
+        <div
+          class="mt-4 flex items-center justify-between rounded-lg border border-dashed border-purple-300 bg-purple-50/50 p-3 dark:border-purple-700 dark:bg-purple-950/20"
+        >
+          <div>
+            <p class="text-sm font-medium">Quick Combine</p>
+            <p class="text-xs text-muted-foreground">
+              Automatically combine all {{ rarityConfig[selectedCombineRarity].label }} pets
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            class="border-purple-300 text-purple-600 hover:bg-purple-100 dark:border-purple-700 dark:text-purple-400"
+            :disabled="quickCombineCount === 0 || isCombining"
+            @click="handleQuickCombine"
+          >
+            <Loader2 v-if="isCombining" class="mr-2 size-4 animate-spin" />
+            <Sparkles v-else class="mr-2 size-4" />
+            Combine All ({{ quickCombineCount }}x)
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Combine Result Dialog -->
+    <Dialog :open="showCombineResultDialog" @update:open="closeCombineResult">
+      <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2 text-xl">
+            <span class="text-2xl">🎉</span>
+            Combination Complete!
+          </DialogTitle>
+          <DialogDescription>
+            {{
+              combineResults.length === 1
+                ? combineResults[0]?.upgraded
+                  ? 'Congratulations! Your pets combined into a higher rarity!'
+                  : 'The combination failed, but you still got a pet back.'
+                : `You performed ${combineResults.length} combinations!`
+            }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <!-- Single Result -->
+        <div
+          v-if="combineResults.length === 1 && combineResults[0]?.resultPet"
+          class="flex flex-col items-center py-6"
+        >
+          <Badge
+            v-if="combineResults[0].upgraded"
+            class="mb-4 animate-pulse bg-gradient-to-r from-yellow-400 to-amber-500 text-white"
+          >
+            <Sparkles class="mr-1 size-3" />
+            UPGRADED!
+          </Badge>
+
+          <div
+            class="flex flex-col items-center rounded-xl border-2 p-6"
+            :class="[
+              combineResults[0].resultRarity
+                ? [
+                    rarityConfig[combineResults[0].resultRarity].bgColor,
+                    rarityConfig[combineResults[0].resultRarity].borderColor,
+                  ]
+                : '',
+            ]"
+          >
+            <img
+              :src="
+                petsStore.getOptimizedPetImageUrl(
+                  combineResults[0].resultPet.imagePath,
+                  combineResults[0].resultPet.updatedAt,
+                )
+              "
+              :alt="combineResults[0].resultPet.name"
+              class="size-32 object-contain"
+            />
+            <p class="mt-3 text-lg font-bold">{{ combineResults[0].resultPet.name }}</p>
+            <Badge
+              v-if="combineResults[0].resultRarity"
+              :class="rarityConfig[combineResults[0].resultRarity].color"
+              variant="outline"
+              class="mt-2"
+            >
+              {{ rarityConfig[combineResults[0].resultRarity].label }}
+            </Badge>
+          </div>
+        </div>
+
+        <!-- Multiple Results (Quick Combine) -->
+        <div v-else-if="combineResults.length > 1" class="py-4">
+          <!-- Summary -->
+          <div class="mb-4 flex justify-center gap-4 text-center">
+            <div>
+              <p class="text-2xl font-bold text-green-500">
+                {{ combineResults.filter((r) => r.upgraded).length }}
+              </p>
+              <p class="text-sm text-muted-foreground">Upgraded</p>
+            </div>
+            <div>
+              <p class="text-2xl font-bold text-gray-500">
+                {{ combineResults.filter((r) => !r.upgraded).length }}
+              </p>
+              <p class="text-sm text-muted-foreground">Same Rarity</p>
+            </div>
+          </div>
+
+          <!-- Results Grid -->
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div
+              v-for="(result, index) in combineResults"
+              :key="index"
+              class="relative flex flex-col items-center rounded-lg border-2 p-2"
+              :class="[
+                result.resultRarity
+                  ? [
+                      rarityConfig[result.resultRarity].bgColor,
+                      rarityConfig[result.resultRarity].borderColor,
+                    ]
+                  : '',
+              ]"
+            >
+              <Badge
+                v-if="result.upgraded"
+                class="absolute -right-1 -top-1 bg-green-500 px-1 text-[9px]"
+              >
+                UP!
+              </Badge>
+              <img
+                v-if="result.resultPet"
+                :src="
+                  petsStore.getThumbnailPetImageUrl(
+                    result.resultPet.imagePath,
+                    result.resultPet.updatedAt,
+                  )
+                "
+                :alt="result.resultPet.name"
+                class="size-12 object-contain"
+              />
+              <p class="mt-1 truncate text-center text-[10px] font-medium">
+                {{ result.resultPet?.name }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button class="w-full" @click="closeCombineResult"> Close </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Pet Detail Dialog -->
     <Dialog v-model:open="showPetDialog">
