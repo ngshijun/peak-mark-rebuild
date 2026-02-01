@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
 import { useQuestionsStore, type Question, type MCQOption } from '@/stores/questions'
 import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Flag } from 'lucide-vue-next'
@@ -32,6 +32,7 @@ const textAnswer = ref('')
 const showExitDialog = ref(false)
 const showFeedbackDialog = ref(false)
 const isResuming = ref(false)
+const pendingNavigation = ref<string | null>(null)
 
 // Time tracking for current question
 const questionStartTime = ref<number>(Date.now())
@@ -92,17 +93,25 @@ watch(
 onMounted(async () => {
   const sessionId = route.query.sessionId as string | undefined
 
-  // If there's a sessionId in the URL and no active session, try to resume
-  if (sessionId && !practiceStore.isSessionActive) {
-    isResuming.value = true
-    const result = await practiceStore.resumeSession(sessionId)
-    isResuming.value = false
+  // If there's a sessionId in the URL, check if we need to resume it
+  if (sessionId) {
+    // Resume if no active session OR if the URL sessionId differs from current session
+    const needsResume =
+      !practiceStore.isSessionActive || practiceStore.currentSession?.id !== sessionId
 
-    if (result.error || !result.session) {
-      // Failed to resume - redirect to practice page
-      toast.error('Failed to resume session')
-      router.push('/student/practice')
-      return
+    if (needsResume) {
+      isResuming.value = true
+      // Clear shuffled options from previous session
+      shuffledOptionsMap.value.clear()
+      const result = await practiceStore.resumeSession(sessionId)
+      isResuming.value = false
+
+      if (result.error || !result.session) {
+        // Failed to resume - redirect to practice page
+        toast.error('Failed to resume session')
+        router.push('/student/practice')
+        return
+      }
     }
   } else if (!practiceStore.isSessionActive) {
     // No session ID and no active session - redirect
@@ -211,7 +220,10 @@ async function finishQuiz() {
 
 function exitQuiz() {
   practiceStore.endSession()
-  router.push('/student/practice')
+  // Navigate to pending destination or default to practice page
+  const destination = pendingNavigation.value ?? '/student/practice'
+  pendingNavigation.value = null
+  router.push(destination)
 }
 
 async function restartQuiz() {
@@ -253,6 +265,24 @@ function handleOptionClick(optionId: string) {
     selectedOptionIds.value = newSet
   }
 }
+
+// Navigation guard - show exit confirmation when navigating away from active quiz
+onBeforeRouteLeave((to) => {
+  // Allow navigation if no active session or session is completed
+  if (!practiceStore.isSessionActive) {
+    return true
+  }
+
+  // If already confirmed via dialog, allow navigation
+  if (pendingNavigation.value) {
+    return true
+  }
+
+  // Block navigation and show exit dialog
+  pendingNavigation.value = to.fullPath
+  showExitDialog.value = true
+  return false
+})
 </script>
 
 <template>
@@ -643,7 +673,7 @@ function handleOptionClick(optionId: string) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Continue Quiz</AlertDialogCancel>
+          <AlertDialogCancel @click="pendingNavigation = null">Continue Quiz</AlertDialogCancel>
           <AlertDialogAction @click="exitQuiz">Exit</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
