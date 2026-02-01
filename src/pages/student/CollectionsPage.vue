@@ -166,10 +166,11 @@ function getSelectionCount(ownedPetId: string): number {
   return petSelectionCounts.value.get(ownedPetId) ?? 0
 }
 
-// Get available count for selection (owned count minus already selected)
+// Get available count for selection (owned count minus 1 to keep, minus already selected)
 function getAvailableCount(ownedPet: OwnedPet): number {
   const selected = getSelectionCount(ownedPet.id)
-  return ownedPet.count - selected
+  // Must keep at least 1 copy of each pet
+  return Math.max(0, ownedPet.count - 1 - selected)
 }
 
 // Increment pet selection
@@ -253,22 +254,24 @@ function clearAllSelections() {
   petSelectionCounts.value = new Map()
 }
 
-// Calculate total pets available for quick combine (sum of all counts / 4)
+// Calculate total pets available for quick combine (must keep at least 1 of each)
 const quickCombineCount = computed(() => {
-  let totalPets = 0
+  let totalAvailable = 0
   for (const ownedPet of ownedPetsForCombine.value) {
-    totalPets += ownedPet.count
+    // Can only use count - 1 (keep at least 1 of each pet)
+    totalAvailable += Math.max(0, ownedPet.count - 1)
   }
-  return Math.floor(totalPets / 4)
+  return Math.floor(totalAvailable / 4)
 })
 
-// Get combine count for a specific rarity
+// Get combine count for a specific rarity (must keep at least 1 of each)
 function getCombineCountForRarity(rarity: CombineRarity): number {
-  let totalPets = 0
+  let totalAvailable = 0
   for (const ownedPet of petsStore.ownedPetsByRarity[rarity]) {
-    totalPets += ownedPet.count
+    // Can only use count - 1 (keep at least 1 of each pet)
+    totalAvailable += Math.max(0, ownedPet.count - 1)
   }
-  return Math.floor(totalPets / 4)
+  return Math.floor(totalAvailable / 4)
 }
 
 // Perform single combine
@@ -317,10 +320,12 @@ async function handleQuickCombine() {
   }> = []
 
   try {
-    // Build list of all pet IDs with their counts
+    // Build list of all pet IDs with their counts (keep at least 1 of each)
     const petPool: string[] = []
     for (const ownedPet of ownedPetsForCombine.value) {
-      for (let i = 0; i < ownedPet.count; i++) {
+      // Only add count - 1 to pool (keep at least 1)
+      const availableCount = Math.max(0, ownedPet.count - 1)
+      for (let i = 0; i < availableCount; i++) {
         petPool.push(ownedPet.id)
       }
     }
