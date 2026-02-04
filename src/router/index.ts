@@ -180,6 +180,21 @@ const router = createRouter({
           component: () => import('@/pages/admin/AnnouncementsPage.vue'),
         },
         {
+          path: 'students',
+          name: 'admin-students',
+          component: () => import('@/pages/admin/StudentsPage.vue'),
+        },
+        {
+          path: 'students/:studentId/statistics',
+          name: 'admin-student-statistics',
+          component: () => import('@/pages/admin/StudentStatisticsPage.vue'),
+        },
+        {
+          path: 'students/:studentId/session/:sessionId',
+          name: 'admin-student-session',
+          component: () => import('@/pages/admin/StudentSessionResultPage.vue'),
+        },
+        {
           path: 'profile',
           name: 'admin-profile',
           component: () => import('@/pages/admin/ProfilePage.vue'),

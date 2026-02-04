@@ -24,6 +24,7 @@ export const sidebarNavConfig: SidebarNavConfig = {
     { title: 'Question Bank', path: '/admin/question-bank', icon: Database },
     { title: 'Question Statistics', path: '/admin/question-statistics', icon: BarChart3 },
     { title: 'Question Feedback', path: '/admin/question-feedback', icon: MessageSquare },
+    { title: 'Students', path: '/admin/students', icon: Users },
     { title: 'Pets', path: '/admin/pets', icon: PawPrint },
   ],
   student: [
