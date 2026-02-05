@@ -109,9 +109,8 @@ export const useChildLinkStore = defineStore('childLink', () => {
       return { error: null }
     } catch (err) {
       console.error('Error fetching linked children:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch linked children'
-      error.value = message
-      return { error: message }
+      error.value = 'Failed to load linked children'
+      return { error: 'Failed to load linked children' }
     } finally {
       isLoading.value = false
     }
@@ -177,9 +176,8 @@ export const useChildLinkStore = defineStore('childLink', () => {
       return { error: null }
     } catch (err) {
       console.error('Error fetching invitations:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch invitations'
-      error.value = message
-      return { error: message }
+      error.value = 'Failed to load invitations'
+      return { error: 'Failed to load invitations' }
     } finally {
       isLoading.value = false
     }
@@ -300,8 +298,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
       return { success: true, invitation }
     } catch (err) {
       console.error('Error sending invitation:', err)
-      const message = err instanceof Error ? err.message : 'Failed to send invitation'
-      return { error: message }
+      return { error: 'Failed to send invitation. Please try again.' }
     }
   }
 
@@ -352,10 +349,9 @@ export const useChildLinkStore = defineStore('childLink', () => {
       }
 
       return { success: true }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error accepting invitation:', err)
-      const message = err instanceof Error ? err.message : 'Failed to accept invitation'
-      return { error: message }
+      return { error: 'Failed to accept invitation. Please try again.' }
     }
   }
 
@@ -390,8 +386,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
       return { success: true }
     } catch (err) {
       console.error('Error rejecting invitation:', err)
-      const message = err instanceof Error ? err.message : 'Failed to reject invitation'
-      return { error: message }
+      return { error: 'Failed to decline invitation. Please try again.' }
     }
   }
 
@@ -426,8 +421,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
       return { success: true }
     } catch (err) {
       console.error('Error cancelling invitation:', err)
-      const message = err instanceof Error ? err.message : 'Failed to cancel invitation'
-      return { error: message }
+      return { error: 'Failed to cancel invitation. Please try again.' }
     }
   }
 
@@ -459,8 +453,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
       return { success: true }
     } catch (err) {
       console.error('Error removing linked child:', err)
-      const message = err instanceof Error ? err.message : 'Failed to remove linked child'
-      return { error: message }
+      return { error: 'Failed to remove child. Please try again.' }
     }
   }
 

@@ -90,20 +90,35 @@ const onSubmit = handleSubmit(async (values) => {
 
 async function handleAcceptInvitation(invitationId: string) {
   actionInProgress.value = invitationId
-  await childLinkStore.acceptInvitation(invitationId)
+  const result = await childLinkStore.acceptInvitation(invitationId)
   actionInProgress.value = null
+  if (result.error) {
+    toast.error(result.error)
+  } else {
+    toast.success('Child linked successfully!')
+  }
 }
 
 async function handleRejectInvitation(invitationId: string) {
   actionInProgress.value = invitationId
-  await childLinkStore.rejectInvitation(invitationId)
+  const result = await childLinkStore.rejectInvitation(invitationId)
   actionInProgress.value = null
+  if (result.error) {
+    toast.error(result.error)
+  } else {
+    toast.success('Invitation declined')
+  }
 }
 
 async function handleCancelInvitation(invitationId: string) {
   actionInProgress.value = invitationId
-  await childLinkStore.cancelInvitation(invitationId)
+  const result = await childLinkStore.cancelInvitation(invitationId)
   actionInProgress.value = null
+  if (result.error) {
+    toast.error(result.error)
+  } else {
+    toast.success('Invitation cancelled')
+  }
 }
 
 async function handleRemoveChild(childId: string) {
