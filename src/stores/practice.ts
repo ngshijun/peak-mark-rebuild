@@ -520,12 +520,11 @@ export const usePracticeStore = defineStore('practice', () => {
     const todayEnd = new Date()
     todayEnd.setHours(23, 59, 59, 999)
 
-    // Count completed sessions today
+    // Count all sessions started today
     const { count, error: countError } = await supabase
       .from('practice_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('student_id', authStore.user.id)
-      .not('completed_at', 'is', null)
       .gte('created_at', todayStart.toISOString())
       .lte('created_at', todayEnd.toISOString())
 

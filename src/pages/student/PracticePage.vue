@@ -257,12 +257,9 @@ async function confirmStartSession() {
         "
         class="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
       >
-        <span>
-          Sessions today: {{ sessionLimitStatus.sessionsToday }} /
-          {{ sessionLimitStatus.sessionLimit }}
-        </span>
-        <span v-if="sessionLimitStatus.remainingSessions <= 1" class="text-yellow-600">
-          ({{ sessionLimitStatus.remainingSessions }} remaining)
+        <span :class="sessionLimitStatus.remainingSessions <= 1 ? 'text-yellow-600' : ''">
+          {{ sessionLimitStatus.remainingSessions }} of
+          {{ sessionLimitStatus.sessionLimit }} sessions remaining
         </span>
       </div>
     </div>
