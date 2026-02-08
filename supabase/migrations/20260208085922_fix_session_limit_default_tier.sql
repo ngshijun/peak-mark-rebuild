@@ -1,7 +1,4 @@
--- Migration: Enforce daily session limit inside create_practice_session
--- Prevents users from bypassing the client-side limit check
-
-DROP FUNCTION IF EXISTS create_practice_session(UUID, UUID, UUID, UUID, JSONB, INT);
+-- Fix: default tier should be 'core' not 'basic' (was renamed in earlier migration)
 
 CREATE OR REPLACE FUNCTION create_practice_session(
   p_student_id UUID,
@@ -104,5 +101,3 @@ BEGIN
   RETURN v_session_id;
 END;
 $$;
-
-GRANT EXECUTE ON FUNCTION create_practice_session(UUID, UUID, UUID, UUID, JSONB, INT) TO authenticated;
