@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
 export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
@@ -240,8 +241,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching students:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch students'
+      const message = handleError(err, 'Failed to fetch students.')
       studentsError.value = message
       return { error: message }
     } finally {
@@ -404,8 +404,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching student statistics:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch statistics'
+      const message = handleError(err, 'Failed to fetch statistics.')
       statisticsError.value = message
       return { error: message }
     } finally {
@@ -611,8 +610,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
 
       return { session, error: null }
     } catch (err) {
-      console.error('Error fetching session:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch session'
+      const message = handleError(err, 'Failed to fetch session.')
       return { session: null, error: message }
     }
   }

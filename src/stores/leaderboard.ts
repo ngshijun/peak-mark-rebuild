@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 type LeaderboardRow = Database['public']['Views']['leaderboard']['Row']
 
@@ -77,8 +78,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching leaderboard:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch leaderboard'
+      const message = handleError(err, 'Failed to fetch leaderboard.')
       error.value = message
       return { error: message }
     } finally {

@@ -5,6 +5,7 @@ import type { Database } from '@/types/database.types'
 import { useQuestionsStore, type Question } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
+import { handleError } from '@/lib/errors'
 
 type PracticeSessionRow = Database['public']['Tables']['practice_sessions']['Row']
 type PracticeAnswerRow = Database['public']['Tables']['practice_answers']['Row']
@@ -539,8 +540,9 @@ export const usePracticeStore = defineStore('practice', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) {
-        error.value = fetchError.message
-        return { error: fetchError.message }
+        const msg = handleError(fetchError, 'Failed to fetch session history.')
+        error.value = msg
+        return { error: msg }
       }
 
       sessionHistory.value = (data ?? []).map((row) => {
@@ -550,7 +552,7 @@ export const usePracticeStore = defineStore('practice', () => {
       })
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch session history'
+      const message = handleError(err, 'Failed to fetch session history.')
       error.value = message
       return { error: message }
     } finally {
@@ -684,7 +686,7 @@ export const usePracticeStore = defineStore('practice', () => {
       )
 
       if (createError) {
-        return { session: null, error: createError.message }
+        return { session: null, error: handleError(createError, 'Failed to start session.') }
       }
 
       const session: PracticeSession = {
@@ -716,7 +718,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       return { session, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to start session'
+      const message = handleError(err, 'Failed to start session.')
       error.value = message
       return { session: null, error: message }
     } finally {
@@ -784,7 +786,7 @@ export const usePracticeStore = defineStore('practice', () => {
         .single()
 
       if (insertError) {
-        return { answer: null, error: insertError.message }
+        return { answer: null, error: handleError(insertError, 'Failed to submit answer.') }
       }
 
       const answer = rowToAnswer(answerData)
@@ -798,7 +800,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       return { answer, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to submit answer'
+      const message = handleError(err, 'Failed to submit answer.')
       return { answer: null, error: message }
     }
   }
@@ -901,7 +903,7 @@ export const usePracticeStore = defineStore('practice', () => {
       })
 
       if (completeError) {
-        return { session: null, error: completeError.message }
+        return { session: null, error: handleError(completeError, 'Failed to complete session.') }
       }
 
       // Update local session state
@@ -922,7 +924,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       return { session: currentSession.value, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to complete session'
+      const message = handleError(err, 'Failed to complete session.')
       return { session: null, error: message }
     }
   }
@@ -1094,10 +1096,10 @@ export const usePracticeStore = defineStore('practice', () => {
       ])
 
       if (sessionResult.error) {
-        return { session: null, error: sessionResult.error.message }
+        return { session: null, error: handleError(sessionResult.error, 'Failed to fetch session.') }
       }
       if (answersResult.error) {
-        return { session: null, error: answersResult.error.message }
+        return { session: null, error: handleError(answersResult.error, 'Failed to fetch session.') }
       }
 
       // SECURITY: Verify session ownership to prevent IDOR attacks
@@ -1200,7 +1202,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       return { session, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch session'
+      const message = handleError(err, 'Failed to fetch session.')
       return { session: null, error: message }
     }
   }
@@ -1228,7 +1230,7 @@ export const usePracticeStore = defineStore('practice', () => {
       .order('question_order', { ascending: true })
 
     if (sqError) {
-      return { session: null, error: sqError.message }
+      return { session: null, error: handleError(sqError, 'Failed to resume session.') }
     }
 
     if (!sessionQuestionsData || sessionQuestionsData.length === 0) {
@@ -1244,7 +1246,7 @@ export const usePracticeStore = defineStore('practice', () => {
       .in('id', questionIds)
 
     if (qError) {
-      return { session: null, error: qError.message }
+      return { session: null, error: handleError(qError, 'Failed to resume session.') }
     }
 
     // Create a map for quick lookup

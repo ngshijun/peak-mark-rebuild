@@ -23,6 +23,7 @@ import { useQuestionsStore } from './questions'
 import { useAdminDashboardStore } from './adminDashboard'
 import { useCurriculumStore } from './curriculum'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 type UserType = Database['public']['Enums']['user_type']
 
@@ -260,7 +261,7 @@ export const useAuthStore = defineStore('auth', () => {
     const { error } = await supabase.from('profiles').update({ name }).eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update name.') }
     }
 
     user.value.name = name
@@ -279,7 +280,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update date of birth.') }
     }
 
     user.value.dateOfBirth = dateOfBirth
@@ -298,7 +299,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update avatar.') }
     }
 
     user.value.avatarPath = avatarPath
@@ -332,8 +333,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { path: filePath, error: null }
     } catch (err) {
-      console.error('Error uploading avatar:', err)
-      const message = err instanceof Error ? err.message : 'Failed to upload avatar'
+      const message = handleError(err, 'Failed to upload avatar.')
       return { path: null, error: message }
     }
   }
@@ -377,8 +377,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { path: filePath, error: null }
     } catch (err) {
-      console.error('Error uploading avatar from URL:', err)
-      const message = err instanceof Error ? err.message : 'Failed to upload avatar'
+      const message = handleError(err, 'Failed to upload avatar.')
       return { path: null, error: message }
     }
   }
@@ -406,7 +405,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update grade level.') }
     }
 
     if (user.value.studentProfile) {
@@ -431,7 +430,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update XP.') }
     }
 
     user.value.studentProfile.xp = newXp
@@ -454,7 +453,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update coins.') }
     }
 
     user.value.studentProfile.coins = newCoins
@@ -493,7 +492,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update food.') }
     }
 
     user.value.studentProfile.food = newFood
@@ -530,7 +529,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: error.message }
+      return { error: handleError(error, 'Failed to update selected pet.') }
     }
 
     user.value.studentProfile.selectedPetId = petId

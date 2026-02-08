@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
 type InvitationDirection = Database['public']['Enums']['invitation_direction']
@@ -108,9 +109,9 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching linked children:', err)
-      error.value = 'Failed to load linked children'
-      return { error: 'Failed to load linked children' }
+      const message = handleError(err, 'Failed to load linked children.')
+      error.value = message
+      return { error: message }
     } finally {
       isLoading.value = false
     }
@@ -175,9 +176,9 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching invitations:', err)
-      error.value = 'Failed to load invitations'
-      return { error: 'Failed to load invitations' }
+      const message = handleError(err, 'Failed to load invitations.')
+      error.value = message
+      return { error: message }
     } finally {
       isLoading.value = false
     }
@@ -297,8 +298,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { success: true, invitation }
     } catch (err) {
-      console.error('Error sending invitation:', err)
-      return { error: 'Failed to send invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to send invitation. Please try again.') }
     }
   }
 
@@ -350,8 +350,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { success: true }
     } catch (err: unknown) {
-      console.error('Error accepting invitation:', err)
-      return { error: 'Failed to accept invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to accept invitation. Please try again.') }
     }
   }
 
@@ -385,8 +384,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { success: true }
     } catch (err) {
-      console.error('Error rejecting invitation:', err)
-      return { error: 'Failed to decline invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to decline invitation. Please try again.') }
     }
   }
 
@@ -420,8 +418,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { success: true }
     } catch (err) {
-      console.error('Error cancelling invitation:', err)
-      return { error: 'Failed to cancel invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to cancel invitation. Please try again.') }
     }
   }
 
@@ -452,8 +449,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { success: true }
     } catch (err) {
-      console.error('Error removing linked child:', err)
-      return { error: 'Failed to remove child. Please try again.' }
+      return { error: handleError(err, 'Failed to remove child. Please try again.') }
     }
   }
 

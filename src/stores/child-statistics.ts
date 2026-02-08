@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
+import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
 export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
@@ -297,8 +298,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching child statistics:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch statistics'
+      const message = handleError(err, 'Failed to fetch statistics.')
       error.value = message
       return { error: message }
     } finally {
@@ -597,8 +597,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       return { session, error: null }
     } catch (err) {
-      console.error('Error fetching session:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch session'
+      const message = handleError(err, 'Failed to fetch session.')
       return { session: null, error: message }
     }
   }
@@ -860,7 +859,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         .order('date', { ascending: true })
 
       if (fetchError) {
-        return { statuses: [], error: fetchError.message }
+        return { statuses: [], error: handleError(fetchError, 'Failed to fetch daily statuses.') }
       }
 
       const statuses: ChildDailyStatus[] = (data ?? []).map((d) => ({
@@ -872,7 +871,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       return { statuses, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch daily statuses'
+      const message = handleError(err, 'Failed to fetch daily statuses.')
       return { statuses: [], error: message }
     }
   }

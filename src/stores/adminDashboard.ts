@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
+import { handleError } from '@/lib/errors'
 
 // Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
 const STATS_CACHE_TTL = 5 * 60 * 1000
@@ -183,8 +184,9 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       // Check for errors
       if (usersResult.error) {
-        error.value = usersResult.error.message
-        return { error: usersResult.error.message }
+        const message = handleError(usersResult.error, 'Failed to fetch dashboard stats.')
+        error.value = message
+        return { error: message }
       }
 
       // Process users
@@ -321,7 +323,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch dashboard stats'
+      const message = handleError(err, 'Failed to fetch dashboard stats.')
       error.value = message
       return { error: message }
     } finally {

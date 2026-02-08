@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 export type SubscriptionTier = Database['public']['Enums']['subscription_tier']
 type SubscriptionPlanRow = Database['public']['Tables']['subscription_plans']['Row']
@@ -137,7 +138,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { error: null }
     } catch (err) {
       console.error('Error fetching subscription plans:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch plans'
+      const message = handleError(err, 'Failed to fetch plans.')
       return { error: message }
     }
   }
@@ -224,7 +225,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { error: null }
     } catch (err) {
       console.error('Error fetching children subscriptions:', err)
-      const message = err instanceof Error ? err.message : 'Failed to fetch subscriptions'
+      const message = handleError(err, 'Failed to fetch subscriptions.')
       error.value = message
       return { error: message }
     } finally {
@@ -302,7 +303,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       return { url: data.url, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create checkout'
+      const message = handleError(err, 'Failed to create checkout.')
       paymentError.value = message
       return { url: null, error: message }
     } finally {
@@ -329,7 +330,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       return { url: data.url, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to open billing portal'
+      const message = handleError(err, 'Failed to open billing portal.')
       return { url: null, error: message }
     }
   }
@@ -360,7 +361,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       await fetchChildrenSubscriptions()
       return { success: true, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to sync subscription'
+      const message = handleError(err, 'Failed to sync subscription.')
       paymentError.value = message
       return { success: false, error: message }
     } finally {
@@ -397,7 +398,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       return { preview: data as UpgradePreview, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to preview upgrade'
+      const message = handleError(err, 'Failed to preview upgrade.')
       return { preview: null, error: message }
     }
   }
@@ -460,7 +461,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         message: data.message,
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to modify subscription'
+      const message = handleError(err, 'Failed to modify subscription.')
       paymentError.value = message
       return { success: false, error: message }
     } finally {
@@ -493,7 +494,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       await fetchChildrenSubscriptions()
       return { success: true, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to cancel subscription'
+      const message = handleError(err, 'Failed to cancel subscription.')
       paymentError.value = message
       return { success: false, error: message }
     } finally {
@@ -571,7 +572,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error upgrading plan:', err)
-      const message = err instanceof Error ? err.message : 'Failed to upgrade plan'
+      const message = handleError(err, 'Failed to upgrade plan.')
       return { success: false, error: message }
     }
   }

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
@@ -48,8 +49,9 @@ export const useFeedbackStore = defineStore('feedback', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) {
-        error.value = fetchError.message
-        return { error: fetchError.message }
+        const message = handleError(fetchError, 'Failed to fetch feedbacks.')
+        error.value = message
+        return { error: message }
       }
 
       type FeedbackRow = {
@@ -76,7 +78,7 @@ export const useFeedbackStore = defineStore('feedback', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch feedbacks'
+      const message = handleError(err, 'Failed to fetch feedbacks.')
       error.value = message
       return { error: message }
     } finally {
@@ -90,7 +92,7 @@ export const useFeedbackStore = defineStore('feedback', () => {
       const { error: deleteError } = await supabase.from('question_feedback').delete().eq('id', id)
 
       if (deleteError) {
-        return { error: deleteError.message }
+        return { error: handleError(deleteError, 'Failed to delete feedback.') }
       }
 
       // Remove from local state
@@ -101,7 +103,7 @@ export const useFeedbackStore = defineStore('feedback', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete feedback'
+      const message = handleError(err, 'Failed to delete feedback.')
       return { error: message }
     }
   }
@@ -122,12 +124,12 @@ export const useFeedbackStore = defineStore('feedback', () => {
       })
 
       if (insertError) {
-        return { error: insertError.message }
+        return { error: handleError(insertError, 'Failed to submit feedback.') }
       }
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to submit feedback'
+      const message = handleError(err, 'Failed to submit feedback.')
       return { error: message }
     }
   }

@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { supabase, clearSupabaseAuth } from '@/lib/supabaseClient'
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 type UserType = Database['public']['Enums']['user_type']
 
@@ -59,13 +60,14 @@ export async function signUp(
     })
 
     if (signUpError) {
-      moduleError.value = signUpError.message
-      return { user: null, error: signUpError.message }
+      const message = handleError(signUpError, 'An unexpected error occurred.')
+      moduleError.value = message
+      return { user: null, error: message }
     }
 
     return { user: data.user, error: null }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+    const message = handleError(err, 'An unexpected error occurred.')
     moduleError.value = message
     return { user: null, error: message }
   } finally {
@@ -90,13 +92,14 @@ export async function signIn(
     })
 
     if (signInError) {
-      moduleError.value = signInError.message
-      return { user: null, session: null, error: signInError.message }
+      const message = handleError(signInError, 'An unexpected error occurred.')
+      moduleError.value = message
+      return { user: null, session: null, error: message }
     }
 
     return { user: data.user, session: data.session, error: null }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+    const message = handleError(err, 'An unexpected error occurred.')
     moduleError.value = message
     return { user: null, session: null, error: message }
   } finally {
@@ -136,8 +139,9 @@ export async function signOut(): Promise<{ error: string | null }> {
 
       if (!isSessionGone) {
         // Only return error for unexpected failures
-        moduleError.value = signOutError.message
-        return { error: signOutError.message }
+        const msg = handleError(signOutError, 'An unexpected error occurred.')
+        moduleError.value = msg
+        return { error: msg }
       }
       // For session-gone errors: user IS logged out server-side
       // Clear localStorage since Supabase couldn't do it
@@ -146,7 +150,7 @@ export async function signOut(): Promise<{ error: string | null }> {
 
     return { error: null }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+    const message = handleError(err, 'An unexpected error occurred.')
     moduleError.value = message
     return { error: message }
   } finally {
@@ -260,7 +264,7 @@ export async function ensureProfileExists(
     // If there was an error other than "not found", return it
     if (checkError) {
       console.error('Error checking profile:', checkError)
-      return { success: false, error: checkError.message }
+      return { success: false, error: handleError(checkError, 'An unexpected error occurred.') }
     }
 
     // Profile doesn't exist, create it atomically using RPC function
@@ -280,12 +284,12 @@ export async function ensureProfileExists(
 
     if (rpcError) {
       console.error('Error creating profile:', rpcError)
-      return { success: false, error: rpcError.message }
+      return { success: false, error: handleError(rpcError, 'An unexpected error occurred.') }
     }
 
     return { success: true, error: null }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+    const message = handleError(err, 'An unexpected error occurred.')
     return { success: false, error: message }
   }
 }
@@ -303,13 +307,14 @@ export async function resetPassword(email: string): Promise<{ error: string | nu
     })
 
     if (resetError) {
-      moduleError.value = resetError.message
-      return { error: resetError.message }
+      const message = handleError(resetError, 'An unexpected error occurred.')
+      moduleError.value = message
+      return { error: message }
     }
 
     return { error: null }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+    const message = handleError(err, 'An unexpected error occurred.')
     moduleError.value = message
     return { error: message }
   } finally {
@@ -330,13 +335,14 @@ export async function updatePassword(newPassword: string): Promise<{ error: stri
     })
 
     if (updateError) {
-      moduleError.value = updateError.message
-      return { error: updateError.message }
+      const message = handleError(updateError, 'An unexpected error occurred.')
+      moduleError.value = message
+      return { error: message }
     }
 
     return { error: null }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+    const message = handleError(err, 'An unexpected error occurred.')
     moduleError.value = message
     return { error: message }
   } finally {

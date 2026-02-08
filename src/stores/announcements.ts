@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
 export type AnnouncementAudience = Database['public']['Enums']['announcement_audience']
@@ -114,7 +115,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch announcements'
+      const message = handleError(err, 'Failed to fetch announcements.')
       error.value = message
       return { error: message }
     } finally {
@@ -174,7 +175,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Failed to mark as read' }
+      return { error: handleError(err, 'Failed to mark as read.') }
     }
   }
 
@@ -210,7 +211,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Failed to mark all as read' }
+      return { error: handleError(err, 'Failed to mark all as read.') }
     }
   }
 
@@ -312,7 +313,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     } catch (err) {
       return {
         announcement: null,
-        error: err instanceof Error ? err.message : 'Failed to create announcement',
+        error: handleError(err, 'Failed to create announcement.'),
       }
     }
   }
@@ -365,7 +366,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Failed to update announcement' }
+      return { error: handleError(err, 'Failed to update announcement.') }
     }
   }
 
@@ -399,7 +400,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Failed to toggle pin status' }
+      return { error: handleError(err, 'Failed to toggle pin status.') }
     }
   }
 
@@ -418,7 +419,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Failed to delete announcement' }
+      return { error: handleError(err, 'Failed to delete announcement.') }
     }
   }
 
@@ -439,7 +440,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { path: fileName, error: null }
     } catch (err) {
-      return { path: null, error: err instanceof Error ? err.message : 'Failed to upload image' }
+      return { path: null, error: handleError(err, 'Failed to upload image.') }
     }
   }
 
@@ -454,7 +455,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Failed to delete image' }
+      return { error: handleError(err, 'Failed to delete image.') }
     }
   }
 

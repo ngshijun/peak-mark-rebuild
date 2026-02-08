@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 import { useCurriculumStore } from './curriculum'
+import { handleError } from '@/lib/errors'
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
 export type QuestionType = Database['public']['Enums']['question_type']
@@ -222,8 +223,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       questions.value = (data ?? []).map((row) => rowToQuestion(row, curriculumStore))
     } catch (err) {
-      console.error('Error fetching questions:', err)
-      error.value = err instanceof Error ? err.message : 'Failed to fetch questions'
+      error.value = handleError(err, 'Failed to fetch questions.')
     } finally {
       isLoading.value = false
     }
@@ -249,7 +249,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) {
-        return { questions: [], error: fetchError.message }
+        return { questions: [], error: handleError(fetchError, 'Failed to fetch questions.') }
       }
 
       return {
@@ -257,8 +257,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         error: null,
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch questions'
-      console.error('Error fetching questions by sub-topic:', err)
+      const message = handleError(err, 'Failed to fetch questions.')
       return { questions: [], error: message }
     }
   }
@@ -320,8 +319,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { success: true, error: null, id: data.id }
     } catch (err) {
-      console.error('Error adding question:', err)
-      const message = err instanceof Error ? err.message : 'Failed to add question'
+      const message = handleError(err, 'Failed to add question.')
       return { success: false, error: message }
     }
   }
@@ -387,8 +385,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { success: true, error: null }
     } catch (err) {
-      console.error('Error updating question:', err)
-      const message = err instanceof Error ? err.message : 'Failed to update question'
+      const message = handleError(err, 'Failed to update question.')
       return { success: false, error: message }
     }
   }
@@ -410,8 +407,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { success: true, error: null }
     } catch (err) {
-      console.error('Error deleting question:', err)
-      const message = err instanceof Error ? err.message : 'Failed to delete question'
+      const message = handleError(err, 'Failed to delete question.')
       return { success: false, error: message }
     }
   }
@@ -436,7 +432,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         .single()
 
       if (fetchError) {
-        return { error: fetchError.message }
+        return { error: handleError(fetchError, 'Failed to fetch question.') }
       }
 
       if (data) {
@@ -452,7 +448,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch question'
+      const message = handleError(err, 'Failed to fetch question.')
       return { error: message }
     }
   }
@@ -484,8 +480,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { success: true, path: filePath, error: null }
     } catch (err) {
-      console.error('Error uploading image:', err)
-      const message = err instanceof Error ? err.message : 'Failed to upload image'
+      const message = handleError(err, 'Failed to upload image.')
       return { success: false, path: null, error: message }
     }
   }
@@ -503,8 +498,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { success: true, error: null }
     } catch (err) {
-      console.error('Error deleting image:', err)
-      const message = err instanceof Error ? err.message : 'Failed to delete image'
+      const message = handleError(err, 'Failed to delete image.')
       return { success: false, error: message }
     }
   }

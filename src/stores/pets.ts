@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 export type PetRarity = Database['public']['Enums']['pet_rarity']
 
@@ -129,8 +130,9 @@ export const usePetsStore = defineStore('pets', () => {
         .order('name')
 
       if (fetchError) {
-        error.value = fetchError.message
-        return { error: fetchError.message }
+        const message = handleError(fetchError, 'Failed to fetch pets.')
+        error.value = message
+        return { error: message }
       }
 
       allPets.value = (data || []).map((pet) => ({
@@ -146,7 +148,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch pets'
+      const message = handleError(err, 'Failed to fetch pets.')
       error.value = message
       return { error: message }
     } finally {
@@ -168,7 +170,7 @@ export const usePetsStore = defineStore('pets', () => {
         .eq('student_id', studentId)
 
       if (fetchError) {
-        return { error: fetchError.message }
+        return { error: handleError(fetchError, 'Failed to fetch owned pets.') }
       }
 
       ownedPets.value = (data || []).map((op) => ({
@@ -183,7 +185,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch owned pets'
+      const message = handleError(err, 'Failed to fetch owned pets.')
       return { error: message }
     }
   }
@@ -363,7 +365,7 @@ export const usePetsStore = defineStore('pets', () => {
           .eq('id', existing.id)
 
         if (updateError) {
-          return { error: updateError.message }
+          return { error: handleError(updateError, 'Failed to add pet.') }
         }
 
         existing.count++
@@ -380,7 +382,7 @@ export const usePetsStore = defineStore('pets', () => {
           .single()
 
         if (insertError) {
-          return { error: insertError.message }
+          return { error: handleError(insertError, 'Failed to add pet.') }
         }
 
         ownedPets.value.push({
@@ -396,7 +398,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add pet'
+      const message = handleError(err, 'Failed to add pet.')
       return { error: message }
     }
   }
@@ -475,7 +477,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { success: false, error: rpcError.message }
+        return { success: false, error: handleError(rpcError, 'Failed to feed pet.') }
       }
 
       const result = data as {
@@ -511,7 +513,7 @@ export const usePetsStore = defineStore('pets', () => {
         canEvolve: result.can_evolve,
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to feed pet'
+      const message = handleError(err, 'Failed to feed pet.')
       return { success: false, error: message }
     }
   }
@@ -534,7 +536,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { success: false, error: rpcError.message }
+        return { success: false, error: handleError(rpcError, 'Failed to evolve pet.') }
       }
 
       const result = data as {
@@ -565,7 +567,7 @@ export const usePetsStore = defineStore('pets', () => {
         newTier: result.new_tier,
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to evolve pet'
+      const message = handleError(err, 'Failed to evolve pet.')
       return { success: false, error: message }
     }
   }
@@ -618,7 +620,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { success: false, error: rpcError.message }
+        return { success: false, error: handleError(rpcError, 'Failed to combine pets.') }
       }
 
       const result = data as {
@@ -643,7 +645,7 @@ export const usePetsStore = defineStore('pets', () => {
         resultRarity: result.result_rarity,
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to combine pets'
+      const message = handleError(err, 'Failed to combine pets.')
       return { success: false, error: message }
     }
   }
@@ -672,7 +674,7 @@ export const usePetsStore = defineStore('pets', () => {
         .single()
 
       if (insertError) {
-        return { pet: null, error: insertError.message }
+        return { pet: null, error: handleError(insertError, 'Failed to create pet.') }
       }
 
       const newPet: Pet = {
@@ -689,7 +691,7 @@ export const usePetsStore = defineStore('pets', () => {
       allPets.value.push(newPet)
       return { pet: newPet, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create pet'
+      const message = handleError(err, 'Failed to create pet.')
       return { pet: null, error: message }
     }
   }
@@ -721,7 +723,7 @@ export const usePetsStore = defineStore('pets', () => {
         .single()
 
       if (updateError) {
-        return { error: updateError.message }
+        return { error: handleError(updateError, 'Failed to update pet.') }
       }
 
       // Update local state
@@ -741,7 +743,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update pet'
+      const message = handleError(err, 'Failed to update pet.')
       return { error: message }
     }
   }
@@ -752,7 +754,7 @@ export const usePetsStore = defineStore('pets', () => {
       const { error: deleteError } = await supabase.from('pets').delete().eq('id', petId)
 
       if (deleteError) {
-        return { error: deleteError.message }
+        return { error: handleError(deleteError, 'Failed to delete pet.') }
       }
 
       // Remove from local state
@@ -763,7 +765,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete pet'
+      const message = handleError(err, 'Failed to delete pet.')
       return { error: message }
     }
   }
@@ -786,12 +788,12 @@ export const usePetsStore = defineStore('pets', () => {
         })
 
       if (uploadError) {
-        return { path: null, error: uploadError.message }
+        return { path: null, error: handleError(uploadError, 'Failed to upload image.') }
       }
 
       return { path: filePath, error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to upload image'
+      const message = handleError(err, 'Failed to upload image.')
       return { path: null, error: message }
     }
   }

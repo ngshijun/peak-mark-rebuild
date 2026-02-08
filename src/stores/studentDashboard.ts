@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 export type MoodType = Database['public']['Enums']['mood_type']
 
@@ -55,8 +56,9 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
         .maybeSingle()
 
       if (fetchError) {
-        error.value = fetchError.message
-        return { error: fetchError.message }
+        const message = handleError(fetchError, 'Failed to fetch daily status.')
+        error.value = message
+        return { error: message }
       }
 
       if (data) {
@@ -84,8 +86,9 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
           .single()
 
         if (insertError) {
-          error.value = insertError.message
-          return { error: insertError.message }
+          const message = handleError(insertError, 'Failed to fetch daily status.')
+          error.value = message
+          return { error: message }
         }
 
         todayStatus.value = {
@@ -113,7 +116,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch daily status'
+      const message = handleError(err, 'Failed to fetch daily status.')
       error.value = message
       return { error: message }
     } finally {
@@ -149,13 +152,13 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
         .eq('id', todayStatus.value.id)
 
       if (updateError) {
-        return { error: updateError.message }
+        return { error: handleError(updateError, 'Failed to set mood.') }
       }
 
       todayStatus.value.mood = mood
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to set mood'
+      const message = handleError(err, 'Failed to set mood.')
       return { error: message }
     }
   }
@@ -188,7 +191,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
       })
 
       if (rpcError) {
-        return { error: rpcError.message }
+        return { error: handleError(rpcError, 'Failed to record spin.') }
       }
 
       // Update local state
@@ -200,7 +203,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to record spin'
+      const message = handleError(err, 'Failed to record spin.')
       return { error: message }
     }
   }
@@ -253,7 +256,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
       })
 
       if (rpcError) {
-        return { error: rpcError.message }
+        return { error: handleError(rpcError, 'Failed to mark practiced.') }
       }
 
       // Update local state with results from the atomic operation
@@ -262,7 +265,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to mark practiced'
+      const message = handleError(err, 'Failed to mark practiced.')
       return { error: message }
     }
   }

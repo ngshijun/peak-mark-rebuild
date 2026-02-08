@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
+import { handleError } from '@/lib/errors'
 
 type GradeLevelRow = Database['public']['Tables']['grade_levels']['Row']
 type SubjectRow = Database['public']['Tables']['subjects']['Row']
@@ -253,7 +254,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       buildLookupMaps()
     } catch (err) {
       console.error('Error fetching curriculum:', err)
-      error.value = err instanceof Error ? err.message : 'Failed to fetch curriculum'
+      error.value = handleError(err, 'Failed to fetch curriculum.')
     } finally {
       isLoading.value = false
     }
@@ -295,7 +296,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding grade level:', err)
-      const message = err instanceof Error ? err.message : 'Failed to add grade level'
+      const message = handleError(err, 'Failed to add grade level.')
       return { success: false, error: message }
     }
   }
@@ -324,7 +325,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating grade level:', err)
-      const message = err instanceof Error ? err.message : 'Failed to update grade level'
+      const message = handleError(err, 'Failed to update grade level.')
       return { success: false, error: message }
     }
   }
@@ -349,7 +350,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting grade level:', err)
-      const message = err instanceof Error ? err.message : 'Failed to delete grade level'
+      const message = handleError(err, 'Failed to delete grade level.')
       return { success: false, error: message }
     }
   }
@@ -401,7 +402,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding subject:', err)
-      const message = err instanceof Error ? err.message : 'Failed to add subject'
+      const message = handleError(err, 'Failed to add subject.')
       return { success: false, error: message }
     }
   }
@@ -437,7 +438,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating subject:', err)
-      const message = err instanceof Error ? err.message : 'Failed to update subject'
+      const message = handleError(err, 'Failed to update subject.')
       return { success: false, error: message }
     }
   }
@@ -479,7 +480,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting subject:', err)
-      const message = err instanceof Error ? err.message : 'Failed to delete subject'
+      const message = handleError(err, 'Failed to delete subject.')
       return { success: false, error: message }
     }
   }
@@ -536,7 +537,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding topic:', err)
-      const message = err instanceof Error ? err.message : 'Failed to add topic'
+      const message = handleError(err, 'Failed to add topic.')
       return { success: false, error: message }
     }
   }
@@ -574,7 +575,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating topic:', err)
-      const message = err instanceof Error ? err.message : 'Failed to update topic'
+      const message = handleError(err, 'Failed to update topic.')
       return { success: false, error: message }
     }
   }
@@ -619,7 +620,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting topic:', err)
-      const message = err instanceof Error ? err.message : 'Failed to delete topic'
+      const message = handleError(err, 'Failed to delete topic.')
       return { success: false, error: message }
     }
   }
@@ -683,7 +684,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding sub_topic:', err)
-      const message = err instanceof Error ? err.message : 'Failed to add sub_topic'
+      const message = handleError(err, 'Failed to add sub-topic.')
       return { success: false, error: message }
     }
   }
@@ -723,7 +724,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating sub_topic:', err)
-      const message = err instanceof Error ? err.message : 'Failed to update sub_topic'
+      const message = handleError(err, 'Failed to update sub-topic.')
       return { success: false, error: message }
     }
   }
@@ -772,7 +773,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting sub_topic:', err)
-      const message = err instanceof Error ? err.message : 'Failed to delete sub_topic'
+      const message = handleError(err, 'Failed to delete sub-topic.')
       return { success: false, error: message }
     }
   }
@@ -803,7 +804,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, path: filePath, error: null }
     } catch (err) {
       console.error('Error uploading image:', err)
-      const message = err instanceof Error ? err.message : 'Failed to upload image'
+      const message = handleError(err, 'Failed to upload image.')
       return { success: false, path: null, error: message }
     }
   }

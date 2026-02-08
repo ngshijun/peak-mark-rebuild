@@ -10,4 +10,9 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
+// Safety net for uncaught errors in the component tree
+app.config.errorHandler = (err) => {
+  console.error('[Uncaught Error]', err)
+}
+
 app.mount('#app')

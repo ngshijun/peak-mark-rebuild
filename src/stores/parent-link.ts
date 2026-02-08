@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
 type InvitationRow = Database['public']['Tables']['parent_student_invitations']['Row']
@@ -80,9 +81,9 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching linked parents:', err)
-      error.value = 'Failed to load linked parents'
-      return { error: 'Failed to load linked parents' }
+      const message = handleError(err, 'Failed to load linked parents.')
+      error.value = message
+      return { error: message }
     } finally {
       isLoading.value = false
     }
@@ -147,9 +148,9 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { error: null }
     } catch (err) {
-      console.error('Error fetching invitations:', err)
-      error.value = 'Failed to load invitations'
-      return { error: 'Failed to load invitations' }
+      const message = handleError(err, 'Failed to load invitations.')
+      error.value = message
+      return { error: message }
     } finally {
       isLoading.value = false
     }
@@ -269,8 +270,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { success: true, invitation }
     } catch (err) {
-      console.error('Error sending invitation:', err)
-      return { error: 'Failed to send invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to send invitation. Please try again.') }
     }
   }
 
@@ -320,8 +320,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { success: true }
     } catch (err: unknown) {
-      console.error('Error accepting invitation:', err)
-      return { error: 'Failed to accept invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to accept invitation. Please try again.') }
     }
   }
 
@@ -355,8 +354,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { success: true }
     } catch (err) {
-      console.error('Error rejecting invitation:', err)
-      return { error: 'Failed to decline invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to decline invitation. Please try again.') }
     }
   }
 
@@ -390,8 +388,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { success: true }
     } catch (err) {
-      console.error('Error cancelling invitation:', err)
-      return { error: 'Failed to cancel invitation. Please try again.' }
+      return { error: handleError(err, 'Failed to cancel invitation. Please try again.') }
     }
   }
 
@@ -422,8 +419,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { success: true }
     } catch (err) {
-      console.error('Error removing linked parent:', err)
-      return { error: 'Failed to remove parent. Please try again.' }
+      return { error: handleError(err, 'Failed to remove parent. Please try again.') }
     }
   }
 
