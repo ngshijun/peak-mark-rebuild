@@ -359,22 +359,14 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     }
 
     try {
-      // Get the subscription for this child from the current parent
-      const { data: subscriptionData, error: subError } = await supabase
-        .from('child_subscriptions')
-        .select('tier')
-        .eq('parent_id', authStore.user.id)
-        .eq('student_id', childId)
-        .eq('is_active', true)
+      // Read the child's subscription tier directly from student_profiles
+      const { data: profileData } = await supabase
+        .from('student_profiles')
+        .select('subscription_tier')
+        .eq('id', childId)
         .maybeSingle()
 
-      if (subError || !subscriptionData) {
-        const status: ChildSubscriptionStatus = { tier: 'core', canViewDetailedResults: false }
-        subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })
-        return status
-      }
-
-      const tier = subscriptionData.tier as SubscriptionTier
+      const tier = (profileData?.subscription_tier as SubscriptionTier) ?? 'core'
       const canViewDetailedResults = tier === 'pro' || tier === 'max'
 
       const status: ChildSubscriptionStatus = { tier, canViewDetailedResults }

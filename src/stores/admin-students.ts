@@ -168,10 +168,6 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
           name,
           date_of_birth,
           created_at,
-          child_subscriptions!child_subscriptions_student_id_fkey (
-            tier,
-            is_active
-          ),
           parent_student_links!parent_student_links_student_id_fkey (
             parent:profiles!parent_student_links_parent_id_fkey (
               name,
@@ -183,6 +179,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
           ),
           student_profiles!student_profiles_id_fkey (
             xp,
+            subscription_tier,
             grade_levels (
               name
             )
@@ -196,17 +193,6 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
 
       // Transform the data
       students.value = (studentsData ?? []).map((student) => {
-        // Find active subscription - handle both array and single object cases
-        const subscriptionsRaw = student.child_subscriptions
-        const subscriptions = Array.isArray(subscriptionsRaw)
-          ? subscriptionsRaw
-          : subscriptionsRaw
-            ? [subscriptionsRaw]
-            : []
-        const activeSubscription = (
-          subscriptions as { tier: SubscriptionTier; is_active: boolean | null }[]
-        ).find((s) => s.is_active)
-
         // Get parent info - handle both array and single object cases
         const parentLinksRaw = student.parent_student_links
         const parentLinks = Array.isArray(parentLinksRaw)
@@ -228,9 +214,10 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
             ? (statusDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null)
             : null
 
-        // Get student profile data (xp and grade level)
+        // Get student profile data (xp, tier, and grade level)
         const studentProfile = student.student_profiles as {
           xp: number | null
+          subscription_tier: SubscriptionTier
           grade_levels: { name: string } | null
         } | null
         const xp = studentProfile?.xp ?? 0
@@ -241,7 +228,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
           name: student.name ?? 'Unknown',
           email: student.email ?? '',
           dateOfBirth: student.date_of_birth,
-          subscriptionTier: activeSubscription?.tier ?? null,
+          subscriptionTier: studentProfile?.subscription_tier ?? null,
           parentName: parentInfo?.name ?? null,
           parentEmail: parentInfo?.email ?? null,
           joinedAt: student.created_at,

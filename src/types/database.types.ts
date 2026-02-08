@@ -999,6 +999,7 @@ export type Database = {
           grade_level_id: string | null
           id: string
           selected_pet_id: string | null
+          subscription_tier: Database['public']['Enums']['subscription_tier']
           updated_at: string | null
           xp: number | null
         }
@@ -1010,6 +1011,7 @@ export type Database = {
           grade_level_id?: string | null
           id: string
           selected_pet_id?: string | null
+          subscription_tier?: Database['public']['Enums']['subscription_tier']
           updated_at?: string | null
           xp?: number | null
         }
@@ -1021,6 +1023,7 @@ export type Database = {
           grade_level_id?: string | null
           id?: string
           selected_pet_id?: string | null
+          subscription_tier?: Database['public']['Enums']['subscription_tier']
           updated_at?: string | null
           xp?: number | null
         }

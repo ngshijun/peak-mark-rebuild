@@ -393,72 +393,32 @@ export const usePracticeStore = defineStore('practice', () => {
     }
 
     try {
-      // Fetch parent link, subscription data, and subscription plans in parallel
+      // Fetch profile tier, parent link, and subscription plans in parallel
       // fetchSubscriptionPlans() is fire-and-forget (returns void), errors are handled internally
-      const [linksResult, subscriptionResult] = await Promise.all([
+      const [profileResult, linksResult] = await Promise.all([
+        supabase
+          .from('student_profiles')
+          .select('subscription_tier')
+          .eq('id', authStore.user.id)
+          .maybeSingle(),
         supabase
           .from('parent_student_links')
           .select('parent_id')
           .eq('student_id', authStore.user.id)
           .limit(1),
-        supabase
-          .from('child_subscriptions')
-          .select('tier')
-          .eq('student_id', authStore.user.id)
-          .eq('is_active', true)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
         fetchSubscriptionPlans().catch((err) => {
           // Log warning if plans fetch failed (non-critical, will use fallback)
           console.warn('Failed to fetch subscription plans:', err)
         }),
       ])
 
-      if (linksResult.error) {
-        console.error('Error checking parent links:', linksResult.error)
-        const status: StudentSubscriptionStatus = {
-          isLinkedToParent: false,
-          tier: 'core',
-          sessionsPerDay: getSessionsPerDayForTier('core'),
-          canViewDetailedResults: false,
-        }
-        subscriptionStatusCache.value = { status, lastFetched: Date.now() }
-        return status
-      }
-
+      const tier = (profileResult.data?.subscription_tier as SubscriptionTier) ?? 'core'
       const isLinkedToParent = (linksResult.data?.length ?? 0) > 0
-
-      if (!isLinkedToParent) {
-        const status: StudentSubscriptionStatus = {
-          isLinkedToParent: false,
-          tier: 'core',
-          sessionsPerDay: getSessionsPerDayForTier('core'),
-          canViewDetailedResults: false,
-        }
-        subscriptionStatusCache.value = { status, lastFetched: Date.now() }
-        return status
-      }
-
-      if (subscriptionResult.error || !subscriptionResult.data) {
-        const status: StudentSubscriptionStatus = {
-          isLinkedToParent: true,
-          tier: 'core',
-          sessionsPerDay: getSessionsPerDayForTier('core'),
-          canViewDetailedResults: false,
-        }
-        subscriptionStatusCache.value = { status, lastFetched: Date.now() }
-        return status
-      }
-
-      const tier = subscriptionResult.data.tier as SubscriptionTier
-
-      // Get sessions_per_day from cache (already fetched in parallel above)
       const sessionsPerDay = getSessionsPerDayForTier(tier)
       const canViewDetailedResults = tier === 'pro' || tier === 'max'
 
       const status: StudentSubscriptionStatus = {
-        isLinkedToParent: true,
+        isLinkedToParent,
         tier,
         sessionsPerDay,
         canViewDetailedResults,
