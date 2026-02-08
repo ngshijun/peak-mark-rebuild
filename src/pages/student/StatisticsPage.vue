@@ -54,9 +54,12 @@ const dateRangeOptions = [
   { value: 'alltime' as DateRangeFilter, label: 'All Time' },
 ]
 
-// Get current student's grade level from profile
-// TODO: gradeLevelName needs to be fetched or added to studentProfile
-const currentGradeLevel = computed(() => undefined)
+// Helper to convert ALL_VALUE to undefined for store calls
+const gradeLevelFilter = computed(() =>
+  practiceStore.historyFilters.gradeLevel === ALL_VALUE
+    ? undefined
+    : practiceStore.historyFilters.gradeLevel,
+)
 
 const isLoading = ref(true)
 
@@ -71,7 +74,6 @@ onMounted(async () => {
   }
 })
 
-// Helper to convert ALL_VALUE to undefined for store calls
 const subjectFilter = computed(() =>
   practiceStore.historyFilters.subject === ALL_VALUE
     ? undefined
@@ -86,20 +88,25 @@ const subTopicFilter = computed(() =>
     : practiceStore.historyFilters.subTopic,
 )
 
-// Get available subjects from history (filtered by current grade level)
+// Get available grade levels from history
+const availableGradeLevels = computed(() => {
+  return practiceStore.getHistoryGradeLevels()
+})
+
+// Get available subjects from history (filtered by grade level)
 const availableSubjects = computed(() => {
-  return practiceStore.getHistorySubjects(currentGradeLevel.value)
+  return practiceStore.getHistorySubjects(gradeLevelFilter.value)
 })
 
-// Get available topics (filtered by current grade level and subject)
+// Get available topics (filtered by grade level and subject)
 const availableTopics = computed(() => {
-  return practiceStore.getHistoryTopics(currentGradeLevel.value, subjectFilter.value)
+  return practiceStore.getHistoryTopics(gradeLevelFilter.value, subjectFilter.value)
 })
 
-// Get available sub-topics (filtered by current grade level, subject, and topic)
+// Get available sub-topics (filtered by grade level, subject, and topic)
 const availableSubTopics = computed(() => {
   return practiceStore.getHistorySubTopics(
-    currentGradeLevel.value,
+    gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
   )
@@ -123,7 +130,7 @@ interface HistoryRow {
 // Transform session data for table with filters applied
 const historyData = computed<HistoryRow[]>(() => {
   const filteredSessions = practiceStore.getFilteredHistory(
-    currentGradeLevel.value, // filter by student's current grade level from profile
+    gradeLevelFilter.value,
     subjectFilter.value,
     topicFilter.value,
     subTopicFilter.value,
@@ -384,9 +391,26 @@ function handleRowClick(row: HistoryRow) {
           </SelectContent>
         </Select>
 
+        <!-- Grade Level Selector -->
+        <Select
+          :model-value="practiceStore.historyFilters.gradeLevel"
+          @update:model-value="practiceStore.setHistoryGradeLevel($event as string)"
+        >
+          <SelectTrigger class="w-[130px]">
+            <SelectValue placeholder="All Grades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="ALL_VALUE">All Grades</SelectItem>
+            <SelectItem v-for="grade in availableGradeLevels" :key="grade" :value="grade">
+              {{ grade }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
         <!-- Subject Selector -->
         <Select
           :model-value="practiceStore.historyFilters.subject"
+          :disabled="practiceStore.historyFilters.gradeLevel === ALL_VALUE"
           @update:model-value="practiceStore.setHistorySubject($event as string)"
         >
           <SelectTrigger class="w-[140px]">

@@ -138,6 +138,7 @@ export const usePracticeStore = defineStore('practice', () => {
   // History page filter state (persisted across navigation)
   const historyFilters = ref({
     dateRange: 'alltime' as DateRangeFilter,
+    gradeLevel: '__all__',
     subject: '__all__',
     topic: '__all__',
     subTopic: '__all__',
@@ -1316,6 +1317,14 @@ export const usePracticeStore = defineStore('practice', () => {
     historyFilters.value.dateRange = value
   }
 
+  function setHistoryGradeLevel(value: string) {
+    historyFilters.value.gradeLevel = value
+    // Reset dependent filters when grade level changes
+    historyFilters.value.subject = '__all__'
+    historyFilters.value.topic = '__all__'
+    historyFilters.value.subTopic = '__all__'
+  }
+
   function setHistorySubject(value: string) {
     historyFilters.value.subject = value
     // Reset dependent filters when subject changes
@@ -1336,6 +1345,7 @@ export const usePracticeStore = defineStore('practice', () => {
   function resetHistoryFilters() {
     historyFilters.value = {
       dateRange: 'alltime',
+      gradeLevel: '__all__',
       subject: '__all__',
       topic: '__all__',
       subTopic: '__all__',
@@ -1448,6 +1458,7 @@ export const usePracticeStore = defineStore('practice', () => {
     // History filters
     historyFilters,
     setHistoryDateRange,
+    setHistoryGradeLevel,
     setHistorySubject,
     setHistoryTopic,
     setHistorySubTopic,
