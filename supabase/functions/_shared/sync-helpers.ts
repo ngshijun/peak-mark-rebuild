@@ -54,7 +54,8 @@ async function syncWithIds(
     .single()
 
   const tier = plan?.id || 'core'
-  const isActive = ['active', 'trialing'].includes(subscription.status)
+  // Keep access during 'past_due' as a grace period while Stripe retries payment
+  const isActive = ['active', 'trialing', 'past_due'].includes(subscription.status)
 
   // Convert Unix timestamps to ISO strings
   const currentPeriodStart = subscription.current_period_start

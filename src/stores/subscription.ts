@@ -292,8 +292,6 @@ export const useSubscriptionStore = defineStore('subscription', () => {
           body: {
             priceId: plan.stripePriceId,
             studentId: childId,
-            successUrl: `${window.location.origin}/parent/subscription?success=true`,
-            cancelUrl: `${window.location.origin}/parent/subscription?canceled=true`,
           },
         },
       )
@@ -318,11 +316,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     try {
       const { data, error: invokeError } = await supabase.functions.invoke(
         'create-portal-session',
-        {
-          body: {
-            returnUrl: `${window.location.origin}/parent/subscription`,
-          },
-        },
+        { body: {} },
       )
 
       if (invokeError) throw invokeError
@@ -502,91 +496,6 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }
   }
 
-  /**
-   * Upgrade/change plan for a child (local DB only - for basic tier or initial setup)
-   * @deprecated Use createCheckoutSession or modifySubscription for paid tiers
-   */
-  async function upgradePlan(
-    childId: string,
-    tier: SubscriptionTier,
-  ): Promise<{ success: boolean; error: string | null }> {
-    if (!authStore.user || !authStore.isParent) {
-      return { success: false, error: 'Not authenticated as parent' }
-    }
-
-    try {
-      const nextBillingDate =
-        tier !== 'core' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null
-
-      // Check if subscription exists
-      const { data: existing } = await supabase
-        .from('child_subscriptions')
-        .select('id')
-        .eq('parent_id', authStore.user.id)
-        .eq('student_id', childId)
-        .single()
-
-      if (existing) {
-        // Update existing subscription
-        const { error: updateError } = await supabase
-          .from('child_subscriptions')
-          .update({
-            tier,
-            next_billing_date: nextBillingDate,
-            is_active: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existing.id)
-
-        if (updateError) throw updateError
-      } else {
-        // Create new subscription
-        const { error: insertError } = await supabase.from('child_subscriptions').insert({
-          parent_id: authStore.user.id,
-          student_id: childId,
-          tier,
-          start_date: new Date().toISOString(),
-          next_billing_date: nextBillingDate,
-          is_active: true,
-        })
-
-        if (insertError) throw insertError
-      }
-
-      // Update local state
-      const existingIndex = childSubscriptions.value.findIndex((s) => s.childId === childId)
-      const newSubscription: ChildSubscription = {
-        childId,
-        tier,
-        startDate: new Date().toISOString(),
-        nextBillingDate: nextBillingDate ?? undefined,
-        isActive: true,
-      }
-
-      if (existingIndex >= 0) {
-        childSubscriptions.value[existingIndex] = newSubscription
-      } else {
-        childSubscriptions.value.push(newSubscription)
-      }
-
-      return { success: true, error: null }
-    } catch (err) {
-      console.error('Error upgrading plan:', err)
-      const message = handleError(err, 'Failed to upgrade plan.')
-      return { success: false, error: message }
-    }
-  }
-
-  /**
-   * Cancel subscription for a child (downgrade to basic)
-   * @deprecated Use cancelStripeSubscription for Stripe-managed subscriptions
-   */
-  async function cancelSubscription(
-    childId: string,
-  ): Promise<{ success: boolean; error: string | null }> {
-    return upgradePlan(childId, 'core')
-  }
-
   // Get total monthly cost across all children
   const totalMonthlyCost = computed(() => {
     return childSubscriptions.value.reduce((total, sub) => {
@@ -637,10 +546,6 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     previewUpgrade,
     modifySubscription,
     cancelStripeSubscription,
-
-    // Legacy Actions (for basic tier or non-Stripe usage)
-    upgradePlan,
-    cancelSubscription,
     $reset,
   }
 })

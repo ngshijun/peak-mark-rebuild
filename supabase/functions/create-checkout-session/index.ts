@@ -1,13 +1,11 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { stripe, corsHeaders } from '../_shared/stripe.ts'
+import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 
 interface RequestBody {
   priceId: string
   studentId: string
-  successUrl: string
-  cancelUrl: string
 }
 
 Deno.serve(async (req: Request) => {
@@ -56,14 +54,20 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { priceId, studentId, successUrl, cancelUrl }: RequestBody = await req.json()
+    const { priceId, studentId }: RequestBody = await req.json()
 
-    if (!priceId || !studentId || !successUrl || !cancelUrl) {
+    if (!priceId || !studentId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // Construct redirect URLs server-side to prevent open redirect attacks
+    // TODO: Set APP_URL as a Supabase secret once the final production domain is decided
+    const appUrl = Deno.env.get('APP_URL') || req.headers.get('origin') || 'http://localhost:5173'
+    const successUrl = `${appUrl}/parent/subscription?success=true`
+    const cancelUrl = `${appUrl}/parent/subscription?canceled=true`
 
     // Verify parent-student link exists
     const { data: link } = await supabaseAdmin
@@ -153,7 +157,7 @@ Deno.serve(async (req: Request) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${successUrl}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       subscription_data: {
         metadata: {
@@ -172,10 +176,6 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Error creating checkout session:', error)
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return errorResponse('Failed to create checkout session', 500, error)
   }
 })

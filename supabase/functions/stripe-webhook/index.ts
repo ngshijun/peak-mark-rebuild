@@ -7,6 +7,34 @@ import {
 } from '../_shared/sync-helpers.ts'
 import type Stripe from 'https://esm.sh/stripe@17.4.0?target=deno'
 
+/**
+ * Check if a webhook event has already been processed (idempotency).
+ * Returns true if the event was already processed and should be skipped.
+ */
+async function isEventProcessed(eventId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('processed_webhook_events')
+    .select('event_id')
+    .eq('event_id', eventId)
+    .single()
+  return !!data
+}
+
+/**
+ * Mark a webhook event as processed.
+ */
+async function markEventProcessed(eventId: string, eventType: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('processed_webhook_events')
+    .insert({ event_id: eventId, event_type: eventType })
+  if (error) {
+    // Unique constraint violation means another instance already processed it - safe to ignore
+    if (error.code !== '23505') {
+      console.error('Error marking event as processed:', error)
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -21,10 +49,15 @@ Deno.serve(async (req: Request) => {
     const body = await req.text()
     const event = await stripe.webhooks.constructEventAsync(body, signature, WEBHOOK_SECRET)
 
-    console.log(`Processing webhook event: ${event.type}`)
-    console.log(`Event ID: ${event.id}`)
+    console.log(`Processing webhook event: ${event.type}, ID: ${event.id}`)
 
-    let handlerResult: unknown = null
+    // Idempotency check: skip if already processed
+    if (await isEventProcessed(event.id)) {
+      console.log(`Event ${event.id} already processed, skipping`)
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -41,7 +74,7 @@ Deno.serve(async (req: Request) => {
         break
 
       case 'invoice.paid':
-        handlerResult = await handleInvoicePaid(event.data.object as Stripe.Invoice)
+        await handleInvoicePaid(event.data.object as Stripe.Invoice)
         break
 
       case 'invoice.payment_failed':
@@ -52,12 +85,15 @@ Deno.serve(async (req: Request) => {
         console.log(`Unhandled event type: ${event.type}`)
     }
 
-    return new Response(JSON.stringify({ received: true, eventType: event.type, eventId: event.id, handlerResult }), {
+    // Mark event as processed after successful handling
+    await markEventProcessed(event.id, event.type)
+
+    return new Response(JSON.stringify({ received: true }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Webhook error:', error)
-    return new Response(`Webhook Error: ${(error as Error).message}`, { status: 400 })
+    return new Response('Webhook processing failed', { status: 400 })
   }
 })
 

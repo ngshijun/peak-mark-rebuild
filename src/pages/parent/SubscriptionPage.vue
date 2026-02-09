@@ -234,26 +234,21 @@ async function handleCancel() {
 
   const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
 
-  if (hasStripe) {
-    // Cancel Stripe subscription at period end
-    const { error } = await subscriptionStore.cancelStripeSubscription(selectedChildId.value, false)
-    if (error) {
-      toast.error('Error', { description: error })
-    } else {
-      toast.success('Subscription cancelled', {
-        description: 'Your subscription will end at the current billing period.',
-      })
-    }
+  if (!hasStripe) {
+    // Already on core tier with no Stripe subscription - nothing to cancel
+    toast.info('No active subscription', {
+      description: 'This child is already on the basic tier.',
+    })
+    return
+  }
+
+  const { error } = await subscriptionStore.cancelStripeSubscription(selectedChildId.value, false)
+  if (error) {
+    toast.error('Error', { description: error })
   } else {
-    // Legacy cancel (downgrade to basic)
-    const { error } = await subscriptionStore.cancelSubscription(selectedChildId.value)
-    if (error) {
-      toast.error('Error', { description: error })
-    } else {
-      toast.success('Subscription cancelled', {
-        description: 'Downgraded to basic tier.',
-      })
-    }
+    toast.success('Subscription cancelled', {
+      description: 'Your subscription will end at the current billing period.',
+    })
   }
 }
 
@@ -424,9 +419,6 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                     <Badge v-else variant="secondary">Free Tier</Badge>
                   </template>
                 </div>
-                <p class="mt-1 text-sm text-muted-foreground">
-                  Started on {{ formatDate(currentSubscription.startDate) }}
-                </p>
                 <!-- Show period end for Stripe subscriptions -->
                 <p
                   v-if="currentSubscription.stripe?.currentPeriodEnd"
@@ -449,12 +441,6 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                   <template v-else>
                     Renews on {{ formatDate(currentSubscription.stripe.currentPeriodEnd) }}
                   </template>
-                </p>
-                <p
-                  v-else-if="currentSubscription.nextBillingDate"
-                  class="text-sm text-muted-foreground"
-                >
-                  Next billing: {{ formatDate(currentSubscription.nextBillingDate) }}
                 </p>
               </div>
               <div class="text-right">

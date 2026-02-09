@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { stripe, corsHeaders } from '../_shared/stripe.ts'
+import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 
 Deno.serve(async (req: Request) => {
@@ -34,14 +34,10 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { returnUrl } = await req.json()
-
-    if (!returnUrl) {
-      return new Response(JSON.stringify({ error: 'Missing returnUrl' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    // Construct return URL server-side to prevent open redirect attacks
+    // TODO: Set APP_URL as a Supabase secret once the final production domain is decided
+    const appUrl = Deno.env.get('APP_URL') || req.headers.get('origin') || 'http://localhost:5173'
+    const returnUrl = `${appUrl}/parent/subscription`
 
     // Get Stripe customer ID
     const { data: parentProfile } = await supabaseAdmin
@@ -66,10 +62,6 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Error creating portal session:', error)
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return errorResponse('Failed to open billing portal', 500, error)
   }
 })

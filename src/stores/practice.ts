@@ -1097,10 +1097,16 @@ export const usePracticeStore = defineStore('practice', () => {
       ])
 
       if (sessionResult.error) {
-        return { session: null, error: handleError(sessionResult.error, 'Failed to fetch session.') }
+        return {
+          session: null,
+          error: handleError(sessionResult.error, 'Failed to fetch session.'),
+        }
       }
       if (answersResult.error) {
-        return { session: null, error: handleError(answersResult.error, 'Failed to fetch session.') }
+        return {
+          session: null,
+          error: handleError(answersResult.error, 'Failed to fetch session.'),
+        }
       }
 
       // SECURITY: Verify session ownership to prevent IDOR attacks

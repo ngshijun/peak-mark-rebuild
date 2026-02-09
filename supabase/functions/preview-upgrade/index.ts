@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { stripe, corsHeaders } from '../_shared/stripe.ts'
+import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 
 Deno.serve(async (req: Request) => {
@@ -199,10 +199,6 @@ Deno.serve(async (req: Request) => {
       }
     )
   } catch (error) {
-    console.error('Error previewing upgrade:', error)
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return errorResponse('Failed to preview upgrade', 500, error)
   }
 })
