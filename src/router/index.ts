@@ -8,6 +8,7 @@ import { usePetsStore } from '@/stores/pets'
 import { useQuestionsStore } from '@/stores/questions'
 import { useAnnouncementsStore } from '@/stores/announcements'
 import { useSubscriptionStore } from '@/stores/subscription'
+import { useLeaderboardStore } from '@/stores/leaderboard'
 
 /**
  * Route guards for data preloading
@@ -49,6 +50,7 @@ async function studentRouteGuard() {
   const petsStore = usePetsStore()
   const parentLinkStore = useParentLinkStore()
   const announcementsStore = useAnnouncementsStore()
+  const leaderboardStore = useLeaderboardStore()
 
   const promises: Promise<unknown>[] = []
 
@@ -68,6 +70,9 @@ async function studentRouteGuard() {
   if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
     promises.push(announcementsStore.fetchAnnouncements())
   }
+
+  // Check for unseen weekly leaderboard rewards (non-blocking)
+  promises.push(leaderboardStore.checkUnseenReward())
 
   if (promises.length > 0) {
     await Promise.all(promises)

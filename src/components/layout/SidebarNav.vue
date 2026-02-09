@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
 import { useAnnouncementsStore } from '@/stores/announcements'
+import { useLeaderboardStore } from '@/stores/leaderboard'
 import { useAuthStore } from '@/stores/auth'
 import type { NavItem } from '@/types'
 
@@ -19,14 +20,31 @@ defineProps<{
 
 const route = useRoute()
 const announcementsStore = useAnnouncementsStore()
+const leaderboardStore = useLeaderboardStore()
 const authStore = useAuthStore()
 
 function shouldShowBadge(item: NavItem): boolean {
-  return (
+  if (
     item.path.includes('announcements') &&
     authStore.userType !== 'admin' &&
     announcementsStore.unreadCount > 0
-  )
+  ) {
+    return true
+  }
+  if (item.path.includes('leaderboard') && leaderboardStore.hasUnseenReward) {
+    return true
+  }
+  return false
+}
+
+function getBadgeText(item: NavItem): string {
+  if (item.path.includes('announcements')) {
+    return announcementsStore.unreadCount > 9 ? '9+' : String(announcementsStore.unreadCount)
+  }
+  if (item.path.includes('leaderboard')) {
+    return '1'
+  }
+  return ''
 }
 </script>
 
@@ -47,7 +65,7 @@ function shouldShowBadge(item: NavItem): boolean {
                 variant="default"
                 class="size-5 justify-center rounded-full p-0 text-xs"
               >
-                {{ announcementsStore.unreadCount > 9 ? '9+' : announcementsStore.unreadCount }}
+                {{ getBadgeText(item) }}
               </Badge>
             </RouterLink>
           </SidebarMenuButton>
