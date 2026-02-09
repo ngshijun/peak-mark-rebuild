@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Format staged files before committing
+npm run format
+
+# Re-stage any files that were reformatted
+git update-index --again

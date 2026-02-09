@@ -297,9 +297,7 @@ function getRankColor(rank: number): string {
     <Tabs v-model="activeTab" class="w-full">
       <TabsList class="grid w-full grid-cols-2">
         <TabsTrigger value="all-time">All-Time</TabsTrigger>
-        <TabsTrigger value="weekly">
-          Weekly
-        </TabsTrigger>
+        <TabsTrigger value="weekly"> Weekly </TabsTrigger>
       </TabsList>
 
       <!-- All-Time Tab -->
@@ -473,10 +471,7 @@ function getRankColor(rank: number): string {
       <!-- Weekly Tab -->
       <TabsContent value="weekly">
         <!-- Loading State -->
-        <div
-          v-if="leaderboardStore.isWeeklyLoading"
-          class="flex items-center justify-center py-12"
-        >
+        <div v-if="leaderboardStore.isWeeklyLoading" class="flex items-center justify-center py-12">
           <Loader2 class="size-8 animate-spin text-muted-foreground" />
         </div>
 
@@ -552,7 +547,9 @@ function getRankColor(rank: number): string {
                   <!-- Coin Reward -->
                   <div v-if="getWeeklyReward(student.rank)" class="w-12 text-center">
                     <p class="text-sm text-muted-foreground">Reward</p>
-                    <p class="flex items-center justify-center gap-1 font-semibold text-amber-700 dark:text-amber-400">
+                    <p
+                      class="flex items-center justify-center gap-1 font-semibold text-amber-700 dark:text-amber-400"
+                    >
                       <CirclePoundSterling class="size-3.5" />
                       {{ getWeeklyReward(student.rank) }}
                     </p>
@@ -609,9 +606,14 @@ function getRankColor(rank: number): string {
                   <!-- Stats -->
                   <div class="flex items-center gap-6">
                     <!-- Coin Reward placeholder -->
-                    <div v-if="getWeeklyReward(currentWeeklyStudentInfo.rank)" class="w-12 text-center">
+                    <div
+                      v-if="getWeeklyReward(currentWeeklyStudentInfo.rank)"
+                      class="w-12 text-center"
+                    >
                       <p class="text-sm text-muted-foreground">Reward</p>
-                      <p class="flex items-center justify-center gap-1 font-semibold text-amber-700 dark:text-amber-400">
+                      <p
+                        class="flex items-center justify-center gap-1 font-semibold text-amber-700 dark:text-amber-400"
+                      >
                         <CirclePoundSterling class="size-3.5" />
                         {{ getWeeklyReward(currentWeeklyStudentInfo.rank) }}
                       </p>
@@ -641,7 +643,14 @@ function getRankColor(rank: number): string {
     </Tabs>
 
     <!-- Weekly Reward Notification Dialog -->
-    <Dialog :open="showRewardDialog" @update:open="(v: boolean) => { if (!v) dismissRewardDialog() }">
+    <Dialog
+      :open="showRewardDialog"
+      @update:open="
+        (v: boolean) => {
+          if (!v) dismissRewardDialog()
+        }
+      "
+    >
       <DialogContent class="max-w-sm text-center">
         <DialogHeader>
           <DialogTitle class="text-center text-xl">Weekly Leaderboard Results</DialogTitle>
@@ -661,16 +670,16 @@ function getRankColor(rank: number): string {
             </p>
           </div>
 
-          <div class="flex items-center justify-center gap-2 rounded-lg bg-amber-50 px-4 py-3 dark:bg-amber-950/20">
+          <div
+            class="flex items-center justify-center gap-2 rounded-lg bg-amber-50 px-4 py-3 dark:bg-amber-950/20"
+          >
             <CirclePoundSterling class="size-5 text-amber-700 dark:text-amber-400" />
             <span class="text-lg font-bold text-amber-700 dark:text-amber-400">
               +{{ lastWeekReward.coinsAwarded }} Coins
             </span>
           </div>
 
-          <Button class="w-full" @click="dismissRewardDialog">
-            Awesome!
-          </Button>
+          <Button class="w-full" @click="dismissRewardDialog"> Awesome! </Button>
         </div>
       </DialogContent>
     </Dialog>

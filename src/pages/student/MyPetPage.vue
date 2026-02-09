@@ -28,7 +28,7 @@ import {
   ShoppingCart,
   Beef,
   CirclePoundSterling,
-  Gift,
+  PawPrint,
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
@@ -314,7 +314,7 @@ function getTierLabel(tier: number): string {
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" @click="router.push('/student/gacha')">
-          <Gift class="mr-2 size-4" />
+          <PawPrint class="mr-2 size-4" />
           Get Pets
         </Button>
         <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
