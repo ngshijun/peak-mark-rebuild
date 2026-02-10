@@ -74,13 +74,6 @@ export type Database = {
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
-          {
-            foreignKeyName: 'announcement_reads_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
         ]
       }
       announcements: {
@@ -133,13 +126,6 @@ export type Database = {
             columns: ['created_by']
             isOneToOne: false
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'announcements_created_by_fkey'
-            columns: ['created_by']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -221,13 +207,6 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'child_subscriptions_parent_id_fkey'
-            columns: ['parent_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'child_subscriptions_student_id_fkey'
             columns: ['student_id']
             isOneToOne: true
@@ -239,13 +218,6 @@ export type Database = {
             columns: ['student_id']
             isOneToOne: true
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'child_subscriptions_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: true
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -297,13 +269,6 @@ export type Database = {
             columns: ['student_id']
             isOneToOne: false
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'daily_statuses_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -385,13 +350,6 @@ export type Database = {
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
-          {
-            foreignKeyName: 'owned_pets_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
         ]
       }
       parent_profiles: {
@@ -426,13 +384,6 @@ export type Database = {
             columns: ['id']
             isOneToOne: true
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'parent_profiles_id_fkey'
-            columns: ['id']
-            isOneToOne: true
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -487,13 +438,6 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'parent_student_invitations_parent_id_fkey'
-            columns: ['parent_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'parent_student_invitations_student_id_fkey'
             columns: ['student_id']
             isOneToOne: false
@@ -505,13 +449,6 @@ export type Database = {
             columns: ['student_id']
             isOneToOne: false
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'parent_student_invitations_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -551,13 +488,6 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'parent_student_links_parent_id_fkey'
-            columns: ['parent_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'parent_student_links_student_id_fkey'
             columns: ['student_id']
             isOneToOne: true
@@ -569,13 +499,6 @@ export type Database = {
             columns: ['student_id']
             isOneToOne: true
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'parent_student_links_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: true
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -642,13 +565,6 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'payment_history_parent_id_fkey'
-            columns: ['parent_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'payment_history_student_id_fkey'
             columns: ['student_id']
             isOneToOne: false
@@ -660,13 +576,6 @@ export type Database = {
             columns: ['student_id']
             isOneToOne: false
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'payment_history_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -831,13 +740,6 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'practice_sessions_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'practice_sessions_subject_id_fkey'
             columns: ['subject_id']
             isOneToOne: false
@@ -956,13 +858,6 @@ export type Database = {
             columns: ['reported_by']
             isOneToOne: false
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'question_feedback_reported_by_fkey'
-            columns: ['reported_by']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
         ]
@@ -1173,13 +1068,6 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'student_profiles_id_fkey'
-            columns: ['id']
-            isOneToOne: true
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'student_profiles_selected_pet_id_fkey'
             columns: ['selected_pet_id']
             isOneToOne: false
@@ -1240,13 +1128,6 @@ export type Database = {
             columns: ['student_id']
             isOneToOne: false
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'student_question_progress_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
           {
@@ -1448,13 +1329,6 @@ export type Database = {
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
-          {
-            foreignKeyName: 'weekly_leaderboard_rewards_student_id_fkey'
-            columns: ['student_id']
-            isOneToOne: false
-            referencedRelation: 'weekly_leaderboard'
-            referencedColumns: ['id']
-          },
         ]
       }
     }
@@ -1495,6 +1369,18 @@ export type Database = {
       }
     }
     Functions: {
+      _weekly_leaderboard_data: {
+        Args: never
+        Returns: {
+          avatar_path: string
+          grade_level_name: string
+          id: string
+          name: string
+          rank: number
+          total_xp: number
+          weekly_xp: number
+        }[]
+      }
       accept_parent_student_invitation: {
         Args: {
           p_accepting_user_id: string
