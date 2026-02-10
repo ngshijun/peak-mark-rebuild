@@ -47,8 +47,6 @@ const selectedChild = computed(() => {
 onMounted(async () => {
   try {
     await childLinkStore.fetchLinkedChildren()
-    // Fetch statistics for all children
-    await childStatisticsStore.fetchChildrenStatistics()
 
     // Restore saved selection or select first child
     const savedChildId = localStorage.getItem(SELECTED_CHILD_KEY)
@@ -62,10 +60,22 @@ onMounted(async () => {
         selectedChildId.value = firstChild.id
       }
     }
+
+    // Only fetch statistics for the selected child (lazy loading)
+    if (selectedChildId.value) {
+      await childStatisticsStore.fetchChildStatistics(selectedChildId.value)
+    }
   } catch {
     toast.error('Failed to load children data')
   } finally {
     isLoading.value = false
+  }
+})
+
+// Fetch statistics when switching children
+watch(selectedChildId, async (newId) => {
+  if (newId) {
+    await childStatisticsStore.fetchChildStatistics(newId)
   }
 })
 </script>

@@ -19,6 +19,8 @@ const SUBSCRIPTION_CACHE_TTL = 2 * 60 * 1000 // 2 minutes
 const SESSION_LIMIT_CACHE_TTL = 30 * 1000 // 30 seconds
 // Cache TTL for subscription plans (rarely change)
 const SUBSCRIPTION_PLANS_CACHE_TTL = 10 * 60 * 1000 // 10 minutes
+// Cache TTL for session history (new sessions are added in-memory, so stale risk is low)
+const SESSION_HISTORY_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 /**
  * Fisher-Yates shuffle - O(n) time, uniform distribution
@@ -105,6 +107,7 @@ export function getDateRangeStart(filter: DateRangeFilter): Date | null {
 export const usePracticeStore = defineStore('practice', () => {
   const currentSession = ref<PracticeSession | null>(null)
   const sessionHistory = ref<PracticeSession[]>([])
+  const sessionHistoryLastFetched = ref<number | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -459,7 +462,10 @@ export const usePracticeStore = defineStore('practice', () => {
   /**
    * Check session limit for current student (with caching)
    */
-  async function checkSessionLimit(force = false): Promise<SessionLimitStatus> {
+  async function checkSessionLimit(
+    force = false,
+    preloadedSubscriptionStatus?: StudentSubscriptionStatus,
+  ): Promise<SessionLimitStatus> {
     if (!authStore.user || authStore.user.userType !== 'student') {
       return {
         canStartSession: false,
@@ -474,7 +480,7 @@ export const usePracticeStore = defineStore('practice', () => {
       return sessionLimitCache.value.status
     }
 
-    const subscriptionStatus = await getStudentSubscriptionStatus()
+    const subscriptionStatus = preloadedSubscriptionStatus ?? (await getStudentSubscriptionStatus())
 
     // Get today's date range
     const todayStart = new Date()
@@ -519,9 +525,19 @@ export const usePracticeStore = defineStore('practice', () => {
   /**
    * Fetch session history for the current student
    */
-  async function fetchSessionHistory(): Promise<{ error: string | null }> {
+  async function fetchSessionHistory(force = false): Promise<{ error: string | null }> {
     if (!authStore.user) {
       return { error: 'Not authenticated' }
+    }
+
+    // Skip if cache is still valid (new sessions are added in-memory via unshift)
+    if (
+      !force &&
+      sessionHistoryLastFetched.value &&
+      sessionHistory.value.length > 0 &&
+      Date.now() - sessionHistoryLastFetched.value < SESSION_HISTORY_CACHE_TTL
+    ) {
+      return { error: null }
     }
 
     isLoading.value = true
@@ -551,6 +567,7 @@ export const usePracticeStore = defineStore('practice', () => {
         const answerCount = (row.practice_answers as { count: number }[])?.[0]?.count ?? 0
         return rowToSession(row, answerCount)
       })
+      sessionHistoryLastFetched.value = Date.now()
       return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to fetch session history.')
@@ -1444,6 +1461,7 @@ export const usePracticeStore = defineStore('practice', () => {
   function $reset() {
     currentSession.value = null
     sessionHistory.value = []
+    sessionHistoryLastFetched.value = null
     isLoading.value = false
     error.value = null
     subscriptionStatusCache.value = { status: null, lastFetched: null }

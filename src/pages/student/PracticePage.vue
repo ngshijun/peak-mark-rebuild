@@ -60,14 +60,14 @@ onMounted(async () => {
   if (curriculumStore.gradeLevels.length === 0) {
     await curriculumStore.fetchCurriculum()
   }
-  // Check session limit, subscription status, and sub-topic progress in parallel
-  const [limitStatus, subStatus] = await Promise.all([
-    practiceStore.checkSessionLimit(),
+  // Fetch subscription status and sub-topic progress in parallel
+  const [subStatus] = await Promise.all([
     practiceStore.getStudentSubscriptionStatus(),
     practiceStore.fetchSubTopicProgress(),
   ])
-  sessionLimitStatus.value = limitStatus
   subscriptionStatus.value = subStatus
+  // Check session limit using already-fetched subscription status (avoids duplicate call)
+  sessionLimitStatus.value = await practiceStore.checkSessionLimit(false, subStatus)
   isLoadingLimit.value = false
 })
 
