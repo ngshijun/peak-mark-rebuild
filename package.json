@@ -41,6 +41,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@plugin-web-update-notification/vite": "^2.0.2",
     "@tsconfig/node24": "^24.0.3",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^24.10.3",
