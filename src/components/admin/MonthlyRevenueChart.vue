@@ -10,7 +10,7 @@ import {
   componentToString,
   type ChartConfig,
 } from '@/components/ui/chart'
-import { VisAxis, VisGroupedBar, VisXYContainer } from '@unovis/vue'
+import { VisAxis, VisStackedBar, VisXYContainer } from '@unovis/vue'
 import { TrendingUp } from 'lucide-vue-next'
 
 const dashboardStore = useAdminDashboardStore()
@@ -44,7 +44,7 @@ const chartConfig = {
           :margin="{ left: 0, right: 0 }"
           :y-domain="[0, undefined]"
         >
-          <VisGroupedBar
+          <VisStackedBar
             :x="(_d: MonthlyRevenue, i: number) => i"
             :y="(d: MonthlyRevenue) => d.amount"
             :color="chartConfig.amount.color"
@@ -57,7 +57,7 @@ const chartConfig = {
             :tick-line="false"
             :domain-line="false"
             :grid-line="false"
-            :num-ticks="12"
+            :tick-values="[0, 2, 4, 6, 8, 10]"
             :tick-format="(i: number) => chartData[i]?.label?.split(' ')[0] ?? ''"
           />
           <VisAxis type="y" :num-ticks="3" :tick-line="false" :domain-line="false" />

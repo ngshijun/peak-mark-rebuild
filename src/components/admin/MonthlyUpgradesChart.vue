@@ -69,7 +69,7 @@ const chartConfig = {
             :tick-line="false"
             :domain-line="false"
             :grid-line="false"
-            :num-ticks="12"
+            :tick-values="[0, 2, 4, 6, 8, 10]"
             :tick-format="(i: number) => chartData[i]?.label?.split(' ')[0] ?? ''"
           />
           <VisAxis type="y" :num-ticks="3" :tick-line="false" :domain-line="false" />

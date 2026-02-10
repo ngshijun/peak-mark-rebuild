@@ -20,6 +20,13 @@ export interface MonthlyUpgrades {
   max: number
 }
 
+export interface TierDistribution {
+  tier: string // 'core' | 'plus' | 'pro' | 'max'
+  label: string
+  count: number
+  color: string
+}
+
 export interface DashboardStats {
   revenue: {
     total: number
@@ -30,6 +37,7 @@ export interface DashboardStats {
     monthly: MonthlyRevenue[] // Last 12 months
   }
   upgrades: MonthlyUpgrades[] // Last 12 months
+  tierDistribution: TierDistribution[]
   users: {
     total: number
     students: number
@@ -51,6 +59,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
       monthly: [],
     },
     upgrades: [],
+    tierDistribution: [],
     users: {
       total: 0,
       students: 0,
@@ -129,6 +138,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         previousMonthRevenueResult,
         monthlyRevenueResult,
         monthlyUpgradesResult,
+        tierDistributionResult,
       ] = await Promise.all([
         // Total users by type
         supabase.from('profiles').select('user_type'),
@@ -180,6 +190,9 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           .in('tier', ['plus', 'pro', 'max'])
           .gte('created_at', last12MonthsStart)
           .order('created_at', { ascending: true }),
+
+        // Subscription tier distribution (from student profiles)
+        supabase.from('student_profiles').select('subscription_tier'),
       ])
 
       // Check for errors
@@ -316,6 +329,34 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
             max: counts.max,
           }
         })
+      }
+
+      // Process subscription tier distribution
+      if (tierDistributionResult.data) {
+        const tierColors: Record<string, string> = {
+          core: 'var(--chart-4)',
+          plus: 'var(--chart-1)',
+          pro: 'var(--chart-2)',
+          max: 'var(--chart-3)',
+        }
+        const tierLabels: Record<string, string> = {
+          core: 'Core',
+          plus: 'Plus',
+          pro: 'Pro',
+          max: 'Max',
+        }
+        const tierCounts = new Map<string, number>()
+        for (const sub of tierDistributionResult.data) {
+          if (sub.subscription_tier) {
+            tierCounts.set(sub.subscription_tier, (tierCounts.get(sub.subscription_tier) ?? 0) + 1)
+          }
+        }
+        stats.value.tierDistribution = ['core', 'plus', 'pro', 'max'].map((tier) => ({
+          tier,
+          label: tierLabels[tier] ?? tier,
+          count: tierCounts.get(tier) ?? 0,
+          color: tierColors[tier] ?? 'var(--chart-5)',
+        }))
       }
 
       // Update cache timestamp

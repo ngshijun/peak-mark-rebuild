@@ -6,6 +6,7 @@ import { DollarSign, Users, Activity, BookOpen, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import MonthlyRevenueChart from '@/components/admin/MonthlyRevenueChart.vue'
 import MonthlyUpgradesChart from '@/components/admin/MonthlyUpgradesChart.vue'
+import SubscriptionTierChart from '@/components/admin/SubscriptionTierChart.vue'
 
 const dashboardStore = useAdminDashboardStore()
 
@@ -36,7 +37,7 @@ onMounted(async () => {
         <!-- Revenue Card -->
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle class="text-sm font-medium">Revenue This Month</CardTitle>
             <DollarSign class="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -89,7 +90,7 @@ onMounted(async () => {
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">{{ dashboardStore.stats.activeStudentsToday }}</div>
-            <p class="text-xs text-muted-foreground">Students who logged in today</p>
+            <p class="text-xs text-muted-foreground">Students logged in today</p>
           </CardContent>
         </Card>
 
@@ -113,6 +114,9 @@ onMounted(async () => {
         </div>
         <div class="lg:col-span-1">
           <MonthlyUpgradesChart />
+        </div>
+        <div class="lg:col-span-1">
+          <SubscriptionTierChart />
         </div>
       </div>
     </div>
