@@ -30,7 +30,17 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from '@/components/ui/carousel'
-import { HelpCircle, Check, Star, Lock, Combine, Sparkles, Loader2 } from 'lucide-vue-next'
+import {
+  HelpCircle,
+  Check,
+  Star,
+  Lock,
+  Combine,
+  Sparkles,
+  Loader2,
+  Plus,
+  ArrowRight,
+} from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
@@ -149,7 +159,7 @@ function getNextRarity(rarity: CombineRarity): PetRarity {
 
 // Get owned pets for the selected combine rarity
 const ownedPetsForCombine = computed(() => {
-  return petsStore.ownedPetsByRarity[selectedCombineRarity.value]
+  return petsStore.ownedPetsByRarity[selectedCombineRarity.value].filter((op) => op.count > 1)
 })
 
 // Total selected count
@@ -365,6 +375,7 @@ async function handleQuickCombine() {
 function closeCombineResult() {
   showCombineResultDialog.value = false
   combineResults.value = []
+  showCombineDialog.value = true
 }
 </script>
 
@@ -476,7 +487,7 @@ function closeCombineResult() {
 
     <!-- Combine Pets Dialog -->
     <Dialog :open="showCombineDialog" @update:open="closeCombineDialog">
-      <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
             <Combine class="size-5 text-purple-500" />
@@ -505,175 +516,153 @@ function closeCombineResult() {
           </TabsList>
         </Tabs>
 
-        <!-- Main Content: Grid + Preview Panel -->
-        <div class="flex gap-4">
-          <!-- Left: Pet Selection Grid -->
-          <div class="flex-1 space-y-3">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium">Select Pets</p>
-              <p class="text-xs text-muted-foreground">Click to add, right-click to remove</p>
-            </div>
-
-            <!-- Pet Grid (scrollable) -->
-            <div
-              v-if="ownedPetsForCombine.length > 0"
-              class="max-h-[300px] overflow-y-auto rounded-lg border p-2"
+        <!-- 4-Slot Preview (horizontal row) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-medium">Selected ({{ totalSelectedCount }}/4)</p>
+            <Button
+              v-if="totalSelectedCount > 0"
+              variant="ghost"
+              size="sm"
+              class="h-6 px-2 text-xs"
+              @click="clearAllSelections"
             >
-              <div class="grid grid-cols-4 gap-2">
-                <div
-                  v-for="ownedPet in ownedPetsForCombine"
-                  :key="ownedPet.id"
-                  class="relative flex cursor-pointer flex-col items-center rounded-lg border-2 p-2 transition-all hover:scale-105"
-                  :class="[
-                    getSelectionCount(ownedPet.id) > 0
-                      ? 'border-purple-500 bg-purple-100 dark:bg-purple-950/50'
-                      : [
-                          rarityConfig[selectedCombineRarity].bgColor,
-                          rarityConfig[selectedCombineRarity].borderColor,
-                        ],
-                    getAvailableCount(ownedPet) === 0 && totalSelectedCount < 4 ? 'opacity-50' : '',
-                  ]"
-                  @click="incrementSelection(ownedPet)"
-                  @contextmenu.prevent="decrementSelection(ownedPet)"
-                >
-                  <!-- Selection count badge -->
-                  <div
-                    v-if="getSelectionCount(ownedPet.id) > 0"
-                    class="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-purple-500 text-xs font-bold text-white"
-                  >
-                    {{ getSelectionCount(ownedPet.id) }}
-                  </div>
-
-                  <!-- Pet Image -->
-                  <img
-                    v-if="getPetForOwnedPet(ownedPet)"
-                    :src="
-                      petsStore.getThumbnailPetImageUrl(
-                        getPetForOwnedPet(ownedPet)!.imagePath,
-                        getPetForOwnedPet(ownedPet)!.updatedAt,
-                      )
-                    "
-                    :alt="getPetForOwnedPet(ownedPet)!.name"
-                    loading="lazy"
-                    class="size-24 object-contain"
-                  />
-
-                  <!-- Pet Name & Count -->
-                  <p class="mt-1 truncate text-center text-[9px] font-medium">
-                    {{ getPetForOwnedPet(ownedPet)?.name }}
-                  </p>
-                  <p class="text-[8px] text-muted-foreground">x{{ ownedPet.count }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty State -->
-            <div
-              v-else
-              class="flex flex-col items-center justify-center rounded-lg border py-8 text-center text-muted-foreground"
-            >
-              <HelpCircle class="mb-2 size-10 opacity-50" />
-              <p class="text-sm">No {{ rarityConfig[selectedCombineRarity].label }} pets</p>
-            </div>
+              Clear
+            </Button>
           </div>
 
-          <!-- Right: Preview Panel -->
-          <div class="w-48 space-y-3">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium">Combine</p>
-              <Button
-                v-if="totalSelectedCount > 0"
-                variant="ghost"
-                size="sm"
-                class="h-6 px-2 text-xs"
-                @click="clearAllSelections"
-              >
-                Clear
-              </Button>
-            </div>
-
-            <!-- 4 Slots Preview -->
-            <div class="grid grid-cols-2 gap-2">
-              <div
-                v-for="i in 4"
-                :key="i"
-                class="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed p-2"
-                :class="[
-                  selectedPetsPreview[i - 1]
-                    ? [
-                        'border-solid',
-                        rarityConfig[selectedCombineRarity].bgColor,
-                        rarityConfig[selectedCombineRarity].borderColor,
-                      ]
-                    : 'border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900',
-                ]"
-              >
-                <template v-if="selectedPetsPreview[i - 1]">
-                  <img
-                    :src="
-                      petsStore.getThumbnailPetImageUrl(
-                        selectedPetsPreview[i - 1]!.pet.imagePath,
-                        selectedPetsPreview[i - 1]!.pet.updatedAt,
-                      )
-                    "
-                    :alt="selectedPetsPreview[i - 1]!.pet.name"
-                    class="size-24 object-contain"
-                  />
-                  <p class="mt-1 truncate text-center text-[8px] font-medium">
-                    {{ selectedPetsPreview[i - 1]!.pet.name }}
-                  </p>
-                </template>
-                <template v-else>
-                  <div
-                    class="flex size-10 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-800"
-                  >
-                    <span class="text-lg text-gray-400">{{ i }}</span>
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <!-- Success Rate -->
-            <div class="rounded-lg bg-muted/50 p-3 text-center">
-              <p class="text-xs text-muted-foreground">
-                {{ rarityConfig[selectedCombineRarity].label }} →
-                {{ rarityConfig[getNextRarity(selectedCombineRarity)].label }}
-              </p>
-              <p
-                class="mt-1 text-lg font-bold"
-                :class="rarityConfig[getNextRarity(selectedCombineRarity)].color"
-              >
-                {{ COMBINE_SUCCESS_RATES[selectedCombineRarity] }}%
-              </p>
-              <p class="text-[10px] text-muted-foreground">Success Rate</p>
-            </div>
-
-            <!-- Combine Button -->
-            <Button
-              class="w-full bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
-              :disabled="totalSelectedCount !== 4 || isCombining"
-              @click="handleCombine"
+          <div class="grid grid-cols-4 gap-2">
+            <div
+              v-for="i in 4"
+              :key="i"
+              class="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed p-1.5"
+              :class="[
+                selectedPetsPreview[i - 1]
+                  ? [
+                      'border-solid',
+                      rarityConfig[selectedCombineRarity].bgColor,
+                      rarityConfig[selectedCombineRarity].borderColor,
+                    ]
+                  : [rarityConfig[selectedCombineRarity].borderColor, 'opacity-40'],
+              ]"
             >
-              <Loader2 v-if="isCombining" class="mr-2 size-4 animate-spin" />
-              <Combine v-else class="mr-2 size-4" />
-              {{ isCombining ? 'Combining...' : 'Combine' }}
-            </Button>
+              <template v-if="selectedPetsPreview[i - 1]">
+                <img
+                  :src="
+                    petsStore.getThumbnailPetImageUrl(
+                      selectedPetsPreview[i - 1]!.pet.imagePath,
+                      selectedPetsPreview[i - 1]!.pet.updatedAt,
+                    )
+                  "
+                  :alt="selectedPetsPreview[i - 1]!.pet.name"
+                  class="size-16 object-contain sm:size-20"
+                />
+                <p class="mt-1 max-w-full truncate text-center text-xs font-medium">
+                  {{ selectedPetsPreview[i - 1]!.pet.name }}
+                </p>
+              </template>
+              <template v-else>
+                <Plus class="size-6 text-muted-foreground" />
+              </template>
+            </div>
           </div>
         </div>
 
-        <!-- Quick Combine Section -->
-        <div
-          class="mt-4 flex items-center justify-between rounded-lg border border-dashed border-purple-300 bg-purple-50/50 p-3 dark:border-purple-700 dark:bg-purple-950/20"
-        >
-          <div>
-            <p class="text-sm font-medium">Quick Combine</p>
-            <p class="text-xs text-muted-foreground">
-              Automatically combine all {{ rarityConfig[selectedCombineRarity].label }} pets
-            </p>
+        <!-- Success Rate Badge -->
+        <div class="flex items-center justify-center gap-2">
+          <Badge variant="outline" class="gap-1.5 px-3 py-1 text-sm">
+            <span :class="rarityConfig[selectedCombineRarity].color" class="font-medium">
+              {{ rarityConfig[selectedCombineRarity].label }}
+            </span>
+            <ArrowRight class="size-3.5" />
+            <span
+              :class="rarityConfig[getNextRarity(selectedCombineRarity)].color"
+              class="font-medium"
+            >
+              {{ rarityConfig[getNextRarity(selectedCombineRarity)].label }}
+            </span>
+            <span class="text-muted-foreground">·</span>
+            <span class="font-semibold">
+              {{ COMBINE_SUCCESS_RATES[selectedCombineRarity] }}% success
+            </span>
+          </Badge>
+        </div>
+
+        <!-- Pet Selection Grid -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-medium">Your Pets</p>
+            <p class="text-xs text-muted-foreground">Click to add, right-click to remove</p>
           </div>
+
+          <div
+            v-if="ownedPetsForCombine.length > 0"
+            class="max-h-[280px] overflow-y-auto rounded-lg border p-2"
+          >
+            <div class="grid grid-cols-4 gap-2 sm:grid-cols-5">
+              <div
+                v-for="ownedPet in ownedPetsForCombine"
+                :key="ownedPet.id"
+                class="relative flex cursor-pointer flex-col items-center rounded-lg border-2 p-2 transition-all hover:scale-105"
+                :class="[
+                  getSelectionCount(ownedPet.id) > 0
+                    ? 'border-purple-500 bg-purple-100 dark:bg-purple-950/50'
+                    : [
+                        rarityConfig[selectedCombineRarity].bgColor,
+                        rarityConfig[selectedCombineRarity].borderColor,
+                      ],
+                  getAvailableCount(ownedPet) === 0 ? 'opacity-50' : '',
+                ]"
+                @click="incrementSelection(ownedPet)"
+                @contextmenu.prevent="decrementSelection(ownedPet)"
+              >
+                <!-- Selection count badge -->
+                <div
+                  v-if="getSelectionCount(ownedPet.id) > 0"
+                  class="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-purple-500 text-xs font-bold text-white"
+                >
+                  {{ getSelectionCount(ownedPet.id) }}
+                </div>
+
+                <!-- Pet Image -->
+                <img
+                  v-if="getPetForOwnedPet(ownedPet)"
+                  :src="
+                    petsStore.getThumbnailPetImageUrl(
+                      getPetForOwnedPet(ownedPet)!.imagePath,
+                      getPetForOwnedPet(ownedPet)!.updatedAt,
+                    )
+                  "
+                  :alt="getPetForOwnedPet(ownedPet)!.name"
+                  loading="lazy"
+                  class="size-16 object-contain sm:size-20"
+                />
+
+                <!-- Pet Name & Count -->
+                <p class="mt-1 max-w-full truncate text-center text-xs font-medium">
+                  {{ getPetForOwnedPet(ownedPet)?.name }}
+                </p>
+                <p v-if="ownedPet.count > 1" class="text-[10px] text-muted-foreground">
+                  x{{ ownedPet.count - 1 }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div
+            v-else
+            class="flex flex-col items-center justify-center rounded-lg border py-8 text-center text-muted-foreground"
+          >
+            <HelpCircle class="mb-2 size-10 opacity-50" />
+            <p class="text-sm">No {{ rarityConfig[selectedCombineRarity].label }} pets</p>
+          </div>
+        </div>
+
+        <!-- Footer Buttons -->
+        <DialogFooter class="gap-2">
           <Button
             variant="outline"
-            class="border-purple-300 text-purple-600 hover:bg-purple-100 dark:border-purple-700 dark:text-purple-400"
             :disabled="quickCombineCount === 0 || isCombining"
             @click="handleQuickCombine"
           >
@@ -681,7 +670,12 @@ function closeCombineResult() {
             <Sparkles v-else class="mr-2 size-4" />
             Combine All ({{ quickCombineCount }}x)
           </Button>
-        </div>
+          <Button :disabled="totalSelectedCount !== 4 || isCombining" @click="handleCombine">
+            <Loader2 v-if="isCombining" class="mr-2 size-4 animate-spin" />
+            <Combine v-else class="mr-2 size-4" />
+            {{ isCombining ? 'Combining...' : 'Combine' }}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
 

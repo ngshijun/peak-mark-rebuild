@@ -171,6 +171,9 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     return { error: null }
   }
 
+  // Whether student already has a linked parent
+  const hasLinkedParent = computed(() => linkedParents.value.length > 0)
+
   // Get invitations sent to current student (from parents)
   const receivedInvitations = computed(() => {
     if (!authStore.user || !authStore.isStudent) return []
@@ -204,12 +207,9 @@ export const useParentLinkStore = defineStore('parentLink', () => {
       return { error: 'Not authenticated as student' }
     }
 
-    // Check if already linked
-    const alreadyLinked = linkedParents.value.some(
-      (p) => p.email.toLowerCase() === parentEmail.toLowerCase(),
-    )
-    if (alreadyLinked) {
-      return { error: 'This parent is already linked to your account' }
+    // Check if student already has a linked parent
+    if (hasLinkedParent.value) {
+      return { error: 'You can only have one linked parent' }
     }
 
     // Check if invitation already exists
@@ -287,6 +287,10 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     const invitation = invitations.value.find((inv) => inv.id === invitationId)
     if (!invitation) {
       return { error: 'Invitation not found' }
+    }
+
+    if (hasLinkedParent.value) {
+      return { error: 'You can only have one linked parent' }
     }
 
     try {
@@ -439,6 +443,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     error,
 
     // Computed
+    hasLinkedParent,
     receivedInvitations,
     sentInvitations,
 

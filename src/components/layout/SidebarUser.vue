@@ -100,7 +100,7 @@ async function handleLogout() {
             <DropdownMenuSeparator v-if="isStudent" />
             <DropdownMenuItem v-if="isStudent" @click="router.push('/student/parent')">
               <Users class="mr-2 size-4" />
-              Parent
+              My Parent
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem @click="handleLogout">

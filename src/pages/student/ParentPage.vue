@@ -162,7 +162,7 @@ function resetInviteForm() {
       </div>
       <Dialog v-model:open="inviteDialogOpen" @update:open="resetInviteForm">
         <DialogTrigger as-child>
-          <Button :disabled="parentLinkStore.isLoading">
+          <Button :disabled="parentLinkStore.isLoading || parentLinkStore.hasLinkedParent">
             <UserPlus class="mr-2 size-4" />
             Invite Parent
           </Button>
@@ -311,7 +311,9 @@ function resetInviteForm() {
               <div class="mt-3 flex gap-2">
                 <Button
                   size="sm"
-                  :disabled="processingInvitationId === invitation.id"
+                  :disabled="
+                    processingInvitationId === invitation.id || parentLinkStore.hasLinkedParent
+                  "
                   @click="handleAcceptInvitation(invitation.id)"
                 >
                   <Loader2

@@ -560,21 +560,21 @@ export type Database = {
           {
             foreignKeyName: 'parent_student_links_student_id_fkey'
             columns: ['student_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'leaderboard'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'parent_student_links_student_id_fkey'
             columns: ['student_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'parent_student_links_student_id_fkey'
             columns: ['student_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'weekly_leaderboard'
             referencedColumns: ['id']
           },
