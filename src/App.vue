@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
+import { SpeedInsights } from '@vercel/speed-insights/vue'
 import 'vue-sonner/style.css'
 
 const router = useRouter()
@@ -58,6 +59,7 @@ watch(
 <template>
   <router-view />
   <Toaster rich-colors position="top-center" :theme="themeStore.isDark ? 'dark' : 'light'" />
+  <SpeedInsights />
 
   <!-- New version available notification -->
   <Transition

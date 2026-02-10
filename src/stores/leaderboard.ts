@@ -92,7 +92,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     error.value = null
 
     try {
-      let query = supabase
+      const query = supabase
         .from('leaderboard')
         .select('*')
         .order('rank', { ascending: true })
