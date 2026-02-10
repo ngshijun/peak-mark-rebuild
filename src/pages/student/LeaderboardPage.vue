@@ -133,18 +133,9 @@ const displayedStudents = computed<LeaderboardStudent[]>(() => {
   return leaderboardStore.getTop20(gradeLevel.name)
 })
 
-// Computed for the filtered weekly leaderboard
+// Computed for the weekly leaderboard (no grade filter — purely weekly XP)
 const displayedWeeklyStudents = computed<WeeklyLeaderboardStudent[]>(() => {
-  if (selectedGradeLevel.value === ALL_VALUE) {
-    return leaderboardStore.getWeeklyTop20()
-  }
-
-  const gradeLevel = curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)
-  if (!gradeLevel) {
-    return leaderboardStore.getWeeklyTop20()
-  }
-
-  return leaderboardStore.getWeeklyTop20(gradeLevel.name)
+  return leaderboardStore.getWeeklyTop20()
 })
 
 // Current student info for all-time when not in top 20
@@ -171,11 +162,12 @@ const currentStudentInfo = computed(() => {
           curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)?.name ?? null,
         )
 
-  const rank = allFiltered.findIndex((s) => s.id === currentStudent.id) + 1
+  // RANK()-style: count students with strictly higher XP + 1
+  const rank = allFiltered.filter((s) => s.xp > currentStudent.xp).length + 1
 
   return {
     ...currentStudent,
-    rank: rank > 0 ? rank : currentStudent.rank,
+    rank,
   }
 })
 
@@ -189,28 +181,13 @@ const currentWeeklyStudentInfo = computed(() => {
   const currentStudent = leaderboardStore.currentWeeklyStudent
   if (!currentStudent) return null
 
-  if (selectedGradeLevel.value !== ALL_VALUE) {
-    const gradeLevel = curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)
-    if (gradeLevel && currentStudent.gradeLevelName !== gradeLevel.name) {
-      return null
-    }
-  }
-
-  const allFiltered =
-    selectedGradeLevel.value === ALL_VALUE
-      ? leaderboardStore.weeklyStudents
-      : leaderboardStore.weeklyStudents.filter(
-          (s) =>
-            s.gradeLevelName ===
-            (curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)?.name ??
-              null),
-        )
-
-  const rank = allFiltered.findIndex((s) => s.id === currentStudent.id) + 1
+  // RANK()-style: count students with strictly higher weekly XP + 1
+  const rank =
+    leaderboardStore.weeklyStudents.filter((s) => s.weeklyXp > currentStudent.weeklyXp).length + 1
 
   return {
     ...currentStudent,
-    rank: rank > 0 ? rank : currentStudent.rank,
+    rank,
   }
 })
 
@@ -275,8 +252,12 @@ function getRankColor(rank: number): string {
         <p class="text-muted-foreground">Top students with the highest XP</p>
       </div>
 
-      <!-- Grade Level Filter -->
-      <Select v-model="selectedGradeLevel" :disabled="leaderboardStore.isLoading">
+      <!-- Grade Level Filter (all-time only) -->
+      <Select
+        v-if="activeTab === 'all-time'"
+        v-model="selectedGradeLevel"
+        :disabled="leaderboardStore.isLoading"
+      >
         <SelectTrigger class="w-[180px]">
           <SelectValue placeholder="All Grade Levels" />
         </SelectTrigger>

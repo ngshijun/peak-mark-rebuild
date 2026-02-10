@@ -40,6 +40,22 @@ export interface WeeklyReward {
   coinsAwarded: number
 }
 
+/**
+ * Assign RANK()-style ranks to a sorted list.
+ * Items with the same score get the same rank; next rank jumps by the count of ties.
+ */
+function assignRanks<T>(items: T[], getScore: (item: T) => number): (T & { rank: number })[] {
+  let currentRank = 1
+  return items.map((item, index) => {
+    const prev = items[index - 1]
+    if (index > 0 && prev !== undefined && getScore(item) === getScore(prev)) {
+      return { ...item, rank: currentRank }
+    }
+    currentRank = index + 1
+    return { ...item, rank: currentRank }
+  })
+}
+
 export const useLeaderboardStore = defineStore('leaderboard', () => {
   const authStore = useAuthStore()
   const students = ref<LeaderboardStudent[]>([])
@@ -221,11 +237,8 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
       ? weeklyStudents.value.filter((s) => s.gradeLevelName === gradeLevelName)
       : weeklyStudents.value
 
-    // Re-rank after filtering
-    return filtered.slice(0, 20).map((student, index) => ({
-      ...student,
-      rank: index + 1,
-    }))
+    // Re-rank after filtering with RANK()-style tie handling
+    return assignRanks(filtered.slice(0, 20), (s) => s.weeklyXp)
   }
 
   // Get current student's weekly data (O(1) via Map)
@@ -264,11 +277,8 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
       ? students.value.filter((s) => s.gradeLevelName === gradeLevelName)
       : students.value
 
-    // Re-rank after filtering
-    return filtered.slice(0, 20).map((student, index) => ({
-      ...student,
-      rank: index + 1,
-    }))
+    // Re-rank after filtering with RANK()-style tie handling
+    return assignRanks(filtered.slice(0, 20), (s) => s.xp)
   }
 
   // Get all students sorted by rank (data is already sorted from fetch, no re-sort needed)
