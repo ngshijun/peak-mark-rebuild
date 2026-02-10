@@ -1292,6 +1292,7 @@ export type Database = {
           created_at: string | null
           id: string
           rank: number
+          seen_at: string | null
           student_id: string
           week_start: string
           weekly_xp: number
@@ -1301,6 +1302,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           rank: number
+          seen_at?: string | null
           student_id: string
           week_start: string
           weekly_xp: number
@@ -1310,6 +1312,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           rank?: number
+          seen_at?: string | null
           student_id?: string
           week_start?: string
           weekly_xp?: number

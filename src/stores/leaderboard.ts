@@ -172,8 +172,6 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     }
   }
 
-  const REWARD_SEEN_KEY = 'weekly-leaderboard-reward-seen'
-
   /**
    * Check if the student has an unseen weekly reward.
    * Call this on app init / login.
@@ -184,26 +182,36 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
       return
     }
 
-    const reward = await fetchLastWeekReward()
-    if (!reward) {
+    try {
+      const { count } = await supabase
+        .from('weekly_leaderboard_rewards')
+        .select('*', { count: 'exact', head: true })
+        .eq('student_id', authStore.user.id)
+        .is('seen_at', null)
+
+      hasUnseenReward.value = (count ?? 0) > 0
+    } catch {
       hasUnseenReward.value = false
-      return
     }
-
-    const seenWeek = localStorage.getItem(REWARD_SEEN_KEY)
-    hasUnseenReward.value = seenWeek !== reward.weekStart
   }
 
   /**
-   * Mark the current reward as seen (dismiss badge).
+   * Mark a reward as seen in the database (persists across devices).
    */
-  function markRewardSeen(weekStart: string) {
-    localStorage.setItem(REWARD_SEEN_KEY, weekStart)
+  async function markRewardSeen(weekStart: string) {
     hasUnseenReward.value = false
+
+    if (!authStore.user) return
+
+    await supabase
+      .from('weekly_leaderboard_rewards')
+      .update({ seen_at: new Date().toISOString() })
+      .eq('student_id', authStore.user.id)
+      .eq('week_start', weekStart)
   }
 
   /**
-   * Fetch the current student's most recent weekly reward (if any).
+   * Fetch the current student's most recent unseen weekly reward (if any).
    * Returns null if no reward found or not a student.
    */
   async function fetchLastWeekReward(): Promise<WeeklyReward | null> {
@@ -214,6 +222,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
         .from('weekly_leaderboard_rewards')
         .select('week_start, rank, weekly_xp, coins_awarded')
         .eq('student_id', authStore.user.id)
+        .is('seen_at', null)
         .order('week_start', { ascending: false })
         .limit(1)
         .single()
