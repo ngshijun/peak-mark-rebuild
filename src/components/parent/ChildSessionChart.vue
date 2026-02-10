@@ -36,7 +36,7 @@ const chartConfig = {
   <Card class="flex h-full flex-col">
     <CardHeader class="space-y-0 pb-2">
       <div class="flex flex-row items-center justify-between">
-        <CardTitle class="text-sm font-medium">Practice Sessions</CardTitle>
+        <CardTitle class="text-sm font-medium">Sessions Completed</CardTitle>
         <BarChart3 class="size-4 text-muted-foreground" />
       </div>
       <CardDescription>Daily sessions over the last 30 days</CardDescription>

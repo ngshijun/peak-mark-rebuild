@@ -74,7 +74,7 @@ function updateCountdown() {
   const diff = target.getTime() - now.getTime()
 
   if (diff <= 0) {
-    countdown.value = 'Resetting...'
+    countdown.value = 'Ending...'
     return
   }
 
@@ -468,7 +468,7 @@ function getRankColor(rank: number): string {
               </Badge>
               <Badge variant="outline" class="ml-auto gap-1">
                 <CalendarClock class="size-3" />
-                Resets in {{ countdown }}
+                Ends in {{ countdown }}
               </Badge>
             </CardTitle>
           </CardHeader>
