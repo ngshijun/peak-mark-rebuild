@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
@@ -32,6 +32,9 @@ const onSubmit = handleSubmit(async (values) => {
 
     if (result.error) {
       toast.error(result.error)
+      await nextTick()
+      const passwordInput = document.getElementById('password') as HTMLInputElement | null
+      passwordInput?.select()
       return
     }
 

@@ -161,7 +161,7 @@ function goBack() {
 }
 
 function goToHistory() {
-  router.push('/student/history')
+  router.push('/student/statistics')
 }
 
 // Manually trigger AI summary generation
