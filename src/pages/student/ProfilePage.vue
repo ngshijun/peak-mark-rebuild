@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
+import { usePracticeStore, type StudentSubscriptionStatus } from '@/stores/practice'
+import { useSubscriptionStore } from '@/stores/subscription'
 import { supabase } from '@/lib/supabaseClient'
 import { editNameFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,6 +43,11 @@ import {
   Loader2,
   ImagePlus,
   Dices,
+  Zap,
+  Sparkles,
+  Crown,
+  CreditCard,
+  Check,
 } from 'lucide-vue-next'
 import {
   type DateValue,
@@ -55,6 +62,25 @@ import type { Database } from '@/types/database.types'
 type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
 
 const authStore = useAuthStore()
+const practiceStore = usePracticeStore()
+const subscriptionStore = useSubscriptionStore()
+
+// Subscription
+const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)
+const isLoadingPlans = ref(false)
+
+function getTierIcon(tier: string) {
+  switch (tier) {
+    case 'plus':
+      return Zap
+    case 'pro':
+      return Sparkles
+    case 'max':
+      return Crown
+    default:
+      return CreditCard
+  }
+}
 
 // Grade levels
 const gradeLevels = ref<GradeLevel[]>([])
@@ -143,7 +169,16 @@ const userAvatarUrl = computed(() => {
 })
 
 onMounted(async () => {
-  await fetchGradeLevels()
+  isLoadingPlans.value = true
+  await Promise.all([
+    fetchGradeLevels(),
+    practiceStore.getStudentSubscriptionStatus().then((status) => {
+      subscriptionStatus.value = status
+    }),
+    subscriptionStore.fetchPlans(),
+  ]).finally(() => {
+    isLoadingPlans.value = false
+  })
 })
 
 async function fetchGradeLevels() {
@@ -439,6 +474,75 @@ const birthdayYearRange = computed(() => {
         </CardContent>
       </Card>
     </div>
+
+    <!-- My Plan -->
+    <Card>
+      <CardHeader>
+        <CardTitle>My Plan</CardTitle>
+        <CardDescription>See what's included in your plan</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div
+          v-if="isLoadingPlans || !subscriptionStatus"
+          class="flex items-center justify-center py-8"
+        >
+          <Loader2 class="size-6 animate-spin text-muted-foreground" />
+        </div>
+        <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div
+            v-for="plan in subscriptionStore.plans"
+            :key="plan.id"
+            class="relative flex flex-col rounded-lg border p-4"
+            :class="[
+              subscriptionStatus.tier === plan.id ? 'border-primary bg-muted/50' : 'border-border',
+            ]"
+          >
+            <!-- Current Plan badge -->
+            <Badge
+              v-if="subscriptionStatus.tier === plan.id"
+              class="absolute -top-2 left-1/2 -translate-x-1/2"
+            >
+              Current Plan
+            </Badge>
+
+            <!-- Plan header -->
+            <div class="flex items-center gap-2">
+              <component :is="getTierIcon(plan.id)" class="size-5 text-primary" />
+              <span class="font-semibold">{{ plan.name }}</span>
+            </div>
+
+            <!-- Sessions badge -->
+            <div class="mt-3">
+              <Badge variant="outline">{{ plan.sessionsPerDay }} sessions/day</Badge>
+            </div>
+
+            <!-- Features list -->
+            <ul class="mt-3 flex-1 space-y-1.5">
+              <li
+                v-for="(feature, i) in plan.features"
+                :key="i"
+                class="flex items-start gap-2 text-sm"
+              >
+                <Check class="mt-0.5 size-4 shrink-0 text-green-500" />
+                <span>{{ feature }}</span>
+              </li>
+            </ul>
+
+            <!-- Footer -->
+            <p
+              v-if="
+                subscriptionStatus.tier !== plan.id &&
+                ['core', 'plus', 'pro', 'max'].indexOf(plan.id) >
+                  ['core', 'plus', 'pro', 'max'].indexOf(subscriptionStatus.tier)
+              "
+              class="mt-3 text-center text-xs text-muted-foreground"
+            >
+              Ask your parent to upgrade
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
     <!-- Avatar Dialog -->
     <Dialog v-model:open="showAvatarDialog">
