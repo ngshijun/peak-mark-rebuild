@@ -580,9 +580,13 @@ export const usePracticeStore = defineStore('practice', () => {
       // Check session limit before starting
       const limitStatus = await checkSessionLimit()
       if (!limitStatus.canStartSession) {
+        const subStatus = subscriptionStatusCache.value.status
+        const isMaxTier = subStatus?.tier === 'max'
         return {
           session: null,
-          error: `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Upgrade your plan for more sessions!`,
+          error: isMaxTier
+            ? `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Come back tomorrow!`
+            : `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Upgrade your plan for more sessions!`,
           limitReached: true,
         }
       }

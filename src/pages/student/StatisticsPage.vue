@@ -26,6 +26,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const router = useRouter()
 const practiceStore = usePracticeStore()
@@ -124,6 +134,7 @@ interface HistoryRow {
   score: number | null
   totalQuestions: number
   correctAnswers: number
+  answeredCount: number
   timeUsedSeconds: number | null
 }
 
@@ -161,6 +172,7 @@ const historyData = computed<HistoryRow[]>(() => {
       score,
       totalQuestions,
       correctAnswers,
+      answeredCount: session.answerCount,
       timeUsedSeconds,
     }
   })
@@ -345,13 +357,24 @@ const columns: ColumnDef<HistoryRow>[] = [
   },
 ]
 
+const showResumeDialog = ref(false)
+const pendingResumeSession = ref<HistoryRow | null>(null)
+
 function handleRowClick(row: HistoryRow) {
   if (row.status === 'completed') {
-    // Navigate to result page for completed sessions
     router.push(`/student/session/${row.id}`)
   } else {
-    // Resume in-progress sessions
-    router.push({ path: '/student/practice/quiz', query: { sessionId: row.id } })
+    pendingResumeSession.value = row
+    showResumeDialog.value = true
+  }
+}
+
+function confirmResume() {
+  if (pendingResumeSession.value) {
+    router.push({
+      path: '/student/practice/quiz',
+      query: { sessionId: pendingResumeSession.value.id },
+    })
   }
 }
 </script>
@@ -535,5 +558,31 @@ function handleRowClick(row: HistoryRow) {
         </CardContent>
       </Card>
     </template>
+
+    <!-- Resume Session Dialog -->
+    <AlertDialog v-model:open="showResumeDialog">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Continue Session?</AlertDialogTitle>
+          <AlertDialogDescription v-if="pendingResumeSession" as="div">
+            <p>
+              You have an in-progress session for
+              <span class="font-medium text-foreground">{{
+                pendingResumeSession.subTopicName
+              }}</span>
+              ({{ pendingResumeSession.subjectName }}).
+            </p>
+            <p class="mt-1">
+              Progress: {{ pendingResumeSession.answeredCount }} /
+              {{ pendingResumeSession.totalQuestions }} questions answered.
+            </p>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction @click="confirmResume">Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

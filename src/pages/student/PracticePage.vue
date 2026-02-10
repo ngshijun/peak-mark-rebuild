@@ -3,7 +3,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore, type SubTopic } from '@/stores/curriculum'
-import { usePracticeStore, type SessionLimitStatus } from '@/stores/practice'
+import {
+  usePracticeStore,
+  type SessionLimitStatus,
+  type StudentSubscriptionStatus,
+} from '@/stores/practice'
 import { Loader2, Clock, CircleCheck, GraduationCap } from 'lucide-vue-next'
 import {
   AlertDialog,
@@ -44,6 +48,7 @@ const selectedTopicId = computed({
 })
 const isStartingSession = ref(false)
 const sessionLimitStatus = ref<SessionLimitStatus | null>(null)
+const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)
 const isLoadingLimit = ref(true)
 
 // Confirmation dialog state
@@ -55,12 +60,14 @@ onMounted(async () => {
   if (curriculumStore.gradeLevels.length === 0) {
     await curriculumStore.fetchCurriculum()
   }
-  // Check session limit status and fetch sub-topic progress in parallel
-  const [limitStatus] = await Promise.all([
+  // Check session limit, subscription status, and sub-topic progress in parallel
+  const [limitStatus, subStatus] = await Promise.all([
     practiceStore.checkSessionLimit(),
+    practiceStore.getStudentSubscriptionStatus(),
     practiceStore.fetchSubTopicProgress(),
   ])
   sessionLimitStatus.value = limitStatus
+  subscriptionStatus.value = subStatus
   isLoadingLimit.value = false
 })
 
@@ -166,7 +173,9 @@ function selectSubTopic(subTopicId: string) {
   // Check limit before showing dialog
   if (sessionLimitStatus.value && !sessionLimitStatus.value.canStartSession) {
     toast.warning(
-      `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Upgrade your plan for more sessions!`,
+      subscriptionStatus.value?.tier === 'max'
+        ? `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Come back tomorrow!`
+        : `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Upgrade your plan for more sessions!`,
     )
     return
   }
@@ -302,7 +311,9 @@ async function confirmStartSession() {
           <h3 class="text-lg font-semibold">Daily Limit Reached</h3>
           <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             You have used all {{ sessionLimitStatus.sessionLimit }} sessions for today. Come back
-            tomorrow or ask your parent to upgrade your subscription for more sessions.
+            tomorrow<template v-if="subscriptionStatus?.tier !== 'max'">
+              or ask your parent to upgrade your subscription for more sessions</template
+            >.
           </p>
         </CardContent>
       </Card>
