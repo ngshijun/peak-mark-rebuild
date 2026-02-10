@@ -3,7 +3,8 @@ import { onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useAdminStudentsStore, type AdminStudent } from '@/stores/admin-students'
-import { Search, Loader2, Users } from 'lucide-vue-next'
+import { Search, Loader2, Users, ArrowUpDown } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
@@ -73,7 +74,16 @@ const tierConfig: Record<string, { label: string; color: string; bgColor: string
 const columns: ColumnDef<AdminStudent>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Name', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
     cell: ({ row }) => {
       return h('div', { class: 'font-medium' }, row.original.name)
     },
@@ -87,14 +97,32 @@ const columns: ColumnDef<AdminStudent>[] = [
   },
   {
     accessorKey: 'gradeLevelName',
-    header: 'Grade',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Grade', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
     cell: ({ row }) => {
       return h('div', {}, row.original.gradeLevelName ?? '-')
     },
   },
   {
     accessorKey: 'xp',
-    header: 'XP',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['XP', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
     cell: ({ row }) => {
       const xp = row.original.xp
       return h('div', { class: 'font-medium text-amber-600' }, xp.toLocaleString())
@@ -109,7 +137,16 @@ const columns: ColumnDef<AdminStudent>[] = [
   },
   {
     accessorKey: 'subscriptionTier',
-    header: 'Subscription',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Subscription', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
     cell: ({ row }) => {
       const tier = row.original.subscriptionTier
       if (!tier) {
@@ -139,14 +176,32 @@ const columns: ColumnDef<AdminStudent>[] = [
   },
   {
     accessorKey: 'joinedAt',
-    header: 'Joined',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Joined', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
     cell: ({ row }) => {
       return h('div', {}, formatDate(row.original.joinedAt))
     },
   },
   {
     accessorKey: 'lastActive',
-    header: 'Last Active',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Last Active', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
     cell: ({ row }) => {
       const lastActive = row.original.lastActive
       if (!lastActive) {
