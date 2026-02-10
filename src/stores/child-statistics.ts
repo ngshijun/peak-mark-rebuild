@@ -402,29 +402,23 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       return { session: null, error: 'Child is not linked to your account' }
     }
 
-    // Check subscription status (cached) - runs in parallel with data fetches won't block
+    // Check subscription status (cached)
     const subscriptionStatus = await getChildSubscriptionStatus(childId)
-    if (!subscriptionStatus.canViewDetailedResults) {
-      return {
-        session: null,
-        error:
-          'Detailed session results require a Pro or Max subscription. Upgrade to view individual questions and answers.',
-        subscriptionRequired: true,
-      }
-    }
+    const canViewDetails = subscriptionStatus.canViewDetailedResults
 
     try {
-      // Fetch session and answers in parallel
-      // Note: topic_id column now references sub_topics table
-      const [sessionResult, answersResult] = await Promise.all([
-        supabase
-          .from('practice_sessions')
-          .select(
-            `
+      // Always fetch session row (for summary cards)
+      // Only fetch answers when subscription allows detailed view
+      const sessionPromise = supabase
+        .from('practice_sessions')
+        .select(
+          `
             id,
             student_id,
             topic_id,
             total_questions,
+            correct_count,
+            total_time_seconds,
             created_at,
             completed_at,
             ai_summary,
@@ -445,16 +439,23 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
               )
             )
           `,
-          )
-          .eq('id', sessionId)
-          .eq('student_id', childId)
-          .single(),
-        supabase
-          .from('practice_answers')
-          .select('*')
-          .eq('session_id', sessionId)
-          .order('answered_at', { ascending: true }),
-      ])
+        )
+        .eq('id', sessionId)
+        .eq('student_id', childId)
+        .single()
+
+      const answersPromise = canViewDetails
+        ? supabase
+            .from('practice_answers')
+            .select('*')
+            .eq('session_id', sessionId)
+            .order('answered_at', { ascending: true })
+        : Promise.resolve({
+            data: [] as Database['public']['Tables']['practice_answers']['Row'][],
+            error: null,
+          })
+
+      const [sessionResult, answersResult] = await Promise.all([sessionPromise, answersPromise])
 
       if (sessionResult.error) throw sessionResult.error
       if (!sessionResult.data) return { session: null, error: 'Session not found' }
@@ -463,13 +464,16 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       const sessionData = sessionResult.data
       const answersData = answersResult.data
 
-      // Fetch questions (depends on answer data)
-      const questionIds = (answersData ?? []).map((a) => a.question_id).filter(Boolean) as string[]
-
+      // Fetch questions only when detailed view is allowed
       let questionsData: QuestionRow[] = []
-      if (questionIds.length > 0) {
-        const { data } = await supabase.from('questions').select('*').in('id', questionIds)
-        questionsData = data ?? []
+      if (canViewDetails) {
+        const questionIds = (answersData ?? [])
+          .map((a) => a.question_id)
+          .filter(Boolean) as string[]
+        if (questionIds.length > 0) {
+          const { data } = await supabase.from('questions').select('*').in('id', questionIds)
+          questionsData = data ?? []
+        }
       }
 
       // Build questions map
@@ -567,10 +571,15 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         }
       }
 
-      const correctAnswers = answers.filter((a) => a.isCorrect).length
+      // Use DB row fields for summary (works even when answers aren't loaded)
+      const correctAnswers = canViewDetails
+        ? answers.filter((a) => a.isCorrect).length
+        : ((sessionData as unknown as { correct_count: number | null }).correct_count ?? 0)
       const totalQuestions = sessionData.total_questions ?? answers.length
-      // Calculate duration from sum of time_spent_seconds in answers
-      const durationSeconds = answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)
+      const durationSeconds = canViewDetails
+        ? answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)
+        : ((sessionData as unknown as { total_time_seconds: number | null }).total_time_seconds ??
+          0)
 
       const session: ChildPracticeSessionFull = {
         id: sessionData.id,
@@ -595,7 +604,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         aiSummary: sessionData.ai_summary ?? null,
       }
 
-      return { session, error: null }
+      return {
+        session,
+        error: null,
+        subscriptionRequired: !canViewDetails ? true : undefined,
+      }
     } catch (err) {
       const message = handleError(err, 'Failed to fetch session.')
       return { session: null, error: message }

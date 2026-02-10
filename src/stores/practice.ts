@@ -717,6 +717,9 @@ export const usePracticeStore = defineStore('practice', () => {
       currentSession.value = session
       sessionHistory.value.unshift(session)
 
+      // Invalidate session limit cache (session count changed)
+      invalidateSessionLimitCache()
+
       return { session, error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to start session.')

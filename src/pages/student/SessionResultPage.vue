@@ -68,17 +68,15 @@ const summary = computed(() => {
 })
 
 onMounted(async () => {
-  // Check subscription status first
-  subscriptionStatus.value = await practiceStore.getStudentSubscriptionStatus()
+  // Fetch subscription status and session data in parallel
+  const [subStatus, result] = await Promise.all([
+    practiceStore.getStudentSubscriptionStatus(),
+    practiceStore.getSessionById(sessionId.value),
+  ])
 
-  // Check if student can view detailed results
-  if (!subscriptionStatus.value.canViewDetailedResults) {
-    subscriptionRequired.value = true
-    isLoading.value = false
-    return
-  }
+  subscriptionStatus.value = subStatus
+  subscriptionRequired.value = !subStatus.canViewDetailedResults
 
-  const result = await practiceStore.getSessionById(sessionId.value)
   if (result.session) {
     session.value = result.session
     // Mark that user has practiced today (if session was just completed)
@@ -92,13 +90,13 @@ onMounted(async () => {
     // Set AI summary status based on current state
     if (result.session.aiSummary) {
       aiSummaryStatus.value = 'success'
-    } else if (subscriptionStatus.value?.tier === 'max' && isCurrentSession.value) {
+    } else if (subStatus.tier === 'max' && isCurrentSession.value) {
       // Just completed session without summary - trigger generation and track status
       generateAiSummary()
     }
     // For history sessions without summary, status stays 'idle' (will show "No summary")
   } else {
-    router.push('/student/history')
+    router.push('/student/statistics')
   }
   isLoading.value = false
 })
@@ -353,8 +351,41 @@ async function generateAiSummary() {
 
       <Separator class="mb-6" />
 
+      <!-- Question Details Locked -->
+      <Card
+        v-if="subscriptionRequired"
+        class="border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 text-center dark:border-purple-800 dark:from-purple-950/30 dark:to-indigo-950/30"
+      >
+        <CardContent class="py-8">
+          <div
+            class="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50"
+          >
+            <Lock class="size-7 text-purple-500" />
+          </div>
+          <h3 class="text-lg font-semibold">Question Details Locked</h3>
+          <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+            <template v-if="!subscriptionStatus?.isLinkedToParent">
+              Link your account to a parent to unlock detailed session results. Ask your parent to
+              send you an invitation.
+            </template>
+            <template v-else>
+              Detailed session results require a Pro or Max subscription. Ask your parent to upgrade
+              your plan.
+            </template>
+          </p>
+          <Button
+            v-if="!subscriptionStatus?.isLinkedToParent"
+            class="mt-4"
+            @click="router.push('/student/family')"
+          >
+            <Users class="mr-2 size-4" />
+            Link to Parent
+          </Button>
+        </CardContent>
+      </Card>
+
       <!-- Questions List -->
-      <div class="space-y-4">
+      <div v-else class="space-y-4">
         <h2 class="text-lg font-semibold">Question Details</h2>
 
         <Card
@@ -576,38 +607,10 @@ async function generateAiSummary() {
       </div>
     </template>
 
-    <!-- Subscription Required State -->
-    <div v-else-if="subscriptionRequired" class="py-12 text-center">
-      <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
-        <Lock class="size-8 text-muted-foreground" />
-      </div>
-      <h2 class="text-xl font-semibold">Detailed Results Locked</h2>
-      <p class="mx-auto mt-2 max-w-md text-muted-foreground">
-        <template v-if="!subscriptionStatus?.isLinkedToParent">
-          Link your account to a parent to unlock detailed session results. Ask your parent to send
-          you an invitation.
-        </template>
-        <template v-else>
-          Detailed session results require a Pro or Max subscription. Ask your parent to upgrade
-          your plan.
-        </template>
-      </p>
-      <div class="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-        <Button
-          v-if="!subscriptionStatus?.isLinkedToParent"
-          @click="router.push('/student/family')"
-        >
-          <Users class="mr-2 size-4" />
-          Link to Parent
-        </Button>
-        <Button variant="outline" @click="goToHistory"> Back to History </Button>
-      </div>
-    </div>
-
     <!-- Empty State -->
     <div v-else class="py-12 text-center">
       <p class="text-muted-foreground">Session not found</p>
-      <Button class="mt-4" @click="goToHistory">Go to History</Button>
+      <Button class="mt-4" @click="goToHistory">Go to Statistics</Button>
     </div>
   </div>
 </template>

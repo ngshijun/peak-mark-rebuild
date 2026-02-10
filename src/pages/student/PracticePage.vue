@@ -4,8 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore, type SubTopic } from '@/stores/curriculum'
 import { usePracticeStore, type SessionLimitStatus } from '@/stores/practice'
-import { Loader2, AlertCircle, CircleCheck } from 'lucide-vue-next'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Loader2, Clock, CircleCheck, GraduationCap } from 'lucide-vue-next'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -270,25 +269,43 @@ async function confirmStartSession() {
     </div>
 
     <!-- No Grade Level Set -->
-    <div v-else-if="!studentGradeLevelId" class="py-12 text-center">
-      <p class="text-muted-foreground">Please set your grade level in your profile first.</p>
-      <Button class="mt-4" @click="router.push('/student/profile')">Go to Profile</Button>
-    </div>
+    <Card
+      v-else-if="!studentGradeLevelId"
+      class="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 text-center dark:border-blue-800 dark:from-blue-950/30 dark:to-indigo-950/30"
+    >
+      <CardContent class="py-8">
+        <div
+          class="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50"
+        >
+          <GraduationCap class="size-7 text-blue-500" />
+        </div>
+        <h3 class="text-lg font-semibold">Grade Level Not Set</h3>
+        <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+          Please set your grade level in your profile to start practicing.
+        </p>
+        <Button class="mt-4" @click="router.push('/student/profile')">Go to Profile</Button>
+      </CardContent>
+    </Card>
 
     <template v-else>
-      <!-- Session Limit Alert -->
-      <Alert
+      <!-- Session Limit Reached -->
+      <Card
         v-if="!isLoadingLimit && sessionLimitStatus && !sessionLimitStatus.canStartSession"
-        variant="destructive"
-        class="mb-6"
+        class="mb-6 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 text-center dark:border-amber-800 dark:from-amber-950/30 dark:to-yellow-950/30"
       >
-        <AlertCircle class="size-4" />
-        <AlertTitle>Daily Limit Reached</AlertTitle>
-        <AlertDescription>
-          You have used all {{ sessionLimitStatus.sessionLimit }} sessions for today. Come back
-          tomorrow or ask your parent to upgrade your subscription for more sessions.
-        </AlertDescription>
-      </Alert>
+        <CardContent class="py-8">
+          <div
+            class="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50"
+          >
+            <Clock class="size-7 text-amber-500" />
+          </div>
+          <h3 class="text-lg font-semibold">Daily Limit Reached</h3>
+          <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+            You have used all {{ sessionLimitStatus.sessionLimit }} sessions for today. Come back
+            tomorrow or ask your parent to upgrade your subscription for more sessions.
+          </p>
+        </CardContent>
+      </Card>
 
       <!-- Subject Selection -->
       <div v-if="!selectedSubject">
