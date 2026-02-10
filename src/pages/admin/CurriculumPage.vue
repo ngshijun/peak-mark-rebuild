@@ -135,6 +135,7 @@ const editImageHasCustomImage = ref(false)
 const showDeleteDialog = ref(false)
 const deleteType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
 const deleteItemName = ref('')
+const deleteConfirmInput = ref('')
 const deleteGradeLevelId = ref('')
 const deleteSubjectId = ref('')
 const deleteTopicId = ref('')
@@ -513,6 +514,7 @@ function openDeleteDialog(
 ) {
   deleteType.value = type
   deleteItemName.value = itemName
+  deleteConfirmInput.value = ''
   deleteGradeLevelId.value = gradeLevelId
   deleteSubjectId.value = subjectId ?? ''
   deleteTopicId.value = topicId ?? ''
@@ -523,13 +525,13 @@ function openDeleteDialog(
 function getDeleteDialogDescription() {
   switch (deleteType.value) {
     case 'grade':
-      return 'This will permanently delete this grade level and all its subjects, topics, and sub-topics. This action cannot be undone.'
+      return 'This will permanently delete this grade level and all its subjects, topics, sub-topics, questions, and practice sessions. This action cannot be undone.'
     case 'subject':
-      return 'This will permanently delete this subject and all its topics and sub-topics. This action cannot be undone.'
+      return 'This will permanently delete this subject and all its topics, sub-topics, questions, and practice sessions. This action cannot be undone.'
     case 'topic':
-      return 'This will permanently delete this topic and all its sub-topics. This action cannot be undone.'
+      return 'This will permanently delete this topic and all its sub-topics, questions, and practice sessions. This action cannot be undone.'
     case 'subtopic':
-      return 'This will permanently delete this sub-topic. This action cannot be undone.'
+      return 'This will permanently delete this sub-topic and all its questions and practice sessions. This action cannot be undone.'
   }
 }
 
@@ -1329,15 +1331,26 @@ async function handleEditName() {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete "{{ deleteItemName }}"?</AlertDialogTitle>
-          <AlertDialogDescription>
-            {{ getDeleteDialogDescription() }}
+          <AlertDialogDescription as="div">
+            <p>{{ getDeleteDialogDescription() }}</p>
+            <p class="mt-3">
+              To confirm, type
+              <span class="font-semibold text-foreground">{{ deleteItemName }}</span>
+              below:
+            </p>
+            <Input
+              v-model="deleteConfirmInput"
+              class="mt-2"
+              :placeholder="deleteItemName"
+              :disabled="isDeleting"
+            />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
           <AlertDialogAction
             class="bg-destructive text-white hover:bg-destructive/90"
-            :disabled="isDeleting"
+            :disabled="isDeleting || deleteConfirmInput !== deleteItemName"
             @click="confirmDelete"
           >
             <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
