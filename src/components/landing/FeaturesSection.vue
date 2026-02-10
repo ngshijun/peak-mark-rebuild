@@ -1,13 +1,30 @@
 <script setup lang="ts">
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { BookOpen, BarChart3, Trophy, Users } from 'lucide-vue-next'
+import {
+  BookOpen,
+  BarChart3,
+  Trophy,
+  Users,
+  GraduationCap,
+  MessageSquareText,
+} from 'lucide-vue-next'
 
 const features = [
+  {
+    icon: GraduationCap,
+    title: 'Aligned with SJKC Curriculum',
+    description: 'All content is aligned with KSSR Malaysian curriculum standard.',
+  },
   {
     icon: BookOpen,
     title: 'Interactive Practice',
     description:
-      'Engage with MCQ and MRQ questions across various subjects. Track your progress through each topic and sub-topic.',
+      'Quick 5-10 minute quiz sessions with MCQ and MRQ questions across various subjects and topics.',
+  },
+  {
+    icon: MessageSquareText,
+    title: 'Instant Feedback',
+    description: 'Improve from mistakes with immediate explanations and answers.',
   },
   {
     icon: BarChart3,
@@ -40,7 +57,7 @@ const features = [
         </p>
       </div>
 
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card v-for="feature in features" :key="feature.title" class="border-0 bg-background">
           <CardHeader>
             <div class="mb-4 flex size-12 items-center justify-center rounded-lg bg-primary/10">
