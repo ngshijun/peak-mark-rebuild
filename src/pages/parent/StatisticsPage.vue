@@ -280,6 +280,13 @@ const columns: ColumnDef<ChildPracticeSession>[] = [
     },
   },
   {
+    accessorKey: 'gradeLevelName',
+    header: 'Grade',
+    cell: ({ row }) => {
+      return h('div', {}, row.original.gradeLevelName)
+    },
+  },
+  {
     accessorKey: 'subjectName',
     header: 'Subject',
     cell: ({ row }) => {
