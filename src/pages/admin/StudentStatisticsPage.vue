@@ -7,6 +7,7 @@ import {
   type StudentPracticeSession,
   type DateRangeFilter,
   type StudentOwnedPet,
+  type MoodEntry,
 } from '@/stores/admin-students'
 import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,9 +46,9 @@ import {
   Apple,
   PawPrint,
   SmilePlus,
-  CheckCircle,
-  XCircle,
   HelpCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-vue-next'
 
 // Status config for badge styling
@@ -138,6 +139,8 @@ onMounted(async () => {
       ])
       if (statsResult.error) toast.error(statsResult.error)
       if (engagementResult.error) toast.error(engagementResult.error)
+      // Load initial mood calendar
+      fetchMoodCalendar()
     }
   } catch {
     toast.error('Failed to load statistics')
@@ -541,10 +544,90 @@ function getSubscriptionStatusConfig(engagement: {
   }
 }
 
-function formatMoodDate(dateString: string): string {
-  const date = new Date(dateString + 'T00:00:00')
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+// Mood calendar state
+const moodCalendarDate = ref(new Date())
+const moodCalendarStatuses = ref<MoodEntry[]>([])
+const isLoadingMoodCalendar = ref(false)
+
+const moodCalendarYear = computed(() => moodCalendarDate.value.getFullYear())
+const moodCalendarMonth = computed(() => moodCalendarDate.value.getMonth() + 1)
+const moodMonthName = computed(() =>
+  moodCalendarDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+)
+
+const moodDaysInMonth = computed(() =>
+  new Date(moodCalendarYear.value, moodCalendarMonth.value, 0).getDate(),
+)
+const moodFirstDayOfWeek = computed(() =>
+  new Date(moodCalendarYear.value, moodCalendarMonth.value - 1, 1).getDay(),
+)
+
+const moodCalendarDays = computed(() => {
+  const days: { day: number | null; date: string | null }[] = []
+  for (let i = 0; i < moodFirstDayOfWeek.value; i++) {
+    days.push({ day: null, date: null })
+  }
+  for (let day = 1; day <= moodDaysInMonth.value; day++) {
+    const date = `${moodCalendarYear.value}-${String(moodCalendarMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    days.push({ day, date })
+  }
+  return days
+})
+
+const moodStatusMap = computed(() => {
+  const map = new Map<string, MoodEntry>()
+  moodCalendarStatuses.value.forEach((s) => map.set(s.date, s))
+  return map
+})
+
+function getMoodForDate(date: string | null): MoodEntry | null {
+  if (!date) return null
+  return moodStatusMap.value.get(date) ?? null
 }
+
+function isMoodToday(date: string | null): boolean {
+  if (!date) return false
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  return date === todayStr
+}
+
+function isMoodFuture(date: string | null): boolean {
+  if (!date) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const parts = date.split('-').map(Number)
+  const dateObj = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1)
+  return dateObj > today
+}
+
+function previousMoodMonth() {
+  const d = new Date(moodCalendarDate.value)
+  d.setMonth(d.getMonth() - 1)
+  moodCalendarDate.value = d
+}
+
+function nextMoodMonth() {
+  const d = new Date(moodCalendarDate.value)
+  d.setMonth(d.getMonth() + 1)
+  moodCalendarDate.value = d
+}
+
+async function fetchMoodCalendar() {
+  if (!studentId.value) return
+  isLoadingMoodCalendar.value = true
+  const { statuses } = await adminStudentsStore.fetchStudentDailyStatuses(
+    studentId.value,
+    moodCalendarYear.value,
+    moodCalendarMonth.value,
+  )
+  moodCalendarStatuses.value = statuses
+  isLoadingMoodCalendar.value = false
+}
+
+watch([moodCalendarYear, moodCalendarMonth], fetchMoodCalendar)
+
+const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 </script>
 
 <template>
@@ -1180,35 +1263,102 @@ function formatMoodDate(dateString: string): string {
               <SmilePlus class="size-5" />
               Mood History
             </CardTitle>
-            <CardDescription>Last 30 days</CardDescription>
           </CardHeader>
           <CardContent>
-            <div
-              v-if="engagement.moodHistory.length > 0"
-              class="grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-10"
-            >
-              <div
-                v-for="entry in engagement.moodHistory"
-                :key="entry.date"
-                class="flex flex-col items-center rounded-md border p-2 text-center"
-                :class="
-                  entry.hasPracticed
-                    ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/20'
-                    : 'border-border'
-                "
-              >
-                <span class="text-[10px] text-muted-foreground">{{
-                  formatMoodDate(entry.date)
-                }}</span>
-                <span class="text-lg leading-tight">{{ getMoodEmoji(entry.mood) }}</span>
-                <CheckCircle v-if="entry.hasPracticed" class="mt-0.5 size-3 text-green-500" />
-                <XCircle v-else class="mt-0.5 size-3 text-muted-foreground/30" />
+            <!-- Month Navigation -->
+            <div class="mb-3 flex items-center justify-between">
+              <Button variant="ghost" size="icon" class="size-7" @click="previousMoodMonth">
+                <ChevronLeft class="size-4" />
+              </Button>
+              <span class="text-sm font-medium">{{ moodMonthName }}</span>
+              <Button variant="ghost" size="icon" class="size-7" @click="nextMoodMonth">
+                <ChevronRight class="size-4" />
+              </Button>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="isLoadingMoodCalendar" class="flex items-center justify-center py-8">
+              <Loader2 class="size-6 animate-spin text-muted-foreground" />
+            </div>
+
+            <template v-else>
+              <!-- Week Days Header -->
+              <div class="mb-1 grid grid-cols-7 gap-1">
+                <div
+                  v-for="day in weekDays"
+                  :key="day"
+                  class="text-center text-xs font-medium text-muted-foreground"
+                >
+                  {{ day.charAt(0) }}
+                </div>
               </div>
-            </div>
-            <div v-else class="py-8 text-center">
-              <SmilePlus class="mx-auto size-12 text-muted-foreground/50" />
-              <p class="mt-2 text-muted-foreground">No mood data recorded yet.</p>
-            </div>
+
+              <!-- Calendar Grid -->
+              <div class="grid grid-cols-7 gap-1">
+                <div
+                  v-for="(cell, index) in moodCalendarDays"
+                  :key="index"
+                  class="relative flex aspect-[2/1] items-center justify-center rounded text-sm"
+                  :class="{
+                    'bg-green-100 dark:bg-green-950/30':
+                      cell.day &&
+                      !isMoodFuture(cell.date) &&
+                      getMoodForDate(cell.date)?.hasPracticed,
+                    'bg-muted/50':
+                      cell.day &&
+                      !isMoodFuture(cell.date) &&
+                      !getMoodForDate(cell.date)?.hasPracticed,
+                    'text-muted-foreground/30': !cell.day || isMoodFuture(cell.date),
+                    'ring-1 ring-primary': isMoodToday(cell.date),
+                  }"
+                >
+                  <template v-if="cell.day">
+                    <span v-if="isMoodFuture(cell.date)" class="text-muted-foreground/30">
+                      {{ cell.day }}
+                    </span>
+                    <template v-else>
+                      <span
+                        v-if="getMoodForDate(cell.date)?.mood"
+                        class="text-2xl"
+                        :title="`${cell.day}: ${getMoodForDate(cell.date)?.mood}${getMoodForDate(cell.date)?.hasPracticed ? ' (Practiced)' : ''}`"
+                      >
+                        {{ getMoodEmoji(getMoodForDate(cell.date)?.mood ?? null) }}
+                      </span>
+                      <span
+                        v-else-if="getMoodForDate(cell.date)?.hasPracticed"
+                        class="font-medium text-green-700 dark:text-green-400"
+                        title="Practiced"
+                      >
+                        {{ cell.day }}
+                      </span>
+                      <span v-else class="text-muted-foreground">
+                        {{ cell.day }}
+                      </span>
+                    </template>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Legend -->
+              <div class="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <div class="flex items-center gap-1">
+                  <div class="size-3 rounded bg-green-100 dark:bg-green-950/30" />
+                  <span>Practiced</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span>😊</span>
+                  <span>Happy</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span>😐</span>
+                  <span>Neutral</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span>😢</span>
+                  <span>Sad</span>
+                </div>
+              </div>
+            </template>
           </CardContent>
         </Card>
       </TabsContent>

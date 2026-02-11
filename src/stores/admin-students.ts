@@ -459,6 +459,47 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
   }
 
   /**
+   * Fetch daily statuses for a student for a specific month (calendar view)
+   */
+  async function fetchStudentDailyStatuses(
+    studentId: string,
+    year: number,
+    month: number,
+  ): Promise<{ statuses: MoodEntry[]; error: string | null }> {
+    if (!authStore.user || !authStore.isAdmin) {
+      return { statuses: [], error: 'Not authenticated as admin' }
+    }
+
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+    const lastDay = new Date(year, month, 0).getDate()
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('daily_statuses')
+        .select('date, mood, has_practiced')
+        .eq('student_id', studentId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true })
+
+      if (fetchError) {
+        return { statuses: [], error: handleError(fetchError, 'Failed to fetch daily statuses.') }
+      }
+
+      const statuses: MoodEntry[] = (data ?? []).map((d) => ({
+        date: d.date,
+        mood: d.mood as MoodEntry['mood'],
+        hasPracticed: d.has_practiced ?? false,
+      }))
+
+      return { statuses, error: null }
+    } catch (err) {
+      return { statuses: [], error: handleError(err, 'Failed to fetch daily statuses.') }
+    }
+  }
+
+  /**
    * Get a student by ID from the loaded students
    */
   function getStudentById(studentId: string): AdminStudent | undefined {
@@ -1056,6 +1097,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     fetchAllStudents,
     fetchStudentStatistics,
     fetchStudentEngagement,
+    fetchStudentDailyStatuses,
     getStudentById,
     getStudentStatistics,
     getStudentEngagement,
