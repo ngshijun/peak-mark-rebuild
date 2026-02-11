@@ -53,6 +53,13 @@ export const useAuthStore = defineStore('auth', () => {
     return null
   })
 
+  // Level-up tracking: set when refreshProfile() detects a level increase
+  const levelUpInfo = ref<{ oldLevel: number; newLevel: number } | null>(null)
+
+  function clearLevelUp() {
+    levelUpInfo.value = null
+  }
+
   const currentLevel = computed(() => {
     if (!studentProfile.value) return 1
     return Math.floor(studentProfile.value.xp / XP_PER_LEVEL) + 1
@@ -246,9 +253,17 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshProfile() {
     if (!user.value) return
 
+    const oldLevel = currentLevel.value
+
     const profile = await fetchUserProfile(user.value.id)
     if (profile) {
       user.value = profile
+
+      // Detect level-up after profile refresh
+      const newLevel = currentLevel.value
+      if (newLevel > oldLevel) {
+        levelUpInfo.value = { oldLevel, newLevel }
+      }
     }
   }
 
@@ -553,6 +568,8 @@ export const useAuthStore = defineStore('auth', () => {
     currentLevelXp,
     xpToNextLevel,
     xpProgress,
+    levelUpInfo,
+    clearLevelUp,
 
     // Actions
     initialize,

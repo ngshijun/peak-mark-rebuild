@@ -24,6 +24,7 @@ import { toast } from 'vue-sonner'
 import { Loader2, CirclePoundSterling, Apple } from 'lucide-vue-next'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
+import LevelUpDialog from './LevelUpDialog.vue'
 import type { Database } from '@/types/database.types'
 
 type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
@@ -143,6 +144,9 @@ const greeting = computed(() => {
         <router-view />
       </main>
     </SidebarInset>
+
+    <!-- Level Up Dialog (global, triggers on any XP gain that crosses a level boundary) -->
+    <LevelUpDialog />
 
     <!-- Grade Selection Dialog (for students without grade set) -->
     <AlertDialog :open="showGradeDialog">

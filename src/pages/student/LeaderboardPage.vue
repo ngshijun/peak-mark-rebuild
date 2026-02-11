@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import confetti from 'canvas-confetti'
 import {
   useLeaderboardStore,
   type LeaderboardStudent,
@@ -111,6 +112,20 @@ async function checkWeeklyReward() {
   lastWeekReward.value = reward
   showRewardDialog.value = true
 }
+
+// Fire confetti when reward dialog opens
+watch(showRewardDialog, (open) => {
+  if (open) {
+    const duration = 1500
+    const end = Date.now() + duration
+    const frame = () => {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } })
+      if (Date.now() < end) requestAnimationFrame(frame)
+    }
+    frame()
+  }
+})
 
 function dismissRewardDialog() {
   showRewardDialog.value = false
