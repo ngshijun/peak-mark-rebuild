@@ -356,7 +356,7 @@ function closeResults() {
 
     <!-- Results Dialog -->
     <Dialog :open="showResultDialog" @update:open="closeResults">
-      <DialogContent class="max-w-2xl border-2 border-purple-300 dark:border-purple-700">
+      <DialogContent class="sm:max-w-5xl border-2 border-purple-300 dark:border-purple-700">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2 text-xl">
             <span class="text-2xl">🎉</span>
@@ -367,7 +367,7 @@ function closeResults() {
           </DialogDescription>
         </DialogHeader>
         <div
-          class="grid gap-3 py-4"
+          class="grid max-h-[60vh] gap-3 overflow-y-auto py-4"
           :class="pullResults.length > 1 ? 'grid-cols-2 sm:grid-cols-5' : 'place-items-center'"
         >
           <div
@@ -378,9 +378,10 @@ function closeResults() {
           >
             <div class="relative">
               <img
-                :src="petsStore.getThumbnailPetImageUrl(pet.imagePath, pet.updatedAt)"
+                :src="petsStore.getOptimizedPetImageUrl(pet.imagePath, pet.updatedAt)"
                 :alt="pet.name"
-                class="size-16 object-contain drop-shadow-md"
+                class="object-contain drop-shadow-md"
+                :class="pullResults.length > 1 ? 'size-28' : 'size-40'"
               />
               <!-- New badge for first-time pets -->
               <Badge
