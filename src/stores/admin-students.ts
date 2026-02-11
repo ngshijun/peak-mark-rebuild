@@ -47,6 +47,7 @@ export interface AdminStudent {
   lastActive: string | null
   gradeLevelName: string | null
   xp: number
+  coins: number
 }
 
 export interface StudentPracticeSession {
@@ -105,6 +106,60 @@ export interface StudentStatistics {
   sessions: StudentPracticeSession[]
 }
 
+export interface StudentEngagementData {
+  coins: number
+  xp: number
+  level: number
+  xpProgress: number
+  currentStreak: number
+  food: number
+  selectedPetId: string | null
+  ownedPets: StudentOwnedPet[]
+  moodHistory: MoodEntry[]
+  subscription: StudentSubscriptionDetail | null
+}
+
+export interface StudentOwnedPet {
+  petId: string
+  petName: string
+  rarity: string
+  tier: number
+  count: number
+  imagePath: string
+  tier2ImagePath: string | null
+  tier3ImagePath: string | null
+}
+
+export interface MoodEntry {
+  date: string
+  mood: 'sad' | 'neutral' | 'happy' | null
+  hasPracticed: boolean
+}
+
+export interface StudentSubscriptionDetail {
+  tier: string
+  isActive: boolean
+  stripeStatus: string | null
+  startDate: string
+  currentPeriodStart: string | null
+  currentPeriodEnd: string | null
+  nextBillingDate: string | null
+  cancelAtPeriodEnd: boolean
+  scheduledTier: string | null
+  scheduledChangeDate: string | null
+  paymentHistory: PaymentHistoryEntry[]
+}
+
+export interface PaymentHistoryEntry {
+  id: string
+  amountCents: number
+  currency: string
+  status: string
+  tier: string | null
+  description: string | null
+  createdAt: string
+}
+
 export const useAdminStudentsStore = defineStore('adminStudents', () => {
   const authStore = useAuthStore()
 
@@ -120,6 +175,10 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
 
   // Track which students have been loaded (for lazy loading)
   const loadedStudentIds = ref<Set<string>>(new Set())
+
+  // Student engagement data
+  const studentEngagement = ref<Map<string, StudentEngagementData>>(new Map())
+  const isLoadingEngagement = ref(false)
 
   // Students table filter state
   const studentsFilters = ref({
@@ -180,6 +239,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
           ),
           student_profiles!student_profiles_id_fkey (
             xp,
+            coins,
             subscription_tier,
             grade_levels (
               name
@@ -215,13 +275,15 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
             ? (statusDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null)
             : null
 
-        // Get student profile data (xp, tier, and grade level)
+        // Get student profile data (xp, coins, tier, and grade level)
         const studentProfile = student.student_profiles as {
           xp: number | null
+          coins: number | null
           subscription_tier: SubscriptionTier
           grade_levels: { name: string } | null
         } | null
         const xp = studentProfile?.xp ?? 0
+        const coins = studentProfile?.coins ?? 0
         const gradeLevelName = studentProfile?.grade_levels?.name ?? null
 
         return {
@@ -236,6 +298,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
           lastActive,
           gradeLevelName,
           xp,
+          coins,
         }
       })
 
@@ -246,6 +309,152 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
       return { error: message }
     } finally {
       isLoadingStudents.value = false
+    }
+  }
+
+  /**
+   * Fetch engagement data for a specific student (pets, mood, subscription)
+   */
+  async function fetchStudentEngagement(studentId: string): Promise<{ error: string | null }> {
+    if (!authStore.user || !authStore.isAdmin) {
+      return { error: 'Not authenticated as admin' }
+    }
+
+    // Skip if already loaded
+    if (studentEngagement.value.has(studentId)) {
+      return { error: null }
+    }
+
+    isLoadingEngagement.value = true
+
+    try {
+      // Parallel fetch all engagement data
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]!
+
+      const [profileResult, petsResult, moodResult, subscriptionResult, paymentResult] =
+        await Promise.all([
+          supabase
+            .from('student_profiles')
+            .select('coins, xp, current_streak, food, selected_pet_id')
+            .eq('id', studentId)
+            .single(),
+          supabase
+            .from('owned_pets')
+            .select(
+              'pet_id, tier, count, pets (name, rarity, image_path, tier2_image_path, tier3_image_path)',
+            )
+            .eq('student_id', studentId),
+          supabase
+            .from('daily_statuses')
+            .select('date, mood, has_practiced')
+            .eq('student_id', studentId)
+            .gte('date', thirtyDaysAgoStr)
+            .order('date', { ascending: false }),
+          supabase
+            .from('child_subscriptions')
+            .select(
+              'tier, is_active, stripe_status, start_date, current_period_start, current_period_end, next_billing_date, cancel_at_period_end, scheduled_tier, scheduled_change_date',
+            )
+            .eq('student_id', studentId)
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('payment_history')
+            .select('id, amount_cents, currency, status, tier, description, created_at')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: false })
+            .limit(10),
+        ])
+
+      if (profileResult.error) throw profileResult.error
+      if (petsResult.error) throw petsResult.error
+      if (moodResult.error) throw moodResult.error
+      if (subscriptionResult.error) throw subscriptionResult.error
+      if (paymentResult.error) throw paymentResult.error
+
+      const profile = profileResult.data
+      const xp = profile?.xp ?? 0
+      const level = Math.floor(xp / 500) + 1
+      const xpProgress = xp % 500
+
+      // Transform owned pets
+      const ownedPets: StudentOwnedPet[] = (petsResult.data ?? []).map((op) => {
+        const pet = op.pets as unknown as {
+          name: string
+          rarity: string
+          image_path: string
+          tier2_image_path: string | null
+          tier3_image_path: string | null
+        } | null
+        return {
+          petId: op.pet_id,
+          petName: pet?.name ?? 'Unknown',
+          rarity: pet?.rarity ?? 'common',
+          tier: op.tier,
+          count: op.count ?? 1,
+          imagePath: pet?.image_path ?? '',
+          tier2ImagePath: pet?.tier2_image_path ?? null,
+          tier3ImagePath: pet?.tier3_image_path ?? null,
+        }
+      })
+
+      // Transform mood history
+      const moodHistory: MoodEntry[] = (moodResult.data ?? []).map((d) => ({
+        date: d.date,
+        mood: d.mood as MoodEntry['mood'],
+        hasPracticed: d.has_practiced ?? false,
+      }))
+
+      // Transform payment history
+      const paymentHistory: PaymentHistoryEntry[] = (paymentResult.data ?? []).map((p) => ({
+        id: p.id,
+        amountCents: p.amount_cents,
+        currency: p.currency,
+        status: p.status,
+        tier: p.tier,
+        description: p.description,
+        createdAt: p.created_at ?? new Date().toISOString(),
+      }))
+
+      // Transform subscription
+      const sub = subscriptionResult.data
+      const subscription: StudentSubscriptionDetail | null = sub
+        ? {
+            tier: sub.tier,
+            isActive: sub.is_active ?? false,
+            stripeStatus: sub.stripe_status,
+            startDate: sub.start_date,
+            currentPeriodStart: sub.current_period_start,
+            currentPeriodEnd: sub.current_period_end,
+            nextBillingDate: sub.next_billing_date,
+            cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+            scheduledTier: sub.scheduled_tier,
+            scheduledChangeDate: sub.scheduled_change_date,
+            paymentHistory,
+          }
+        : null
+
+      studentEngagement.value.set(studentId, {
+        coins: profile?.coins ?? 0,
+        xp,
+        level,
+        xpProgress,
+        currentStreak: profile?.current_streak ?? 0,
+        food: profile?.food ?? 0,
+        selectedPetId: profile?.selected_pet_id ?? null,
+        ownedPets,
+        moodHistory,
+        subscription,
+      })
+
+      return { error: null }
+    } catch (err) {
+      const message = handleError(err, 'Failed to fetch engagement data.')
+      return { error: message }
+    } finally {
+      isLoadingEngagement.value = false
     }
   }
 
@@ -620,6 +829,11 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     return studentStatistics.value.find((stat) => stat.studentId === studentId)
   }
 
+  // Get engagement data for a specific student
+  function getStudentEngagement(studentId: string): StudentEngagementData | undefined {
+    return studentEngagement.value.get(studentId)
+  }
+
   // Get filtered sessions for a student
   function getFilteredSessions(
     studentId: string,
@@ -792,9 +1006,11 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     studentStatistics.value = []
     isLoadingStudents.value = false
     isLoadingStatistics.value = false
+    isLoadingEngagement.value = false
     studentsError.value = null
     statisticsError.value = null
     loadedStudentIds.value.clear()
+    studentEngagement.value.clear()
     studentsFilters.value = { search: '' }
     studentsPagination.value = { pageIndex: 0, pageSize: 10 }
     resetStatisticsFilters()
@@ -808,6 +1024,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     studentStatistics,
     isLoadingStatistics,
     statisticsError,
+    isLoadingEngagement,
 
     // Computed
     filteredStudents,
@@ -838,8 +1055,10 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     // Actions
     fetchAllStudents,
     fetchStudentStatistics,
+    fetchStudentEngagement,
     getStudentById,
     getStudentStatistics,
+    getStudentEngagement,
     getSessionById,
     getFilteredSessions,
     getGradeLevels,

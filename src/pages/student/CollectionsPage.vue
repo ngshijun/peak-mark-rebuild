@@ -12,7 +12,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import {
   Dialog,
   DialogContent,
@@ -53,21 +52,15 @@ const showPetDialog = ref(false)
 const selectedPetForDialog = ref<Pet | null>(null)
 const carouselApi = ref<CarouselApi | null>(null)
 
-function getCollectionProgress(rarity: PetRarity) {
-  const stats = petsStore.collectionStats[rarity]
-  if (stats.total === 0) return 0
-  return Math.round((stats.owned / stats.total) * 100)
-}
-
 function isSelected(petId: string): boolean {
   return authStore.studentProfile?.selectedPetId === petId
 }
 
-// Get pet image for display (shows current tier image) - thumbnail for grid
+// Get pet image for display (shows current tier image)
 function getPetDisplayImage(pet: Pet): string {
   const ownedPet = petsStore.getOwnedPet(pet.id)
-  if (!ownedPet) return petsStore.getThumbnailPetImageUrl(pet.imagePath, pet.updatedAt)
-  return petsStore.getThumbnailPetImageUrlForTier(pet, ownedPet.tier)
+  if (!ownedPet) return petsStore.getOptimizedPetImageUrl(pet.imagePath, pet.updatedAt)
+  return petsStore.getOptimizedPetImageUrlForTier(pet, ownedPet.tier)
 }
 
 // Get pet tier for display
@@ -401,33 +394,31 @@ function closeCombineResult() {
     <!-- Collection by Rarity -->
     <div class="space-y-6">
       <Card v-for="rarity in rarityOrder" :key="rarity">
-        <CardHeader>
+        <CardHeader class="pb-3">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <CardTitle :class="rarityConfig[rarity].color">
-                {{ rarityConfig[rarity].label }}
-              </CardTitle>
-              <Badge variant="outline" :class="rarityConfig[rarity].color">
-                {{ petsStore.collectionStats[rarity].owned }} /
-                {{ petsStore.collectionStats[rarity].total }}
-              </Badge>
-            </div>
-            <div class="w-32">
-              <Progress :model-value="getCollectionProgress(rarity)" class="h-2" />
-            </div>
+            <CardTitle
+              class="flex items-center gap-2 text-base"
+              :class="rarityConfig[rarity].color"
+            >
+              {{ rarityConfig[rarity].label }}
+            </CardTitle>
+            <Badge variant="outline" :class="rarityConfig[rarity].color">
+              {{ petsStore.collectionStats[rarity].owned }} /
+              {{ petsStore.collectionStats[rarity].total }}
+            </Badge>
           </div>
           <CardDescription>{{ rarityConfig[rarity].chance }}% drop rate</CardDescription>
         </CardHeader>
         <CardContent>
-          <div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+          <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
             <div
               v-for="pet in petsStore.petsByRarity[rarity]"
               :key="pet.id"
-              class="relative flex flex-col items-center rounded-lg border p-3 transition-all"
+              class="relative flex flex-col items-center rounded-lg border px-2 pb-2 pt-3 transition-all"
               :class="[
                 petsStore.isPetOwned(pet.id)
                   ? [rarityConfig[rarity].bgColor, rarityConfig[rarity].borderColor]
-                  : 'border-gray-200 bg-gray-900',
+                  : 'border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-900',
                 isSelected(pet.id) ? 'ring-2 ring-primary ring-offset-2' : '',
                 petsStore.isPetOwned(pet.id) ? 'cursor-pointer hover:scale-105' : '',
               ]"
@@ -436,49 +427,54 @@ function closeCombineResult() {
               <!-- Selected indicator -->
               <div
                 v-if="isSelected(pet.id)"
-                class="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                class="absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground"
               >
-                <Check class="size-3" />
+                ★
               </div>
 
               <!-- Duplicate count badge -->
               <div
                 v-if="petsStore.isPetOwned(pet.id) && getPetCount(pet.id) > 1"
-                class="absolute -left-1 -top-1 flex size-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white"
+                class="absolute -top-2 -left-2 flex size-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white"
               >
                 {{ getPetCount(pet.id) }}
               </div>
 
               <!-- Pet Image or Question Mark -->
-              <div class="flex size-24 items-center justify-center">
+              <div class="flex aspect-square w-full items-center justify-center">
                 <template v-if="petsStore.isPetOwned(pet.id)">
                   <img
                     :src="getPetDisplayImage(pet)"
                     :alt="pet.name"
                     loading="lazy"
-                    class="size-20 object-contain"
+                    class="size-full object-contain"
                   />
                 </template>
                 <template v-else>
-                  <HelpCircle class="size-14 text-gray-500" />
+                  <HelpCircle class="size-14 text-gray-400 dark:text-gray-600" />
                 </template>
               </div>
 
-              <!-- Pet Name -->
-              <p
-                class="mt-2 text-center text-xs font-medium"
-                :class="
-                  petsStore.isPetOwned(pet.id) ? rarityConfig[rarity].textColor : 'text-gray-500'
-                "
-              >
-                {{ pet.name }}
-              </p>
-
-              <!-- Tier Badge -->
-              <Badge v-if="petsStore.isPetOwned(pet.id)" variant="secondary" class="mt-1 text-xs">
-                <Star class="mr-0.5 size-2.5" />
-                T{{ getPetTier(pet.id) }}
-              </Badge>
+              <!-- Pet Name + Tier Badge -->
+              <div class="mt-1 flex items-center justify-center gap-1">
+                <p
+                  class="text-center text-xs font-medium leading-tight"
+                  :class="
+                    petsStore.isPetOwned(pet.id)
+                      ? rarityConfig[rarity].textColor
+                      : 'text-gray-400 dark:text-gray-600'
+                  "
+                >
+                  {{ pet.name }}
+                </p>
+                <Badge
+                  v-if="petsStore.isPetOwned(pet.id) && getPetTier(pet.id) > 1"
+                  variant="outline"
+                  class="text-[10px] px-1 py-0"
+                >
+                  T{{ getPetTier(pet.id) }}
+                </Badge>
+              </div>
             </div>
           </div>
         </CardContent>

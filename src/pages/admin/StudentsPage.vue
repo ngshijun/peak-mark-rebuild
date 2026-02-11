@@ -125,7 +125,32 @@ const columns: ColumnDef<AdminStudent>[] = [
     },
     cell: ({ row }) => {
       const xp = row.original.xp
-      return h('div', { class: 'font-medium text-amber-600' }, xp.toLocaleString())
+      return h(
+        'div',
+        { class: 'font-medium text-purple-600 dark:text-purple-400' },
+        xp.toLocaleString(),
+      )
+    },
+  },
+  {
+    accessorKey: 'coins',
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: 'ghost',
+          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+        },
+        () => ['Coins', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+      )
+    },
+    cell: ({ row }) => {
+      const coins = row.original.coins
+      return h(
+        'div',
+        { class: 'font-medium text-amber-600 dark:text-amber-400' },
+        coins.toLocaleString(),
+      )
     },
   },
   {

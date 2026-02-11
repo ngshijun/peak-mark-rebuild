@@ -529,7 +529,7 @@ function getRankColor(rank: number): string {
                   <div v-if="getWeeklyReward(student.rank)" class="w-12 text-center">
                     <p class="text-sm text-muted-foreground">Reward</p>
                     <p
-                      class="flex items-center justify-center gap-1 font-semibold text-amber-700 dark:text-amber-400"
+                      class="flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
                     >
                       <CirclePoundSterling class="size-3.5" />
                       {{ getWeeklyReward(student.rank) }}
@@ -593,7 +593,7 @@ function getRankColor(rank: number): string {
                     >
                       <p class="text-sm text-muted-foreground">Reward</p>
                       <p
-                        class="flex items-center justify-center gap-1 font-semibold text-amber-700 dark:text-amber-400"
+                        class="flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
                       >
                         <CirclePoundSterling class="size-3.5" />
                         {{ getWeeklyReward(currentWeeklyStudentInfo.rank) }}
@@ -652,10 +652,10 @@ function getRankColor(rank: number): string {
           </div>
 
           <div
-            class="flex items-center justify-center gap-2 rounded-lg bg-amber-50 px-4 py-3 dark:bg-amber-950/20"
+            class="flex items-center justify-center gap-2 rounded-lg bg-amber-100 px-4 py-3 dark:bg-amber-950/30"
           >
-            <CirclePoundSterling class="size-5 text-amber-700 dark:text-amber-400" />
-            <span class="text-lg font-bold text-amber-700 dark:text-amber-400">
+            <CirclePoundSterling class="size-5 text-amber-600 dark:text-amber-400" />
+            <span class="text-lg font-bold text-amber-600 dark:text-amber-400">
               +{{ lastWeekReward.coinsAwarded }} Coins
             </span>
           </div>

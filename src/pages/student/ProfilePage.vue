@@ -377,7 +377,7 @@ const birthdayYearRange = computed(() => {
               Level {{ authStore.currentLevel }}
             </Badge>
             <Badge variant="outline" class="text-sm">
-              <CirclePoundSterling class="mr-1 size-3 text-amber-700 dark:text-amber-400" />
+              <CirclePoundSterling class="mr-1 size-3 text-amber-600 dark:text-amber-400" />
               {{ authStore.studentProfile?.coins ?? 0 }} Coins
             </Badge>
           </div>

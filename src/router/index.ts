@@ -185,6 +185,11 @@ const router = createRouter({
           component: () => import('@/pages/admin/AnnouncementsPage.vue'),
         },
         {
+          path: 'leaderboard',
+          name: 'admin-leaderboard',
+          component: () => import('@/pages/student/LeaderboardPage.vue'),
+        },
+        {
           path: 'students',
           name: 'admin-students',
           component: () => import('@/pages/admin/StudentsPage.vue'),

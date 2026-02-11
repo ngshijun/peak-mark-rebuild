@@ -23,7 +23,7 @@ import {
   Loader2,
   Lock,
   Users,
-  Sparkles,
+  Star,
   CirclePoundSterling,
   BotMessageSquare,
   RefreshCw,
@@ -215,11 +215,11 @@ async function generateAiSummary() {
           </div>
           <div class="flex items-center gap-4 text-sm">
             <div class="flex items-center gap-1.5 text-purple-600">
-              <Sparkles class="size-4" />
+              <Star class="size-4" />
               <span class="font-medium">+{{ session.xpEarned ?? 0 }} XP</span>
             </div>
-            <div class="flex items-center gap-1.5 text-yellow-600">
-              <CirclePoundSterling class="size-4 text-amber-700 dark:text-amber-400" />
+            <div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+              <CirclePoundSterling class="size-4 text-amber-600 dark:text-amber-400" />
               <span class="font-medium">+{{ session.coinsEarned ?? 0 }} Coins</span>
             </div>
           </div>

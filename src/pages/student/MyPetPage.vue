@@ -26,7 +26,7 @@ import {
   Minus,
   Loader2,
   ShoppingCart,
-  Beef,
+  Apple,
   CirclePoundSterling,
   PawPrint,
 } from 'lucide-vue-next'
@@ -347,7 +347,7 @@ function getTierLabel(tier: number): string {
                 </button>
                 <div class="flex min-w-20 flex-col items-center">
                   <div class="flex items-center gap-2">
-                    <Beef class="size-6 text-red-700 dark:text-red-400" />
+                    <Apple class="size-6 text-green-600 dark:text-green-400" />
                     <span class="text-3xl font-bold">{{ foodAmount }}</span>
                   </div>
                 </div>
@@ -364,7 +364,7 @@ function getTierLabel(tier: number): string {
               <div class="flex items-center justify-center gap-2 text-lg">
                 <span class="text-muted-foreground">Cost:</span>
                 <div class="flex items-center gap-1">
-                  <CirclePoundSterling class="size-5 text-amber-700 dark:text-amber-400" />
+                  <CirclePoundSterling class="size-5 text-amber-600 dark:text-amber-400" />
                   <span
                     class="font-bold"
                     :class="canAffordExchange ? 'text-amber-600' : 'text-red-500'"
@@ -587,7 +587,7 @@ function getTierLabel(tier: number): string {
               <Button
                 size="lg"
                 variant="outline"
-                class="flex-1 border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:hover:bg-orange-950/50"
+                class="flex-1 border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-950/50"
                 :disabled="
                   isFeeding ||
                   currentFood <= 0 ||
@@ -596,7 +596,7 @@ function getTierLabel(tier: number): string {
                 "
                 @click="feedPet"
               >
-                <Beef class="mr-2 size-5" />
+                <Apple class="mr-2 size-5" />
                 Feed
                 <span class="ml-2 text-xs opacity-70">({{ currentFood }})</span>
               </Button>

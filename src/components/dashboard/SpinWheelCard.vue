@@ -201,7 +201,7 @@ watch(isOpen, (open) => {
           <p class="text-lg font-bold text-green-600">Congratulations!</p>
           <div class="mt-2 flex items-center justify-center gap-2">
             <span class="text-2xl font-bold">+{{ reward }}</span>
-            <CirclePoundSterling class="size-7 text-amber-700 dark:text-amber-400" />
+            <CirclePoundSterling class="size-7 text-amber-600 dark:text-amber-400" />
           </div>
         </div>
 
