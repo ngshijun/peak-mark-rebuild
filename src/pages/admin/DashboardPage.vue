@@ -43,7 +43,7 @@ onMounted(async () => {
           <CardContent>
             <div class="text-2xl font-bold">
               {{
-                dashboardStore.stats.revenue.total.toLocaleString('en-MY', {
+                dashboardStore.stats.revenue.currentMonth.toLocaleString('en-MY', {
                   style: 'currency',
                   currency: dashboardStore.stats.revenue.currency,
                 })
