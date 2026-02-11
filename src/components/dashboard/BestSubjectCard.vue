@@ -103,7 +103,7 @@ function goToHistory() {
                   class="shrink-0 text-sm font-bold"
                   :class="getScoreTextColor(subject.averageScore)"
                 >
-                  {{ subject.averageScore }}%
+                  Avg: {{ subject.averageScore }}%
                 </span>
               </div>
               <div
@@ -118,9 +118,6 @@ function goToHistory() {
             </div>
           </div>
         </div>
-        <p class="mt-2 text-xs text-muted-foreground">
-          {{ topSubjects.length === 1 ? '1 subject' : `${topSubjects.length} subjects` }} practiced
-        </p>
       </template>
       <template v-else>
         <div class="flex items-center gap-3">
