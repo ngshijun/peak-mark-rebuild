@@ -430,107 +430,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Add XP to student (updates local state and database)
-   */
-  async function addXp(amount: number) {
-    if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return { error: 'Not a student' }
-    }
-
-    const newXp = user.value.studentProfile.xp + amount
-
-    const { error } = await supabase
-      .from('student_profiles')
-      .update({ xp: newXp })
-      .eq('id', user.value.id)
-
-    if (error) {
-      return { error: handleError(error, 'Failed to update XP.') }
-    }
-
-    user.value.studentProfile.xp = newXp
-    return { error: null }
-  }
-
-  /**
-   * Add coins to student
-   */
-  async function addCoins(amount: number) {
-    if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return { error: 'Not a student' }
-    }
-
-    const newCoins = Math.max(0, user.value.studentProfile.coins + amount)
-
-    const { error } = await supabase
-      .from('student_profiles')
-      .update({ coins: newCoins })
-      .eq('id', user.value.id)
-
-    if (error) {
-      return { error: handleError(error, 'Failed to update coins.') }
-    }
-
-    user.value.studentProfile.coins = newCoins
-    return { error: null }
-  }
-
-  /**
-   * Spend coins (returns false if insufficient)
-   */
-  async function spendCoins(amount: number): Promise<boolean> {
-    if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return false
-    }
-
-    if (user.value.studentProfile.coins < amount) {
-      return false
-    }
-
-    const result = await addCoins(-amount)
-    return !result.error
-  }
-
-  /**
-   * Add food to student
-   */
-  async function addFood(amount: number) {
-    if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return { error: 'Not a student' }
-    }
-
-    const newFood = Math.max(0, user.value.studentProfile.food + amount)
-
-    const { error } = await supabase
-      .from('student_profiles')
-      .update({ food: newFood })
-      .eq('id', user.value.id)
-
-    if (error) {
-      return { error: handleError(error, 'Failed to update food.') }
-    }
-
-    user.value.studentProfile.food = newFood
-    return { error: null }
-  }
-
-  /**
-   * Use food (returns false if insufficient)
-   */
-  async function useFood(amount: number): Promise<boolean> {
-    if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return false
-    }
-
-    if (user.value.studentProfile.food < amount) {
-      return false
-    }
-
-    const result = await addFood(-amount)
-    return !result.error
-  }
-
-  /**
    * Set selected pet
    */
   async function setSelectedPet(petId: string | null) {
@@ -584,11 +483,6 @@ export const useAuthStore = defineStore('auth', () => {
     uploadAvatarFromUrl,
     getAvatarUrl,
     updateGradeLevel,
-    addXp,
-    addCoins,
-    spendCoins,
-    addFood,
-    useFood,
     setSelectedPet,
   }
 })

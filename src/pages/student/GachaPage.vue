@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
+import { supabase } from '@/lib/supabaseClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Sparkles, Loader2, CirclePoundSterling, Info, PawPrint } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -51,7 +53,7 @@ onMounted(async () => {
   await petsStore.fetchOwnedPets()
 })
 
-// Fixed rarity percentages (order matters for cumulative calculation)
+// Fixed rarity percentages (for display only — actual rates enforced server-side)
 const RARITY_CHANCES: { rarity: PetRarity; chance: number }[] = [
   { rarity: 'legendary', chance: 1 }, // 0-1%
   { rarity: 'epic', chance: 9 }, // 1-10%
@@ -59,26 +61,9 @@ const RARITY_CHANCES: { rarity: PetRarity; chance: number }[] = [
   { rarity: 'common', chance: 60 }, // 40-100%
 ]
 
-// Get random pet based on fixed rarity percentages
-function getRandomPet(): Pet {
-  const roll = Math.random() * 100
-  let cumulative = 0
-  let selectedRarity: PetRarity = 'common'
-
-  for (const { rarity, chance } of RARITY_CHANCES) {
-    cumulative += chance
-    if (roll < cumulative) {
-      selectedRarity = rarity
-      break
-    }
-  }
-
-  const petsOfRarity = petsStore.allPets.filter((pet) => pet.rarity === selectedRarity)
-  const randomPet = petsOfRarity[Math.floor(Math.random() * petsOfRarity.length)]
-  if (!randomPet) {
-    return petsStore.allPets[0] as Pet
-  }
-  return randomPet
+// Look up a Pet object by ID from the loaded allPets list
+function getPetById(petId: string): Pet | undefined {
+  return petsStore.allPets.find((p) => p.id === petId)
 }
 
 // Check if a pet is new (not currently owned)
@@ -86,61 +71,79 @@ function isPetNew(petId: string): boolean {
   return !petsStore.ownedPets.some((p) => p.petId === petId)
 }
 
-// Single pull
+// Single pull (server-side via RPC)
 async function singlePull() {
   if (currentCoins.value < SINGLE_PULL_COST) return
 
   isRolling.value = true
   lastPullType.value = 'single'
-  authStore.spendCoins(SINGLE_PULL_COST)
+  // Use a random capsule color during animation (result unknown until RPC returns)
+  capsuleColor.value = '#A855F7'
 
-  // Determine result first to set capsule color
-  const pet = getRandomPet()
+  const { data: petId, error } = await supabase.rpc('gacha_pull')
+
+  if (error || !petId) {
+    isRolling.value = false
+    toast.error(error?.message ?? 'Pull failed')
+    return
+  }
+
+  const pet = getPetById(petId)
+  if (!pet) {
+    isRolling.value = false
+    await authStore.refreshProfile()
+    await petsStore.fetchOwnedPets()
+    return
+  }
+
+  // Now we know the result — set the correct capsule color
   capsuleColor.value = rarityColors[pet.rarity]
-
-  // Track if this pet is new BEFORE adding it
   newPetIds.value = new Set(isPetNew(pet.id) ? [pet.id] : [])
 
+  // Brief delay for animation then show result
   setTimeout(async () => {
     pullResults.value = [pet]
-    await petsStore.addPet(pet.id)
+    await Promise.all([authStore.refreshProfile(), petsStore.fetchOwnedPets()])
     isRolling.value = false
     showResultDialog.value = true
-  }, 2000)
+  }, 1500)
 }
 
-// Multi pull (10x)
+// Multi pull (10x, server-side via RPC)
 async function multiPull() {
   if (currentCoins.value < MULTI_PULL_COST) return
 
   isRolling.value = true
   lastPullType.value = 'multi'
-  authStore.spendCoins(MULTI_PULL_COST)
-
-  // Set to rainbow/gold for multi pull
   capsuleColor.value = '#F59E0B'
 
-  // Generate all pets first
-  const pets = Array.from({ length: 10 }, () => getRandomPet())
+  const { data: petIds, error } = await supabase.rpc('gacha_multi_pull')
 
-  // Track which pets are new BEFORE adding them
+  if (error || !petIds) {
+    isRolling.value = false
+    toast.error(error?.message ?? 'Pull failed')
+    return
+  }
+
+  // Track which pets are new BEFORE refreshing owned pets
   const newIds = new Set<string>()
   const seenInThisPull = new Set<string>()
-  for (const pet of pets) {
-    if (isPetNew(pet.id) && !seenInThisPull.has(pet.id)) {
-      newIds.add(pet.id)
+  for (const petId of petIds) {
+    if (isPetNew(petId) && !seenInThisPull.has(petId)) {
+      newIds.add(petId)
     }
-    seenInThisPull.add(pet.id)
+    seenInThisPull.add(petId)
   }
   newPetIds.value = newIds
 
+  const pets = petIds.map((id) => getPetById(id)).filter((p): p is Pet => p !== undefined)
+
   setTimeout(async () => {
     pullResults.value = pets
-    // Parallelize pet additions instead of sequential awaits
-    await Promise.all(pets.map((pet) => petsStore.addPet(pet.id)))
+    await Promise.all([authStore.refreshProfile(), petsStore.fetchOwnedPets()])
     isRolling.value = false
     showResultDialog.value = true
-  }, 2500)
+  }, 2000)
 }
 
 function closeResults() {

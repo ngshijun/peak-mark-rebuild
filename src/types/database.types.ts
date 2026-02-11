@@ -1455,6 +1455,10 @@ export type Database = {
         Args: { p_owned_pet_id: string; p_student_id: string }
         Returns: Json
       }
+      exchange_coins_for_food: {
+        Args: { p_food_amount: number }
+        Returns: undefined
+      }
       feed_pet_for_evolution: {
         Args: {
           p_food_amount: number
@@ -1463,10 +1467,8 @@ export type Database = {
         }
         Returns: Json
       }
-      gacha_pull: {
-        Args: { p_cost?: number; p_student_id: string }
-        Returns: string
-      }
+      gacha_multi_pull: { Args: never; Returns: string[] }
+      gacha_pull: { Args: never; Returns: string }
       get_question_statistics: {
         Args: never
         Returns: {
