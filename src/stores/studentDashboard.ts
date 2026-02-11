@@ -208,67 +208,10 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
   }
 
-  // Refresh streak from database (call after practice completion)
-  async function refreshStreak(): Promise<void> {
-    const studentId = authStore.user?.id
-    if (!studentId) return
-
-    const { data } = await supabase
-      .from('student_profiles')
-      .select('current_streak')
-      .eq('id', studentId)
-      .single()
-
-    if (data) {
-      currentStreak.value = data.current_streak ?? 0
-    }
-  }
-
   // Check if practiced today
   const hasPracticedToday = computed(() => {
     return todayStatus.value?.hasPracticed ?? false
   })
-
-  // Mark that user has practiced today (atomically updates status and returns new streak)
-  async function markPracticedToday(): Promise<{ error: string | null }> {
-    const studentId = authStore.user?.id
-    if (!studentId) {
-      return { error: 'Not logged in' }
-    }
-
-    if (!todayStatus.value) {
-      await fetchTodayStatus()
-    }
-
-    if (!todayStatus.value) {
-      return { error: 'Could not create daily status' }
-    }
-
-    if (todayStatus.value.hasPracticed) {
-      return { error: null } // Already marked
-    }
-
-    try {
-      // Use atomic RPC that updates has_practiced and returns new streak in one transaction
-      const { data: newStreak, error: rpcError } = await supabase.rpc('mark_daily_practiced', {
-        p_daily_status_id: todayStatus.value.id,
-        p_student_id: studentId,
-      })
-
-      if (rpcError) {
-        return { error: handleError(rpcError, 'Failed to mark practiced.') }
-      }
-
-      // Update local state with results from the atomic operation
-      todayStatus.value.hasPracticed = true
-      currentStreak.value = newStreak ?? 0
-
-      return { error: null }
-    } catch (err) {
-      const message = handleError(err, 'Failed to mark practiced.')
-      return { error: message }
-    }
-  }
 
   // Reset store state (call on logout)
   function $reset() {
@@ -289,8 +232,6 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     fetchTodayStatus,
     setMood,
     recordSpinReward,
-    refreshStreak,
-    markPracticedToday,
     getTodayString,
     $reset,
   }

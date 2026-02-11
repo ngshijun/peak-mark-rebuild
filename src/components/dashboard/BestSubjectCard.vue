@@ -16,15 +16,13 @@ interface SubjectStats {
   averageScore: number
 }
 
-const bestSubject = computed<SubjectStats | null>(() => {
-  // Get completed sessions only
+const topSubjects = computed<SubjectStats[]>(() => {
   const completedSessions = practiceStore
     .getFilteredHistory()
     .filter((s) => s.completedAt && s.totalQuestions > 0)
 
-  if (completedSessions.length === 0) return null
+  if (completedSessions.length === 0) return []
 
-  // Calculate average score per grade level + subject combination
   const subjectMap = new Map<
     string,
     { gradeLevelName: string; subjectName: string; totalScore: number; count: number }
@@ -32,7 +30,6 @@ const bestSubject = computed<SubjectStats | null>(() => {
 
   completedSessions.forEach((session) => {
     const score = Math.round((session.correctCount / session.totalQuestions) * 100)
-    // Use combination of grade level and subject as key
     const key = `${session.gradeLevelName}::${session.subjectName}`
     const existing = subjectMap.get(key)
 
@@ -49,30 +46,33 @@ const bestSubject = computed<SubjectStats | null>(() => {
     }
   })
 
-  // Find the subject with the highest average score
-  let best: SubjectStats | null = null
-
+  const subjects: SubjectStats[] = []
   subjectMap.forEach((stats) => {
-    const averageScore = Math.round(stats.totalScore / stats.count)
-    if (!best || averageScore > best.averageScore) {
-      best = {
-        gradeLevelName: stats.gradeLevelName,
-        subjectName: stats.subjectName,
-        totalScore: stats.totalScore,
-        sessionCount: stats.count,
-        averageScore,
-      }
-    }
+    subjects.push({
+      gradeLevelName: stats.gradeLevelName,
+      subjectName: stats.subjectName,
+      totalScore: stats.totalScore,
+      sessionCount: stats.count,
+      averageScore: Math.round(stats.totalScore / stats.count),
+    })
   })
 
-  return best
+  return subjects.sort((a, b) => b.averageScore - a.averageScore).slice(0, 3)
 })
 
-function getScoreColor(score: number): string {
+function getScoreBarColor(score: number): string {
+  if (score >= 80) return 'bg-green-500'
+  if (score >= 60) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
+
+function getScoreTextColor(score: number): string {
   if (score >= 80) return 'text-green-600'
   if (score >= 60) return 'text-yellow-600'
   return 'text-red-600'
 }
+
+const medals = ['🥇', '🥈', '🥉']
 
 function goToHistory() {
   router.push('/student/history')
@@ -82,31 +82,44 @@ function goToHistory() {
 <template>
   <!-- Soft blue tint - knowledge/learning association -->
   <Card
-    class="cursor-pointer border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
+    class="cursor-pointer border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 transition-shadow hover:shadow-lg dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
     @click="goToHistory"
   >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm font-medium">Best Subject</CardTitle>
+      <CardTitle class="text-sm font-medium">Top Subjects</CardTitle>
       <Trophy class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
-      <template v-if="bestSubject">
-        <div class="flex items-center gap-3">
-          <span class="text-4xl">🏆</span>
-          <div>
-            <p class="font-medium">
-              {{ bestSubject.gradeLevelName }} - {{ bestSubject.subjectName }}
-            </p>
-            <p class="text-2xl font-bold" :class="getScoreColor(bestSubject.averageScore)">
-              {{ bestSubject.averageScore }}%
-              <span class="text-sm font-normal text-muted-foreground">avg</span>
-            </p>
+      <template v-if="topSubjects.length > 0">
+        <div class="space-y-3">
+          <div v-for="(subject, index) in topSubjects" :key="index" class="flex items-center gap-2">
+            <span class="text-lg leading-none">{{ medals[index] }}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <p class="truncate text-sm font-medium">
+                  {{ subject.gradeLevelName }} · {{ subject.subjectName }}
+                </p>
+                <span
+                  class="shrink-0 text-sm font-bold"
+                  :class="getScoreTextColor(subject.averageScore)"
+                >
+                  {{ subject.averageScore }}%
+                </span>
+              </div>
+              <div
+                class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
+              >
+                <div
+                  class="h-full rounded-full transition-all"
+                  :class="getScoreBarColor(subject.averageScore)"
+                  :style="{ width: `${subject.averageScore}%` }"
+                />
+              </div>
+            </div>
           </div>
         </div>
         <p class="mt-2 text-xs text-muted-foreground">
-          Based on {{ bestSubject.sessionCount }} session{{
-            bestSubject.sessionCount > 1 ? 's' : ''
-          }}
+          {{ topSubjects.length === 1 ? '1 subject' : `${topSubjects.length} subjects` }} practiced
         </p>
       </template>
       <template v-else>

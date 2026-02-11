@@ -79,9 +79,10 @@ onMounted(async () => {
 
   if (result.session) {
     session.value = result.session
-    // Mark that user has practiced today (if session was just completed)
+    // has_practiced is now set automatically by a DB trigger on practice_sessions.completed_at
+    // Refresh local dashboard state to pick up the trigger's changes
     if (result.session.completedAt) {
-      await dashboardStore.markPracticedToday()
+      await dashboardStore.fetchTodayStatus()
     }
 
     // Check if this is the current session (just completed) vs viewing from history

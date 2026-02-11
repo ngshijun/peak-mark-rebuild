@@ -452,13 +452,25 @@ function getTierLabel(tier: number): string {
           <CardContent>
             <!-- Pet Display Area -->
             <div
-              class="relative flex h-80 cursor-pointer items-center justify-center overflow-hidden rounded-xl transition-all"
+              class="relative flex h-[28rem] cursor-pointer items-center justify-center overflow-hidden rounded-xl transition-all"
               :class="[
                 rarityConfig[selectedPet.rarity].bgColor,
                 { 'ring-4 ring-purple-400 ring-offset-2': isPetting },
               ]"
               @click="onPetClick"
             >
+              <!-- Decorative background circles -->
+              <div
+                class="absolute left-1/2 top-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 sm:size-80 lg:size-96"
+                :class="rarityConfig[selectedPet.rarity].borderColor"
+                style="border-width: 3px; border-style: dashed"
+              />
+              <div
+                class="absolute left-1/2 top-1/2 size-56 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-10 sm:size-64 lg:size-72"
+                :class="rarityConfig[selectedPet.rarity].borderColor"
+                style="border-width: 2px; border-style: dotted"
+              />
+
               <!-- Floating hearts animation (scattered around the pet) -->
               <div v-if="showHearts" class="pointer-events-none absolute inset-0">
                 <Heart
@@ -547,7 +559,7 @@ function getTierLabel(tier: number): string {
                 <img
                   :src="currentTierImage"
                   :alt="selectedPet.name"
-                  class="size-72 object-contain drop-shadow-lg"
+                  class="size-96 object-contain drop-shadow-lg"
                   :class="{ 'animate-bounce-slow': !isPetting && !isFeeding && !isEvolving }"
                 />
               </div>

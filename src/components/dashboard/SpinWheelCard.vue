@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Gift, CirclePoundSterling } from 'lucide-vue-next'
+import { CirclePoundSterling } from 'lucide-vue-next'
 
 const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
@@ -103,48 +101,14 @@ watch(isOpen, (open) => {
 
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogTrigger as-child>
-      <!-- Soft green/teal tint - reward/positive association -->
-      <Card
-        class="cursor-pointer border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:border-emerald-900/50 dark:from-emerald-950/30 dark:to-teal-950/30"
-      >
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">Daily Spin</CardTitle>
-          <Gift class="size-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div class="flex items-center gap-3">
-            <div
-              class="flex size-14 items-center justify-center rounded-full border-2"
-              :class="
-                dashboardStore.hasSpunToday
-                  ? 'border-green-500 bg-green-100 dark:bg-green-900'
-                  : 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 animate-pulse'
-              "
-            >
-              <span
-                class="text-2xl"
-                :class="dashboardStore.hasSpunToday ? 'text-green-700 dark:text-green-400' : ''"
-              >
-                {{ dashboardStore.hasSpunToday ? '✓' : '🎡' }}
-              </span>
-            </div>
-            <div>
-              <p class="font-medium">
-                {{ dashboardStore.hasSpunToday ? 'Claimed!' : 'Available!' }}
-              </p>
-              <p class="text-xs text-muted-foreground">
-                {{
-                  dashboardStore.hasSpunToday
-                    ? `+${dashboardStore.todayStatus?.spinReward ?? 0} coins earned`
-                    : 'Tap to spin the wheel'
-                }}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </DialogTrigger>
+    <button
+      class="flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 shadow-sm transition-colors hover:bg-accent"
+      :class="{ 'animate-glow-border': !dashboardStore.hasSpunToday }"
+      @click="isOpen = true"
+    >
+      <span class="text-sm font-medium">Daily Spin</span>
+      <span class="text-lg">{{ dashboardStore.hasSpunToday ? '✅' : '🎡' }}</span>
+    </button>
     <DialogContent class="sm:max-w-md" :show-close-button="!isSpinning">
       <DialogHeader>
         <DialogTitle>Daily Spin Wheel</DialogTitle>
@@ -228,3 +192,21 @@ watch(isOpen, (open) => {
     </DialogContent>
   </Dialog>
 </template>
+
+<style scoped>
+@keyframes glow-border {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.2);
+    border-color: rgb(167, 243, 208);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
+    border-color: rgb(16, 185, 129);
+  }
+}
+
+.animate-glow-border {
+  animation: glow-border 2s ease-in-out infinite;
+}
+</style>

@@ -1483,10 +1483,6 @@ export type Database = {
         Returns: Database['public']['Enums']['subscription_tier']
       }
       get_unread_announcement_count: { Args: never; Returns: number }
-      mark_daily_practiced: {
-        Args: { p_daily_status_id: string; p_student_id: string }
-        Returns: number
-      }
       record_spin_reward: {
         Args: {
           p_daily_status_id: string

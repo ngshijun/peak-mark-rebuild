@@ -75,7 +75,10 @@ watch(isLoading, async (loading) => {
         <h1 class="text-2xl font-bold">Dashboard</h1>
         <p class="text-muted-foreground">Here's your daily overview</p>
       </div>
-      <DailyStatusButton v-if="!isLoading" ref="dailyStatusButtonRef" />
+      <div v-if="!isLoading" class="flex items-center gap-2">
+        <SpinWheelCard />
+        <DailyStatusButton ref="dailyStatusButtonRef" />
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -84,12 +87,16 @@ watch(isLoading, async (loading) => {
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Dashboard Cards Grid -->
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <BestSubjectCard />
-        <CurrentPetCard />
-        <SpinWheelCard />
-        <StreakCard />
+      <!-- Hero Layout: Pet (1/3) + Cards (2/3) -->
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
+        <!-- Pet (spans 2 rows on desktop) -->
+        <CurrentPetCard class="sm:row-span-2 sm:min-h-[28rem]" />
+
+        <!-- Best Subject (spans 2 cols on desktop) -->
+        <BestSubjectCard class="lg:col-span-2" />
+
+        <!-- Practice Streak (spans 2 cols on desktop) -->
+        <StreakCard class="lg:col-span-2" />
       </div>
 
       <!-- In-Progress Sessions -->
