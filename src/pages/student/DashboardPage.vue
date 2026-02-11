@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { usePracticeStore } from '@/stores/practice'
 import { usePetsStore } from '@/stores/pets'
@@ -14,6 +15,7 @@ import StreakCard from '@/components/dashboard/StreakCard.vue'
 import InProgressSessionsCard from '@/components/dashboard/InProgressSessionsCard.vue'
 import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget.vue'
 
+const route = useRoute()
 const dashboardStore = useStudentDashboardStore()
 const practiceStore = usePracticeStore()
 const petsStore = usePetsStore()
@@ -39,10 +41,9 @@ function shouldShowMoodReminder(): boolean {
   return true
 }
 
-// Fetch dashboard data on mount
-onMounted(async () => {
+async function loadDashboardData() {
+  isLoading.value = true
   try {
-    // Fetch all data in parallel
     await Promise.all([
       dashboardStore.fetchTodayStatus(),
       practiceStore.fetchSessionHistory(),
@@ -54,7 +55,20 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
-})
+}
+
+// Fetch on mount
+onMounted(loadDashboardData)
+
+// Re-fetch when navigating back to this route (covers browser back, sidebar clicks, etc.)
+watch(
+  () => route.path,
+  (path) => {
+    if (path === '/student/dashboard') {
+      loadDashboardData()
+    }
+  },
+)
 
 // Show mood reminder dialog after loading completes
 watch(isLoading, async (loading) => {
