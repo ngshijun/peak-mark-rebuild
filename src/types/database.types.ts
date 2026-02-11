@@ -1411,24 +1411,10 @@ export type Database = {
         Args: { p_owned_pet_ids: string[]; p_student_id: string }
         Returns: Json
       }
-      complete_practice_session:
-        | {
-            Args: {
-              p_correct_count: number
-              p_session_id: string
-              p_total_questions: number
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_coins_earned: number
-              p_session_id: string
-              p_total_time_seconds: number
-              p_xp_earned: number
-            }
-            Returns: undefined
-          }
+      complete_practice_session: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
       create_practice_session: {
         Args: {
           p_cycle_number: number

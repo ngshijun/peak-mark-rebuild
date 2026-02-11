@@ -902,43 +902,30 @@ export const usePracticeStore = defineStore('practice', () => {
     }
 
     try {
-      // Calculate total time from answers (sum of time_spent_seconds)
-      const totalTimeSeconds = currentSession.value.answers.reduce(
-        (sum, a) => sum + (a.timeSpentSeconds ?? 0),
-        0,
-      )
-
-      // Calculate rewards
-      const correctAnswers = currentSession.value.correctCount
-      const baseXp = 50
-      const bonusXp = correctAnswers * 10
-      const totalXp = baseXp + bonusXp
-
-      const baseCoins = 20
-      const bonusCoins = correctAnswers * 5
-      const totalCoins = baseCoins + bonusCoins
-
       // Complete session atomically using RPC function
-      // This updates session and awards XP/coins in a single transaction
-      const { error: completeError } = await supabase.rpc('complete_practice_session', {
-        p_session_id: currentSession.value.id,
-        p_total_time_seconds: totalTimeSeconds,
-        p_xp_earned: totalXp,
-        p_coins_earned: totalCoins,
-      })
+      // Server counts correct answers from practice_answers and calculates rewards
+      const { data: rewards, error: completeError } = await supabase.rpc(
+        'complete_practice_session',
+        { p_session_id: currentSession.value.id },
+      )
 
       if (completeError) {
         return { session: null, error: handleError(completeError, 'Failed to complete session.') }
       }
 
-      // Update local session state
+      const result = rewards as { xp_earned: number; coins_earned: number; correct_count: number }
+
+      // Update local session state with server-calculated values
       currentSession.value.completedAt = new Date().toISOString()
-      currentSession.value.totalTimeSeconds = totalTimeSeconds
-      currentSession.value.xpEarned = totalXp
-      currentSession.value.coinsEarned = totalCoins
+      currentSession.value.totalTimeSeconds = currentSession.value.answers.reduce(
+        (sum, a) => sum + (a.timeSpentSeconds ?? 0),
+        0,
+      )
+      currentSession.value.correctCount = result.correct_count
+      currentSession.value.xpEarned = result.xp_earned
+      currentSession.value.coinsEarned = result.coins_earned
 
       // Refresh auth store to get updated XP/coins from database
-      // (RPC already updated the database, we just need to sync local state)
       await authStore.refreshProfile()
 
       // Invalidate session limit cache (session count changed)
