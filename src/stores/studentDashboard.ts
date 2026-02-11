@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
+import { toMYTDateString } from '@/lib/date'
 
 export type MoodType = Database['public']['Enums']['mood_type']
 
@@ -29,10 +30,9 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
   // Streak from database (single source of truth)
   const currentStreak = ref<number>(0)
 
-  // Get today's date string in local timezone
+  // Get today's date string in Asia/Kuala_Lumpur timezone
   function getTodayString(): string {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    return toMYTDateString()
   }
 
   // Fetch today's daily status

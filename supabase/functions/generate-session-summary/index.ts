@@ -314,7 +314,7 @@ Rules:
 - Keep sentences short and clear
 - Be warm and encouraging, but honest about mistakes
 - Never be harsh or discouraging
-- If score is perfect, celebrate and suggest trying harder questions next time`,
+- If score is perfect, keep it SHORT (2-3 sentences max): celebrate the achievement, mention one specific thing they did well, and encourage them. Do NOT list individual questions.`,
   }
 
   // Build user message content (can include text and images)

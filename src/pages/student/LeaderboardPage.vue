@@ -31,6 +31,7 @@ import {
 import { Trophy, Medal, Award, Loader2, CirclePoundSterling, CalendarClock } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import fireGif from '@/assets/icons/fire.gif'
+import { toMYTDateString, getMYTDayOfWeek, mytDateToUTCDate } from '@/lib/date'
 
 const leaderboardStore = useLeaderboardStore()
 const authStore = useAuthStore()
@@ -53,20 +54,16 @@ const countdown = ref('')
 let countdownInterval: ReturnType<typeof setInterval> | null = null
 
 function getNextMondayMYT(): Date {
-  // Get current time in MYT (UTC+8)
-  const now = new Date()
-  const myt = new Date(now.getTime() + (8 * 60 - now.getTimezoneOffset()) * 60 * 1000)
-
-  // Find next Monday
-  const dayOfWeek = myt.getUTCDay() // 0=Sun, 1=Mon, ...
+  const dayOfWeek = getMYTDayOfWeek() // 0=Sun, 1=Mon, ...
   const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek
 
-  const nextMonday = new Date(myt)
-  nextMonday.setUTCDate(myt.getUTCDate() + daysUntilMonday)
-  nextMonday.setUTCHours(0, 0, 0, 0)
+  // Get today in MYT as a UTC-midnight date, add days, then shift to MYT midnight
+  const todayUTC = mytDateToUTCDate(toMYTDateString())
+  const nextMondayUTC = new Date(todayUTC)
+  nextMondayUTC.setUTCDate(todayUTC.getUTCDate() + daysUntilMonday)
 
-  // Convert back from MYT to UTC
-  return new Date(nextMonday.getTime() - 8 * 60 * 60 * 1000)
+  // Convert MYT midnight (00:00+08:00) to UTC: subtract 8 hours
+  return new Date(nextMondayUTC.getTime() - 8 * 60 * 60 * 1000)
 }
 
 function updateCountdown() {

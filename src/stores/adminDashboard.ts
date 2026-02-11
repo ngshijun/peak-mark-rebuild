@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { handleError } from '@/lib/errors'
+import { toMYTDateString } from '@/lib/date'
 
 // Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
 const STATS_CACHE_TTL = 5 * 60 * 1000
@@ -82,10 +83,9 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
     return Date.now() - lastFetched.value > STATS_CACHE_TTL
   }
 
-  // Get today's date in YYYY-MM-DD format
+  // Get today's date in YYYY-MM-DD format (Asia/Kuala_Lumpur timezone)
   function getTodayString(): string {
-    const today = new Date()
-    return today.toISOString().split('T')[0] ?? ''
+    return toMYTDateString()
   }
 
   // Get first day of current month
@@ -149,12 +149,12 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           .select('id', { count: 'exact', head: true })
           .eq('date', today),
 
-        // Practice sessions created today
+        // Practice sessions created today (MYT boundaries)
         supabase
           .from('practice_sessions')
           .select('id', { count: 'exact', head: true })
-          .gte('created_at', `${today}T00:00:00`)
-          .lt('created_at', `${today}T23:59:59.999`),
+          .gte('created_at', `${today}T00:00:00+08:00`)
+          .lt('created_at', `${today}T23:59:59.999+08:00`),
 
         // Total revenue (all time, only succeeded payments)
         supabase.from('payment_history').select('amount_cents, currency').eq('status', 'succeeded'),

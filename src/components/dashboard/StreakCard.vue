@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRouter } from 'vue-router'
 import { Flame } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
+import { toMYTDateString, getMYTDayOfWeek, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 
 const dashboardStore = useStudentDashboardStore()
 const practiceStore = usePracticeStore()
@@ -32,35 +33,33 @@ function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
 // Weekly activity: derived from actual completed sessions (not daily_statuses)
 const weekDayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-// Helper: convert a date to local YYYY-MM-DD string
-function toLocalDateStr(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
 const weeklyActivity = computed(() => {
-  const today = new Date()
-  const dayOfWeek = today.getDay() // 0=Sun, 1=Mon...
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + mondayOffset)
-
+  // All date logic uses MYT timezone to match server-side daily_statuses
+  const todayStr = toMYTDateString()
+  const dayOfWeek = getMYTDayOfWeek() // 0=Sun, 1=Mon...
   const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
 
-  // Build set of local date strings that had completed sessions this week
+  // Compute Monday of this week in MYT
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  const todayUTC = mytDateToUTCDate(todayStr)
+  const monday = new Date(todayUTC)
+  monday.setUTCDate(todayUTC.getUTCDate() + mondayOffset)
+
+  // Build set of MYT date strings that had completed sessions this week
   const activeDateStrs = new Set<string>()
   const completedSessions = practiceStore.getFilteredHistory().filter((s) => s.completedAt)
 
   completedSessions.forEach((s) => {
     if (!s.completedAt) return
-    const localDateStr = toLocalDateStr(new Date(s.completedAt))
-    activeDateStrs.add(localDateStr)
+    // Convert UTC completedAt timestamp to MYT date
+    activeDateStrs.add(toMYTDateString(new Date(s.completedAt)))
   })
 
   // Build the 7-day array
   return weekDayLabels.map((label, i) => {
     const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    const dateStr = toLocalDateStr(d)
+    d.setUTCDate(monday.getUTCDate() + i)
+    const dateStr = utcDateToString(d)
 
     return {
       label,
