@@ -75,6 +75,7 @@ defineExpose({
   <Dialog v-model:open="isOpen">
     <button
       class="flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 shadow-sm transition-colors hover:bg-accent"
+      :class="{ 'animate-glow-border': !dashboardStore.todayStatus?.mood }"
       @click="isOpen = true"
     >
       <span class="text-sm font-medium">Daily Status</span>
@@ -108,3 +109,21 @@ defineExpose({
     </DialogContent>
   </Dialog>
 </template>
+
+<style scoped>
+@keyframes glow-border {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.2);
+    border-color: rgb(167, 243, 208);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
+    border-color: rgb(16, 185, 129);
+  }
+}
+
+.animate-glow-border {
+  animation: glow-border 2s ease-in-out infinite;
+}
+</style>
