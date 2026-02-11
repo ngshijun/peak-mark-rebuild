@@ -677,7 +677,7 @@ function closeCombineResult() {
 
     <!-- Combine Result Dialog -->
     <Dialog :open="showCombineResultDialog" @update:open="closeCombineResult">
-      <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2 text-xl">
             <span class="text-2xl">🎉</span>
@@ -726,7 +726,7 @@ function closeCombineResult() {
                 )
               "
               :alt="combineResults[0].resultPet.name"
-              class="size-32 object-contain"
+              class="size-40 object-contain"
             />
             <p class="mt-3 text-lg font-bold">{{ combineResults[0].resultPet.name }}</p>
             <Badge
@@ -759,11 +759,11 @@ function closeCombineResult() {
           </div>
 
           <!-- Results Grid -->
-          <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div
               v-for="(result, index) in combineResults"
               :key="index"
-              class="relative flex flex-col items-center rounded-lg border-2 p-2"
+              class="relative flex flex-col items-center rounded-lg border-2 p-3"
               :class="[
                 result.resultRarity
                   ? [
@@ -782,15 +782,15 @@ function closeCombineResult() {
               <img
                 v-if="result.resultPet"
                 :src="
-                  petsStore.getThumbnailPetImageUrl(
+                  petsStore.getOptimizedPetImageUrl(
                     result.resultPet.imagePath,
                     result.resultPet.updatedAt,
                   )
                 "
                 :alt="result.resultPet.name"
-                class="size-12 object-contain"
+                class="size-24 object-contain"
               />
-              <p class="mt-1 truncate text-center text-[10px] font-medium">
+              <p class="mt-1 truncate text-center text-xs font-medium">
                 {{ result.resultPet?.name }}
               </p>
             </div>
