@@ -111,14 +111,10 @@ function isTierUnlocked(petId: string, tier: number): boolean {
 }
 
 async function handleSelectPet(petId: string) {
+  if (isSelected(petId)) return
   const pet = petsStore.allPets.find((p) => p.id === petId)
-  if (isSelected(petId)) {
-    await petsStore.deselectPet()
-    toast.info('Pet deselected')
-  } else {
-    await petsStore.selectPet(petId)
-    toast.success(`${pet?.name ?? 'Pet'} selected!`)
-  }
+  await petsStore.selectPet(petId)
+  toast.success(`${pet?.name ?? 'Pet'} selected!`)
 }
 
 // ========== COMBINE FEATURE ==========
@@ -888,10 +884,10 @@ function closeCombineResult() {
             v-if="isSelected(selectedPetForDialog.id)"
             variant="outline"
             class="w-full"
-            @click="handleSelectPet(selectedPetForDialog.id)"
+            disabled
           >
             <Check class="mr-2 size-4" />
-            Deselect Pet
+            Selected
           </Button>
           <Button v-else class="w-full" @click="handleSelectPet(selectedPetForDialog.id)">
             <Star class="mr-2 size-4" />
