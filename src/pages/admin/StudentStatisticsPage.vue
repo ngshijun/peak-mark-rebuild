@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DataTable } from '@/components/ui/data-table'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -148,6 +149,7 @@ onMounted(async () => {
 })
 
 const ALL_VALUE = '__all__'
+const hideInProgress = ref(false)
 
 const dateRangeOptions = [
   { value: 'today' as DateRangeFilter, label: 'Today' },
@@ -267,13 +269,33 @@ const subTopicsPracticed = computed(() => {
   return Array.from(subTopicMap.values()).sort((a, b) => b.count - a.count)
 })
 
-// Get recent sessions for table (sorted by date descending)
+// Get recent sessions for table (in-progress pinned to top, then completed desc by completedAt)
 const recentSessions = computed(() => {
   return [...filteredSessions.value].sort((a, b) => {
-    const dateA = new Date(a.completedAt ?? a.createdAt).getTime()
-    const dateB = new Date(b.completedAt ?? b.createdAt).getTime()
+    const aCompleted = !!a.completedAt
+    const bCompleted = !!b.completedAt
+    // In-progress sessions pinned to top
+    if (!aCompleted && bCompleted) return -1
+    if (aCompleted && !bCompleted) return 1
+    if (!aCompleted && !bCompleted) {
+      // Both in-progress: sort by createdAt desc
+      const dateA = new Date(a.createdAt).getTime()
+      const dateB = new Date(b.createdAt).getTime()
+      return dateB - dateA
+    }
+    // Both completed: sort by completedAt desc
+    const dateA = new Date(a.completedAt!).getTime()
+    const dateB = new Date(b.completedAt!).getTime()
     return dateB - dateA
   })
+})
+
+// Table data with optional in-progress filtering
+const displayedSessions = computed(() => {
+  if (hideInProgress.value) {
+    return recentSessions.value.filter((s) => s.status === 'completed')
+  }
+  return recentSessions.value
 })
 
 function formatStudyTime(seconds: number): string {
@@ -318,7 +340,7 @@ function formatDuration(seconds: number): string {
 // Column definitions for practice sessions table
 const columns: ColumnDef<StudentPracticeSession>[] = [
   {
-    accessorKey: 'createdAt',
+    accessorKey: 'completedAt',
     header: ({ column }) => {
       return h(
         Button,
@@ -326,12 +348,24 @@ const columns: ColumnDef<StudentPracticeSession>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Time', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => ['Completed At', h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
-      const dateStr = row.original.completedAt ?? row.original.createdAt
-      return h('div', { class: 'text-sm' }, formatDate(dateStr))
+      const completedAt = row.original.completedAt
+      if (!completedAt) {
+        return h('div', { class: 'text-muted-foreground' }, '-')
+      }
+      return h('div', { class: 'text-sm' }, formatDate(completedAt))
+    },
+    sortingFn: (rowA, rowB) => {
+      // In-progress (null) pinned to top when descending
+      const a = rowA.original.completedAt
+      const b = rowB.original.completedAt
+      if (!a && !b) return 0
+      if (!a) return 1
+      if (!b) return -1
+      return new Date(a).getTime() - new Date(b).getTime()
     },
   },
   {
@@ -423,7 +457,7 @@ const columns: ColumnDef<StudentPracticeSession>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Time Used', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => ['Duration', h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -956,6 +990,12 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
                 </SelectItem>
               </SelectContent>
             </Select>
+
+            <!-- Hide In Progress Checkbox -->
+            <label class="flex items-center gap-2 text-sm">
+              <Checkbox v-model="hideInProgress" />
+              Hide in progress
+            </label>
           </div>
 
           <!-- Statistics Cards -->
@@ -1012,10 +1052,11 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
             </CardHeader>
             <CardContent>
               <DataTable
-                v-if="recentSessions.length > 0"
+                v-if="displayedSessions.length > 0"
                 :columns="columns"
-                :data="recentSessions"
+                :data="displayedSessions"
                 :on-row-click="handleRowClick"
+                :initial-sorting="[{ id: 'completedAt', desc: true }]"
                 :page-index="adminStudentsStore.statisticsPagination.pageIndex"
                 :page-size="adminStudentsStore.statisticsPagination.pageSize"
                 :on-page-index-change="adminStudentsStore.setStatisticsPageIndex"

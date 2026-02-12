@@ -30,7 +30,7 @@ const features = [
     icon: BarChart3,
     title: 'Progress Tracking',
     description:
-      'View detailed statistics, session history, and performance analytics. Identify strengths and areas for improvement.',
+      'View detailed statistics, practice history, and performance analytics. Identify strengths and areas for improvement.',
   },
   {
     icon: Trophy,

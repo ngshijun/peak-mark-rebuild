@@ -1000,15 +1000,26 @@ export const usePracticeStore = defineStore('practice', () => {
         if (subjectName && s.subjectName !== subjectName) return false
         if (topicName && s.topicName !== topicName) return false
         if (subTopicName && s.subTopicName !== subTopicName) return false
-        if (dateRangeStart && s.createdAt) {
-          const sessionDate = new Date(s.createdAt)
+        // Date filter applies to completedAt; in-progress sessions always shown
+        if (dateRangeStart && s.completedAt) {
+          const sessionDate = new Date(s.completedAt)
           if (sessionDate < dateRangeStart) return false
         }
         return true
       })
       .sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        // In-progress sessions pinned to top, then completed descending by completedAt
+        const aCompleted = !!a.completedAt
+        const bCompleted = !!b.completedAt
+        if (!aCompleted && bCompleted) return -1
+        if (aCompleted && !bCompleted) return 1
+        if (!aCompleted && !bCompleted) {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          return dateB - dateA
+        }
+        const dateA = new Date(a.completedAt!).getTime()
+        const dateB = new Date(b.completedAt!).getTime()
         return dateB - dateA
       })
   }

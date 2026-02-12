@@ -19,6 +19,7 @@ import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ const practiceStore = usePracticeStore()
 const authStore = useAuthStore()
 
 const ALL_VALUE = '__all__'
+const hideInProgress = ref(false)
 
 // Status config for badge styling (matching admin announcement pattern)
 const statusConfig = {
@@ -125,7 +127,7 @@ const availableSubTopics = computed(() => {
 // Helper type for table row
 interface HistoryRow {
   id: string
-  createdAt: string
+  completedAt: string | null
   gradeLevelName: string
   subjectName: string
   topicName: string
@@ -163,7 +165,7 @@ const historyData = computed<HistoryRow[]>(() => {
 
     return {
       id: session.id,
-      createdAt: session.createdAt ?? new Date().toISOString(),
+      completedAt: session.completedAt ?? null,
       gradeLevelName: session.gradeLevelName,
       subjectName: session.subjectName,
       topicName: session.topicName,
@@ -176,6 +178,14 @@ const historyData = computed<HistoryRow[]>(() => {
       timeUsedSeconds,
     }
   })
+})
+
+// Table data with optional in-progress filtering
+const displayedHistory = computed(() => {
+  if (hideInProgress.value) {
+    return historyData.value.filter((s) => s.status === 'completed')
+  }
+  return historyData.value
 })
 
 // Statistics computed values (only from completed sessions)
@@ -247,7 +257,7 @@ function formatDuration(seconds: number): string {
 // Column definitions
 const columns: ColumnDef<HistoryRow>[] = [
   {
-    accessorKey: 'createdAt',
+    accessorKey: 'completedAt',
     header: ({ column }) => {
       return h(
         Button,
@@ -255,11 +265,24 @@ const columns: ColumnDef<HistoryRow>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Time', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => ['Completed At', h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
-      return h('div', { class: 'text-sm' }, formatDate(row.original.createdAt))
+      const completedAt = row.original.completedAt
+      if (!completedAt) {
+        return h('div', { class: 'text-muted-foreground' }, '-')
+      }
+      return h('div', { class: 'text-sm' }, formatDate(completedAt))
+    },
+    sortingFn: (rowA, rowB) => {
+      // In-progress (null) pinned to top when descending
+      const a = rowA.original.completedAt
+      const b = rowB.original.completedAt
+      if (!a && !b) return 0
+      if (!a) return 1
+      if (!b) return -1
+      return new Date(a).getTime() - new Date(b).getTime()
     },
   },
   {
@@ -351,7 +374,7 @@ const columns: ColumnDef<HistoryRow>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Time Used', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => ['Duration', h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -487,6 +510,12 @@ function confirmResume() {
             </SelectItem>
           </SelectContent>
         </Select>
+
+        <!-- Hide In Progress Checkbox -->
+        <label class="flex items-center gap-2 text-sm">
+          <Checkbox v-model="hideInProgress" />
+          Hide in progress
+        </label>
       </div>
 
       <!-- Statistics Cards -->
@@ -547,10 +576,11 @@ function confirmResume() {
         </CardHeader>
         <CardContent>
           <DataTable
-            v-if="historyData.length > 0"
+            v-if="displayedHistory.length > 0"
             :columns="columns"
-            :data="historyData"
+            :data="displayedHistory"
             :on-row-click="handleRowClick"
+            :initial-sorting="[{ id: 'completedAt', desc: true }]"
             :page-index="practiceStore.historyPagination.pageIndex"
             :page-size="practiceStore.historyPagination.pageSize"
             :on-page-index-change="practiceStore.setHistoryPageIndex"

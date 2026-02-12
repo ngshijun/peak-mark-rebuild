@@ -39,6 +39,8 @@ const props = defineProps<{
   searchColumn?: string
   searchValue?: string
   onRowClick?: (row: TData) => void
+  // Optional initial sorting state
+  initialSorting?: SortingState
   // Optional external pagination state
   pageIndex?: number
   pageSize?: number
@@ -46,7 +48,7 @@ const props = defineProps<{
   onPageSizeChange?: (size: number) => void
 }>()
 
-const sorting = ref<SortingState>([])
+const sorting = ref<SortingState>(props.initialSorting ?? [])
 const columnFilters = ref<ColumnFiltersState>([])
 
 // Internal pagination state (used when external state is not provided)

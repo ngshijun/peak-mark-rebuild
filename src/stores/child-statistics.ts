@@ -645,9 +645,9 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       if (subjectName && s.subjectName !== subjectName) return false
       if (topicName && s.topicName !== topicName) return false
       if (subTopicName && s.subTopicName !== subTopicName) return false
-      if (dateRangeStart) {
-        // Use completedAt for completed sessions, createdAt for in-progress
-        const sessionDate = new Date(s.completedAt ?? s.createdAt)
+      // Date filter applies to completedAt; in-progress sessions always shown
+      if (dateRangeStart && s.completedAt) {
+        const sessionDate = new Date(s.completedAt)
         if (sessionDate < dateRangeStart) return false
       }
       return true
