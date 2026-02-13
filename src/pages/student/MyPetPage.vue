@@ -210,11 +210,11 @@ function petPet() {
 
   setTimeout(() => {
     isPetting.value = false
-  }, 600)
+  }, 300)
 
   setTimeout(() => {
     showHearts.value = false
-  }, 1500)
+  }, 300)
 }
 
 // Feed the pet for evolution
@@ -255,11 +255,11 @@ async function feedPet() {
   setTimeout(() => {
     isFeeding.value = false
     showFoodParticles.value = false
-  }, 800)
+  }, 300)
 
   setTimeout(() => {
     showSparkles.value = false
-  }, 1200)
+  }, 300)
 }
 
 // Evolve the pet
