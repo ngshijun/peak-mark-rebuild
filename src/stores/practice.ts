@@ -925,6 +925,15 @@ export const usePracticeStore = defineStore('practice', () => {
       currentSession.value.xpEarned = result.xp_earned
       currentSession.value.coinsEarned = result.coins_earned
 
+      // Update the corresponding entry in sessionHistory so in-memory state is current
+      const historyIndex = sessionHistory.value.findIndex((s) => s.id === currentSession.value!.id)
+      if (historyIndex !== -1) {
+        sessionHistory.value[historyIndex] = { ...currentSession.value }
+      }
+
+      // Invalidate session history cache so next fetch will hit DB
+      sessionHistoryLastFetched.value = null
+
       // Refresh auth store to get updated XP/coins from database
       await authStore.refreshProfile()
 

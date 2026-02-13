@@ -13,6 +13,8 @@ type SubscriptionTier = Database['public']['Enums']['subscription_tier']
 
 // Cache TTL for child subscription status
 const SUBSCRIPTION_CACHE_TTL = 2 * 60 * 1000 // 2 minutes
+// Cache TTL for child statistics (re-fetch when navigating back after this period)
+const STATISTICS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 export interface ChildSubscriptionStatus {
   tier: SubscriptionTier
@@ -144,8 +146,8 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     pageSize: 10,
   })
 
-  // Track which children have been loaded (for lazy loading)
-  const loadedChildIds = ref<Set<string>>(new Set())
+  // Track when each child's statistics were last fetched (for TTL-based cache)
+  const childStatsLastFetched = ref<Map<string, number>>(new Map())
 
   /**
    * Fetch practice sessions for a specific child (lazy loading)
@@ -161,8 +163,9 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       return { error: 'Child not linked to your account' }
     }
 
-    // Skip if already loaded
-    if (loadedChildIds.value.has(childId)) {
+    // Skip if cache is still valid
+    const lastFetched = childStatsLastFetched.value.get(childId)
+    if (lastFetched && Date.now() - lastFetched < STATISTICS_CACHE_TTL) {
       return { error: null }
     }
 
@@ -293,8 +296,8 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         childrenStatistics.value.push(childStats)
       }
 
-      // Mark as loaded
-      loadedChildIds.value.add(childId)
+      // Update cache timestamp
+      childStatsLastFetched.value.set(childId, Date.now())
 
       return { error: null }
     } catch (err) {
@@ -986,7 +989,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     childrenStatistics.value = []
     isLoading.value = false
     error.value = null
-    loadedChildIds.value.clear()
+    childStatsLastFetched.value.clear()
     subscriptionStatusCache.value.clear()
     resetStatisticsFilters()
   }

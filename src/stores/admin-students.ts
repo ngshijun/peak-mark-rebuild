@@ -5,6 +5,9 @@ import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
+// Cache TTL for student statistics (re-fetch when navigating back after this period)
+const STATISTICS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
@@ -173,11 +176,12 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
   const isLoadingStatistics = ref(false)
   const statisticsError = ref<string | null>(null)
 
-  // Track which students have been loaded (for lazy loading)
-  const loadedStudentIds = ref<Set<string>>(new Set())
+  // Track when each student's statistics were last fetched (for TTL-based cache)
+  const statsLastFetched = ref<Map<string, number>>(new Map())
 
   // Student engagement data
   const studentEngagement = ref<Map<string, StudentEngagementData>>(new Map())
+  const engagementLastFetched = ref<Map<string, number>>(new Map())
   const isLoadingEngagement = ref(false)
 
   // Students table filter state
@@ -320,8 +324,9 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
       return { error: 'Not authenticated as admin' }
     }
 
-    // Skip if already loaded
-    if (studentEngagement.value.has(studentId)) {
+    // Skip if cache is still valid
+    const lastFetched = engagementLastFetched.value.get(studentId)
+    if (lastFetched && Date.now() - lastFetched < STATISTICS_CACHE_TTL) {
       return { error: null }
     }
 
@@ -449,6 +454,9 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
         subscription,
       })
 
+      // Update cache timestamp
+      engagementLastFetched.value.set(studentId, Date.now())
+
       return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to fetch engagement data.')
@@ -514,8 +522,9 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
       return { error: 'Not authenticated as admin' }
     }
 
-    // Skip if already loaded
-    if (loadedStudentIds.value.has(studentId)) {
+    // Skip if cache is still valid
+    const lastFetched = statsLastFetched.value.get(studentId)
+    if (lastFetched && Date.now() - lastFetched < STATISTICS_CACHE_TTL) {
       return { error: null }
     }
 
@@ -649,8 +658,8 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
         studentStatistics.value.push(stats)
       }
 
-      // Mark as loaded
-      loadedStudentIds.value.add(studentId)
+      // Update cache timestamp
+      statsLastFetched.value.set(studentId, Date.now())
 
       return { error: null }
     } catch (err) {
@@ -1051,8 +1060,9 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     isLoadingEngagement.value = false
     studentsError.value = null
     statisticsError.value = null
-    loadedStudentIds.value.clear()
+    statsLastFetched.value.clear()
     studentEngagement.value.clear()
+    engagementLastFetched.value.clear()
     studentsFilters.value = { search: '' }
     studentsPagination.value = { pageIndex: 0, pageSize: 10 }
     resetStatisticsFilters()
