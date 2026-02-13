@@ -47,7 +47,6 @@ import {
   Apple,
   PawPrint,
   SmilePlus,
-  HelpCircle,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-vue-next'
@@ -1267,18 +1266,19 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
                     {{ ownedPetMap.get(pet.id)?.count }}
                   </div>
 
-                  <!-- Pet image or question mark -->
+                  <!-- Pet image -->
                   <div class="flex aspect-square w-full items-center justify-center">
-                    <template v-if="ownedPetMap.has(pet.id)">
-                      <img
-                        :src="getPetImageUrl(getPetImagePath(ownedPetMap.get(pet.id)!))"
-                        :alt="pet.name"
-                        class="size-full object-contain"
-                      />
-                    </template>
-                    <template v-else>
-                      <HelpCircle class="size-14 text-gray-400 dark:text-gray-600" />
-                    </template>
+                    <img
+                      :src="
+                        ownedPetMap.has(pet.id)
+                          ? getPetImageUrl(getPetImagePath(ownedPetMap.get(pet.id)!))
+                          : petsStore.getOptimizedPetImageUrl(pet.imagePath, pet.updatedAt)
+                      "
+                      :alt="pet.name"
+                      loading="lazy"
+                      class="size-full object-contain"
+                      :class="{ 'brightness-0 opacity-20': !ownedPetMap.has(pet.id) }"
+                    />
                   </div>
 
                   <!-- Pet name + tier badge -->
