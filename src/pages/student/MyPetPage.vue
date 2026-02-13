@@ -350,6 +350,13 @@ function getTierLabel(tier: number): string {
                   -10
                 </button>
                 <button
+                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="foodAmount <= 5"
+                  @click="decrementFood(5)"
+                >
+                  -5
+                </button>
+                <button
                   class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="foodAmount <= 1"
                   @click="decrementFood()"
@@ -368,6 +375,13 @@ function getTierLabel(tier: number): string {
                   @click="incrementFood()"
                 >
                   <Plus class="size-5" />
+                </button>
+                <button
+                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="!canAffordExchange || currentCoins < (foodAmount + 5) * FOOD_PRICE"
+                  @click="incrementFood(5)"
+                >
+                  +5
                 </button>
                 <button
                   class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"

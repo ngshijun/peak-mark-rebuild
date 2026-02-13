@@ -406,7 +406,7 @@ function closeCombineResult() {
           <CardDescription>{{ rarityConfig[rarity].chance }}% drop rate</CardDescription>
         </CardHeader>
         <CardContent>
-          <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+          <div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
             <div
               v-for="pet in petsStore.petsByRarity[rarity]"
               :key="pet.id"
