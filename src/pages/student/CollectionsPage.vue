@@ -416,9 +416,9 @@ function closeCombineResult() {
                   ? [rarityConfig[rarity].bgColor, rarityConfig[rarity].borderColor]
                   : 'border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-900',
                 isSelected(pet.id) ? 'ring-2 ring-primary ring-offset-2' : '',
-                petsStore.isPetOwned(pet.id) ? 'cursor-pointer hover:scale-105' : '',
+                'cursor-pointer hover:scale-105',
               ]"
-              @click="petsStore.isPetOwned(pet.id) && openPetDialog(pet)"
+              @click="openPetDialog(pet)"
             >
               <!-- Selected indicator -->
               <div
@@ -436,19 +436,19 @@ function closeCombineResult() {
                 {{ getPetCount(pet.id) }}
               </div>
 
-              <!-- Pet Image or Question Mark -->
+              <!-- Pet Image -->
               <div class="flex aspect-square w-full items-center justify-center">
-                <template v-if="petsStore.isPetOwned(pet.id)">
-                  <img
-                    :src="getPetDisplayImage(pet)"
-                    :alt="pet.name"
-                    loading="lazy"
-                    class="size-full object-contain"
-                  />
-                </template>
-                <template v-else>
-                  <HelpCircle class="size-14 text-gray-400 dark:text-gray-600" />
-                </template>
+                <img
+                  :src="
+                    petsStore.isPetOwned(pet.id)
+                      ? getPetDisplayImage(pet)
+                      : petsStore.getOptimizedPetImageUrl(pet.imagePath, pet.updatedAt)
+                  "
+                  :alt="pet.name"
+                  loading="lazy"
+                  class="size-full object-contain"
+                  :class="{ 'brightness-0 opacity-20': !petsStore.isPetOwned(pet.id) }"
+                />
               </div>
 
               <!-- Pet Name + Tier Badge -->
@@ -810,7 +810,11 @@ function closeCombineResult() {
             </Badge>
           </DialogTitle>
           <DialogDescription>
-            Current Tier: {{ getPetTier(selectedPetForDialog.id) }} / 3
+            {{
+              petsStore.isPetOwned(selectedPetForDialog.id)
+                ? `Current Tier: ${getPetTier(selectedPetForDialog.id)} / 3`
+                : 'Not yet acquired'
+            }}
           </DialogDescription>
         </DialogHeader>
 
@@ -864,7 +868,10 @@ function closeCombineResult() {
                   </div>
 
                   <!-- Tier Status -->
-                  <p class="text-sm text-muted-foreground">
+                  <p
+                    v-if="petsStore.isPetOwned(selectedPetForDialog.id)"
+                    class="text-sm text-muted-foreground"
+                  >
                     {{
                       isTierUnlocked(selectedPetForDialog.id, tier)
                         ? 'Unlocked'
@@ -880,6 +887,17 @@ function closeCombineResult() {
         </div>
 
         <DialogFooter v-if="selectedPetForDialog" class="flex-col gap-2 sm:flex-col">
+          <Button v-if="!petsStore.isPetOwned(selectedPetForDialog.id)" class="w-full" as-child>
+            <RouterLink to="/student/gacha">
+              <Sparkles class="mr-2 size-4" />
+              Unlock New Pets!
+            </RouterLink>
+          </Button>
+        </DialogFooter>
+        <DialogFooter
+          v-if="selectedPetForDialog && petsStore.isPetOwned(selectedPetForDialog.id)"
+          class="flex-col gap-2 sm:flex-col"
+        >
           <Button
             v-if="isSelected(selectedPetForDialog.id)"
             variant="outline"
