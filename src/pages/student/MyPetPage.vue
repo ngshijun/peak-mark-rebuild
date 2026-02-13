@@ -341,50 +341,50 @@ function getTierLabel(tier: number): string {
               </div>
 
               <!-- Amount Selector -->
-              <div class="flex items-center justify-center gap-2">
+              <div class="flex items-center justify-center gap-1.5">
                 <button
-                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="foodAmount <= 10"
                   @click="decrementFood(10)"
                 >
                   -10
                 </button>
                 <button
-                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="foodAmount <= 5"
                   @click="decrementFood(5)"
                 >
                   -5
                 </button>
                 <button
-                  class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex size-9 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="foodAmount <= 1"
                   @click="decrementFood()"
                 >
-                  <Minus class="size-5" />
+                  <Minus class="size-4" />
                 </button>
-                <div class="flex min-w-20 flex-col items-center">
-                  <div class="flex items-center gap-2">
-                    <Apple class="size-6 text-green-600 dark:text-green-400" />
-                    <span class="text-3xl font-bold">{{ foodAmount }}</span>
+                <div class="flex min-w-16 flex-col items-center">
+                  <div class="flex items-center gap-1.5">
+                    <Apple class="size-5 text-green-600 dark:text-green-400" />
+                    <span class="text-2xl font-bold">{{ foodAmount }}</span>
                   </div>
                 </div>
                 <button
-                  class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex size-9 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!canAffordExchange || currentCoins < (foodAmount + 1) * FOOD_PRICE"
                   @click="incrementFood()"
                 >
-                  <Plus class="size-5" />
+                  <Plus class="size-4" />
                 </button>
                 <button
-                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!canAffordExchange || currentCoins < (foodAmount + 5) * FOOD_PRICE"
                   @click="incrementFood(5)"
                 >
                   +5
                 </button>
                 <button
-                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!canAffordExchange || currentCoins < (foodAmount + 10) * FOOD_PRICE"
                   @click="incrementFood(10)"
                 >
