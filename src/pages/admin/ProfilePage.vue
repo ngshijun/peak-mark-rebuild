@@ -176,13 +176,13 @@ const saveName = handleNameSubmit(async (values) => {
               <Camera class="size-4" />
             </Button>
           </div>
-          <CardTitle class="mt-4 flex items-center justify-center gap-2">
-            {{ authStore.user?.name }}
-            <Button size="icon" variant="ghost" class="size-6" @click="openEditNameDialog">
+          <CardTitle class="mt-4 flex min-w-0 items-center justify-center gap-2">
+            <span class="min-w-0 truncate">{{ authStore.user?.name }}</span>
+            <Button size="icon" variant="ghost" class="size-6 shrink-0" @click="openEditNameDialog">
               <Pencil class="size-3" />
             </Button>
           </CardTitle>
-          <CardDescription>{{ authStore.user?.email }}</CardDescription>
+          <CardDescription class="truncate">{{ authStore.user?.email }}</CardDescription>
         </CardHeader>
         <CardContent>
           <!-- Admin Badge -->

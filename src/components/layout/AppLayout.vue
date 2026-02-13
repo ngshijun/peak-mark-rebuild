@@ -110,10 +110,10 @@ const greeting = computed(() => {
     <AppSidebar />
     <SidebarInset>
       <header class="flex h-12 shrink-0 items-center justify-between gap-2 border-b px-4">
-        <div class="flex items-center gap-2">
-          <SidebarTrigger class="-ml-1" />
-          <Separator orientation="vertical" class="mr-2 h-4" />
-          <h1 class="text-lg font-medium">{{ greeting }}</h1>
+        <div class="flex min-w-0 items-center gap-2">
+          <SidebarTrigger class="-ml-1 shrink-0" />
+          <Separator orientation="vertical" class="mr-2 h-4 shrink-0" />
+          <h1 class="truncate text-lg font-medium">{{ greeting }}</h1>
         </div>
         <div class="flex items-center gap-2">
           <!-- Coins and Food display for students -->
