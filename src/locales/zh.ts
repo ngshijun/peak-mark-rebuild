@@ -93,6 +93,27 @@ export default {
         role: '两名华小学生家长',
         initials: 'MT',
       },
+      {
+        quote:
+          '我最喜欢收集宠物！每次得到新宠物我都会给朋友看。妈妈说我现在不用她提醒就会自己去练习了。',
+        name: 'Wei Ling C.',
+        role: '二年级学生',
+        initials: 'WC',
+      },
+      {
+        quote:
+          '我们试过补习但很贵，而且女儿每次上完都很累。Clavis 很自然地融入了她的日常——每天10分钟，她的自信心提升了很多。',
+        name: 'David O.',
+        role: '四年级学生家长',
+        initials: 'DO',
+      },
+      {
+        quote:
+          '每道题后面的解析真的很有帮助。我以前只会死记答案，但现在我真正理解了自己错在哪里。我的国语理解进步了很多。',
+        name: 'Jun Wei T.',
+        role: '六年级学生',
+        initials: 'JT',
+      },
     ],
   },
   pricing: {

@@ -102,6 +102,27 @@ export default {
         role: 'Parent of 2 SJKC students',
         initials: 'MT',
       },
+      {
+        quote:
+          'I love collecting the pets! Every time I get a new one I show my friends. My mum says I do my practice without her even asking now.',
+        name: 'Wei Ling C.',
+        role: 'Standard 2 student',
+        initials: 'WC',
+      },
+      {
+        quote:
+          'We tried tuition but it was expensive and my daughter was always tired after. Clavis fits into her routine naturally — 10 minutes a day and her confidence has grown so much.',
+        name: 'David O.',
+        role: 'Parent of Standard 4 student',
+        initials: 'DO',
+      },
+      {
+        quote:
+          'The explanations after each question really help. I used to just memorize answers, but now I actually understand why I got it wrong. My BM comprehension has improved a lot.',
+        name: 'Jun Wei T.',
+        role: 'Standard 6 student',
+        initials: 'JT',
+      },
     ],
   },
   pricing: {

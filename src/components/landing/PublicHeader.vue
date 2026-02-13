@@ -22,14 +22,14 @@ const { t } = storeToRefs(useLanguageStore())
       </RouterLink>
 
       <div class="flex items-center gap-2">
-        <LanguageToggle />
-        <ThemeToggle />
-        <Button variant="ghost" as-child>
+        <Button variant="outline" as-child>
           <RouterLink to="/login">{{ t.header.login }}</RouterLink>
         </Button>
         <Button as-child>
           <RouterLink to="/signup">{{ t.header.signup }}</RouterLink>
         </Button>
+        <LanguageToggle />
+        <ThemeToggle />
       </div>
     </div>
   </header>
