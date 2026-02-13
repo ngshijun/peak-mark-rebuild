@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { signupFormSchema } from '@/lib/validations'
-import { Mountain, Loader2, CalendarIcon } from 'lucide-vue-next'
+import { KeyRound, Loader2, CalendarIcon } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, PasswordInput } from '@/components/ui/input'
@@ -79,9 +79,9 @@ const onSubmit = handleSubmit(async (formValues) => {
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
         <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-primary">
-          <Mountain class="size-6 text-primary-foreground" />
+          <KeyRound class="size-6 text-primary-foreground" />
         </div>
-        <CardTitle class="text-2xl">Peak Mark</CardTitle>
+        <CardTitle class="text-2xl">Clavis</CardTitle>
         <CardDescription>Create a new account</CardDescription>
       </CardHeader>
       <CardContent>

@@ -5,7 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Mountain } from 'lucide-vue-next'
+import { KeyRound } from 'lucide-vue-next'
 </script>
 
 <template>
@@ -17,10 +17,10 @@ import { Mountain } from 'lucide-vue-next'
             <div
               class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg"
             >
-              <Mountain class="size-4" />
+              <KeyRound class="size-4" />
             </div>
             <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">Peak Mark</span>
+              <span class="truncate font-medium">Clavis</span>
               <span class="truncate text-xs text-muted-foreground">Learning Platform</span>
             </div>
           </a>

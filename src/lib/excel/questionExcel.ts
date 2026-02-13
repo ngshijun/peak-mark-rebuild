@@ -72,7 +72,7 @@ const COLUMNS = {
 
 export async function generateQuestionTemplate(gradeLevels: GradeLevel[]): Promise<void> {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Peak Mark'
+  workbook.creator = 'Clavis'
   workbook.created = new Date()
 
   // 1. Create Questions worksheet
@@ -570,7 +570,7 @@ export async function exportQuestionsToExcel(
 
   // Step 3: Create workbook and add data
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Peak Mark'
+  workbook.creator = 'Clavis'
   workbook.created = new Date()
 
   const sheet = workbook.addWorksheet('Questions')
