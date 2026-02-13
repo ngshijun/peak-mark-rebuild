@@ -322,26 +322,15 @@ onBeforeRouteLeave((to) => {
               <CardTitle class="text-lg whitespace-pre-line">{{
                 currentQuestion.question
               }}</CardTitle>
-              <div class="flex shrink-0 items-center gap-2">
-                <Badge variant="secondary">
-                  {{
-                    currentQuestion.type === 'mcq'
-                      ? 'Multiple Choice'
-                      : currentQuestion.type === 'mrq'
-                        ? 'Multiple Response'
-                        : 'Short Answer'
-                  }}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="size-8 text-muted-foreground hover:text-destructive"
-                  title="Report an issue with this question"
-                  @click="showFeedbackDialog = true"
-                >
-                  <Flag class="size-4" />
-                </Button>
-              </div>
+              <Badge variant="secondary" class="shrink-0">
+                {{
+                  currentQuestion.type === 'mcq'
+                    ? 'Multiple Choice'
+                    : currentQuestion.type === 'mrq'
+                      ? 'Multiple Response'
+                      : 'Short Answer'
+                }}
+              </Badge>
             </div>
           </CardHeader>
 
@@ -616,12 +605,12 @@ onBeforeRouteLeave((to) => {
 
             <!-- Explanation (shown after answering, if wrong) -->
             <div
-              v-if="isAnswered && !currentAnswer?.isCorrect && currentQuestion.explanation"
+              v-if="isAnswered"
               class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20"
             >
               <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Explanation</p>
               <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
-                {{ currentQuestion.explanation }}
+                {{ currentQuestion.explanation || 'No explanation available for this question.' }}
               </p>
             </div>
           </CardContent>
@@ -635,6 +624,15 @@ onBeforeRouteLeave((to) => {
               <ChevronLeft class="mr-2 size-4" />
               Previous
             </Button>
+
+            <button
+              v-if="isAnswered"
+              class="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+              @click="showFeedbackDialog = true"
+            >
+              <Flag class="size-3" />
+              Report an issue
+            </button>
 
             <div class="flex gap-2">
               <Button

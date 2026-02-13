@@ -273,20 +273,14 @@ function goBack() {
                   Deleted
                 </Badge>
                 <template v-else>
-                  <Badge variant="outline" class="shrink-0">
+                  <Badge variant="secondary" class="shrink-0">
                     {{
                       question.type === 'mcq'
-                        ? 'MCQ'
+                        ? 'Multiple Choice'
                         : question.type === 'mrq'
-                          ? 'MRQ'
+                          ? 'Multiple Response'
                           : 'Short Answer'
                     }}
-                  </Badge>
-                  <Badge
-                    :variant="getAnswerByIndex(index)?.isCorrect ? 'default' : 'destructive'"
-                    class="shrink-0"
-                  >
-                    {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
                   </Badge>
                 </template>
               </div>
@@ -451,11 +445,13 @@ function goBack() {
 
               <!-- Explanation -->
               <div
-                v-if="question.explanation && !getAnswerByIndex(index)?.isCorrect"
-                class="rounded-md bg-muted p-3"
+                v-if="getAnswerByIndex(index)"
+                class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20"
               >
-                <p class="text-xs font-medium text-muted-foreground">Explanation</p>
-                <p class="text-sm">{{ question.explanation }}</p>
+                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Explanation</p>
+                <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                  {{ question.explanation || 'No explanation available for this question.' }}
+                </p>
               </div>
             </template>
           </CardContent>

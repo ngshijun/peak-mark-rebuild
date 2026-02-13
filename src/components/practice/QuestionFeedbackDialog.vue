@@ -44,6 +44,7 @@ const feedbackCategories: { value: FeedbackCategory; label: string }[] = [
   { value: 'option_error', label: 'Answer options are wrong' },
   { value: 'answer_error', label: 'Correct answer is wrong' },
   { value: 'explanation_error', label: 'Explanation is incorrect' },
+  { value: 'other', label: 'Other' },
 ]
 
 const { handleSubmit, resetForm } = useForm({
