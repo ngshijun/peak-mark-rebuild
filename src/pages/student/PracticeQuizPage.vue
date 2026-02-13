@@ -426,7 +426,10 @@ onBeforeRouteLeave((to) => {
                         "
                       >
                         <CheckCircle2 class="size-5 text-green-500" />
-                        <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                        <Badge
+                          variant="outline"
+                          class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
+                        >
                           Your answer
                         </Badge>
                       </template>
@@ -440,7 +443,10 @@ onBeforeRouteLeave((to) => {
                         "
                       >
                         <CheckCircle2 class="size-5 text-green-500" />
-                        <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                        <Badge
+                          variant="outline"
+                          class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
+                        >
                           Correct answer
                         </Badge>
                       </template>
@@ -454,7 +460,10 @@ onBeforeRouteLeave((to) => {
                         "
                       >
                         <XCircle class="size-5 text-red-500" />
-                        <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                        <Badge
+                          variant="outline"
+                          class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
+                        >
                           Correct answer
                         </Badge>
                       </template>
@@ -465,7 +474,10 @@ onBeforeRouteLeave((to) => {
                         "
                       >
                         <XCircle class="size-5 text-red-500" />
-                        <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                        <Badge
+                          variant="outline"
+                          class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
+                        >
                           Your answer
                         </Badge>
                       </template>
@@ -518,7 +530,10 @@ onBeforeRouteLeave((to) => {
                     class="ml-auto flex items-center gap-1"
                   >
                     <CheckCircle2 class="size-5 text-green-500" />
-                    <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                    <Badge
+                      variant="outline"
+                      class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
+                    >
                       Your answer
                     </Badge>
                   </div>
@@ -533,7 +548,10 @@ onBeforeRouteLeave((to) => {
                     class="ml-auto flex items-center gap-1"
                   >
                     <CheckCircle2 class="size-5 text-green-500" />
-                    <Badge variant="outline" class="border-green-500 text-xs text-green-600">
+                    <Badge
+                      variant="outline"
+                      class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
+                    >
                       Correct answer
                     </Badge>
                   </div>
@@ -548,7 +566,10 @@ onBeforeRouteLeave((to) => {
                     class="ml-auto flex items-center gap-1"
                   >
                     <XCircle class="size-5 text-red-500" />
-                    <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                    <Badge
+                      variant="outline"
+                      class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
+                    >
                       Correct answer
                     </Badge>
                   </div>
@@ -558,7 +579,10 @@ onBeforeRouteLeave((to) => {
                     class="ml-auto flex items-center gap-1"
                   >
                     <XCircle class="size-5 text-red-500" />
-                    <Badge variant="outline" class="border-red-500 text-xs text-red-600">
+                    <Badge
+                      variant="outline"
+                      class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
+                    >
                       Your answer
                     </Badge>
                   </div>

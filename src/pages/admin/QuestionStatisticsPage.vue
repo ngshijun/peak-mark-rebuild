@@ -152,9 +152,21 @@ const columns: ColumnDef<QuestionWithStats>[] = [
     cell: ({ row }) => {
       const type = row.original.type
       const config: Record<string, { label: string; color: string; bgColor: string }> = {
-        mcq: { label: 'MCQ', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-        mrq: { label: 'MRQ', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-        short_answer: { label: 'Short Answer', color: 'text-green-700', bgColor: 'bg-green-100' },
+        mcq: {
+          label: 'MCQ',
+          color: 'text-blue-700 dark:text-blue-300',
+          bgColor: 'bg-blue-100 dark:bg-blue-900/50',
+        },
+        mrq: {
+          label: 'MRQ',
+          color: 'text-purple-700 dark:text-purple-300',
+          bgColor: 'bg-purple-100 dark:bg-purple-900/50',
+        },
+        short_answer: {
+          label: 'Short Answer',
+          color: 'text-green-700 dark:text-green-300',
+          bgColor: 'bg-green-100 dark:bg-green-900/50',
+        },
       }
       const typeConfig = config[type] ?? config.mcq
       return h(

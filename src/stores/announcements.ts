@@ -27,18 +27,18 @@ export const audienceConfig: Record<
 > = {
   all: {
     label: 'All Users',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-100 dark:bg-blue-900/50',
   },
   students_only: {
     label: 'Students Only',
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
+    color: 'text-green-600 dark:text-green-400',
+    bgColor: 'bg-green-100 dark:bg-green-900/50',
   },
   parents_only: {
     label: 'Parents Only',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100',
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-100 dark:bg-purple-900/50',
   },
 }
 

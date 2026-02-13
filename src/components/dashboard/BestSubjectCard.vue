@@ -82,7 +82,7 @@ function goToHistory() {
 <template>
   <!-- Soft blue tint - knowledge/learning association -->
   <Card
-    class="cursor-pointer border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 transition-shadow hover:shadow-lg dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
+    class="cursor-pointer border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 transition-shadow hover:shadow-lg dark:border-sky-900/50 dark:bg-card dark:from-sky-950/30 dark:to-blue-950/30"
     @click="goToHistory"
   >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -97,14 +97,14 @@ function goToHistory() {
             <div class="min-w-0 flex-1">
               <div class="flex items-baseline justify-between gap-2">
                 <p class="truncate text-sm font-medium">
-                  {{ topSubjects[index - 1].gradeLevelName }} ·
-                  {{ topSubjects[index - 1].subjectName }}
+                  {{ topSubjects[index - 1]!.gradeLevelName }} ·
+                  {{ topSubjects[index - 1]!.subjectName }}
                 </p>
                 <span
                   class="shrink-0 text-sm font-bold"
-                  :class="getScoreTextColor(topSubjects[index - 1].averageScore)"
+                  :class="getScoreTextColor(topSubjects[index - 1]!.averageScore)"
                 >
-                  Avg: {{ topSubjects[index - 1].averageScore }}%
+                  Avg: {{ topSubjects[index - 1]!.averageScore }}%
                 </span>
               </div>
               <div
@@ -112,8 +112,8 @@ function goToHistory() {
               >
                 <div
                   class="h-full rounded-full transition-all"
-                  :class="getScoreBarColor(topSubjects[index - 1].averageScore)"
-                  :style="{ width: `${topSubjects[index - 1].averageScore}%` }"
+                  :class="getScoreBarColor(topSubjects[index - 1]!.averageScore)"
+                  :style="{ width: `${topSubjects[index - 1]!.averageScore}%` }"
                 />
               </div>
             </div>

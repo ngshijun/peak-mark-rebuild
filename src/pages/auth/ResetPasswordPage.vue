@@ -158,7 +158,9 @@ function goToLogin() {
         <!-- Success State -->
         <div v-else-if="passwordUpdated" class="space-y-4">
           <div class="flex flex-col items-center gap-4 py-4">
-            <div class="flex size-16 items-center justify-center rounded-full bg-green-100">
+            <div
+              class="flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50"
+            >
               <CheckCircle class="size-8 text-green-600" />
             </div>
             <p class="text-center text-sm text-muted-foreground">

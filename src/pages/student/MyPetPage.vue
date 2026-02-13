@@ -434,7 +434,7 @@ function getTierLabel(tier: number): string {
     <!-- No Pet Selected -->
     <Card
       v-if="!selectedPet"
-      class="border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 text-center dark:border-purple-800 dark:from-purple-950/30 dark:to-fuchsia-950/30"
+      class="border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 text-center dark:border-purple-900 dark:bg-card dark:from-purple-950/30 dark:to-fuchsia-950/30"
     >
       <CardContent class="py-12">
         <div
@@ -460,7 +460,7 @@ function getTierLabel(tier: number): string {
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Pet Card -->
         <Card
-          class="border-purple-200 bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:border-purple-800 dark:from-purple-950/20 dark:to-fuchsia-950/20 lg:col-span-2"
+          class="border-purple-200 bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:border-purple-900 dark:bg-card dark:from-purple-950/20 dark:to-fuchsia-950/20 lg:col-span-2"
         >
           <CardHeader>
             <div class="flex items-center justify-between">
@@ -478,7 +478,9 @@ function getTierLabel(tier: number): string {
                   </Badge>
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" @click="goToCollections">Change Pet</Button>
+              <Button variant="outline" size="sm" class="dark:bg-input/50" @click="goToCollections"
+                >Change Pet</Button
+              >
             </div>
           </CardHeader>
           <CardContent>
@@ -603,12 +605,12 @@ function getTierLabel(tier: number): string {
                   class="absolute right-4 top-1/2 z-20 -translate-y-1/2"
                 >
                   <div
-                    class="relative rounded-2xl border-2 border-purple-300 bg-white px-4 py-3 shadow-lg dark:border-purple-600 dark:bg-gray-800"
+                    class="relative rounded-2xl border-2 border-purple-300 bg-white px-4 py-3 shadow-lg dark:border-purple-600 dark:bg-card"
                   >
                     <p class="max-w-44 text-sm font-medium">{{ currentMessage }}</p>
                     <!-- Speech bubble tail pointing left (toward pet) -->
                     <div
-                      class="absolute -left-2 top-1/2 size-3 -translate-y-1/2 rotate-45 border-b-2 border-l-2 border-purple-300 bg-white dark:border-purple-600 dark:bg-gray-800"
+                      class="absolute -left-2 top-1/2 size-3 -translate-y-1/2 rotate-45 border-b-2 border-l-2 border-purple-300 bg-white dark:border-purple-600 dark:bg-card"
                     ></div>
                   </div>
                 </div>
@@ -649,7 +651,7 @@ function getTierLabel(tier: number): string {
         </Card>
 
         <!-- Evolution Card -->
-        <Card class="border-purple-200 dark:border-purple-800">
+        <Card class="border-purple-200 dark:border-purple-900">
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
               <ArrowUp class="size-5 text-purple-500" />
@@ -660,7 +662,7 @@ function getTierLabel(tier: number): string {
           <CardContent class="space-y-6">
             <!-- Current Tier -->
             <div
-              class="rounded-lg bg-gradient-to-r from-purple-100 to-fuchsia-100 p-4 text-center dark:from-purple-900/30 dark:to-fuchsia-900/30"
+              class="rounded-lg bg-gradient-to-r from-purple-100 to-fuchsia-100 p-4 text-center dark:bg-card dark:from-purple-950/20 dark:to-fuchsia-950/20"
             >
               <p class="text-sm text-muted-foreground">Current Tier</p>
               <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">
@@ -690,7 +692,7 @@ function getTierLabel(tier: number): string {
             <!-- Max Tier Message -->
             <div
               v-else-if="evolutionProgress?.isMaxTier"
-              class="rounded-lg bg-gradient-to-r from-yellow-100 to-amber-100 p-4 text-center dark:from-yellow-900/30 dark:to-amber-900/30"
+              class="rounded-lg bg-gradient-to-r from-yellow-100 to-amber-100 p-4 text-center dark:bg-card dark:from-yellow-900/30 dark:to-amber-900/30"
             >
               <Star class="mx-auto size-8 text-yellow-500" />
               <p class="mt-2 font-medium text-yellow-700 dark:text-yellow-400">Max Tier Reached!</p>
@@ -711,7 +713,7 @@ function getTierLabel(tier: number): string {
             </Button>
 
             <!-- Evolution Costs Info -->
-            <div class="rounded-lg border border-purple-200 p-4 dark:border-purple-800">
+            <div class="rounded-lg border border-purple-200 p-4 dark:border-purple-900">
               <h4 class="mb-2 text-sm font-medium">Evolution Costs</h4>
               <ul class="space-y-1 text-sm text-muted-foreground">
                 <li class="flex justify-between">

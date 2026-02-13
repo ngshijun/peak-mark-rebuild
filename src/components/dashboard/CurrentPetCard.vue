@@ -29,7 +29,7 @@ function goToMyPet() {
 
 <template>
   <Card
-    class="group cursor-pointer gap-0 overflow-hidden border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 py-0 transition-shadow hover:shadow-lg dark:border-purple-900/50 dark:from-purple-950/30 dark:to-fuchsia-950/30"
+    class="group cursor-pointer gap-0 overflow-hidden border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 py-0 transition-shadow hover:shadow-lg dark:border-purple-900/50 dark:bg-card dark:from-purple-950/30 dark:to-fuchsia-950/30"
     @click="petsStore.selectedPet ? goToMyPet() : goToCollections()"
   >
     <CardContent class="flex flex-1 flex-col p-0">

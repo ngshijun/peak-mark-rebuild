@@ -176,7 +176,7 @@ function closeResults() {
       <div class="grid gap-6 lg:grid-cols-4">
         <!-- Gacha Machine -->
         <Card
-          class="overflow-hidden border-2 border-purple-200 bg-gradient-to-b from-purple-50 to-fuchsia-50 dark:border-purple-800 dark:from-purple-950/50 dark:to-fuchsia-950/50 lg:col-span-3"
+          class="overflow-hidden border-2 border-purple-200 bg-gradient-to-b from-purple-50 to-fuchsia-50 dark:border-purple-800 dark:bg-card dark:from-purple-950/50 dark:to-fuchsia-950/50 lg:col-span-3"
         >
           <CardContent class="p-8">
             <div class="flex flex-col items-center gap-8">

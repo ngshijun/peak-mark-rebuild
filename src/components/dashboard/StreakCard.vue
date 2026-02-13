@@ -74,7 +74,7 @@ const weeklyActivity = computed(() => {
 <template>
   <!-- Warm orange/amber tint - fire/streak association -->
   <Card
-    class="cursor-pointer border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 transition-shadow hover:shadow-lg dark:border-orange-900/50 dark:from-orange-950/30 dark:to-amber-950/30"
+    class="cursor-pointer border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 transition-shadow hover:shadow-lg dark:border-orange-900/50 dark:bg-card dark:from-orange-950/30 dark:to-amber-950/30"
     @click="goToPractice"
   >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -111,7 +111,7 @@ const weeklyActivity = computed(() => {
                 ? 'border-orange-400 bg-orange-400 dark:border-orange-500 dark:bg-orange-500'
                 : day.isFuture
                   ? 'border-dashed border-gray-300 dark:border-gray-700'
-                  : 'border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800',
+                  : 'border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-muted',
               day.isToday && !day.active ? 'border-orange-300 dark:border-orange-700' : '',
             ]"
           />

@@ -414,7 +414,7 @@ function closeCombineResult() {
               :class="[
                 petsStore.isPetOwned(pet.id)
                   ? [rarityConfig[rarity].bgColor, rarityConfig[rarity].borderColor]
-                  : 'border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-900',
+                  : 'border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-muted',
                 isSelected(pet.id) ? 'ring-2 ring-primary ring-offset-2' : '',
                 'cursor-pointer hover:scale-105',
               ]"
@@ -844,7 +844,7 @@ function closeCombineResult() {
                             rarityConfig[selectedPetForDialog.rarity].bgColor,
                             rarityConfig[selectedPetForDialog.rarity].borderColor,
                           ]
-                        : 'border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800',
+                        : 'border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-muted',
                     ]"
                   >
                     <img

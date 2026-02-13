@@ -280,7 +280,7 @@ async function confirmStartSession() {
     <!-- No Grade Level Set -->
     <Card
       v-else-if="!studentGradeLevelId"
-      class="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 text-center dark:border-blue-800 dark:from-blue-950/30 dark:to-indigo-950/30"
+      class="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 text-center dark:border-blue-800 dark:bg-card dark:from-blue-950/30 dark:to-indigo-950/30"
     >
       <CardContent class="py-8">
         <div
@@ -300,7 +300,7 @@ async function confirmStartSession() {
       <!-- Session Limit Reached -->
       <Card
         v-if="!isLoadingLimit && sessionLimitStatus && !sessionLimitStatus.canStartSession"
-        class="mb-6 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 text-center dark:border-amber-800 dark:from-amber-950/30 dark:to-yellow-950/30"
+        class="mb-6 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 text-center dark:border-amber-800 dark:bg-card dark:from-amber-950/30 dark:to-yellow-950/30"
       >
         <CardContent class="py-8">
           <div
@@ -326,7 +326,7 @@ async function confirmStartSession() {
             :key="subject.id"
             class="flex h-full cursor-pointer flex-col overflow-hidden transition-all hover:scale-[1.02] hover:shadow-lg"
             :class="{
-              'border-2 border-green-500 bg-green-50 dark:bg-green-950':
+              'border-2 border-green-500 bg-green-50 dark:bg-green-950/30':
                 isSubjectFullyPracticed(subject),
             }"
             @click="selectSubject(subject.id)"
@@ -383,7 +383,7 @@ async function confirmStartSession() {
             :key="topic.id"
             class="flex h-full cursor-pointer flex-col overflow-hidden transition-all hover:scale-[1.02] hover:shadow-lg"
             :class="{
-              'border-2 border-green-500 bg-green-50 dark:bg-green-950':
+              'border-2 border-green-500 bg-green-50 dark:bg-green-950/30':
                 isTopicFullyPracticed(topic),
             }"
             @click="selectTopic(topic.id)"
@@ -436,7 +436,7 @@ async function confirmStartSession() {
             :class="{
               'opacity-50 pointer-events-none':
                 isStartingSession || !sessionLimitStatus?.canStartSession,
-              'border-2 border-green-500 bg-green-50 dark:bg-green-950':
+              'border-2 border-green-500 bg-green-50 dark:bg-green-950/30':
                 subTopic.questionCount > 0 &&
                 practiceStore.getSubTopicAnsweredCount(subTopic.id) >= subTopic.questionCount,
             }"

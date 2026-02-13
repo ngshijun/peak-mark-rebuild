@@ -43,16 +43,36 @@ const editingQuestion = ref<Question | null>(null)
 // Category config with colors
 const categoryConfig: Record<FeedbackCategory, { label: string; color: string; bgColor: string }> =
   {
-    question_error: { label: 'Question Error', color: 'text-red-700', bgColor: 'bg-red-100' },
-    image_error: { label: 'Image Error', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-    option_error: { label: 'Option Error', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
-    answer_error: { label: 'Answer Error', color: 'text-red-700', bgColor: 'bg-red-100' },
+    question_error: {
+      label: 'Question Error',
+      color: 'text-red-700 dark:text-red-300',
+      bgColor: 'bg-red-100 dark:bg-red-900/50',
+    },
+    image_error: {
+      label: 'Image Error',
+      color: 'text-orange-700 dark:text-orange-300',
+      bgColor: 'bg-orange-100 dark:bg-orange-900/50',
+    },
+    option_error: {
+      label: 'Option Error',
+      color: 'text-yellow-700 dark:text-yellow-300',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900/50',
+    },
+    answer_error: {
+      label: 'Answer Error',
+      color: 'text-red-700 dark:text-red-300',
+      bgColor: 'bg-red-100 dark:bg-red-900/50',
+    },
     explanation_error: {
       label: 'Explanation Error',
-      color: 'text-purple-700',
-      bgColor: 'bg-purple-100',
+      color: 'text-purple-700 dark:text-purple-300',
+      bgColor: 'bg-purple-100 dark:bg-purple-900/50',
     },
-    other: { label: 'Other', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+    other: {
+      label: 'Other',
+      color: 'text-gray-700 dark:text-gray-300',
+      bgColor: 'bg-gray-100 dark:bg-gray-800',
+    },
   }
 
 // Fetch feedbacks on mount (question text is already joined in the feedback query)

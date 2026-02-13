@@ -366,7 +366,7 @@ function goBack() {
                   <Badge
                     v-if="option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id)"
                     variant="outline"
-                    class="ml-auto shrink-0 border-green-500 text-green-600"
+                    class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
                   >
                     Student's answer
                   </Badge>
@@ -377,7 +377,7 @@ function goBack() {
                       !wasOptionSelected(getAnswerByIndex(index), option.id)
                     "
                     variant="outline"
-                    class="ml-auto shrink-0 border-green-500 text-green-600"
+                    class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
                   >
                     Correct answer
                   </Badge>
@@ -388,14 +388,14 @@ function goBack() {
                       !wasOptionSelected(getAnswerByIndex(index), option.id)
                     "
                     variant="outline"
-                    class="ml-auto shrink-0 border-red-500 text-red-600"
+                    class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
                   >
                     Correct answer
                   </Badge>
                   <Badge
                     v-else-if="wasOptionSelected(getAnswerByIndex(index), option.id)"
                     variant="outline"
-                    class="ml-auto shrink-0 border-red-500 text-red-600"
+                    class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
                   >
                     Student's answer
                   </Badge>

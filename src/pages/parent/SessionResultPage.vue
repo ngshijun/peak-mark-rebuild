@@ -220,7 +220,7 @@ function goBack() {
       <!-- Question Details Locked -->
       <Card
         v-if="subscriptionRequired"
-        class="border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 text-center dark:border-purple-800 dark:from-purple-950/30 dark:to-indigo-950/30"
+        class="border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 text-center dark:border-purple-800 dark:bg-card dark:from-purple-950/30 dark:to-indigo-950/30"
       >
         <CardContent class="py-8">
           <div
@@ -397,7 +397,7 @@ function goBack() {
                   <Badge
                     v-if="option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id)"
                     variant="outline"
-                    class="ml-auto shrink-0 border-green-500 text-green-600"
+                    class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
                   >
                     Your answer
                   </Badge>
@@ -408,7 +408,7 @@ function goBack() {
                       !wasOptionSelected(getAnswerByIndex(index), option.id)
                     "
                     variant="outline"
-                    class="ml-auto shrink-0 border-green-500 text-green-600"
+                    class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
                   >
                     Correct answer
                   </Badge>
@@ -419,14 +419,14 @@ function goBack() {
                       !wasOptionSelected(getAnswerByIndex(index), option.id)
                     "
                     variant="outline"
-                    class="ml-auto shrink-0 border-red-500 text-red-600"
+                    class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
                   >
                     Correct answer
                   </Badge>
                   <Badge
                     v-else-if="wasOptionSelected(getAnswerByIndex(index), option.id)"
                     variant="outline"
-                    class="ml-auto shrink-0 border-red-500 text-red-600"
+                    class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
                   >
                     Your answer
                   </Badge>
