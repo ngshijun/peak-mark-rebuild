@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { Mountain } from 'lucide-vue-next'
+import { KeyRound } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
+import LanguageToggle from '@/components/layout/LanguageToggle.vue'
+import { storeToRefs } from 'pinia'
+import { useLanguageStore } from '@/stores/language'
+
+const { t } = storeToRefs(useLanguageStore())
 </script>
 
 <template>
@@ -11,18 +16,19 @@ import ThemeToggle from '@/components/layout/ThemeToggle.vue'
     <div class="container mx-auto flex h-16 items-center justify-between px-4">
       <RouterLink to="/" class="flex items-center gap-2">
         <div class="flex size-8 items-center justify-center rounded-lg bg-primary">
-          <Mountain class="size-4 text-primary-foreground" />
+          <KeyRound class="size-4 text-primary-foreground" />
         </div>
-        <span class="text-xl font-bold">Peak Mark</span>
+        <span class="text-xl font-bold">Clavis</span>
       </RouterLink>
 
       <div class="flex items-center gap-2">
+        <LanguageToggle />
         <ThemeToggle />
         <Button variant="ghost" as-child>
-          <RouterLink to="/login">Login</RouterLink>
+          <RouterLink to="/login">{{ t.header.login }}</RouterLink>
         </Button>
         <Button as-child>
-          <RouterLink to="/signup">Sign Up</RouterLink>
+          <RouterLink to="/signup">{{ t.header.signup }}</RouterLink>
         </Button>
       </div>
     </div>

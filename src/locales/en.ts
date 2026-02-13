@@ -1,0 +1,183 @@
+export default {
+  header: {
+    login: 'Login',
+    signup: 'Sign Up',
+  },
+  hero: {
+    badge: 'Aligned with SJKC & KSSR curriculum',
+    titleBefore: 'Where Learning Feels Like',
+    titleHighlight: 'Play',
+    description:
+      'Clavis helps primary school students master their studies through gamified practice sessions, collectible pets, and real-time progress tracking. Parents stay in the loop every step of the way.',
+    getStarted: 'Get Started Free',
+    haveAccount: 'I Have an Account',
+    stats: {
+      questionsValue: '1,000+',
+      questionsLabel: 'Practice Questions',
+      levelsValue: 'Standard 1-6',
+      levelsLabel: 'SJKC Curriculum',
+      petsValue: '50+',
+      petsLabel: 'Collectible Pets',
+    },
+  },
+  features: {
+    title: 'Everything You Need to Excel',
+    subtitle:
+      'A comprehensive learning platform designed to make studying effective and enjoyable.',
+    items: [
+      {
+        title: 'Built for SJKC Students',
+        description:
+          "Every question follows the KSSR curriculum — so practice always matches what's taught in school.",
+      },
+      {
+        title: 'Practice in Just 5-10 Minutes',
+        description:
+          'Short quiz sessions that fit into any schedule. Perfect for building a consistent daily study habit.',
+      },
+      {
+        title: 'Learn from Every Mistake',
+        description:
+          'Get instant explanations after each question so your child understands where they went wrong.',
+      },
+      {
+        title: 'See Exactly Where They Stand',
+        description:
+          'Detailed performance analytics show strengths and weak spots — no more guessing what to focus on.',
+      },
+      {
+        title: 'Kids Actually Want to Study',
+        description:
+          'Earn XP, collect and evolve cute pets, and compete on the leaderboard. Learning feels like a game.',
+      },
+      {
+        title: 'Stay in the Loop as a Parent',
+        description:
+          'Link with your children, monitor their progress in real-time, and manage everything from one dashboard.',
+      },
+    ],
+  },
+  howItWorks: {
+    title: 'How It Works',
+    subtitle: 'Get started in three simple steps.',
+    steps: [
+      {
+        title: 'Create a Free Account',
+        description: 'Sign up in under a minute. No credit card required.',
+      },
+      {
+        title: 'Practice Daily',
+        description:
+          'Complete quick 5-10 minute sessions across subjects. Earn XP, coins, and collect pets along the way.',
+      },
+      {
+        title: 'Watch Grades Improve',
+        description:
+          "Track progress with detailed statistics. Parents get real-time visibility into their child's learning journey.",
+      },
+    ],
+  },
+  testimonials: {
+    title: 'Loved by Students & Parents',
+    subtitle: 'See what our community has to say about their learning experience.',
+    items: [
+      {
+        quote:
+          'My son used to dread his Math homework. After 3 weeks on Clavis, he went from 65 to 82 on his monthly test — and he actually asks to practice now because he wants to evolve his pets!',
+        name: 'Sarah L.',
+        role: 'Parent of Standard 3 student',
+        initials: 'SL',
+      },
+      {
+        quote:
+          'I like that the questions are the same style as my school exams. I do 2-3 sessions every day after school and it only takes 10 minutes. My Science marks improved a lot this term!',
+        name: 'Ahmad K.',
+        role: 'Standard 5 student',
+        initials: 'AK',
+      },
+      {
+        quote:
+          "I have two kids in Standard 2 and Standard 4. Being able to see exactly which topics they're struggling with saves me so much time — I know exactly what to help them revise.",
+        name: 'Michelle T.',
+        role: 'Parent of 2 SJKC students',
+        initials: 'MT',
+      },
+    ],
+  },
+  pricing: {
+    title: 'Simple, Transparent Pricing',
+    subtitle: 'Choose the plan that fits your learning needs. Start free, upgrade anytime.',
+    mostPopular: 'Most Popular',
+    getStarted: 'Get Started',
+    plans: [
+      {
+        name: 'Core',
+        price: 'Free',
+        period: '',
+        description: 'Perfect for getting started',
+        features: [
+          '3 daily practice sessions',
+          'All subjects & topics',
+          'Track your learning progress',
+          'Collect & evolve cute pets',
+          'Compete on the weekly leaderboard',
+        ],
+      },
+      {
+        name: 'Plus',
+        price: 'RM 9.99',
+        period: '/month',
+        description: 'For dedicated learners',
+        features: [
+          '10 daily practice sessions',
+          'All subjects & topics',
+          'Track your learning progress',
+          'Collect & evolve cute pets',
+          'Compete on the weekly leaderboard',
+        ],
+      },
+      {
+        name: 'Pro',
+        price: 'RM 19.99',
+        period: '/month',
+        description: 'For serious students',
+        features: [
+          '20 daily practice sessions',
+          'All subjects & topics',
+          'Review mistakes with full explanations',
+          'Collect & evolve cute pets',
+          'Compete on the weekly leaderboard',
+          'Priority email support',
+        ],
+      },
+      {
+        name: 'Max',
+        price: 'RM 29.99',
+        period: '/month',
+        description: 'Ultimate learning experience',
+        features: [
+          '30 daily practice sessions',
+          'All subjects & topics',
+          'Review mistakes with full explanations',
+          'Collect & evolve cute pets',
+          'Compete on the weekly leaderboard',
+          'AI-powered feedback after every session',
+          'Priority email support',
+        ],
+      },
+    ],
+  },
+  cta: {
+    title: 'Ready to Make Learning Fun?',
+    subtitle: 'Join Clavis today. Start with the free plan — no credit card needed.',
+    getStarted: 'Get Started Free',
+    haveAccount: 'I Have an Account',
+  },
+  footer: {
+    tagline: 'Latin for "key" — unlocking every student\'s potential.',
+    login: 'Login',
+    signup: 'Sign Up',
+    forgotPassword: 'Forgot Password',
+    copyright: 'Clavis. All rights reserved.',
+  },
+} as const

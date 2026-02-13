@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Sparkles } from 'lucide-vue-next'
+import { BookOpen, GraduationCap, PawPrint } from 'lucide-vue-next'
+import { storeToRefs } from 'pinia'
+import { useLanguageStore } from '@/stores/language'
+
+const { t } = storeToRefs(useLanguageStore())
+
+const statIcons = [BookOpen, GraduationCap, PawPrint] as const
 </script>
 
 <template>
@@ -10,27 +16,60 @@ import { Sparkles } from 'lucide-vue-next'
         <div
           class="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-sm"
         >
-          <Sparkles class="size-4 text-primary" />
-          <span>Make learning fun and rewarding</span>
+          <GraduationCap class="size-4 text-primary" />
+          <span>{{ t.hero.badge }}</span>
         </div>
 
         <h1 class="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-          Master Your Studies with
-          <span class="text-primary">Peak Mark</span>
+          {{ t.hero.titleBefore }}
+          <span class="text-primary">{{ t.hero.titleHighlight }}</span>
         </h1>
 
         <p class="mb-8 text-lg text-muted-foreground md:text-xl">
-          An engaging learning platform where students practice, earn rewards, collect pets, and
-          track their progress. Parents can monitor their children's learning journey in real-time.
+          {{ t.hero.description }}
         </p>
 
         <div class="flex flex-col justify-center gap-4 sm:flex-row">
           <Button size="lg" as-child>
-            <RouterLink to="/signup">Get Started Free</RouterLink>
+            <RouterLink to="/signup">{{ t.hero.getStarted }}</RouterLink>
           </Button>
           <Button size="lg" variant="outline" as-child>
-            <RouterLink to="/login">I Have an Account</RouterLink>
+            <RouterLink to="/login">{{ t.hero.haveAccount }}</RouterLink>
           </Button>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="mt-12 flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-12">
+          <div class="flex items-center gap-3">
+            <BookOpen class="size-5 text-primary" />
+            <div class="text-left">
+              <p class="text-lg font-bold leading-tight">{{ t.hero.stats.questionsValue }}</p>
+              <p class="text-xs text-muted-foreground">{{ t.hero.stats.questionsLabel }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <GraduationCap class="size-5 text-primary" />
+            <div class="text-left">
+              <p class="text-lg font-bold leading-tight">{{ t.hero.stats.levelsValue }}</p>
+              <p class="text-xs text-muted-foreground">{{ t.hero.stats.levelsLabel }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <PawPrint class="size-5 text-primary" />
+            <div class="text-left">
+              <p class="text-lg font-bold leading-tight">{{ t.hero.stats.petsValue }}</p>
+              <p class="text-xs text-muted-foreground">{{ t.hero.stats.petsLabel }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product screenshot placeholder -->
+      <div class="mx-auto mt-16 max-w-5xl px-4">
+        <div
+          class="flex aspect-video items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/50"
+        >
+          <p class="text-sm text-muted-foreground">App screenshot placeholder</p>
         </div>
       </div>
     </div>
