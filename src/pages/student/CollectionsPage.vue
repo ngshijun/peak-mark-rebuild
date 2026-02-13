@@ -376,6 +376,12 @@ function closeCombineResult() {
         <p class="text-muted-foreground">View all available pets and track your collection</p>
       </div>
       <div class="flex items-center gap-4">
+        <Button variant="outline" as-child>
+          <RouterLink to="/student/gacha">
+            <Sparkles class="mr-2 size-4" />
+            Unlock New Pets
+          </RouterLink>
+        </Button>
         <Button @click="openCombineDialog">
           <Combine class="mr-2 size-4" />
           Combine

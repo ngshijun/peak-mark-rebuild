@@ -318,8 +318,8 @@ function getTierLabel(tier: number): string {
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" @click="router.push('/student/gacha')">
-          <PawPrint class="mr-2 size-4" />
-          Get Pets
+          <Sparkles class="mr-2 size-4" />
+          Unlock New Pets
         </Button>
         <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
           <DialogTrigger as-child>
@@ -487,10 +487,7 @@ function getTierLabel(tier: number): string {
             <!-- Pet Display Area -->
             <div
               class="relative flex h-[28rem] cursor-pointer items-center justify-center overflow-hidden rounded-xl transition-all"
-              :class="[
-                rarityConfig[selectedPet.rarity].bgColor,
-                { 'ring-4 ring-purple-400 ring-offset-2': isPetting },
-              ]"
+              :class="[rarityConfig[selectedPet.rarity].bgColor]"
               @click="onPetClick"
             >
               <!-- Decorative background circles -->

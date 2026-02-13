@@ -13,7 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Sparkles, Loader2, CirclePoundSterling, Info, PawPrint } from 'lucide-vue-next'
+import {
+  Sparkles,
+  Loader2,
+  CirclePoundSterling,
+  Info,
+  PawPrint,
+  FolderHeart,
+} from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
@@ -161,10 +168,16 @@ function closeResults() {
         <h1 class="text-2xl font-bold">Get Pets</h1>
         <p class="text-muted-foreground">Spend coins to collect amazing pets!</p>
       </div>
-      <Button variant="outline" @click="router.push('/student/my-pet')">
-        <PawPrint class="mr-2 size-4" />
-        My Pet
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button variant="outline" @click="router.push('/student/collections')">
+          <FolderHeart class="mr-2 size-4" />
+          Collections
+        </Button>
+        <Button variant="outline" @click="router.push('/student/my-pet')">
+          <PawPrint class="mr-2 size-4" />
+          My Pet
+        </Button>
+      </div>
     </div>
 
     <!-- Loading State -->
