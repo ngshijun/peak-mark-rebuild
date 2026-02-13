@@ -119,18 +119,18 @@ const greeting = computed(() => {
           <!-- Coins and Food display for students -->
           <template v-if="isStudent">
             <div
-              class="flex w-28 items-center rounded-md bg-amber-100 px-2.5 py-1 dark:bg-amber-950/30"
+              class="flex min-w-28 items-center gap-1 rounded-md bg-amber-100 px-2.5 py-1 dark:bg-amber-950/30"
             >
-              <CirclePoundSterling class="size-4 text-amber-600 dark:text-amber-400" />
+              <CirclePoundSterling class="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <span
                 class="flex-1 text-right text-sm font-semibold text-amber-600 dark:text-amber-400"
                 >{{ coins.toLocaleString() }}</span
               >
             </div>
             <div
-              class="flex w-24 items-center rounded-md bg-green-100 px-2.5 py-1 dark:bg-green-950/30"
+              class="flex min-w-24 items-center gap-1 rounded-md bg-green-100 px-2.5 py-1 dark:bg-green-950/30"
             >
-              <Apple class="size-4 text-green-600 dark:text-green-400" />
+              <Apple class="size-4 shrink-0 text-green-600 dark:text-green-400" />
               <span
                 class="flex-1 text-right text-sm font-semibold text-green-600 dark:text-green-400"
                 >{{ food.toLocaleString() }}</span
