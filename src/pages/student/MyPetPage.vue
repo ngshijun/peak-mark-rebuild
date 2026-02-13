@@ -159,17 +159,13 @@ function onPetClick() {
   petPet()
 }
 
-function incrementFood() {
+function incrementFood(amount = 1) {
   const maxAffordable = Math.floor(currentCoins.value / FOOD_PRICE)
-  if (foodAmount.value < maxAffordable) {
-    foodAmount.value++
-  }
+  foodAmount.value = Math.min(foodAmount.value + amount, maxAffordable)
 }
 
-function decrementFood() {
-  if (foodAmount.value > 1) {
-    foodAmount.value--
-  }
+function decrementFood(amount = 1) {
+  foodAmount.value = Math.max(foodAmount.value - amount, 1)
 }
 
 function resetFoodExchange() {
@@ -345,11 +341,18 @@ function getTierLabel(tier: number): string {
               </div>
 
               <!-- Amount Selector -->
-              <div class="flex items-center justify-center gap-4">
+              <div class="flex items-center justify-center gap-2">
+                <button
+                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="foodAmount <= 10"
+                  @click="decrementFood(10)"
+                >
+                  -10
+                </button>
                 <button
                   class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="foodAmount <= 1"
-                  @click="decrementFood"
+                  @click="decrementFood()"
                 >
                   <Minus class="size-5" />
                 </button>
@@ -362,9 +365,16 @@ function getTierLabel(tier: number): string {
                 <button
                   class="flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="!canAffordExchange || currentCoins < (foodAmount + 1) * FOOD_PRICE"
-                  @click="incrementFood"
+                  @click="incrementFood()"
                 >
                   <Plus class="size-5" />
+                </button>
+                <button
+                  class="flex size-10 items-center justify-center rounded-full border text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="!canAffordExchange || currentCoins < (foodAmount + 10) * FOOD_PRICE"
+                  @click="incrementFood(10)"
+                >
+                  +10
                 </button>
               </div>
 

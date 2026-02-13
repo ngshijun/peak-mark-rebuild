@@ -816,7 +816,7 @@ function closeCombineResult() {
 
         <!-- Pet Tier Carousel -->
         <div v-if="selectedPetForDialog" class="px-10 py-4">
-          <Carousel class="mx-auto w-full" @init-api="onCarouselInit">
+          <Carousel class="mx-auto w-full outline-none" @init-api="onCarouselInit">
             <CarouselContent>
               <CarouselItem v-for="tier in 3" :key="tier">
                 <div class="flex flex-col items-center gap-3 p-2">
