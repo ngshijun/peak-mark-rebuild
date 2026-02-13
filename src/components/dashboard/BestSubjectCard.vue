@@ -90,20 +90,21 @@ function goToHistory() {
       <Trophy class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
-      <template v-if="topSubjects.length > 0">
-        <div class="space-y-3">
-          <div v-for="(subject, index) in topSubjects" :key="index" class="flex items-center gap-2">
-            <span class="text-lg leading-none">{{ medals[index] }}</span>
+      <div class="space-y-3">
+        <div v-for="index in 3" :key="index" class="flex items-center gap-2">
+          <span class="text-lg leading-none">{{ medals[index - 1] }}</span>
+          <template v-if="topSubjects[index - 1]">
             <div class="min-w-0 flex-1">
               <div class="flex items-baseline justify-between gap-2">
                 <p class="truncate text-sm font-medium">
-                  {{ subject.gradeLevelName }} · {{ subject.subjectName }}
+                  {{ topSubjects[index - 1].gradeLevelName }} ·
+                  {{ topSubjects[index - 1].subjectName }}
                 </p>
                 <span
                   class="shrink-0 text-sm font-bold"
-                  :class="getScoreTextColor(subject.averageScore)"
+                  :class="getScoreTextColor(topSubjects[index - 1].averageScore)"
                 >
-                  Avg: {{ subject.averageScore }}%
+                  Avg: {{ topSubjects[index - 1].averageScore }}%
                 </span>
               </div>
               <div
@@ -111,25 +112,22 @@ function goToHistory() {
               >
                 <div
                   class="h-full rounded-full transition-all"
-                  :class="getScoreBarColor(subject.averageScore)"
-                  :style="{ width: `${subject.averageScore}%` }"
+                  :class="getScoreBarColor(topSubjects[index - 1].averageScore)"
+                  :style="{ width: `${topSubjects[index - 1].averageScore}%` }"
                 />
               </div>
             </div>
-          </div>
+          </template>
+          <template v-else>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm text-muted-foreground/60">Practice more to unlock!</p>
+              <div
+                class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
+              />
+            </div>
+          </template>
         </div>
-      </template>
-      <template v-else>
-        <div class="flex items-center gap-3">
-          <span class="text-4xl">📚</span>
-          <div>
-            <p class="font-medium text-muted-foreground">No data yet</p>
-            <p class="text-xs text-muted-foreground">
-              Complete practice sessions to see your stats
-            </p>
-          </div>
-        </div>
-      </template>
+      </div>
     </CardContent>
   </Card>
 </template>
