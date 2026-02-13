@@ -1,25 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, h, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
-import type { ColumnDef } from '@tanstack/vue-table'
 import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
 import { petFormSchema } from '@/lib/validations'
-import {
-  Search,
-  Plus,
-  Trash2,
-  ArrowUpDown,
-  Loader2,
-  ImagePlus,
-  X,
-  MoreHorizontal,
-  Pencil,
-} from 'lucide-vue-next'
+import { Search, Plus, Trash2, Loader2, ImagePlus, X, Pencil } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Field, FieldLabel, FieldError } from '@/components/ui/field'
-import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
   DialogContent,
@@ -45,12 +35,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { toast } from 'vue-sonner'
 
 const petsStore = usePetsStore()
@@ -77,17 +61,18 @@ onMounted(async () => {
   }
 })
 
-// Filter pets based on search (using store's search state)
-const filteredPets = computed(() => {
+const rarities = Object.keys(rarityConfig) as PetRarity[]
+const raritiesDesc = [...rarities].reverse()
+
+function filteredPetsByRarity(rarity: PetRarity) {
+  const pets = petsStore.petsByRarity[rarity] ?? []
   const searchQuery = petsStore.adminPetsFilters.search
-  if (!searchQuery) return petsStore.allPets
+  if (!searchQuery) return pets
   const query = searchQuery.toLowerCase()
-  return petsStore.allPets.filter(
-    (p) =>
-      p.name.toLowerCase().includes(query) ||
-      rarityConfig[p.rarity].label.toLowerCase().includes(query),
-  )
-})
+  return pets.filter((p) => p.name.toLowerCase().includes(query))
+}
+
+const allFilteredPets = computed(() => raritiesDesc.flatMap((r) => filteredPetsByRarity(r)))
 
 // Add/Edit Dialog
 const showPetDialog = ref(false)
@@ -286,134 +271,11 @@ async function confirmDelete() {
   }
 }
 
-// Column definitions
-const columns: ColumnDef<Pet>[] = [
-  {
-    accessorKey: 'imagePath',
-    header: 'Tier 1',
-    cell: ({ row }) => {
-      const pet = row.original
-      return h('img', {
-        src: petsStore.getPetImageUrl(pet.imagePath, pet.updatedAt),
-        alt: pet.name,
-        class: 'size-16 object-contain rounded-lg border',
-      })
-    },
-  },
-  {
-    accessorKey: 'tier2ImagePath',
-    header: 'Tier 2',
-    cell: ({ row }) => {
-      const pet = row.original
-      if (!pet.tier2ImagePath) {
-        return h(
-          'div',
-          { class: 'size-16 flex items-center justify-center text-muted-foreground text-xs' },
-          '-',
-        )
-      }
-      return h('img', {
-        src: petsStore.getPetImageUrl(pet.tier2ImagePath, pet.updatedAt),
-        alt: `${pet.name} Tier 2`,
-        class: 'size-16 object-contain rounded-lg border',
-      })
-    },
-  },
-  {
-    accessorKey: 'tier3ImagePath',
-    header: 'Tier 3',
-    cell: ({ row }) => {
-      const pet = row.original
-      if (!pet.tier3ImagePath) {
-        return h(
-          'div',
-          { class: 'size-16 flex items-center justify-center text-muted-foreground text-xs' },
-          '-',
-        )
-      }
-      return h('img', {
-        src: petsStore.getPetImageUrl(pet.tier3ImagePath, pet.updatedAt),
-        alt: `${pet.name} Tier 3`,
-        class: 'size-16 object-contain rounded-lg border',
-      })
-    },
-  },
-  {
-    accessorKey: 'name',
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: 'ghost',
-          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-        },
-        () => ['Name', h(ArrowUpDown, { class: 'ml-2 size-4' })],
-      )
-    },
-    cell: ({ row }) => {
-      return h('div', { class: 'font-medium' }, row.original.name)
-    },
-  },
-  {
-    accessorKey: 'rarity',
-    header: 'Rarity',
-    cell: ({ row }) => {
-      const rarity = row.original.rarity
-      return h(
-        Badge,
-        {
-          variant: 'secondary',
-          class: `${rarityConfig[rarity].bgColor} ${rarityConfig[rarity].color}`,
-        },
-        () => rarityConfig[rarity].label,
-      )
-    },
-  },
-  {
-    id: 'actions',
-    header: '',
-    cell: ({ row }) => {
-      const pet = row.original
-      return h(
-        DropdownMenu,
-        {},
-        {
-          default: () => [
-            h(DropdownMenuTrigger, { asChild: true }, () =>
-              h(
-                Button,
-                {
-                  variant: 'ghost',
-                  size: 'icon',
-                  class: 'size-6',
-                  onClick: (event: Event) => event.stopPropagation(),
-                },
-                () => h(MoreHorizontal, { class: 'size-4' }),
-              ),
-            ),
-            h(DropdownMenuContent, { align: 'end' }, () => [
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => openEditDialog(pet),
-                },
-                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit'],
-              ),
-              h(
-                DropdownMenuItem,
-                {
-                  class: 'text-destructive focus:text-destructive',
-                  onClick: () => openDeleteDialog(pet),
-                },
-                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete'],
-              ),
-            ]),
-          ],
-        },
-      )
-    },
-  },
-]
+function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
+  const path = tier === 1 ? pet.imagePath : tier === 2 ? pet.tier2ImagePath : pet.tier3ImagePath
+  if (!path) return null
+  return petsStore.getPetImageUrl(path, pet.updatedAt)
+}
 </script>
 
 <template>
@@ -448,21 +310,146 @@ const columns: ColumnDef<Pet>[] = [
         </div>
       </div>
 
-      <!-- Data Table -->
-      <DataTable :columns="columns" :data="filteredPets" />
+      <!-- Rarity Tabs -->
+      <Tabs default-value="all">
+        <TabsList>
+          <TabsTrigger value="all">
+            All
+            <span class="ml-1 text-xs text-muted-foreground"> ({{ allFilteredPets.length }}) </span>
+          </TabsTrigger>
+          <TabsTrigger v-for="rarity in rarities" :key="rarity" :value="rarity">
+            <span :class="rarityConfig[rarity].color">{{ rarityConfig[rarity].label }}</span>
+            <span class="ml-1 text-xs text-muted-foreground">
+              ({{ filteredPetsByRarity(rarity).length }})
+            </span>
+          </TabsTrigger>
+        </TabsList>
 
-      <!-- Empty State -->
-      <div
-        v-if="filteredPets.length === 0 && !petsStore.adminPetsFilters.search"
-        class="py-12 text-center"
-      >
-        <p class="text-muted-foreground">No pets yet. Add your first pet!</p>
-      </div>
+        <!-- All tab (highest rarity first) -->
+        <TabsContent value="all">
+          <div v-if="allFilteredPets.length" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Card
+              v-for="pet in allFilteredPets"
+              :key="pet.id"
+              class="overflow-hidden gap-0 py-0"
+              :class="rarityConfig[pet.rarity].borderColor"
+            >
+              <div
+                class="grid grid-cols-3 gap-1 px-2 pt-2"
+                :class="rarityConfig[pet.rarity].bgColor"
+              >
+                <div
+                  v-for="tier in [1, 2, 3] as const"
+                  :key="tier"
+                  class="flex aspect-square items-center justify-center"
+                >
+                  <img
+                    v-if="getPetTierImage(pet, tier)"
+                    :src="getPetTierImage(pet, tier)!"
+                    :alt="`${pet.name} T${tier}`"
+                    loading="lazy"
+                    class="size-full object-contain"
+                  />
+                  <span v-else class="text-xs text-muted-foreground">—</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between px-3 py-2">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium">{{ pet.name }}</span>
+                  <Badge
+                    variant="secondary"
+                    :class="[rarityConfig[pet.rarity].bgColor, rarityConfig[pet.rarity].color]"
+                  >
+                    {{ rarityConfig[pet.rarity].label }}
+                  </Badge>
+                </div>
+                <div class="flex gap-1">
+                  <Button variant="ghost" size="icon" class="size-7" @click="openEditDialog(pet)">
+                    <Pencil class="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="size-7 text-destructive hover:text-destructive"
+                    @click="openDeleteDialog(pet)"
+                  >
+                    <Trash2 class="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+          <div v-else class="py-12 text-center">
+            <p class="text-muted-foreground">No pets yet. Add your first pet!</p>
+          </div>
+        </TabsContent>
+
+        <!-- Per-rarity tabs -->
+        <TabsContent v-for="rarity in rarities" :key="rarity" :value="rarity">
+          <div
+            v-if="filteredPetsByRarity(rarity).length"
+            class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          >
+            <Card
+              v-for="pet in filteredPetsByRarity(rarity)"
+              :key="pet.id"
+              class="overflow-hidden gap-0 py-0"
+              :class="rarityConfig[rarity].borderColor"
+            >
+              <!-- Tier images row -->
+              <div class="grid grid-cols-3 gap-1 px-2 pt-2" :class="rarityConfig[rarity].bgColor">
+                <div
+                  v-for="tier in [1, 2, 3] as const"
+                  :key="tier"
+                  class="flex aspect-square items-center justify-center"
+                >
+                  <img
+                    v-if="getPetTierImage(pet, tier)"
+                    :src="getPetTierImage(pet, tier)!"
+                    :alt="`${pet.name} T${tier}`"
+                    loading="lazy"
+                    class="size-full object-contain"
+                  />
+                  <span v-else class="text-xs text-muted-foreground">—</span>
+                </div>
+              </div>
+
+              <!-- Info + actions -->
+              <div class="flex items-center justify-between px-3 py-2">
+                <span class="font-medium">{{ pet.name }}</span>
+                <div class="flex gap-1">
+                  <Button variant="ghost" size="icon" class="size-7" @click="openEditDialog(pet)">
+                    <Pencil class="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="size-7 text-destructive hover:text-destructive"
+                    @click="openDeleteDialog(pet)"
+                  >
+                    <Trash2 class="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <div v-else class="py-12 text-center">
+            <p class="text-muted-foreground">
+              {{
+                petsStore.adminPetsFilters.search
+                  ? 'No matching pets.'
+                  : 'No pets in this rarity yet.'
+              }}
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </template>
 
     <!-- Add/Edit Pet Dialog -->
     <Dialog v-model:open="showPetDialog">
-      <DialogContent class="max-w-md">
+      <DialogContent class="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{{ editingPet ? 'Edit Pet' : 'Add Pet' }}</DialogTitle>
           <DialogDescription>
@@ -523,7 +510,7 @@ const columns: ColumnDef<Pet>[] = [
                         : petsStore.getPetImageUrl(formImagePath, editingPet?.updatedAt)
                     "
                     alt="Tier 1 preview"
-                    class="h-20 w-full rounded-lg border object-contain"
+                    class="aspect-square w-full rounded-lg border object-contain"
                   />
                   <Button
                     type="button"
@@ -569,7 +556,7 @@ const columns: ColumnDef<Pet>[] = [
                         : petsStore.getPetImageUrl(formTier2ImagePath, editingPet?.updatedAt)
                     "
                     alt="Tier 2 preview"
-                    class="h-20 w-full rounded-lg border object-contain"
+                    class="aspect-square w-full rounded-lg border object-contain"
                   />
                   <Button
                     type="button"
@@ -615,7 +602,7 @@ const columns: ColumnDef<Pet>[] = [
                         : petsStore.getPetImageUrl(formTier3ImagePath, editingPet?.updatedAt)
                     "
                     alt="Tier 3 preview"
-                    class="h-20 w-full rounded-lg border object-contain"
+                    class="aspect-square w-full rounded-lg border object-contain"
                   />
                   <Button
                     type="button"
