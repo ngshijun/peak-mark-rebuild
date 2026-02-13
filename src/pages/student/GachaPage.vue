@@ -370,21 +370,22 @@ function closeResults() {
           </DialogDescription>
         </DialogHeader>
         <div
-          class="grid max-h-[60vh] gap-3 overflow-y-auto py-4"
-          :class="pullResults.length > 1 ? 'grid-cols-2 sm:grid-cols-5' : 'place-items-center'"
+          class="max-h-[60vh] gap-3 overflow-y-auto py-4"
+          :class="
+            pullResults.length > 1 ? 'flex flex-wrap justify-center' : 'grid place-items-center'
+          "
         >
           <div
             v-for="(pet, index) in pullResults"
             :key="index"
-            class="flex flex-col items-center rounded-xl border-2 p-4 transition-transform hover:scale-105"
+            class="flex flex-col items-center rounded-xl border-2 px-2 pb-2 pt-3 transition-transform hover:scale-105"
             :class="[rarityConfig[pet.rarity].bgColor, rarityConfig[pet.rarity].borderColor]"
           >
             <div class="relative">
               <img
                 :src="petsStore.getOptimizedPetImageUrl(pet.imagePath, pet.updatedAt)"
                 :alt="pet.name"
-                class="object-contain drop-shadow-md"
-                :class="pullResults.length > 1 ? 'size-28' : 'size-40'"
+                class="size-40 object-contain drop-shadow-md"
               />
               <!-- New badge for first-time pets -->
               <Badge
