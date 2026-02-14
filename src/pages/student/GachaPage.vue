@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
+import { useGachaPull, SINGLE_PULL_COST, MULTI_PULL_COST } from '@/composables/useGachaPull'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +22,6 @@ import {
   FolderHeart,
 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -30,26 +30,27 @@ const petsStore = usePetsStore()
 // Reversed rarity order for display (legendary first)
 const rarityOrder: (keyof typeof rarityConfig)[] = ['legendary', 'epic', 'rare', 'common']
 
-// Gacha costs (in coins)
-const SINGLE_PULL_COST = 100
-const MULTI_PULL_COST = 900 // 10 pulls for price of 9
-
-// State
-const isRolling = ref(false)
-const showResultDialog = ref(false)
-const pullResults = ref<Pet[]>([])
-const newPetIds = ref<Set<string>>(new Set()) // Track which pulled pets are new
 const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
-const capsuleColor = ref('purple') // Color of the dispensing capsule
-const lastPullType = ref<'single' | 'multi'>('single') // Track last pull type for dialog
 
-// Capsule colors for different rarities
+// Capsule colors for drop rates display
 const rarityColors: Record<PetRarity, string> = {
-  common: '#22C55E', // green
-  rare: '#3B82F6', // blue
-  epic: '#A855F7', // purple
-  legendary: '#F59E0B', // gold
+  common: '#22C55E',
+  rare: '#3B82F6',
+  epic: '#A855F7',
+  legendary: '#F59E0B',
 }
+
+const {
+  isRolling,
+  showResultDialog,
+  pullResults,
+  newPetIds,
+  capsuleColor,
+  lastPullType,
+  singlePull,
+  multiPull,
+  closeResults,
+} = useGachaPull()
 
 // Fetch pets on mount
 onMounted(async () => {
@@ -58,105 +59,6 @@ onMounted(async () => {
   }
   await petsStore.fetchOwnedPets()
 })
-
-// Fixed rarity percentages (for display only — actual rates enforced server-side)
-const RARITY_CHANCES: { rarity: PetRarity; chance: number }[] = [
-  { rarity: 'legendary', chance: 1 }, // 0-1%
-  { rarity: 'epic', chance: 9 }, // 1-10%
-  { rarity: 'rare', chance: 30 }, // 10-40%
-  { rarity: 'common', chance: 60 }, // 40-100%
-]
-
-// Look up a Pet object by ID from the loaded allPets list
-function getPetById(petId: string): Pet | undefined {
-  return petsStore.allPets.find((p) => p.id === petId)
-}
-
-// Check if a pet is new (not currently owned)
-function isPetNew(petId: string): boolean {
-  return !petsStore.ownedPets.some((p) => p.petId === petId)
-}
-
-// Single pull (server-side via RPC)
-async function singlePull() {
-  if (currentCoins.value < SINGLE_PULL_COST) return
-
-  isRolling.value = true
-  lastPullType.value = 'single'
-  // Use a random capsule color during animation (result unknown until RPC returns)
-  capsuleColor.value = '#A855F7'
-
-  const { petId, error } = await petsStore.gachaPull()
-
-  if (error || !petId) {
-    isRolling.value = false
-    toast.error(error ?? 'Pull failed')
-    return
-  }
-
-  const pet = getPetById(petId)
-  if (!pet) {
-    isRolling.value = false
-    await authStore.refreshProfile()
-    await petsStore.fetchOwnedPets()
-    return
-  }
-
-  // Now we know the result — set the correct capsule color
-  capsuleColor.value = rarityColors[pet.rarity]
-  newPetIds.value = new Set(isPetNew(pet.id) ? [pet.id] : [])
-
-  // Brief delay for animation then show result
-  setTimeout(async () => {
-    pullResults.value = [pet]
-    await Promise.all([authStore.refreshProfile(), petsStore.fetchOwnedPets()])
-    isRolling.value = false
-    showResultDialog.value = true
-  }, 1500)
-}
-
-// Multi pull (10x, server-side via RPC)
-async function multiPull() {
-  if (currentCoins.value < MULTI_PULL_COST) return
-
-  isRolling.value = true
-  lastPullType.value = 'multi'
-  capsuleColor.value = '#F59E0B'
-
-  const { petIds, error } = await petsStore.gachaMultiPull()
-
-  if (error || !petIds) {
-    isRolling.value = false
-    toast.error(error ?? 'Pull failed')
-    return
-  }
-
-  // Track which pets are new BEFORE refreshing owned pets
-  const newIds = new Set<string>()
-  const seenInThisPull = new Set<string>()
-  for (const petId of petIds) {
-    if (isPetNew(petId) && !seenInThisPull.has(petId)) {
-      newIds.add(petId)
-    }
-    seenInThisPull.add(petId)
-  }
-  newPetIds.value = newIds
-
-  const pets = petIds.map((id) => getPetById(id)).filter((p): p is Pet => p !== undefined)
-
-  setTimeout(async () => {
-    pullResults.value = pets
-    await Promise.all([authStore.refreshProfile(), petsStore.fetchOwnedPets()])
-    isRolling.value = false
-    showResultDialog.value = true
-  }, 2000)
-}
-
-function closeResults() {
-  showResultDialog.value = false
-  pullResults.value = []
-  newPetIds.value = new Set()
-}
 </script>
 
 <template>
