@@ -24,94 +24,87 @@ export const optionalStringSchema = z.string().optional()
 // ==========================================
 
 // Auth forms
-export const loginFormSchema = toTypedSchema(
-  z.object({
-    email: emailSchema,
-    password: z.string().min(1, 'Password is required'),
-  }),
-)
+const loginFormZod = z.object({
+  email: emailSchema,
+  password: z.string().min(1, 'Password is required'),
+})
+export const loginFormSchema = toTypedSchema(loginFormZod)
+export type LoginFormValues = z.infer<typeof loginFormZod>
 
-export const signupFormSchema = toTypedSchema(
-  z
-    .object({
-      name: nameSchema,
-      email: emailSchema,
-      password: passwordSchema,
-      confirmPassword: z.string().min(1, 'Please confirm your password'),
-      userType: z.enum(['student', 'parent'], {
-        required_error: 'Please select a user type',
-      }),
-      dateOfBirth: z.string().optional(),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: 'Passwords do not match',
-      path: ['confirmPassword'],
+const signupFormZod = z
+  .object({
+    name: nameSchema,
+    email: emailSchema,
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    userType: z.enum(['student', 'parent'], {
+      required_error: 'Please select a user type',
     }),
-)
+    dateOfBirth: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+export const signupFormSchema = toTypedSchema(signupFormZod)
+export type SignupFormValues = z.infer<typeof signupFormZod>
 
 // Invitation forms
-export const inviteEmailFormSchema = toTypedSchema(
-  z.object({
-    email: emailSchema,
-  }),
-)
+const inviteEmailFormZod = z.object({
+  email: emailSchema,
+})
+export const inviteEmailFormSchema = toTypedSchema(inviteEmailFormZod)
+export type InviteEmailFormValues = z.infer<typeof inviteEmailFormZod>
 
 // Profile forms
-export const editNameFormSchema = toTypedSchema(
-  z.object({
-    name: nameSchema,
-  }),
-)
+const editNameFormZod = z.object({
+  name: nameSchema,
+})
+export const editNameFormSchema = toTypedSchema(editNameFormZod)
+export type EditNameFormValues = z.infer<typeof editNameFormZod>
 
 // Question feedback form
-export const questionFeedbackFormSchema = toTypedSchema(
-  z.object({
-    category: z.enum(
-      [
-        'question_error',
-        'image_error',
-        'option_error',
-        'answer_error',
-        'explanation_error',
-        'other',
-      ],
-      {
-        required_error: 'Please select an issue type',
-      },
-    ),
-    details: z.string().optional(),
-  }),
-)
+const questionFeedbackFormZod = z.object({
+  category: z.enum(
+    ['question_error', 'image_error', 'option_error', 'answer_error', 'explanation_error', 'other'],
+    {
+      required_error: 'Please select an issue type',
+    },
+  ),
+  details: z.string().optional(),
+})
+export const questionFeedbackFormSchema = toTypedSchema(questionFeedbackFormZod)
+export type QuestionFeedbackFormValues = z.infer<typeof questionFeedbackFormZod>
 
 // Curriculum forms
-export const addCurriculumItemFormSchema = toTypedSchema(
-  z.object({
-    name: requiredStringSchema('Name'),
-  }),
-)
+const addCurriculumItemFormZod = z.object({
+  name: requiredStringSchema('Name'),
+})
+export const addCurriculumItemFormSchema = toTypedSchema(addCurriculumItemFormZod)
+export type AddCurriculumItemFormValues = z.infer<typeof addCurriculumItemFormZod>
 
 // Pet forms
-export const petFormSchema = toTypedSchema(
-  z.object({
-    name: requiredStringSchema('Name'),
-    rarity: z.enum(['common', 'rare', 'epic', 'legendary'], {
-      required_error: 'Please select a rarity',
-    }),
+const petFormZod = z.object({
+  name: requiredStringSchema('Name'),
+  rarity: z.enum(['common', 'rare', 'epic', 'legendary'], {
+    required_error: 'Please select a rarity',
   }),
-)
+})
+export const petFormSchema = toTypedSchema(petFormZod)
+export type PetFormValues = z.infer<typeof petFormZod>
 
 // Announcement forms
-export const announcementFormSchema = toTypedSchema(
-  z.object({
-    title: requiredStringSchema('Title'),
-    content: z.string().min(1, 'Content is required'),
-    targetAudience: z.enum(['all', 'students_only', 'parents_only'], {
-      required_error: 'Please select target audience',
-    }),
-    expiresAt: z.string().optional().nullable(),
-    isPinned: z.boolean().default(false),
+const announcementFormZod = z.object({
+  title: requiredStringSchema('Title'),
+  content: z.string().min(1, 'Content is required'),
+  targetAudience: z.enum(['all', 'students_only', 'parents_only'], {
+    required_error: 'Please select target audience',
   }),
-)
+  expiresAt: z.string().optional().nullable(),
+  isPinned: z.boolean().default(false),
+})
+export const announcementFormSchema = toTypedSchema(announcementFormZod)
+export type AnnouncementFormValues = z.infer<typeof announcementFormZod>
 
 // Question form - this is complex, so we define it as a raw zod schema for flexibility
 export const questionFormSchemaBase = z.object({
@@ -183,74 +176,5 @@ export const questionFormSchema = z.discriminatedUnion('type', [
   shortAnswerQuestionFormSchema,
 ])
 
-// Raw Zod schemas for type inference (before toTypedSchema conversion)
-const loginFormZodSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, 'Password is required'),
-})
-
-const signupFormZodSchema = z
-  .object({
-    name: nameSchema,
-    email: emailSchema,
-    password: passwordSchema,
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
-    userType: z.enum(['student', 'parent'], {
-      required_error: 'Please select a user type',
-    }),
-    dateOfBirth: z.string().optional(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  })
-
-const inviteEmailFormZodSchema = z.object({
-  email: emailSchema,
-})
-
-const editNameFormZodSchema = z.object({
-  name: nameSchema,
-})
-
-const questionFeedbackFormZodSchema = z.object({
-  category: z.enum(
-    ['question_error', 'image_error', 'option_error', 'answer_error', 'explanation_error', 'other'],
-    {
-      required_error: 'Please select an issue type',
-    },
-  ),
-  details: z.string().optional(),
-})
-
-const addCurriculumItemFormZodSchema = z.object({
-  name: requiredStringSchema('Name'),
-})
-
-const petFormZodSchema = z.object({
-  name: requiredStringSchema('Name'),
-  rarity: z.enum(['common', 'rare', 'epic', 'legendary'], {
-    required_error: 'Please select a rarity',
-  }),
-})
-
-const announcementFormZodSchema = z.object({
-  title: requiredStringSchema('Title'),
-  content: z.string().min(1, 'Content is required'),
-  targetAudience: z.enum(['all', 'students_only', 'parents_only'], {
-    required_error: 'Please select target audience',
-  }),
-  expiresAt: z.string().optional().nullable(),
-  isPinned: z.boolean().default(false),
-})
-
-// Type exports for form values
-export type LoginFormValues = z.infer<typeof loginFormZodSchema>
-export type SignupFormValues = z.infer<typeof signupFormZodSchema>
-export type InviteEmailFormValues = z.infer<typeof inviteEmailFormZodSchema>
-export type EditNameFormValues = z.infer<typeof editNameFormZodSchema>
-export type QuestionFeedbackFormValues = z.infer<typeof questionFeedbackFormZodSchema>
-export type AddCurriculumItemFormValues = z.infer<typeof addCurriculumItemFormZodSchema>
-export type PetFormValues = z.infer<typeof petFormZodSchema>
-export type AnnouncementFormValues = z.infer<typeof announcementFormZodSchema>
+// Question form type export
 export type QuestionFormValues = z.infer<typeof questionFormSchema>
