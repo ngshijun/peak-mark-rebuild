@@ -3,11 +3,14 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { piniaResetPlugin } from '@/lib/piniaResetPlugin'
 import './style.css'
 
 const app = createApp(App)
 
-app.use(createPinia())
+const pinia = createPinia()
+pinia.use(piniaResetPlugin)
+app.use(pinia)
 app.use(router)
 
 // Safety net for uncaught errors in the component tree

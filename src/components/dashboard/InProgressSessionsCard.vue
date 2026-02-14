@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { ArrowUpDown, Play, ListTodo } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { formatDateTime } from '@/lib/date'
 
 const practiceStore = usePracticeHistoryStore()
 const router = useRouter()
@@ -41,16 +42,6 @@ const inProgressData = computed<InProgressRow[]>(() => {
     })
 })
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 function handleContinue(sessionId: string) {
   // Navigate to practice quiz page to continue the session
   router.push(`/student/practice/quiz?sessionId=${sessionId}`)
@@ -70,7 +61,7 @@ const columns: ColumnDef<InProgressRow>[] = [
       )
     },
     cell: ({ row }) => {
-      return h('div', { class: 'text-sm' }, formatDate(row.original.createdAt))
+      return h('div', { class: 'text-sm' }, formatDateTime(row.original.createdAt))
     },
   },
   {

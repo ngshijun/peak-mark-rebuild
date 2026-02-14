@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-vue-next'
+import { formatLongDate } from '@/lib/date'
 
 const props = defineProps<{
   open: boolean
@@ -41,15 +42,6 @@ function getActionLabel() {
 
 function formatCurrency(amount: number) {
   return `RM ${(amount / 100).toFixed(2)}`
-}
-
-function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return 'N/A'
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
 }
 </script>
 
@@ -117,7 +109,7 @@ function formatDate(dateString: string | null | undefined): string {
               <p>{{ preview.message }}</p>
               <p class="text-sm text-muted-foreground">
                 Your current plan will remain active until
-                {{ formatDate(preview.effectiveDate) }}.
+                {{ formatLongDate(preview.effectiveDate) }}.
               </p>
             </div>
           </template>

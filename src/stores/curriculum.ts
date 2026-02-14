@@ -927,5 +927,22 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     getTopicWithHierarchy,
     getSubTopicById,
     getSubTopicWithHierarchy,
+
+    $reset() {
+      gradeLevels.value = []
+      allSubjects.value = []
+      allTopics.value = []
+      allSubTopics.value = []
+      isLoading.value = false
+      error.value = null
+      lastFetched.value = null
+      gradeLevelMap.value.clear()
+      subjectMap.value.clear()
+      topicMap.value.clear()
+      subTopicMap.value.clear()
+      subTopicHierarchyMap.value.clear()
+      topicHierarchyMap.value.clear()
+      resetAdminCurriculumNavigation()
+    },
   }
 })

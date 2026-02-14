@@ -4,16 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreditCard } from 'lucide-vue-next'
 
 import { tierConfig } from '@/lib/tierConfig'
-
-function formatShortDate(dateString: string | null): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
+import { formatDate } from '@/lib/date'
 
 function getSubscriptionStatusConfig(sub: {
   isActive: boolean
@@ -104,14 +95,14 @@ defineProps<{
         <div>
           <p class="text-xs text-muted-foreground">Start Date</p>
           <p class="mt-1 font-medium">
-            {{ formatShortDate(subscription.startDate) }}
+            {{ formatDate(subscription.startDate) }}
           </p>
         </div>
 
         <div>
           <p class="text-xs text-muted-foreground">Renewal Date</p>
           <p class="mt-1 font-medium">
-            {{ formatShortDate(subscription.nextBillingDate) }}
+            {{ formatDate(subscription.nextBillingDate) }}
           </p>
         </div>
 
@@ -122,7 +113,7 @@ defineProps<{
             <Badge variant="secondary" class="mx-1">
               {{ tierConfig[subscription.scheduledTier]?.label ?? subscription.scheduledTier }}
             </Badge>
-            on {{ formatShortDate(subscription.scheduledChangeDate) }}
+            on {{ formatDate(subscription.scheduledChangeDate) }}
           </p>
         </div>
       </div>
@@ -147,7 +138,7 @@ defineProps<{
                 :key="payment.id"
                 class="border-b last:border-0"
               >
-                <td class="px-4 py-2">{{ formatShortDate(payment.createdAt) }}</td>
+                <td class="px-4 py-2">{{ formatDate(payment.createdAt) }}</td>
                 <td class="px-4 py-2 font-medium">
                   {{ (payment.amountCents / 100).toFixed(2) }}
                   {{ payment.currency.toUpperCase() }}

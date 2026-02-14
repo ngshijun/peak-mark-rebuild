@@ -9,19 +9,7 @@ import {
   ensureProfileExists,
   type AuthUser,
 } from '@/composables/useAuth'
-import { useAnnouncementsStore } from './announcements'
-import { useChildLinkStore } from './child-link'
-import { useParentLinkStore } from './parent-link'
-import { usePetsStore } from './pets'
-import { useStudentDashboardStore } from './student-dashboard'
-import { usePracticeStore } from './practice'
-import { useSubscriptionStore } from './subscription'
-import { useChildStatisticsStore } from './child-statistics'
-import { useLeaderboardStore } from './leaderboard'
-import { useFeedbackStore } from './feedback'
-import { useQuestionsStore } from './questions'
-import { useAdminDashboardStore } from './admin-dashboard'
-import { useCurriculumStore } from './curriculum'
+import { resetAllStores } from '@/lib/piniaResetPlugin'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
 
@@ -203,39 +191,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       // SECURITY: Reset ALL stores to prevent data leakage after logout
       // This is critical for shared devices where another user may log in
-      // All stores must be included here - missing stores are a security vulnerability
-      // Theme store is intentionally excluded as it's a device preference, not user data
-      const stores = [
-        // User-specific data stores
-        useAnnouncementsStore,
-        useChildLinkStore,
-        useParentLinkStore,
-        usePetsStore,
-        useStudentDashboardStore,
-        usePracticeStore,
-        useSubscriptionStore,
-        useChildStatisticsStore,
-        useLeaderboardStore,
-        useFeedbackStore,
-        // Cached data stores (may contain user-specific context)
-        useQuestionsStore,
-        useCurriculumStore,
-        // Admin stores
-        useAdminDashboardStore,
-      ]
-
-      let resetFailed = false
-      for (const getStore of stores) {
-        try {
-          getStore().$reset()
-        } catch (err) {
-          console.error('Failed to reset store:', err)
-          resetFailed = true
-        }
-      }
+      // The piniaResetPlugin automatically tracks all stores with $reset()
+      // Excluded stores: auth (this store), theme, language (device preferences)
+      const { failed } = resetAllStores()
 
       // If any store reset failed, force a page reload to ensure clean state
-      if (resetFailed) {
+      if (failed.length > 0) {
         console.warn('Some stores failed to reset, forcing page reload for security')
         window.location.href = '/login'
         return result

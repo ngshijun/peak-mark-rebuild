@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
-import { ref, computed, type Ref } from 'vue'
+import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
 import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
+import { useCascadingFilters } from '@/composables/useCascadingFilters'
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
 export type QuestionType = Database['public']['Enums']['question_type']
@@ -146,8 +147,6 @@ function rowToQuestion(
   }
 }
 
-const ALL_VALUE = '__all__'
-
 export const useQuestionsStore = defineStore('questions', () => {
   const curriculumStore = useCurriculumStore()
 
@@ -161,18 +160,18 @@ export const useQuestionsStore = defineStore('questions', () => {
   // ============================================
   // Question Bank Page State (persisted across navigation)
   // ============================================
-  const questionBankFilters = ref({
-    gradeLevel: ALL_VALUE,
-    subject: ALL_VALUE,
-    topic: ALL_VALUE,
-    subTopic: ALL_VALUE,
-    search: '',
-  })
-
-  const questionBankPagination = ref({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const {
+    filters: questionBankFilters,
+    pagination: questionBankPagination,
+    setGradeLevel: setQuestionBankGradeLevel,
+    setSubject: setQuestionBankSubject,
+    setTopic: setQuestionBankTopic,
+    setSubTopic: setQuestionBankSubTopic,
+    setSearch: setQuestionBankSearch,
+    setPageIndex: setQuestionBankPageIndex,
+    setPageSize: setQuestionBankPageSize,
+    resetFilters: resetQuestionBankFilters,
+  } = useCascadingFilters({ hasSearch: true })
 
   // ============================================
   // Question Feedback Page State (persisted across navigation)
@@ -189,18 +188,18 @@ export const useQuestionsStore = defineStore('questions', () => {
   // ============================================
   // Question Statistics Page State (persisted across navigation)
   // ============================================
-  const questionStatisticsFilters = ref({
-    gradeLevel: ALL_VALUE,
-    subject: ALL_VALUE,
-    topic: ALL_VALUE,
-    subTopic: ALL_VALUE,
-    search: '',
-  })
-
-  const questionStatisticsPagination = ref({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const {
+    filters: questionStatisticsFilters,
+    pagination: questionStatisticsPagination,
+    setGradeLevel: setQuestionStatisticsGradeLevel,
+    setSubject: setQuestionStatisticsSubject,
+    setTopic: setQuestionStatisticsTopic,
+    setSubTopic: setQuestionStatisticsSubTopic,
+    setSearch: setQuestionStatisticsSearch,
+    setPageIndex: setQuestionStatisticsPageIndex,
+    setPageSize: setQuestionStatisticsPageSize,
+    resetFilters: resetQuestionStatisticsFilters,
+  } = useCascadingFilters({ hasSearch: true })
 
   /**
    * Fetch all questions from the database
@@ -674,65 +673,6 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   // ============================================
-  // Cascading Filter Setter Factory
-  // ============================================
-  function createCascadingFilterSetters(
-    filters: Ref<{
-      gradeLevel: string
-      subject: string
-      topic: string
-      subTopic: string
-      search: string
-    }>,
-    pagination: Ref<{ pageIndex: number; pageSize: number }>,
-  ) {
-    return {
-      setGradeLevel(value: string) {
-        filters.value.gradeLevel = value
-        filters.value.subject = ALL_VALUE
-        filters.value.topic = ALL_VALUE
-        filters.value.subTopic = ALL_VALUE
-        pagination.value.pageIndex = 0
-      },
-      setSubject(value: string) {
-        filters.value.subject = value
-        filters.value.topic = ALL_VALUE
-        filters.value.subTopic = ALL_VALUE
-        pagination.value.pageIndex = 0
-      },
-      setTopic(value: string) {
-        filters.value.topic = value
-        filters.value.subTopic = ALL_VALUE
-        pagination.value.pageIndex = 0
-      },
-      setSubTopic(value: string) {
-        filters.value.subTopic = value
-        pagination.value.pageIndex = 0
-      },
-      setSearch(value: string) {
-        filters.value.search = value
-        pagination.value.pageIndex = 0
-      },
-      setPageIndex(value: number) {
-        pagination.value.pageIndex = value
-      },
-      setPageSize(value: number) {
-        pagination.value.pageSize = value
-        pagination.value.pageIndex = 0
-      },
-    }
-  }
-
-  const questionBankSetters = createCascadingFilterSetters(
-    questionBankFilters,
-    questionBankPagination,
-  )
-  const questionStatisticsSetters = createCascadingFilterSetters(
-    questionStatisticsFilters,
-    questionStatisticsPagination,
-  )
-
-  // ============================================
   // Question Feedback Page Setters (simpler, no cascading)
   // ============================================
   function setQuestionFeedbackSearch(value: string) {
@@ -747,6 +687,17 @@ export const useQuestionsStore = defineStore('questions', () => {
   function setQuestionFeedbackPageSize(value: number) {
     questionFeedbackPagination.value.pageSize = value
     questionFeedbackPagination.value.pageIndex = 0
+  }
+
+  function $reset() {
+    questions.value = []
+    questionStatistics.value = []
+    isLoading.value = false
+    error.value = null
+    resetQuestionBankFilters()
+    resetQuestionStatisticsFilters()
+    questionFeedbackFilters.value = { search: '' }
+    questionFeedbackPagination.value = { pageIndex: 0, pageSize: 10 }
   }
 
   return {
@@ -785,13 +736,13 @@ export const useQuestionsStore = defineStore('questions', () => {
     // Question Bank Page State
     questionBankFilters,
     questionBankPagination,
-    setQuestionBankGradeLevel: questionBankSetters.setGradeLevel,
-    setQuestionBankSubject: questionBankSetters.setSubject,
-    setQuestionBankTopic: questionBankSetters.setTopic,
-    setQuestionBankSubTopic: questionBankSetters.setSubTopic,
-    setQuestionBankSearch: questionBankSetters.setSearch,
-    setQuestionBankPageIndex: questionBankSetters.setPageIndex,
-    setQuestionBankPageSize: questionBankSetters.setPageSize,
+    setQuestionBankGradeLevel,
+    setQuestionBankSubject,
+    setQuestionBankTopic,
+    setQuestionBankSubTopic,
+    setQuestionBankSearch,
+    setQuestionBankPageIndex,
+    setQuestionBankPageSize,
 
     // Question Feedback Page State
     questionFeedbackFilters,
@@ -803,12 +754,14 @@ export const useQuestionsStore = defineStore('questions', () => {
     // Question Statistics Page State
     questionStatisticsFilters,
     questionStatisticsPagination,
-    setQuestionStatisticsGradeLevel: questionStatisticsSetters.setGradeLevel,
-    setQuestionStatisticsSubject: questionStatisticsSetters.setSubject,
-    setQuestionStatisticsTopic: questionStatisticsSetters.setTopic,
-    setQuestionStatisticsSubTopic: questionStatisticsSetters.setSubTopic,
-    setQuestionStatisticsSearch: questionStatisticsSetters.setSearch,
-    setQuestionStatisticsPageIndex: questionStatisticsSetters.setPageIndex,
-    setQuestionStatisticsPageSize: questionStatisticsSetters.setPageSize,
+    setQuestionStatisticsGradeLevel,
+    setQuestionStatisticsSubject,
+    setQuestionStatisticsTopic,
+    setQuestionStatisticsSubTopic,
+    setQuestionStatisticsSearch,
+    setQuestionStatisticsPageIndex,
+    setQuestionStatisticsPageSize,
+
+    $reset,
   }
 })

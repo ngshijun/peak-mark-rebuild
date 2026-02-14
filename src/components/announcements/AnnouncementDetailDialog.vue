@@ -6,6 +6,7 @@ import { Pin } from 'lucide-vue-next'
 import type { Announcement } from '@/stores/announcements'
 import { audienceConfig, useAnnouncementsStore } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
+import { formatLongDateTime, formatLongDate } from '@/lib/date'
 
 const props = defineProps<{
   announcement: Announcement | null
@@ -30,27 +31,6 @@ watch(
     }
   },
 )
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-function formatShortDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
 </script>
 
 <template>
@@ -72,7 +52,7 @@ function formatShortDate(dateStr: string): string {
           </Badge>
         </div>
         <p v-if="announcement" class="text-sm text-muted-foreground">
-          {{ formatDate(announcement.createdAt) }}
+          {{ formatLongDateTime(announcement.createdAt) }}
         </p>
       </DialogHeader>
 
@@ -93,10 +73,10 @@ function formatShortDate(dateStr: string): string {
         <!-- Expiry info -->
         <div v-if="announcement.expiresAt" class="text-sm text-muted-foreground">
           <span v-if="new Date(announcement.expiresAt) > new Date()">
-            Expires on {{ formatShortDate(announcement.expiresAt) }}
+            Expires on {{ formatLongDate(announcement.expiresAt) }}
           </span>
           <span v-else class="text-destructive">
-            Expired on {{ formatShortDate(announcement.expiresAt) }}
+            Expired on {{ formatLongDate(announcement.expiresAt) }}
           </span>
         </div>
       </div>

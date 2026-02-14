@@ -17,45 +17,7 @@ import {
 } from 'lucide-vue-next'
 
 import { tierConfig } from '@/lib/tierConfig'
-
-function formatShortDate(dateString: string | null): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-function formatRelativeDate(dateString: string | null): string {
-  if (!dateString) return 'Never'
-  const date = new Date(dateString)
-  const now = new Date()
-
-  const isToday =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-
-  if (isToday) return 'Today'
-
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const isYesterday =
-    date.getFullYear() === yesterday.getFullYear() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getDate() === yesterday.getDate()
-
-  if (isYesterday) return 'Yesterday'
-
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
-  return formatShortDate(dateString)
-}
+import { formatDate, formatRelativeDate } from '@/lib/date'
 
 defineProps<{
   student: {
@@ -121,7 +83,7 @@ defineProps<{
             </div>
             <div>
               <p class="text-xs text-muted-foreground">Date of Birth</p>
-              <p class="font-medium">{{ formatShortDate(student.dateOfBirth) }}</p>
+              <p class="font-medium">{{ formatDate(student.dateOfBirth) }}</p>
             </div>
           </div>
 
@@ -181,7 +143,7 @@ defineProps<{
             </div>
             <div>
               <p class="text-xs text-muted-foreground">Joined</p>
-              <p class="font-medium">{{ formatShortDate(student.joinedAt) }}</p>
+              <p class="font-medium">{{ formatDate(student.joinedAt) }}</p>
             </div>
           </div>
 

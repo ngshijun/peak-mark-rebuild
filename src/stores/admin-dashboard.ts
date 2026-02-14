@@ -368,11 +368,38 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
     stats.value.revenue.change = change
   }
 
+  function $reset() {
+    stats.value = {
+      revenue: {
+        total: 0,
+        currentMonth: 0,
+        previousMonth: 0,
+        change: '0%',
+        currency: 'MYR',
+        monthly: [],
+      },
+      upgrades: [],
+      tierDistribution: [],
+      users: {
+        total: 0,
+        students: 0,
+        parents: 0,
+        admins: 0,
+      },
+      activeStudentsToday: 0,
+      practiceSessionsToday: 0,
+    }
+    isLoading.value = false
+    error.value = null
+    lastFetched.value = null
+  }
+
   return {
     stats,
     isLoading,
     error,
     fetchStats,
     updateRevenue,
+    $reset,
   }
 })

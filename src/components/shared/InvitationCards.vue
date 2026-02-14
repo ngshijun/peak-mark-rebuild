@@ -15,6 +15,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Mail, Send, Check, X, Clock, Loader2 } from 'lucide-vue-next'
+import { formatDate } from '@/lib/date'
 
 const props = withDefaults(
   defineProps<{
@@ -40,14 +41,6 @@ const emit = defineEmits<{
   reject: [id: string]
   cancel: [id: string]
 }>()
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
 </script>
 
 <template>

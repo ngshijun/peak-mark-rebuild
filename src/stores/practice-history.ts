@@ -15,6 +15,7 @@ import {
   getUniqueSubTopics,
 } from '@/lib/sessionFilters'
 import { type PracticeAnswer, type PracticeSession, rowToAnswer } from '@/lib/practiceHelpers'
+import { useCascadingFilters } from '@/composables/useCascadingFilters'
 
 export type { DateRangeFilter }
 
@@ -32,20 +33,19 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
   const authStore = useAuthStore()
   const curriculumStore = useCurriculumStore()
 
-  // History page filter state (persisted across navigation)
-  const historyFilters = ref({
-    dateRange: 'alltime' as DateRangeFilter,
-    gradeLevel: '__all__',
-    subject: '__all__',
-    topic: '__all__',
-    subTopic: '__all__',
-  })
-
-  // History page pagination state (persisted across navigation)
-  const historyPagination = ref({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  // History page filter + pagination state (persisted across navigation)
+  const {
+    filters: historyFilters,
+    pagination: historyPagination,
+    setGradeLevel: setHistoryGradeLevel,
+    setSubject: setHistorySubject,
+    setTopic: setHistoryTopic,
+    setSubTopic: setHistorySubTopic,
+    setDateRange: setHistoryDateRange,
+    setPageIndex: setHistoryPageIndex,
+    setPageSize: setHistoryPageSize,
+    resetFilters: resetHistoryFilters,
+  } = useCascadingFilters({ defaultDateRange: 'alltime' })
 
   // Get history for current student
   const studentHistory = computed(() => {
@@ -421,56 +421,6 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
     sessionHistoryLastFetched.value = null
   }
 
-  // History filter setters
-  function setHistoryDateRange(value: DateRangeFilter) {
-    historyFilters.value.dateRange = value
-  }
-
-  function setHistoryGradeLevel(value: string) {
-    historyFilters.value.gradeLevel = value
-    // Reset dependent filters when grade level changes
-    historyFilters.value.subject = '__all__'
-    historyFilters.value.topic = '__all__'
-    historyFilters.value.subTopic = '__all__'
-  }
-
-  function setHistorySubject(value: string) {
-    historyFilters.value.subject = value
-    // Reset dependent filters when subject changes
-    historyFilters.value.topic = '__all__'
-    historyFilters.value.subTopic = '__all__'
-  }
-
-  function setHistoryTopic(value: string) {
-    historyFilters.value.topic = value
-    // Reset dependent filter when topic changes
-    historyFilters.value.subTopic = '__all__'
-  }
-
-  function setHistorySubTopic(value: string) {
-    historyFilters.value.subTopic = value
-  }
-
-  function resetHistoryFilters() {
-    historyFilters.value = {
-      dateRange: 'alltime',
-      gradeLevel: '__all__',
-      subject: '__all__',
-      topic: '__all__',
-      subTopic: '__all__',
-    }
-  }
-
-  // History pagination setters
-  function setHistoryPageIndex(index: number) {
-    historyPagination.value.pageIndex = index
-  }
-
-  function setHistoryPageSize(size: number) {
-    historyPagination.value.pageSize = size
-    historyPagination.value.pageIndex = 0 // Reset to first page when page size changes
-  }
-
   // Reset store state (call on logout)
   function $reset() {
     sessionHistory.value = []
@@ -478,7 +428,6 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
     isLoading.value = false
     error.value = null
     resetHistoryFilters()
-    historyPagination.value = { pageIndex: 0, pageSize: 10 }
   }
 
   return {

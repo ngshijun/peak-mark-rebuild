@@ -138,6 +138,12 @@ export const useFeedbackStore = defineStore('feedback', () => {
     return feedbacks.value.find((f) => f.id === id)
   }
 
+  function $reset() {
+    feedbacks.value = []
+    isLoading.value = false
+    error.value = null
+  }
+
   return {
     feedbacks,
     isLoading,
@@ -146,5 +152,6 @@ export const useFeedbackStore = defineStore('feedback', () => {
     deleteFeedback,
     submitFeedback,
     getFeedbackById,
+    $reset,
   }
 })

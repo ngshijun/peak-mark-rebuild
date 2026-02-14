@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { toast } from 'vue-sonner'
+import { formatDate, formatRelativeDate } from '@/lib/date'
 
 const router = useRouter()
 const adminStudentsStore = useAdminStudentsStore()
@@ -22,46 +23,6 @@ onMounted(async () => {
     }
   }
 })
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-function formatRelativeDate(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-
-  // Check if same day
-  const isToday =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-
-  if (isToday) return 'Today'
-
-  // Check if yesterday
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const isYesterday =
-    date.getFullYear() === yesterday.getFullYear() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getDate() === yesterday.getDate()
-
-  if (isYesterday) return 'Yesterday'
-
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
-  return formatDate(dateString)
-}
 
 // Subscription tier config for badge styling
 const tierConfig: Record<string, { label: string; color: string; bgColor: string }> = {

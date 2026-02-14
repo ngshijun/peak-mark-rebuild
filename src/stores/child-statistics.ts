@@ -14,6 +14,7 @@ import {
   getUniqueTopics,
   getUniqueSubTopics,
 } from '@/lib/sessionFilters'
+import { useCascadingFilters } from '@/composables/useCascadingFilters'
 
 export type { DateRangeFilter }
 
@@ -190,21 +191,20 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     Map<string, { status: ChildSubscriptionStatus; lastFetched: number }>
   >(new Map())
 
-  // Statistics page filter state (persisted across navigation)
+  // Statistics page filter + pagination state (persisted across navigation)
   // Note: selectedChildId is persisted via localStorage in the component (user preference)
-  const statisticsFilters = ref({
-    dateRange: 'alltime' as DateRangeFilter,
-    gradeLevel: '__all__',
-    subject: '__all__',
-    topic: '__all__',
-    subTopic: '__all__',
-  })
-
-  // Statistics page table pagination state (persisted across navigation)
-  const statisticsPagination = ref({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const {
+    filters: statisticsFilters,
+    pagination: statisticsPagination,
+    setGradeLevel: setStatisticsGradeLevel,
+    setSubject: setStatisticsSubject,
+    setTopic: setStatisticsTopic,
+    setSubTopic: setStatisticsSubTopic,
+    setDateRange: setStatisticsDateRange,
+    setPageIndex: setStatisticsPageIndex,
+    setPageSize: setStatisticsPageSize,
+    resetFilters: _resetStatisticsFilters,
+  } = useCascadingFilters({ defaultDateRange: 'alltime' })
 
   // Track when each child's statistics were last fetched (for TTL-based cache)
   const childStatsLastFetched = ref<Map<string, number>>(new Map())
@@ -870,60 +870,8 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       .sort((a, b) => a.date.localeCompare(b.date))
   }
 
-  // Statistics filter setters
-  function setStatisticsDateRange(value: DateRangeFilter) {
-    statisticsFilters.value.dateRange = value
-  }
-
-  function setStatisticsGradeLevel(value: string) {
-    statisticsFilters.value.gradeLevel = value
-    // Reset dependent filters when grade level changes
-    statisticsFilters.value.subject = '__all__'
-    statisticsFilters.value.topic = '__all__'
-    statisticsFilters.value.subTopic = '__all__'
-  }
-
-  function setStatisticsSubject(value: string) {
-    statisticsFilters.value.subject = value
-    // Reset dependent filters when subject changes
-    statisticsFilters.value.topic = '__all__'
-    statisticsFilters.value.subTopic = '__all__'
-  }
-
-  function setStatisticsTopic(value: string) {
-    statisticsFilters.value.topic = value
-    // Reset dependent filter when topic changes
-    statisticsFilters.value.subTopic = '__all__'
-  }
-
-  function setStatisticsSubTopic(value: string) {
-    statisticsFilters.value.subTopic = value
-  }
-
-  // Pagination setters
-  function setStatisticsPageIndex(value: number) {
-    statisticsPagination.value.pageIndex = value
-  }
-
-  function setStatisticsPageSize(value: number) {
-    statisticsPagination.value.pageSize = value
-    // Reset to first page when page size changes
-    statisticsPagination.value.pageIndex = 0
-  }
-
   function resetStatisticsFilters() {
-    statisticsFilters.value = {
-      dateRange: 'today',
-      gradeLevel: '__all__',
-      subject: '__all__',
-      topic: '__all__',
-      subTopic: '__all__',
-    }
-    // Also reset pagination when filters are reset
-    statisticsPagination.value = {
-      pageIndex: 0,
-      pageSize: 10,
-    }
+    _resetStatisticsFilters({ dateRange: 'today' })
   }
 
   // Reset store state (call on logout)

@@ -113,3 +113,105 @@ export function formatDateTime(dateString: string): string {
     minute: '2-digit',
   })
 }
+
+/**
+ * Formats a date string into a short date string.
+ * Example: "Jan 1, 2025"
+ * Returns '-' for null/undefined input.
+ */
+export function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+/**
+ * Formats a date string into a long date string.
+ * Example: "January 1, 2025"
+ * Returns '-' for null/undefined input.
+ */
+export function formatLongDate(dateString: string | null | undefined): string {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+/**
+ * Formats a date string into a long date-time string.
+ * Example: "January 1, 2025, 10:30 AM"
+ * Returns '' for null/undefined input.
+ */
+export function formatLongDateTime(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+/**
+ * Formats a date string as a relative date.
+ * Examples: "Today", "Yesterday", "3d ago", "2w ago", falls back to formatDate.
+ * Returns 'Never' for null/undefined input.
+ */
+export function formatRelativeDate(dateString: string | null | undefined): string {
+  if (!dateString) return 'Never'
+  const date = new Date(dateString)
+  const now = new Date()
+
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+
+  if (isToday) return 'Today'
+
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const isYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate()
+
+  if (isYesterday) return 'Yesterday'
+
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+  return formatDate(dateString)
+}
+
+/**
+ * Formats a date string as a relative time ago.
+ * Examples: "just now", "5 minutes ago", "3 hours ago", "2 days ago", falls back to short date.
+ * Returns '' for null/undefined input.
+ */
+export function formatTimeAgo(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}

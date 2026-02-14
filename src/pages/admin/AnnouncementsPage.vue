@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDetailDialog.vue'
 import { toast } from 'vue-sonner'
+import { formatDate, formatTimeAgo } from '@/lib/date'
 
 const announcementsStore = useAnnouncementsStore()
 
@@ -265,29 +266,6 @@ async function confirmDelete() {
     showDeleteDialog.value = false
     deletingAnnouncement.value = null
   }
-}
-
-// Format date for display
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatTimeAgo(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 // Column definitions

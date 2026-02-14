@@ -13,6 +13,7 @@ import {
   getUniqueTopics,
   getUniqueSubTopics,
 } from '@/lib/sessionFilters'
+import { useCascadingFilters } from '@/composables/useCascadingFilters'
 
 // Cache TTL for student statistics (re-fetch when navigating back after this period)
 const STATISTICS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -186,20 +187,19 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     pageSize: 10,
   })
 
-  // Statistics page filter state
-  const statisticsFilters = ref({
-    dateRange: 'alltime' as DateRangeFilter,
-    gradeLevel: '__all__',
-    subject: '__all__',
-    topic: '__all__',
-    subTopic: '__all__',
-  })
-
-  // Statistics page table pagination state
-  const statisticsPagination = ref({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  // Statistics page filter + pagination state
+  const {
+    filters: statisticsFilters,
+    pagination: statisticsPagination,
+    setGradeLevel: setStatisticsGradeLevel,
+    setSubject: setStatisticsSubject,
+    setTopic: setStatisticsTopic,
+    setSubTopic: setStatisticsSubTopic,
+    setDateRange: setStatisticsDateRange,
+    setPageIndex: setStatisticsPageIndex,
+    setPageSize: setStatisticsPageSize,
+    resetFilters: resetStatisticsFilters,
+  } = useCascadingFilters({ defaultDateRange: 'alltime' })
 
   /**
    * Fetch all students with joined data
@@ -933,57 +933,6 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
   function setStudentsPageSize(value: number) {
     studentsPagination.value.pageSize = value
     studentsPagination.value.pageIndex = 0
-  }
-
-  // Statistics filter setters
-  function setStatisticsDateRange(value: DateRangeFilter) {
-    statisticsFilters.value.dateRange = value
-  }
-
-  function setStatisticsGradeLevel(value: string) {
-    statisticsFilters.value.gradeLevel = value
-    statisticsFilters.value.subject = '__all__'
-    statisticsFilters.value.topic = '__all__'
-    statisticsFilters.value.subTopic = '__all__'
-  }
-
-  function setStatisticsSubject(value: string) {
-    statisticsFilters.value.subject = value
-    statisticsFilters.value.topic = '__all__'
-    statisticsFilters.value.subTopic = '__all__'
-  }
-
-  function setStatisticsTopic(value: string) {
-    statisticsFilters.value.topic = value
-    statisticsFilters.value.subTopic = '__all__'
-  }
-
-  function setStatisticsSubTopic(value: string) {
-    statisticsFilters.value.subTopic = value
-  }
-
-  function resetStatisticsFilters() {
-    statisticsFilters.value = {
-      dateRange: 'alltime',
-      gradeLevel: '__all__',
-      subject: '__all__',
-      topic: '__all__',
-      subTopic: '__all__',
-    }
-    statisticsPagination.value = {
-      pageIndex: 0,
-      pageSize: 10,
-    }
-  }
-
-  // Statistics pagination setters
-  function setStatisticsPageIndex(value: number) {
-    statisticsPagination.value.pageIndex = value
-  }
-
-  function setStatisticsPageSize(value: number) {
-    statisticsPagination.value.pageSize = value
-    statisticsPagination.value.pageIndex = 0
   }
 
   // Reset store state
