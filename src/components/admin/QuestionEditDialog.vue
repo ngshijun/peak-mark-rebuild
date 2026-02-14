@@ -1,15 +1,11 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import { Field as VeeField } from 'vee-validate'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { useQuestionsStore, type Question } from '@/stores/questions'
 import { useQuestionForm } from '@/composables/useQuestionForm'
 import { computeQuestionImageHash } from '@/lib/imageHash'
-import { ImagePlus, X, Loader2 } from 'lucide-vue-next'
+import { Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Dialog,
   DialogContent,
@@ -18,14 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toast } from 'vue-sonner'
+import QuestionFormFields from './QuestionFormFields.vue'
 
 const props = defineProps<{
   open: boolean
@@ -40,49 +30,22 @@ const emit = defineEmits<{
 const curriculumStore = useCurriculumStore()
 const questionsStore = useQuestionsStore()
 
-const {
-  handleSubmit,
-  values,
-  setFieldValue,
-  errors,
-  isSaving,
-  availableSubjects,
-  availableTopics,
-  availableSubTopics,
-  formImageUrl,
-  imageInputRef,
-  optionImageInputRefs,
-  questionImageFile,
-  optionImageFiles,
-  handleImageUpload,
-  removeImage,
-  handleOptionImageUpload,
-  removeOptionImage,
-  setCorrectOption,
-  toggleCorrectOption,
-  updateOptionText,
-  getOptionImageUrl,
-  initializeEditForm,
-  originalImagePath,
-  originalOptionImagePaths,
-  questionImageRemoved,
-  optionImagesRemoved,
-} = useQuestionForm()
+const form = useQuestionForm()
 
 // Populate form when dialog opens with a question
 watch(
   () => props.open,
   (open) => {
     if (open && props.question) {
-      initializeEditForm(props.question)
+      form.initializeEditForm(props.question)
     }
   },
 )
 
-const onSubmit = handleSubmit(async (formValues) => {
+const onSubmit = form.handleSubmit(async (formValues) => {
   if (!props.question) return
 
-  isSaving.value = true
+  form.isSaving.value = true
 
   try {
     const questionId = props.question.id
@@ -95,21 +58,19 @@ const onSubmit = handleSubmit(async (formValues) => {
     // Track image paths to update
     let questionImagePath: string | null = props.question.imagePath
     const optionImagePaths: Record<string, string | null> = {
-      a: originalOptionImagePaths.value.a ?? null,
-      b: originalOptionImagePaths.value.b ?? null,
-      c: originalOptionImagePaths.value.c ?? null,
-      d: originalOptionImagePaths.value.d ?? null,
+      a: form.originalOptionImagePaths.value.a ?? null,
+      b: form.originalOptionImagePaths.value.b ?? null,
+      c: form.originalOptionImagePaths.value.c ?? null,
+      d: form.originalOptionImagePaths.value.d ?? null,
     }
 
     // Handle question image changes
-    if (questionImageFile.value) {
-      // Delete old image if exists
-      if (originalImagePath.value) {
-        await questionsStore.deleteQuestionImage(originalImagePath.value)
+    if (form.questionImageFile.value) {
+      if (form.originalImagePath.value) {
+        await questionsStore.deleteQuestionImage(form.originalImagePath.value)
       }
-      // Upload new image
       const uploadResult = await questionsStore.uploadQuestionImage(
-        questionImageFile.value,
+        form.questionImageFile.value,
         questionId,
       )
       if (uploadResult.success && uploadResult.path) {
@@ -117,22 +78,19 @@ const onSubmit = handleSubmit(async (formValues) => {
       } else {
         console.error('Failed to upload question image:', uploadResult.error)
       }
-    } else if (questionImageRemoved.value && originalImagePath.value) {
-      // Image was removed, delete from storage
-      await questionsStore.deleteQuestionImage(originalImagePath.value)
+    } else if (form.questionImageRemoved.value && form.originalImagePath.value) {
+      await questionsStore.deleteQuestionImage(form.originalImagePath.value)
       questionImagePath = null
     }
 
     // Handle option image changes (for MCQ/MRQ)
     if (formValues.type === 'mcq' || formValues.type === 'mrq') {
       for (const optionId of ['a', 'b', 'c', 'd'] as const) {
-        const file = optionImageFiles.value[optionId]
+        const file = form.optionImageFiles.value[optionId]
         if (file) {
-          // Delete old image if exists
-          if (originalOptionImagePaths.value[optionId]) {
-            await questionsStore.deleteQuestionImage(originalOptionImagePaths.value[optionId]!)
+          if (form.originalOptionImagePaths.value[optionId]) {
+            await questionsStore.deleteQuestionImage(form.originalOptionImagePaths.value[optionId]!)
           }
-          // Upload new image
           const uploadResult = await questionsStore.uploadQuestionImage(file, questionId, optionId)
           if (uploadResult.success && uploadResult.path) {
             optionImagePaths[optionId] = uploadResult.path
@@ -140,11 +98,10 @@ const onSubmit = handleSubmit(async (formValues) => {
             console.error(`Failed to upload option ${optionId} image:`, uploadResult.error)
           }
         } else if (
-          optionImagesRemoved.value[optionId] &&
-          originalOptionImagePaths.value[optionId]
+          form.optionImagesRemoved.value[optionId] &&
+          form.originalOptionImagePaths.value[optionId]
         ) {
-          // Image was removed, delete from storage
-          await questionsStore.deleteQuestionImage(originalOptionImagePaths.value[optionId]!)
+          await questionsStore.deleteQuestionImage(form.originalOptionImagePaths.value[optionId]!)
           optionImagePaths[optionId] = null
         }
       }
@@ -181,46 +138,44 @@ const onSubmit = handleSubmit(async (formValues) => {
 
     // Recompute image hash if any images were changed
     const imagesChanged =
-      questionImageFile.value ||
-      questionImageRemoved.value ||
-      Object.values(optionImageFiles.value).some((f) => f !== null) ||
-      Object.values(optionImagesRemoved.value).some((removed) => removed)
+      form.questionImageFile.value ||
+      form.questionImageRemoved.value ||
+      Object.values(form.optionImageFiles.value).some((f) => f !== null) ||
+      Object.values(form.optionImagesRemoved.value).some((removed) => removed)
 
     if (imagesChanged) {
-      // Compute hash using File objects for new images (fast), URLs for existing (parallel fetch)
       const imageHash = await computeQuestionImageHash({
-        // Use File if new, URL if existing unchanged, null if removed
-        questionImage: questionImageFile.value
-          ? questionImageFile.value
-          : questionImageRemoved.value
+        questionImage: form.questionImageFile.value
+          ? form.questionImageFile.value
+          : form.questionImageRemoved.value
             ? null
             : questionImagePath
               ? questionsStore.getQuestionImageUrl(questionImagePath)
               : null,
-        optionAImage: optionImageFiles.value.a
-          ? optionImageFiles.value.a
-          : optionImagesRemoved.value.a
+        optionAImage: form.optionImageFiles.value.a
+          ? form.optionImageFiles.value.a
+          : form.optionImagesRemoved.value.a
             ? null
             : optionImagePaths.a
               ? questionsStore.getQuestionImageUrl(optionImagePaths.a)
               : null,
-        optionBImage: optionImageFiles.value.b
-          ? optionImageFiles.value.b
-          : optionImagesRemoved.value.b
+        optionBImage: form.optionImageFiles.value.b
+          ? form.optionImageFiles.value.b
+          : form.optionImagesRemoved.value.b
             ? null
             : optionImagePaths.b
               ? questionsStore.getQuestionImageUrl(optionImagePaths.b)
               : null,
-        optionCImage: optionImageFiles.value.c
-          ? optionImageFiles.value.c
-          : optionImagesRemoved.value.c
+        optionCImage: form.optionImageFiles.value.c
+          ? form.optionImageFiles.value.c
+          : form.optionImagesRemoved.value.c
             ? null
             : optionImagePaths.c
               ? questionsStore.getQuestionImageUrl(optionImagePaths.c)
               : null,
-        optionDImage: optionImageFiles.value.d
-          ? optionImageFiles.value.d
-          : optionImagesRemoved.value.d
+        optionDImage: form.optionImageFiles.value.d
+          ? form.optionImageFiles.value.d
+          : form.optionImagesRemoved.value.d
             ? null
             : optionImagePaths.d
               ? questionsStore.getQuestionImageUrl(optionImagePaths.d)
@@ -235,13 +190,9 @@ const onSubmit = handleSubmit(async (formValues) => {
     emit('save')
     emit('update:open', false)
   } finally {
-    isSaving.value = false
+    form.isSaving.value = false
   }
 })
-
-function handleCancel() {
-  emit('update:open', false)
-}
 </script>
 
 <template>
@@ -253,343 +204,19 @@ function handleCancel() {
       </DialogHeader>
 
       <form class="space-y-4 py-4" @submit="onSubmit">
-        <!-- Question Type + Grade Level Row -->
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Question Type -->
-          <VeeField v-slot="{ handleChange, value }" name="type">
-            <Field>
-              <FieldLabel>Question Type</FieldLabel>
-              <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
-                <SelectTrigger class="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mcq">Multiple Choice (MCQ)</SelectItem>
-                  <SelectItem value="mrq">Multiple Response (MRQ)</SelectItem>
-                  <SelectItem value="short_answer">Short Answer</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-          </VeeField>
-
-          <!-- Grade Level -->
-          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="gradeLevelId">
-            <Field :data-invalid="!!fieldErrors.length">
-              <FieldLabel> Grade Level <span class="text-destructive">*</span> </FieldLabel>
-              <Select
-                :model-value="value"
-                :disabled="isSaving"
-                @update:model-value="
-                  (val) => {
-                    handleChange(val)
-                    setFieldValue('subjectId', '')
-                    setFieldValue('topicId', '')
-                  }
-                "
-              >
-                <SelectTrigger
-                  class="w-full"
-                  :class="{ 'border-destructive': !!fieldErrors.length }"
-                >
-                  <SelectValue placeholder="Select grade level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="grade in curriculumStore.gradeLevels"
-                    :key="grade.id"
-                    :value="grade.id"
-                  >
-                    {{ grade.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError :errors="fieldErrors" />
-            </Field>
-          </VeeField>
-        </div>
-
-        <!-- Subject, Topic, Sub-Topic Row -->
-        <div class="grid grid-cols-3 gap-4">
-          <!-- Subject -->
-          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="subjectId">
-            <Field :data-invalid="!!fieldErrors.length">
-              <FieldLabel> Subject <span class="text-destructive">*</span> </FieldLabel>
-              <Select
-                :model-value="value"
-                :disabled="!values.gradeLevelId || isSaving"
-                @update:model-value="
-                  (val) => {
-                    handleChange(val)
-                    setFieldValue('topicId', '')
-                    setFieldValue('subTopicId', '')
-                  }
-                "
-              >
-                <SelectTrigger
-                  class="w-full"
-                  :class="{ 'border-destructive': !!fieldErrors.length }"
-                >
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="subject in availableSubjects"
-                    :key="subject.id"
-                    :value="subject.id"
-                  >
-                    {{ subject.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError :errors="fieldErrors" />
-            </Field>
-          </VeeField>
-
-          <!-- Topic -->
-          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="topicId">
-            <Field :data-invalid="!!fieldErrors.length">
-              <FieldLabel> Topic <span class="text-destructive">*</span> </FieldLabel>
-              <Select
-                :model-value="value"
-                :disabled="!values.subjectId || isSaving"
-                @update:model-value="
-                  (val) => {
-                    handleChange(val)
-                    setFieldValue('subTopicId', '')
-                  }
-                "
-              >
-                <SelectTrigger
-                  class="w-full"
-                  :class="{ 'border-destructive': !!fieldErrors.length }"
-                >
-                  <SelectValue placeholder="Select topic" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="topic in availableTopics" :key="topic.id" :value="topic.id">
-                    {{ topic.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError :errors="fieldErrors" />
-            </Field>
-          </VeeField>
-
-          <!-- Sub-Topic -->
-          <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="subTopicId">
-            <Field :data-invalid="!!fieldErrors.length">
-              <FieldLabel> Sub-Topic <span class="text-destructive">*</span> </FieldLabel>
-              <Select
-                :model-value="value"
-                :disabled="!values.topicId || isSaving"
-                @update:model-value="handleChange"
-              >
-                <SelectTrigger
-                  class="w-full"
-                  :class="{ 'border-destructive': !!fieldErrors.length }"
-                >
-                  <SelectValue placeholder="Select sub-topic" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="subTopic in availableSubTopics"
-                    :key="subTopic.id"
-                    :value="subTopic.id"
-                  >
-                    {{ subTopic.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError :errors="fieldErrors" />
-            </Field>
-          </VeeField>
-        </div>
-
-        <!-- Question -->
-        <VeeField v-slot="{ value, handleChange, handleBlur, errors: fieldErrors }" name="question">
-          <Field :data-invalid="!!fieldErrors.length">
-            <FieldLabel> Question <span class="text-destructive">*</span> </FieldLabel>
-            <Textarea
-              :model-value="value"
-              @update:model-value="handleChange"
-              @blur="handleBlur"
-              placeholder="Enter the question"
-              rows="3"
-              :disabled="isSaving"
-              :aria-invalid="!!fieldErrors.length"
-              :class="{ 'border-destructive': !!fieldErrors.length }"
-            />
-            <FieldError :errors="fieldErrors" />
-          </Field>
-        </VeeField>
-
-        <!-- Question Image -->
-        <Field>
-          <FieldLabel>Question Image (Optional)</FieldLabel>
-          <div v-if="formImageUrl" class="relative inline-block">
-            <img
-              :src="formImageUrl"
-              alt="Question image"
-              class="max-h-48 rounded-lg border object-contain"
-            />
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              class="absolute -right-2 -top-2 size-6"
-              :disabled="isSaving"
-              @click="removeImage"
-            >
-              <X class="size-4" />
-            </Button>
-          </div>
-          <div v-else>
-            <input
-              ref="imageInputRef"
-              type="file"
-              accept="image/*"
-              class="hidden"
-              @change="handleImageUpload"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              class="w-full"
-              :disabled="isSaving"
-              @click="imageInputRef?.click()"
-            >
-              <ImagePlus class="mr-2 size-4" />
-              Add Image
-            </Button>
-          </div>
-        </Field>
-
-        <!-- MCQ/MRQ Options -->
-        <div v-if="values.type === 'mcq' || values.type === 'mrq'" class="space-y-3">
-          <Field :data-invalid="!!errors.options">
-            <FieldLabel>
-              Options <span class="text-destructive">*</span>
-              <span class="ml-1 text-xs font-normal text-muted-foreground">
-                ({{
-                  values.type === 'mcq'
-                    ? 'select the correct answer'
-                    : 'select all correct answers'
-                }})
-              </span>
-            </FieldLabel>
-            <p class="text-xs text-muted-foreground">
-              Each option can have text, an image, or both.
-            </p>
-            <FieldError v-if="errors.options" :errors="[errors.options]" />
-          </Field>
-
-          <div v-for="option in values.options" :key="option.id" class="space-y-2">
-            <div class="flex items-start gap-2">
-              <Button
-                type="button"
-                :variant="option.isCorrect ? 'default' : 'outline'"
-                size="sm"
-                class="mt-1 w-8 shrink-0"
-                :disabled="isSaving"
-                @click="
-                  values.type === 'mrq'
-                    ? toggleCorrectOption(option.id)
-                    : setCorrectOption(option.id)
-                "
-              >
-                {{ option.id.toUpperCase() }}
-              </Button>
-              <div class="flex-1 space-y-2">
-                <Input
-                  :model-value="option.text ?? ''"
-                  :placeholder="`Option ${option.id.toUpperCase()} text`"
-                  :disabled="isSaving"
-                  @update:model-value="updateOptionText(option.id, $event as string)"
-                />
-                <!-- Option Image -->
-                <div v-if="option.imagePath" class="relative inline-block">
-                  <img
-                    :src="getOptionImageUrl(option.id)"
-                    :alt="`Option ${option.id.toUpperCase()} image`"
-                    class="max-h-24 rounded border object-contain"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    class="absolute -right-2 -top-2 size-5"
-                    :disabled="isSaving"
-                    @click="removeOptionImage(option.id)"
-                  >
-                    <X class="size-3" />
-                  </Button>
-                </div>
-                <div v-else class="flex gap-2">
-                  <input
-                    :ref="(el) => (optionImageInputRefs[option.id] = el as HTMLInputElement)"
-                    type="file"
-                    accept="image/*"
-                    class="hidden"
-                    @change="handleOptionImageUpload($event, option.id)"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    :disabled="isSaving"
-                    @click="optionImageInputRefs[option.id]?.click()"
-                  >
-                    <ImagePlus class="mr-1 size-3" />
-                    Add Image
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Short Answer -->
-        <VeeField
-          v-if="values.type === 'short_answer'"
-          v-slot="{ value, handleChange, handleBlur, errors: fieldErrors }"
-          name="answer"
-        >
-          <Field :data-invalid="!!fieldErrors.length">
-            <FieldLabel> Answer <span class="text-destructive">*</span> </FieldLabel>
-            <Input
-              :model-value="value"
-              @update:model-value="handleChange"
-              @blur="handleBlur"
-              placeholder="Enter the correct answer"
-              :disabled="isSaving"
-              :aria-invalid="!!fieldErrors.length"
-              :class="{ 'border-destructive': !!fieldErrors.length }"
-            />
-            <FieldError :errors="fieldErrors" />
-          </Field>
-        </VeeField>
-
-        <!-- Explanation -->
-        <VeeField v-slot="{ value, handleChange, handleBlur }" name="explanation">
-          <Field>
-            <FieldLabel>Explanation</FieldLabel>
-            <Textarea
-              :model-value="value"
-              @update:model-value="handleChange"
-              @blur="handleBlur"
-              placeholder="Explain the answer"
-              rows="2"
-              :disabled="isSaving"
-            />
-          </Field>
-        </VeeField>
+        <QuestionFormFields :form="form" :option-image-url-getter="form.getOptionImageUrl" />
 
         <DialogFooter>
-          <Button type="button" variant="outline" :disabled="isSaving" @click="handleCancel">
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="form.isSaving.value"
+            @click="emit('update:open', false)"
+          >
             Cancel
           </Button>
-          <Button type="submit" :disabled="isSaving">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
+          <Button type="submit" :disabled="form.isSaving.value">
+            <Loader2 v-if="form.isSaving.value" class="mr-2 size-4 animate-spin" />
             Save Changes
           </Button>
         </DialogFooter>
