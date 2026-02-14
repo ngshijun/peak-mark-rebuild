@@ -2,12 +2,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
-import { useQuestionsStore, type Question, type MCQOption } from '@/stores/questions'
-import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Flag } from 'lucide-vue-next'
+import { useQuestionsStore } from '@/stores/questions'
+import { useQuestionShuffle } from '@/composables/useQuestionShuffle'
+import { ChevronLeft, ChevronRight, Flag } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,6 +21,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import QuestionFeedbackDialog from '@/components/practice/QuestionFeedbackDialog.vue'
+import QuestionOptionsList from '@/components/session/QuestionOptionsList.vue'
+import ShortAnswerInput from '@/components/session/ShortAnswerInput.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -36,50 +38,6 @@ const pendingNavigation = ref<string | null>(null)
 
 // Time tracking for current question
 const questionStartTime = ref<number>(Date.now())
-
-// Store shuffled options per question (keyed by question ID)
-const shuffledOptionsMap = ref<Map<string, MCQOption[]>>(new Map())
-
-// Fisher-Yates shuffle algorithm
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const temp = shuffled[i]!
-    shuffled[i] = shuffled[j]!
-    shuffled[j] = temp
-  }
-  return shuffled
-}
-
-// Get filtered and shuffled options for current question (MCQ and MRQ)
-const displayOptions = computed(() => {
-  if (
-    !currentQuestion.value ||
-    (currentQuestion.value.type !== 'mcq' && currentQuestion.value.type !== 'mrq')
-  )
-    return []
-
-  const questionId = currentQuestion.value.id
-
-  // Check if we already have shuffled options for this question
-  if (shuffledOptionsMap.value.has(questionId)) {
-    return shuffledOptionsMap.value.get(questionId)!
-  }
-
-  // Filter out empty options (no text and no image)
-  const nonEmptyOptions = currentQuestion.value.options.filter(
-    (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
-  )
-
-  // Shuffle the options
-  const shuffled = shuffleArray(nonEmptyOptions)
-
-  // Store for consistent display when navigating back
-  shuffledOptionsMap.value.set(questionId, shuffled)
-
-  return shuffled
-})
 
 // Reset timer when question changes (track by question index)
 watch(
@@ -102,7 +60,7 @@ onMounted(async () => {
     if (needsResume) {
       isResuming.value = true
       // Clear shuffled options from previous session
-      shuffledOptionsMap.value.clear()
+      clearShuffleCache()
       const result = await practiceStore.resumeSession(sessionId)
       isResuming.value = false
 
@@ -123,6 +81,7 @@ onMounted(async () => {
 })
 
 const currentQuestion = computed(() => practiceStore.currentQuestion)
+const { displayOptions, clearCache: clearShuffleCache } = useQuestionShuffle(currentQuestion)
 const currentAnswer = computed(() => practiceStore.currentAnswer)
 const isAnswered = computed(() => practiceStore.isCurrentQuestionAnswered)
 const progress = computed(() => {
@@ -348,260 +307,27 @@ onBeforeRouteLeave((to) => {
             </div>
 
             <!-- MCQ/MRQ Options (shuffled and filtered) -->
-            <div
+            <QuestionOptionsList
               v-if="currentQuestion.type === 'mcq' || currentQuestion.type === 'mrq'"
-              :class="isImageOnlyOptions ? 'grid grid-cols-2 gap-3' : 'space-y-2'"
-            >
-              <!-- Hint for MRQ -->
-              <p
-                v-if="currentQuestion.type === 'mrq'"
-                class="text-sm text-muted-foreground"
-                :class="{ 'col-span-2': isImageOnlyOptions }"
-              >
-                Select all correct answers
-              </p>
-              <button
-                v-for="(option, index) in displayOptions"
-                :key="option.id"
-                class="w-full rounded-lg border p-4 transition-colors"
-                :class="{
-                  'text-left': !isImageOnlyOptions,
-                  'border-primary bg-primary/5': selectedOptionIds.has(option.id) && !isAnswered,
-                  'hover:border-primary/50 hover:bg-muted/50':
-                    !isAnswered && !selectedOptionIds.has(option.id),
-                  'cursor-not-allowed': isAnswered,
-                  'border-green-500 bg-green-50 dark:bg-green-950/20':
-                    isAnswered &&
-                    option.isCorrect &&
-                    (currentQuestion?.type === 'mcq' || answeredOptionIds.includes(option.id)),
-                  'border-red-500 bg-red-50 dark:bg-red-950/20':
-                    isAnswered &&
-                    ((answeredOptionIds.includes(option.id) && !option.isCorrect) ||
-                      (currentQuestion?.type === 'mrq' &&
-                        option.isCorrect &&
-                        !answeredOptionIds.includes(option.id))),
-                }"
-                :disabled="isAnswered"
-                @click="handleOptionClick(option.id)"
-              >
-                <!-- Image-only layout: vertical with centered content -->
-                <div v-if="isImageOnlyOptions" class="flex flex-col items-center gap-2">
-                  <div class="flex w-full items-center justify-between">
-                    <span
-                      class="flex size-8 shrink-0 items-center justify-center rounded-full border font-medium"
-                      :class="{
-                        'border-primary bg-primary text-primary-foreground':
-                          selectedOptionIds.has(option.id) && !isAnswered,
-                        'border-green-500 bg-green-500 text-white':
-                          isAnswered &&
-                          option.isCorrect &&
-                          (currentQuestion?.type === 'mcq' ||
-                            answeredOptionIds.includes(option.id)),
-                        'border-red-500 bg-red-500 text-white':
-                          isAnswered &&
-                          ((answeredOptionIds.includes(option.id) && !option.isCorrect) ||
-                            (currentQuestion?.type === 'mrq' &&
-                              option.isCorrect &&
-                              !answeredOptionIds.includes(option.id))),
-                      }"
-                    >
-                      {{ String.fromCharCode(65 + index) }}
-                    </span>
-                    <div class="flex items-center gap-1">
-                      <!-- Correct and selected -->
-                      <template
-                        v-if="
-                          isAnswered && option.isCorrect && answeredOptionIds.includes(option.id)
-                        "
-                      >
-                        <CheckCircle2 class="size-5 text-green-500" />
-                        <Badge
-                          variant="outline"
-                          class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
-                        >
-                          Your answer
-                        </Badge>
-                      </template>
-                      <!-- MCQ: Correct but NOT selected (show correct answer) -->
-                      <template
-                        v-else-if="
-                          isAnswered &&
-                          currentQuestion?.type === 'mcq' &&
-                          option.isCorrect &&
-                          !answeredOptionIds.includes(option.id)
-                        "
-                      >
-                        <CheckCircle2 class="size-5 text-green-500" />
-                        <Badge
-                          variant="outline"
-                          class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
-                        >
-                          Correct answer
-                        </Badge>
-                      </template>
-                      <!-- MRQ: Correct but NOT selected (missed - show as error) -->
-                      <template
-                        v-else-if="
-                          isAnswered &&
-                          currentQuestion?.type === 'mrq' &&
-                          option.isCorrect &&
-                          !answeredOptionIds.includes(option.id)
-                        "
-                      >
-                        <XCircle class="size-5 text-red-500" />
-                        <Badge
-                          variant="outline"
-                          class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
-                        >
-                          Correct answer
-                        </Badge>
-                      </template>
-                      <!-- Incorrect and selected -->
-                      <template
-                        v-if="
-                          isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect
-                        "
-                      >
-                        <XCircle class="size-5 text-red-500" />
-                        <Badge
-                          variant="outline"
-                          class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
-                        >
-                          Your answer
-                        </Badge>
-                      </template>
-                    </div>
-                  </div>
-                  <img
-                    v-if="option.imagePath"
-                    :key="`${currentQuestion.id}-${option.id}`"
-                    :src="questionsStore.getThumbnailQuestionImageUrl(option.imagePath)"
-                    :alt="`Option ${String.fromCharCode(65 + index)}`"
-                    class="max-h-32 rounded border object-contain"
-                    loading="lazy"
-                  />
-                </div>
-                <!-- Text/mixed layout: horizontal -->
-                <div v-else class="flex items-center gap-3">
-                  <span
-                    class="flex size-8 shrink-0 items-center justify-center rounded-full border font-medium"
-                    :class="{
-                      'border-primary bg-primary text-primary-foreground':
-                        selectedOptionIds.has(option.id) && !isAnswered,
-                      'border-green-500 bg-green-500 text-white':
-                        isAnswered &&
-                        option.isCorrect &&
-                        (currentQuestion?.type === 'mcq' || answeredOptionIds.includes(option.id)),
-                      'border-red-500 bg-red-500 text-white':
-                        isAnswered &&
-                        ((answeredOptionIds.includes(option.id) && !option.isCorrect) ||
-                          (currentQuestion?.type === 'mrq' &&
-                            option.isCorrect &&
-                            !answeredOptionIds.includes(option.id))),
-                    }"
-                  >
-                    {{ String.fromCharCode(65 + index) }}
-                  </span>
-                  <div class="flex flex-1 items-center gap-2">
-                    <span v-if="option.text">{{ option.text }}</span>
-                    <img
-                      v-if="option.imagePath"
-                      :key="`${currentQuestion.id}-${option.id}`"
-                      :src="questionsStore.getThumbnailQuestionImageUrl(option.imagePath)"
-                      :alt="`Option ${String.fromCharCode(65 + index)}`"
-                      class="max-h-16 rounded border object-contain"
-                      loading="lazy"
-                    />
-                  </div>
-                  <!-- Correct and selected -->
-                  <div
-                    v-if="isAnswered && option.isCorrect && answeredOptionIds.includes(option.id)"
-                    class="ml-auto flex items-center gap-1"
-                  >
-                    <CheckCircle2 class="size-5 text-green-500" />
-                    <Badge
-                      variant="outline"
-                      class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
-                    >
-                      Your answer
-                    </Badge>
-                  </div>
-                  <!-- MCQ: Correct but NOT selected (show correct answer) -->
-                  <div
-                    v-else-if="
-                      isAnswered &&
-                      currentQuestion?.type === 'mcq' &&
-                      option.isCorrect &&
-                      !answeredOptionIds.includes(option.id)
-                    "
-                    class="ml-auto flex items-center gap-1"
-                  >
-                    <CheckCircle2 class="size-5 text-green-500" />
-                    <Badge
-                      variant="outline"
-                      class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
-                    >
-                      Correct answer
-                    </Badge>
-                  </div>
-                  <!-- MRQ: Correct but NOT selected (missed - show as error) -->
-                  <div
-                    v-else-if="
-                      isAnswered &&
-                      currentQuestion?.type === 'mrq' &&
-                      option.isCorrect &&
-                      !answeredOptionIds.includes(option.id)
-                    "
-                    class="ml-auto flex items-center gap-1"
-                  >
-                    <XCircle class="size-5 text-red-500" />
-                    <Badge
-                      variant="outline"
-                      class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
-                    >
-                      Correct answer
-                    </Badge>
-                  </div>
-                  <!-- Incorrect and selected -->
-                  <div
-                    v-if="isAnswered && answeredOptionIds.includes(option.id) && !option.isCorrect"
-                    class="ml-auto flex items-center gap-1"
-                  >
-                    <XCircle class="size-5 text-red-500" />
-                    <Badge
-                      variant="outline"
-                      class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
-                    >
-                      Your answer
-                    </Badge>
-                  </div>
-                </div>
-              </button>
-            </div>
+              :options="displayOptions"
+              :question-id="currentQuestion.id"
+              :question-type="currentQuestion.type"
+              :selected-option-ids="selectedOptionIds"
+              :is-answered="isAnswered"
+              :answered-option-ids="answeredOptionIds"
+              :is-image-only="isImageOnlyOptions"
+              @select="handleOptionClick"
+            />
 
             <!-- Short Answer Input -->
-            <div v-if="currentQuestion.type === 'short_answer'" class="space-y-2">
-              <Input
-                v-model="textAnswer"
-                placeholder="Type your answer..."
-                :disabled="isAnswered"
-                class="text-lg"
-                @keyup.enter="!isAnswered && submitAnswer()"
-              />
-              <div v-if="isAnswered" class="mt-4 rounded-lg border p-4">
-                <div class="flex items-center gap-2">
-                  <CheckCircle2 v-if="currentAnswer?.isCorrect" class="size-5 text-green-500" />
-                  <XCircle v-else class="size-5 text-red-500" />
-                  <span class="font-medium">
-                    {{ currentAnswer?.isCorrect ? 'Correct!' : 'Incorrect' }}
-                  </span>
-                </div>
-                <p v-if="!currentAnswer?.isCorrect" class="mt-2 text-sm text-muted-foreground">
-                  The correct answer is:
-                  <span class="font-medium text-foreground">{{ correctAnswer }}</span>
-                </p>
-              </div>
-            </div>
+            <ShortAnswerInput
+              v-if="currentQuestion.type === 'short_answer'"
+              v-model="textAnswer"
+              :is-answered="isAnswered"
+              :is-correct="currentAnswer?.isCorrect ?? null"
+              :correct-answer="correctAnswer"
+              @submit="submitAnswer"
+            />
 
             <!-- Explanation (shown after answering, if wrong) -->
             <div
