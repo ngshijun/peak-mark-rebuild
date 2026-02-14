@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onScopeDispose } from 'vue'
 
 const pettingMessages = [
   "You're doing amazing! Keep it up!",
@@ -58,6 +58,10 @@ export function usePetConversation() {
   const showBubble = ref(false)
   const currentMessage = ref('')
   let timeout: ReturnType<typeof setTimeout> | null = null
+
+  onScopeDispose(() => {
+    if (timeout) clearTimeout(timeout)
+  })
 
   function triggerMessage(type: ConversationType) {
     if (timeout) clearTimeout(timeout)

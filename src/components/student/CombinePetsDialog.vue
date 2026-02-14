@@ -168,17 +168,17 @@ async function handleCombine() {
   try {
     const result = await petsStore.combinePets(ownedPetIds)
 
-    if (!result.success) {
-      toast.error(result.error ?? 'Failed to combine pets')
+    if (result.error !== null) {
+      toast.error(result.error)
       return
     }
 
     const resultPet = result.resultPetId ? petsStore.getPetById(result.resultPetId) : null
     emit('combined', [
       {
-        upgraded: result.upgraded ?? false,
+        upgraded: result.upgraded,
         resultPet: resultPet ?? null,
-        resultRarity: result.resultRarity ?? null,
+        resultRarity: result.resultRarity,
       },
     ])
     petSelectionCounts.value = new Map()
@@ -214,12 +214,12 @@ async function handleQuickCombine() {
       const idsToUse = petPool.slice(i * 4, (i + 1) * 4)
       const result = await petsStore.combinePets(idsToUse)
 
-      if (result.success) {
+      if (result.error === null) {
         const resultPet = result.resultPetId ? petsStore.getPetById(result.resultPetId) : null
         results.push({
-          upgraded: result.upgraded ?? false,
+          upgraded: result.upgraded,
           resultPet: resultPet ?? null,
-          resultRarity: result.resultRarity ?? null,
+          resultRarity: result.resultRarity,
         })
       }
     }

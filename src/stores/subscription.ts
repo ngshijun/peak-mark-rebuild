@@ -338,7 +338,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   async function syncSubscription(
     childId: string,
     sessionId?: string,
-  ): Promise<{ success: boolean; error: string | null }> {
+  ): Promise<{ error: string | null }> {
     isProcessingPayment.value = true
     paymentError.value = null
 
@@ -355,11 +355,11 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       // Refresh subscriptions to get synced data
       await fetchChildrenSubscriptions()
-      return { success: true, error: null }
+      return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to sync subscription.')
       paymentError.value = message
-      return { success: false, error: message }
+      return { error: message }
     } finally {
       isProcessingPayment.value = false
     }
@@ -408,7 +408,6 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     childId: string,
     newTier: SubscriptionTier,
   ): Promise<{
-    success: boolean
     error: string | null
     type?: 'immediate' | 'scheduled'
     scheduledDate?: string
@@ -422,7 +421,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
     const plan = plans.value.find((p) => p.id === newTier)
     if (!plan?.stripePriceId) {
-      return { success: false, error: 'Plan not configured for payments' }
+      return { error: 'Plan not configured for payments' }
     }
 
     isProcessingPayment.value = true
@@ -450,7 +449,6 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       }
 
       return {
-        success: true,
         error: null,
         type: data.type,
         scheduledDate: data.scheduledDate,
@@ -459,7 +457,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     } catch (err) {
       const message = handleError(err, 'Failed to modify subscription.')
       paymentError.value = message
-      return { success: false, error: message }
+      return { error: message }
     } finally {
       isProcessingPayment.value = false
     }
@@ -471,7 +469,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   async function cancelStripeSubscription(
     childId: string,
     immediately: boolean = false,
-  ): Promise<{ success: boolean; error: string | null }> {
+  ): Promise<{ error: string | null }> {
     isProcessingPayment.value = true
     paymentError.value = null
 
@@ -488,11 +486,11 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       // Refresh subscriptions
       await fetchChildrenSubscriptions()
-      return { success: true, error: null }
+      return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to cancel subscription.')
       paymentError.value = message
-      return { success: false, error: message }
+      return { error: message }
     } finally {
       isProcessingPayment.value = false
     }

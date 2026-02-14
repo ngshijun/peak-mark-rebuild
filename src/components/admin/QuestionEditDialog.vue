@@ -73,7 +73,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
         form.questionImageFile.value,
         questionId,
       )
-      if (uploadResult.success && uploadResult.path) {
+      if (uploadResult.path) {
         questionImagePath = uploadResult.path
       } else {
         console.error('Failed to upload question image:', uploadResult.error)
@@ -92,7 +92,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
             await questionsStore.deleteQuestionImage(form.originalOptionImagePaths.value[optionId]!)
           }
           const uploadResult = await questionsStore.uploadQuestionImage(file, questionId, optionId)
-          if (uploadResult.success && uploadResult.path) {
+          if (uploadResult.path) {
             optionImagePaths[optionId] = uploadResult.path
           } else {
             console.error(`Failed to upload option ${optionId} image:`, uploadResult.error)

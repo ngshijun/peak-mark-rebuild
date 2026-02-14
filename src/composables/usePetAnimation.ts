@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onScopeDispose } from 'vue'
 
 /**
  * Composable for managing pet animation states (petting, feeding, evolution)
@@ -12,15 +12,30 @@ export function usePetAnimation() {
   const showSparkles = ref(false)
   const showFoodParticles = ref(false)
 
+  const timeouts = new Set<ReturnType<typeof setTimeout>>()
+
+  function safeTimeout(fn: () => void, ms: number) {
+    const id = setTimeout(() => {
+      timeouts.delete(id)
+      fn()
+    }, ms)
+    timeouts.add(id)
+  }
+
+  onScopeDispose(() => {
+    for (const id of timeouts) clearTimeout(id)
+    timeouts.clear()
+  })
+
   function triggerPet() {
     if (isPetting.value) return false
     isPetting.value = true
     showHearts.value = true
 
-    setTimeout(() => {
+    safeTimeout(() => {
       isPetting.value = false
     }, 300)
-    setTimeout(() => {
+    safeTimeout(() => {
       showHearts.value = false
     }, 300)
 
@@ -32,11 +47,11 @@ export function usePetAnimation() {
     showSparkles.value = true
     showFoodParticles.value = true
 
-    setTimeout(() => {
+    safeTimeout(() => {
       isFeeding.value = false
       showFoodParticles.value = false
     }, 300)
-    setTimeout(() => {
+    safeTimeout(() => {
       showSparkles.value = false
     }, 300)
   }

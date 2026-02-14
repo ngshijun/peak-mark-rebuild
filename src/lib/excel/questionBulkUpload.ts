@@ -326,7 +326,7 @@ async function uploadQuestionImages(
   if (q.questionImage) {
     const file = base64ToFile(q.questionImage, `question_${questionId}`)
     const result = await store.uploadQuestionImage(file, questionId)
-    if (result.success && result.path) {
+    if (result.path) {
       // Update the question with the image path
       await store.updateQuestion(questionId, { imagePath: result.path })
     }
@@ -351,7 +351,7 @@ async function uploadQuestionImages(
       for (const { optionId, image } of optionImages) {
         const file = base64ToFile(image, `option_${optionId}_${questionId}`)
         const result = await store.uploadQuestionImage(file, questionId, optionId)
-        if (result.success && result.path) {
+        if (result.path) {
           const optionIndex = optionId.charCodeAt(0) - 97 // a=0, b=1, etc
           if (updatedOptions[optionIndex]) {
             updatedOptions[optionIndex] = {

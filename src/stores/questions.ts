@@ -267,7 +267,7 @@ export const useQuestionsStore = defineStore('questions', () => {
    */
   async function addQuestion(
     input: CreateQuestionInput,
-  ): Promise<{ success: boolean; error: string | null; id?: string }> {
+  ): Promise<{ error: string | null; id?: string }> {
     try {
       const insertData: Database['public']['Tables']['questions']['Insert'] = {
         type: input.type,
@@ -317,10 +317,10 @@ export const useQuestionsStore = defineStore('questions', () => {
       const newQuestion = rowToQuestion(data, curriculumStore)
       questions.value.unshift(newQuestion)
 
-      return { success: true, error: null, id: data.id }
+      return { error: null, id: data.id }
     } catch (err) {
       const message = handleError(err, 'Failed to add question.')
-      return { success: false, error: message }
+      return { error: message }
     }
   }
 
@@ -330,7 +330,7 @@ export const useQuestionsStore = defineStore('questions', () => {
   async function updateQuestion(
     id: string,
     input: UpdateQuestionInput,
-  ): Promise<{ success: boolean; error: string | null }> {
+  ): Promise<{ error: string | null }> {
     try {
       const updateData: Database['public']['Tables']['questions']['Update'] = {}
 
@@ -383,17 +383,17 @@ export const useQuestionsStore = defineStore('questions', () => {
         questions.value[index] = rowToQuestion(data, curriculumStore)
       }
 
-      return { success: true, error: null }
+      return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to update question.')
-      return { success: false, error: message }
+      return { error: message }
     }
   }
 
   /**
    * Delete a question
    */
-  async function deleteQuestion(id: string): Promise<{ success: boolean; error: string | null }> {
+  async function deleteQuestion(id: string): Promise<{ error: string | null }> {
     try {
       const { error: deleteError } = await supabase.from('questions').delete().eq('id', id)
 
@@ -405,10 +405,10 @@ export const useQuestionsStore = defineStore('questions', () => {
         questions.value.splice(index, 1)
       }
 
-      return { success: true, error: null }
+      return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to delete question.')
-      return { success: false, error: message }
+      return { error: message }
     }
   }
 
@@ -461,7 +461,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     file: File,
     questionId: string,
     optionId?: 'a' | 'b' | 'c' | 'd',
-  ): Promise<{ success: boolean; path: string | null; error: string | null }> {
+  ): Promise<{ path: string | null; error: string | null }> {
     try {
       const fileExt = file.name.split('.').pop()
       const folder = optionId ? `options/${optionId}` : 'questions'
@@ -478,28 +478,26 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       if (uploadError) throw uploadError
 
-      return { success: true, path: filePath, error: null }
+      return { path: filePath, error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to upload image.')
-      return { success: false, path: null, error: message }
+      return { path: null, error: message }
     }
   }
 
   /**
    * Delete a question image from storage
    */
-  async function deleteQuestionImage(
-    path: string,
-  ): Promise<{ success: boolean; error: string | null }> {
+  async function deleteQuestionImage(path: string): Promise<{ error: string | null }> {
     try {
       const { error: deleteError } = await supabase.storage.from('question-images').remove([path])
 
       if (deleteError) throw deleteError
 
-      return { success: true, error: null }
+      return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to delete image.')
-      return { success: false, error: message }
+      return { error: message }
     }
   }
 

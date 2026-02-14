@@ -72,8 +72,8 @@ async function feedPet() {
 
   const result = await petsStore.feedPetForEvolution(selectedOwnedPet.value.id, 1)
 
-  if (!result.success) {
-    toast.error(result.error ?? 'Failed to feed pet')
+  if (result.error !== null) {
+    toast.error(result.error)
   } else {
     triggerMessage('feeding')
     if (result.canEvolve) {
@@ -94,8 +94,8 @@ async function evolvePet() {
 
   const result = await petsStore.evolvePet(selectedOwnedPet.value.id)
 
-  if (!result.success) {
-    toast.error(result.error ?? 'Failed to evolve pet')
+  if (result.error !== null) {
+    toast.error(result.error)
   } else {
     toast.success(`Your pet evolved to Tier ${result.newTier}!`)
   }

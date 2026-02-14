@@ -416,16 +416,12 @@ export const usePetsStore = defineStore('pets', () => {
   async function feedPetForEvolution(
     ownedPetId: string,
     foodAmount: number = 1,
-  ): Promise<{
-    success: boolean
-    foodFed?: number
-    requiredFood?: number
-    canEvolve?: boolean
-    error?: string
-  }> {
+  ): Promise<
+    { error: null; foodFed: number; requiredFood: number; canEvolve: boolean } | { error: string }
+  > {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { success: false, error: 'Not logged in' }
+      return { error: 'Not logged in' }
     }
 
     try {
@@ -436,7 +432,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { success: false, error: handleError(rpcError, 'Failed to feed pet.') }
+        return { error: handleError(rpcError, 'Failed to feed pet.') }
       }
 
       const result = data as {
@@ -448,7 +444,7 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       if (!result.success) {
-        return { success: false, error: result.error }
+        return { error: result.error ?? 'Failed to feed pet.' }
       }
 
       // Update local state with fallback refresh on error
@@ -466,26 +462,24 @@ export const usePetsStore = defineStore('pets', () => {
       await authStore.refreshProfile()
 
       return {
-        success: true,
-        foodFed: result.food_fed,
-        requiredFood: result.required_food,
-        canEvolve: result.can_evolve,
+        error: null,
+        foodFed: result.food_fed ?? 0,
+        requiredFood: result.required_food ?? 0,
+        canEvolve: result.can_evolve ?? false,
       }
     } catch (err) {
       const message = handleError(err, 'Failed to feed pet.')
-      return { success: false, error: message }
+      return { error: message }
     }
   }
 
   // Evolve a pet to the next tier
-  async function evolvePet(ownedPetId: string): Promise<{
-    success: boolean
-    newTier?: number
-    error?: string
-  }> {
+  async function evolvePet(
+    ownedPetId: string,
+  ): Promise<{ error: null; newTier: number } | { error: string }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { success: false, error: 'Not logged in' }
+      return { error: 'Not logged in' }
     }
 
     try {
@@ -495,7 +489,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { success: false, error: handleError(rpcError, 'Failed to evolve pet.') }
+        return { error: handleError(rpcError, 'Failed to evolve pet.') }
       }
 
       const result = data as {
@@ -506,7 +500,7 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       if (!result.success) {
-        return { success: false, error: result.error }
+        return { error: result.error ?? 'Failed to evolve pet.' }
       }
 
       // Update local state with fallback refresh on error
@@ -522,12 +516,12 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       return {
-        success: true,
-        newTier: result.new_tier,
+        error: null,
+        newTier: result.new_tier ?? 0,
       }
     } catch (err) {
       const message = handleError(err, 'Failed to evolve pet.')
-      return { success: false, error: message }
+      return { error: message }
     }
   }
 
@@ -556,20 +550,19 @@ export const usePetsStore = defineStore('pets', () => {
   })
 
   // Combine 4 pets of same rarity for chance at higher rarity
-  async function combinePets(ownedPetIds: string[]): Promise<{
-    success: boolean
-    upgraded?: boolean
-    resultPetId?: string
-    resultRarity?: PetRarity
-    error?: string
-  }> {
+  async function combinePets(
+    ownedPetIds: string[],
+  ): Promise<
+    | { error: null; upgraded: boolean; resultPetId: string; resultRarity: PetRarity }
+    | { error: string }
+  > {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { success: false, error: 'Not logged in' }
+      return { error: 'Not logged in' }
     }
 
     if (ownedPetIds.length !== 4) {
-      return { success: false, error: 'Must select exactly 4 pets' }
+      return { error: 'Must select exactly 4 pets' }
     }
 
     try {
@@ -579,7 +572,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { success: false, error: handleError(rpcError, 'Failed to combine pets.') }
+        return { error: handleError(rpcError, 'Failed to combine pets.') }
       }
 
       const result = data as {
@@ -591,21 +584,21 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       if (!result.success) {
-        return { success: false, error: result.error }
+        return { error: result.error ?? 'Failed to combine pets.' }
       }
 
       // Refresh owned pets to reflect changes
       await fetchOwnedPets()
 
       return {
-        success: true,
-        upgraded: result.upgraded,
-        resultPetId: result.result_pet_id,
-        resultRarity: result.result_rarity,
+        error: null,
+        upgraded: result.upgraded ?? false,
+        resultPetId: result.result_pet_id ?? '',
+        resultRarity: result.result_rarity ?? 'common',
       }
     } catch (err) {
       const message = handleError(err, 'Failed to combine pets.')
-      return { success: false, error: message }
+      return { error: message }
     }
   }
 

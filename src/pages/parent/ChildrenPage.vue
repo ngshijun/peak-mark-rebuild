@@ -104,8 +104,13 @@ async function handleCancelInvitation(invitationId: string) {
 
 async function handleRemoveChild(childId: string) {
   actionInProgress.value = childId
-  await childLinkStore.removeLinkedChild(childId)
+  const { error } = await childLinkStore.removeLinkedChild(childId)
   actionInProgress.value = null
+  if (error) {
+    toast.error(error)
+  } else {
+    toast.info('Child removed')
+  }
 }
 </script>
 

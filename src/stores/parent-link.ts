@@ -112,9 +112,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
   /**
    * Remove linked parent
    */
-  async function removeLinkedParent(
-    parentId: string,
-  ): Promise<{ success?: boolean; error?: string }> {
+  async function removeLinkedParent(parentId: string): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isStudent) {
       return { error: 'Not authenticated as student' }
     }
@@ -156,7 +154,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
         linkedParents.value.splice(index, 1)
       }
 
-      return { success: true }
+      return { error: null }
     } catch (err) {
       return { error: handleError(err, 'Failed to remove parent. Please try again.') }
     }

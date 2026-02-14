@@ -1,4 +1,4 @@
-import { ref, computed, type Ref } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 import type { Question, MCQOption } from '@/stores/questions'
 
 /**
@@ -20,6 +20,22 @@ export function useQuestionShuffle(currentQuestion: Ref<Question | null>) {
     return shuffled
   }
 
+  // Populate cache when question changes (side effect in a watcher, not computed)
+  watch(
+    () => currentQuestion.value,
+    (question) => {
+      if (!question || (question.type !== 'mcq' && question.type !== 'mrq')) return
+      if (shuffledOptionsMap.value.has(question.id)) return
+
+      const nonEmptyOptions = question.options.filter(
+        (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
+      )
+      shuffledOptionsMap.value.set(question.id, shuffleArray(nonEmptyOptions))
+    },
+    { immediate: true },
+  )
+
+  // Pure computed — only reads from the cache
   const displayOptions = computed(() => {
     if (
       !currentQuestion.value ||
@@ -27,21 +43,7 @@ export function useQuestionShuffle(currentQuestion: Ref<Question | null>) {
     )
       return []
 
-    const questionId = currentQuestion.value.id
-
-    if (shuffledOptionsMap.value.has(questionId)) {
-      return shuffledOptionsMap.value.get(questionId)!
-    }
-
-    // Filter out empty options (no text and no image)
-    const nonEmptyOptions = currentQuestion.value.options.filter(
-      (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
-    )
-
-    const shuffled = shuffleArray(nonEmptyOptions)
-    shuffledOptionsMap.value.set(questionId, shuffled)
-
-    return shuffled
+    return shuffledOptionsMap.value.get(currentQuestion.value.id) ?? []
   })
 
   function clearCache() {

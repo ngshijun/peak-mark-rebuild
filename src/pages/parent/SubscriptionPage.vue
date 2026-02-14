@@ -70,12 +70,9 @@ onMounted(async () => {
   const isCanceled = urlParams.get('canceled') === 'true'
 
   if (isSuccess && sessionId && selectedChildId.value) {
-    const { success, error } = await subscriptionStore.syncSubscription(
-      selectedChildId.value,
-      sessionId,
-    )
+    const { error } = await subscriptionStore.syncSubscription(selectedChildId.value, sessionId)
 
-    if (success) {
+    if (!error) {
       toast.success('Subscription activated!', {
         description: 'Your subscription has been successfully activated.',
       })
