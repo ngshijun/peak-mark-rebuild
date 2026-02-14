@@ -457,8 +457,8 @@ export const usePetsStore = defineStore('pets', () => {
         if (ownedPet) {
           ownedPet.foodFed = result.food_fed ?? ownedPet.foodFed
         }
-      } catch {
-        // Local state update failed, re-fetch from DB
+      } catch (err) {
+        console.error('Local state update failed after feeding, re-fetching:', err)
         await fetchOwnedPets()
       }
 
@@ -516,8 +516,8 @@ export const usePetsStore = defineStore('pets', () => {
           ownedPet.tier = result.new_tier ?? ownedPet.tier
           ownedPet.foodFed = 0
         }
-      } catch {
-        // Local state update failed, re-fetch from DB
+      } catch (err) {
+        console.error('Local state update failed after evolving, re-fetching:', err)
         await fetchOwnedPets()
       }
 

@@ -193,7 +193,8 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
         .is('seen_at', null)
 
       hasUnseenReward.value = (count ?? 0) > 0
-    } catch {
+    } catch (err) {
+      console.error('Failed to check unseen rewards:', err)
       hasUnseenReward.value = false
     }
   }
@@ -238,7 +239,8 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
         weeklyXp: data.weekly_xp,
         coinsAwarded: data.coins_awarded,
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to claim weekly reward:', err)
       return null
     }
   }

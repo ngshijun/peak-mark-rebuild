@@ -50,7 +50,8 @@ async function loadDashboardData() {
       petsStore.allPets.length === 0 ? petsStore.fetchAllPets() : Promise.resolve(),
       petsStore.fetchOwnedPets(),
     ])
-  } catch {
+  } catch (err) {
+    console.error('Failed to load dashboard data:', err)
     toast.error('Failed to load dashboard data')
   } finally {
     isLoading.value = false

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useAdminStudentsStore, type MoodEntry } from '@/stores/admin-students'
+import { useAdminStudentEngagementStore, type MoodEntry } from '@/stores/admin-student-engagement'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from 'lucide-vue-next'
 import StatusCalendar, { type StatusEntry } from '@/components/shared/StatusCalendar.vue'
@@ -9,7 +9,7 @@ const props = defineProps<{
   studentId: string
 }>()
 
-const adminStudentsStore = useAdminStudentsStore()
+const adminEngagementStore = useAdminStudentEngagementStore()
 const calendarRef = ref<InstanceType<typeof StatusCalendar> | null>(null)
 
 const calendarStatuses = ref<MoodEntry[]>([])
@@ -28,7 +28,7 @@ async function fetchCalendar(year?: number, month?: number) {
   const y = year ?? calendarRef.value?.currentYear ?? new Date().getFullYear()
   const m = month ?? calendarRef.value?.currentMonth ?? new Date().getMonth() + 1
   isLoading.value = true
-  const { statuses } = await adminStudentsStore.fetchStudentDailyStatuses(props.studentId, y, m)
+  const { statuses } = await adminEngagementStore.fetchStudentDailyStatuses(props.studentId, y, m)
   calendarStatuses.value = statuses
   isLoading.value = false
 }

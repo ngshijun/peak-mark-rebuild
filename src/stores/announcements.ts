@@ -136,8 +136,8 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
       if (!rpcError && data !== null) {
         unreadCount.value = data
       }
-    } catch {
-      // Silently fail for unread count
+    } catch (err) {
+      console.error('Failed to fetch unread announcement count:', err)
     }
   }
 

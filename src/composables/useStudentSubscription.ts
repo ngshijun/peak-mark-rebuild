@@ -69,8 +69,8 @@ async function fetchSubscriptionPlans(): Promise<void> {
       }
       subscriptionPlansCache.value = { plans, lastFetched: Date.now() }
     }
-  } catch {
-    // Keep existing cache on error
+  } catch (err) {
+    console.error('Failed to fetch subscription plans:', err)
   }
 }
 

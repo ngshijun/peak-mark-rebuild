@@ -44,7 +44,8 @@ const onSubmit = handleSubmit(async (values) => {
     sentEmail.value = values.email
     emailSent.value = true
     toast.success('Password reset email sent!')
-  } catch {
+  } catch (err) {
+    console.error('Failed to send password reset email:', err)
     toast.error('An unexpected error occurred')
   } finally {
     isSubmitting.value = false

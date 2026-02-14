@@ -76,7 +76,8 @@ onMounted(async () => {
       tokenError.value = 'Invalid or expired reset link. Please request a new one.'
       isValidToken.value = false
     }
-  } catch {
+  } catch (err) {
+    console.error('Failed to verify reset token:', err)
     tokenError.value = 'An error occurred. Please try again.'
     isValidToken.value = false
   } finally {
@@ -100,7 +101,8 @@ const onSubmit = handleSubmit(async (values) => {
 
     // Sign out after password reset so user can log in fresh
     await signOut()
-  } catch {
+  } catch (err) {
+    console.error('Failed to reset password:', err)
     toast.error('An unexpected error occurred')
   } finally {
     isSubmitting.value = false

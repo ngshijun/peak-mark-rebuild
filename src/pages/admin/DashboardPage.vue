@@ -13,7 +13,8 @@ const dashboardStore = useAdminDashboardStore()
 onMounted(async () => {
   try {
     await dashboardStore.fetchStats()
-  } catch {
+  } catch (err) {
+    console.error('Failed to load dashboard data:', err)
     toast.error('Failed to load dashboard data')
   }
 })

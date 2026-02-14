@@ -65,7 +65,8 @@ onMounted(async () => {
     if (selectedChildId.value) {
       await childStatisticsStore.fetchChildStatistics(selectedChildId.value)
     }
-  } catch {
+  } catch (err) {
+    console.error('Failed to load children data:', err)
     toast.error('Failed to load children data')
   } finally {
     isLoading.value = false

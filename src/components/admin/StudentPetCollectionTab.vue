@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
-import type { StudentOwnedPet } from '@/stores/admin-students'
+import type { StudentOwnedPet } from '@/stores/admin-student-engagement'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 

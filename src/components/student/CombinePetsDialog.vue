@@ -182,7 +182,8 @@ async function handleCombine() {
       },
     ])
     petSelectionCounts.value = new Map()
-  } catch {
+  } catch (err) {
+    console.error('Failed to combine pets:', err)
     toast.error('Failed to combine pets')
   } finally {
     isCombining.value = false
@@ -230,7 +231,8 @@ async function handleQuickCombine() {
     }
 
     petSelectionCounts.value = new Map()
-  } catch {
+  } catch (err) {
+    console.error('Failed to quick-combine pets:', err)
     toast.error('Failed to combine pets')
   } finally {
     isCombining.value = false

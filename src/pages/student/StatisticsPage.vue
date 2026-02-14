@@ -33,7 +33,8 @@ const isLoading = ref(true)
 onMounted(async () => {
   try {
     await practiceStore.fetchSessionHistory()
-  } catch {
+  } catch (err) {
+    console.error('Failed to load practice history:', err)
     toast.error('Failed to load practice history')
   } finally {
     isLoading.value = false

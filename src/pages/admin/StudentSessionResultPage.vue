@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAdminStudentsStore } from '@/stores/admin-students'
 import {
-  useAdminStudentsStore,
+  useAdminStudentStatsStore,
   type StudentPracticeSessionFull,
   type PracticeAnswer,
-} from '@/stores/admin-students'
+} from '@/stores/admin-student-stats'
 import { useQuestionsStore } from '@/stores/questions'
 import { formatDateTime } from '@/lib/date'
 import { parseSimpleMarkdown } from '@/lib/utils'
@@ -19,6 +20,7 @@ import { ArrowLeft, Loader2, BotMessageSquare } from 'lucide-vue-next'
 const route = useRoute()
 const router = useRouter()
 const adminStudentsStore = useAdminStudentsStore()
+const adminStatsStore = useAdminStudentStatsStore()
 const questionsStore = useQuestionsStore()
 
 const studentId = computed(() => route.params.studentId as string)
@@ -54,7 +56,7 @@ onMounted(async () => {
     await adminStudentsStore.fetchAllStudents()
   }
 
-  const result = await adminStudentsStore.getSessionById(studentId.value, sessionId.value)
+  const result = await adminStatsStore.getSessionById(studentId.value, sessionId.value)
   if (result.session) {
     session.value = result.session
   } else {

@@ -149,7 +149,8 @@ onMounted(async () => {
       leaderboardStore.fetchLeaderboard(),
       leaderboardStore.fetchWeeklyLeaderboard(),
     ])
-  } catch {
+  } catch (err) {
+    console.error('Failed to load leaderboard:', err)
     toast.error('Failed to load leaderboard')
   }
 

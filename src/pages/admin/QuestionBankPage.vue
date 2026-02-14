@@ -356,7 +356,8 @@ async function confirmExport() {
           reader.onerror = () => resolve(null)
           reader.readAsDataURL(blob)
         })
-      } catch {
+      } catch (err) {
+        console.error('Failed to convert image to base64:', err)
         return null
       }
     })
