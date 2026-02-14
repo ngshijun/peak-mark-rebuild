@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
-import { supabase } from '@/lib/supabaseClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -87,11 +86,11 @@ async function singlePull() {
   // Use a random capsule color during animation (result unknown until RPC returns)
   capsuleColor.value = '#A855F7'
 
-  const { data: petId, error } = await supabase.rpc('gacha_pull')
+  const { petId, error } = await petsStore.gachaPull()
 
   if (error || !petId) {
     isRolling.value = false
-    toast.error(error?.message ?? 'Pull failed')
+    toast.error(error ?? 'Pull failed')
     return
   }
 
@@ -124,11 +123,11 @@ async function multiPull() {
   lastPullType.value = 'multi'
   capsuleColor.value = '#F59E0B'
 
-  const { data: petIds, error } = await supabase.rpc('gacha_multi_pull')
+  const { petIds, error } = await petsStore.gachaMultiPull()
 
   if (error || !petIds) {
     isRolling.value = false
-    toast.error(error?.message ?? 'Pull failed')
+    toast.error(error ?? 'Pull failed')
     return
   }
 

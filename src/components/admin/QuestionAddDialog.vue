@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { useForm, Field as VeeField } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
-import { z } from 'zod'
+import { watch } from 'vue'
+import { Field as VeeField } from 'vee-validate'
 import { useCurriculumStore } from '@/stores/curriculum'
-import { useQuestionsStore, type MCQOption } from '@/stores/questions'
+import { useQuestionsStore } from '@/stores/questions'
+import { useQuestionForm } from '@/composables/useQuestionForm'
 import { computeQuestionImageHash } from '@/lib/imageHash'
-import type { Database } from '@/types/database.types'
 import { ImagePlus, X, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,88 +27,6 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
 
-type QuestionType = Database['public']['Enums']['question_type']
-
-// Define MCQ option schema
-const mcqOptionSchema = z.object({
-  id: z.enum(['a', 'b', 'c', 'd']),
-  text: z.string().nullable(),
-  imagePath: z.string().nullable(),
-  isCorrect: z.boolean(),
-})
-
-// Helper to check if an option is filled
-const isOptionFilled = (opt: { text: string | null; imagePath: string | null }) =>
-  (opt.text && opt.text.trim()) || opt.imagePath
-
-// Dynamic validation schema based on question type
-const questionFormSchema = toTypedSchema(
-  z
-    .object({
-      type: z.enum(['mcq', 'mrq', 'short_answer']),
-      gradeLevelId: z.string().min(1, 'Grade level is required'),
-      subjectId: z.string().min(1, 'Subject is required'),
-      topicId: z.string().min(1, 'Topic is required'),
-      subTopicId: z.string().min(1, 'Sub-topic is required'),
-      question: z.string().min(1, 'Question text is required'),
-      explanation: z.string().optional(),
-      answer: z.string().optional(),
-      options: z.array(mcqOptionSchema).optional(),
-    })
-    .superRefine((data, ctx) => {
-      if ((data.type === 'mcq' || data.type === 'mrq') && data.options) {
-        const filledOptions = data.options.filter(isOptionFilled)
-        if (filledOptions.length < 2) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'At least 2 options must have text or an image',
-            path: ['options'],
-          })
-        }
-
-        // Check that options are filled consecutively from the beginning (A, B, C, D order)
-        let foundEmpty = false
-        for (const opt of data.options) {
-          const isFilled = isOptionFilled(opt)
-          if (foundEmpty && isFilled) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: 'Options must be filled consecutively from Option A',
-              path: ['options'],
-            })
-            break
-          }
-          if (!isFilled) {
-            foundEmpty = true
-          }
-        }
-
-        const correctCount = data.options.filter((opt) => opt.isCorrect).length
-        if (data.type === 'mcq' && correctCount !== 1) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'MCQ must have exactly one correct answer',
-            path: ['options'],
-          })
-        }
-        if (data.type === 'mrq' && correctCount < 1) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'MRQ must have at least one correct answer',
-            path: ['options'],
-          })
-        }
-      }
-      if (data.type === 'short_answer' && (!data.answer || !data.answer.trim())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Answer is required',
-          path: ['answer'],
-        })
-      }
-    }),
-)
-
 const props = defineProps<{
   open: boolean
 }>()
@@ -123,180 +39,39 @@ const emit = defineEmits<{
 const curriculumStore = useCurriculumStore()
 const questionsStore = useQuestionsStore()
 
-// Loading state
-const isSaving = ref(false)
+const {
+  handleSubmit,
+  values,
+  setFieldValue,
+  errors,
+  isSaving,
+  availableSubjects,
+  availableTopics,
+  availableSubTopics,
+  formImageUrl,
+  imageInputRef,
+  optionImageInputRefs,
+  questionImageFile,
+  optionImageFiles,
+  handleImageUpload,
+  removeImage,
+  handleOptionImageUpload,
+  removeOptionImage,
+  setCorrectOption,
+  toggleCorrectOption,
+  updateOptionText,
+  resetToBlank,
+} = useQuestionForm()
 
-const defaultOptions: MCQOption[] = [
-  { id: 'a', text: '', imagePath: null, isCorrect: false },
-  { id: 'b', text: '', imagePath: null, isCorrect: false },
-  { id: 'c', text: '', imagePath: null, isCorrect: false },
-  { id: 'd', text: '', imagePath: null, isCorrect: false },
-]
-
-const { handleSubmit, values, setFieldValue, resetForm, errors, setFieldTouched } = useForm({
-  validationSchema: questionFormSchema,
-  initialValues: {
-    type: 'mcq' as QuestionType,
-    gradeLevelId: '',
-    subjectId: '',
-    topicId: '',
-    subTopicId: '',
-    question: '',
-    explanation: '',
-    answer: '',
-    options: [...defaultOptions],
-  },
-})
-
-// Image handling refs (not part of validation)
-const formImageUrl = ref('')
-const imageInputRef = ref<HTMLInputElement | null>(null)
-const optionImageInputRefs = ref<Record<string, HTMLInputElement | null>>({
-  a: null,
-  b: null,
-  c: null,
-  d: null,
-})
-
-// Store actual File objects for upload
-const questionImageFile = ref<File | null>(null)
-const optionImageFiles = ref<Record<string, File | null>>({
-  a: null,
-  b: null,
-  c: null,
-  d: null,
-})
-
-// Fetch curriculum on mount if needed
-onMounted(async () => {
-  if (curriculumStore.gradeLevels.length === 0) {
-    await curriculumStore.fetchCurriculum()
-  }
-})
-
-// Computed for cascading selects
-const availableSubjects = computed(() => {
-  const grade = curriculumStore.gradeLevels.find((g) => g.id === values.gradeLevelId)
-  return grade?.subjects ?? []
-})
-
-const availableTopics = computed(() => {
-  const grade = curriculumStore.gradeLevels.find((g) => g.id === values.gradeLevelId)
-  const subject = grade?.subjects.find((s) => s.id === values.subjectId)
-  return subject?.topics ?? []
-})
-
-const availableSubTopics = computed(() => {
-  const grade = curriculumStore.gradeLevels.find((g) => g.id === values.gradeLevelId)
-  const subject = grade?.subjects.find((s) => s.id === values.subjectId)
-  const topic = subject?.topics.find((t) => t.id === values.topicId)
-  return topic?.subTopics ?? []
-})
-
-// Watch for dialog open to reset form
+// Reset form when dialog opens
 watch(
   () => props.open,
   (open) => {
     if (open) {
-      resetForm({
-        values: {
-          type: 'mcq',
-          gradeLevelId: '',
-          subjectId: '',
-          topicId: '',
-          subTopicId: '',
-          question: '',
-          explanation: '',
-          answer: '',
-          options: [...defaultOptions.map((o) => ({ ...o }))],
-        },
-      })
-      // Clear image state
-      formImageUrl.value = ''
-      questionImageFile.value = null
-      optionImageFiles.value = { a: null, b: null, c: null, d: null }
+      resetToBlank()
     }
   },
 )
-
-function handleImageUpload(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    questionImageFile.value = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      formImageUrl.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-}
-
-function removeImage() {
-  formImageUrl.value = ''
-  questionImageFile.value = null
-  if (imageInputRef.value) {
-    imageInputRef.value.value = ''
-  }
-}
-
-function handleOptionImageUpload(event: Event, optionId: 'a' | 'b' | 'c' | 'd') {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    optionImageFiles.value[optionId] = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const currentOptions = values.options || []
-      const options = currentOptions.map((opt) =>
-        opt.id === optionId ? { ...opt, imagePath: e.target?.result as string } : opt,
-      )
-      setFieldValue('options', options)
-    }
-    reader.readAsDataURL(file)
-  }
-}
-
-function removeOptionImage(optionId: 'a' | 'b' | 'c' | 'd') {
-  const currentOptions = values.options || []
-  const options = currentOptions.map((opt) =>
-    opt.id === optionId ? { ...opt, imagePath: null } : opt,
-  )
-  setFieldValue('options', options)
-  optionImageFiles.value[optionId] = null
-  const inputRef = optionImageInputRefs.value[optionId]
-  if (inputRef) {
-    inputRef.value = ''
-  }
-}
-
-function setCorrectOption(optionId: string) {
-  // For MCQ: single correct answer (radio behavior)
-  const options = (values.options || []).map((opt) => ({
-    ...opt,
-    isCorrect: opt.id === optionId,
-  }))
-  setFieldValue('options', options)
-  setFieldTouched('options', true)
-}
-
-function toggleCorrectOption(optionId: string) {
-  // For MRQ: multiple correct answers (checkbox behavior)
-  const options = (values.options || []).map((opt) => ({
-    ...opt,
-    isCorrect: opt.id === optionId ? !opt.isCorrect : opt.isCorrect,
-  }))
-  setFieldValue('options', options)
-  setFieldTouched('options', true)
-}
-
-function updateOptionText(optionId: string, text: string) {
-  const currentOptions = values.options || []
-  const options = currentOptions.map((opt) =>
-    opt.id === optionId ? { ...opt, text: text || null } : opt,
-  )
-  setFieldValue('options', options)
-}
 
 const onSubmit = handleSubmit(async (formValues) => {
   isSaving.value = true

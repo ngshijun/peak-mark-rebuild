@@ -7,6 +7,7 @@ import {
   type PracticeAnswer,
 } from '@/stores/admin-students'
 import { useQuestionsStore } from '@/stores/questions'
+import { formatDuration, formatDateTime } from '@/lib/date'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -62,29 +63,6 @@ onMounted(async () => {
   }
   isLoading.value = false
 })
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) {
-    return `${seconds}s`
-  }
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  if (remainingSeconds === 0) {
-    return `${minutes}m`
-  }
-  return `${minutes}m ${remainingSeconds}s`
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 function getAnswerByIndex(index: number): PracticeAnswer | undefined {
   return session.value?.answers[index]
@@ -186,7 +164,7 @@ function goBack() {
       </div>
 
       <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
-        Completed: {{ formatDate(session.completedAt) }}
+        Completed: {{ formatDateTime(session.completedAt) }}
       </div>
 
       <!-- AI Summary -->

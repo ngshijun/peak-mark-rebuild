@@ -5,8 +5,16 @@ import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
+import {
+  type DateRangeFilter,
+  filterSessions,
+  getUniqueGradeLevels,
+  getUniqueSubjects,
+  getUniqueTopics,
+  getUniqueSubTopics,
+} from '@/lib/sessionFilters'
 
-export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
+export type { DateRangeFilter }
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
@@ -27,24 +35,6 @@ export interface QuestionOption {
   text: string | null
   imagePath: string | null
   isCorrect: boolean
-}
-
-export function getDateRangeStart(filter: DateRangeFilter): Date | null {
-  const now = new Date()
-  switch (filter) {
-    case 'today':
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    case 'last7days':
-      const sevenDaysAgo = new Date(now)
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      return sevenDaysAgo
-    case 'last30days':
-      const thirtyDaysAgo = new Date(now)
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      return thirtyDaysAgo
-    case 'alltime':
-      return null
-  }
 }
 
 export interface ChildPracticeSession {
@@ -640,20 +630,12 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   ): ChildPracticeSession[] {
     const stats = getChildStatistics(childId)
     if (!stats) return []
-
-    const dateRangeStart = dateRange ? getDateRangeStart(dateRange) : null
-
-    return stats.sessions.filter((s) => {
-      if (gradeLevelName && s.gradeLevelName !== gradeLevelName) return false
-      if (subjectName && s.subjectName !== subjectName) return false
-      if (topicName && s.topicName !== topicName) return false
-      if (subTopicName && s.subTopicName !== subTopicName) return false
-      // Date filter applies to completedAt; in-progress sessions always shown
-      if (dateRangeStart && s.completedAt) {
-        const sessionDate = new Date(s.completedAt)
-        if (sessionDate < dateRangeStart) return false
-      }
-      return true
+    return filterSessions(stats.sessions, {
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
     })
   }
 
@@ -674,7 +656,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       subTopicName,
       dateRange,
     )
-    // Only count completed sessions with scores
     const completedSessions = sessions.filter((s) => s.status === 'completed' && s.score !== null)
     if (completedSessions.length === 0) return 0
     const totalScore = completedSessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
@@ -763,34 +744,21 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   function getGradeLevels(childId: string): string[] {
     const stats = getChildStatistics(childId)
     if (!stats) return []
-    const gradeLevels = new Set(stats.sessions.map((s) => s.gradeLevelName))
-    return Array.from(gradeLevels).sort()
+    return getUniqueGradeLevels(stats.sessions)
   }
 
   // Get unique subjects for a child (optionally filtered by grade level)
   function getSubjects(childId: string, gradeLevelName?: string): string[] {
     const stats = getChildStatistics(childId)
     if (!stats) return []
-    const sessions = gradeLevelName
-      ? stats.sessions.filter((s) => s.gradeLevelName === gradeLevelName)
-      : stats.sessions
-    const subjects = new Set(sessions.map((s) => s.subjectName))
-    return Array.from(subjects).sort()
+    return getUniqueSubjects(stats.sessions, gradeLevelName)
   }
 
   // Get unique topics for a child (optionally filtered by grade level and subject)
   function getTopics(childId: string, gradeLevelName?: string, subjectName?: string): string[] {
     const stats = getChildStatistics(childId)
     if (!stats) return []
-    let sessions = stats.sessions
-    if (gradeLevelName) {
-      sessions = sessions.filter((s) => s.gradeLevelName === gradeLevelName)
-    }
-    if (subjectName) {
-      sessions = sessions.filter((s) => s.subjectName === subjectName)
-    }
-    const topics = new Set(sessions.map((s) => s.topicName))
-    return Array.from(topics).sort()
+    return getUniqueTopics(stats.sessions, gradeLevelName, subjectName)
   }
 
   // Get unique sub-topics for a child (optionally filtered by grade level, subject, and topic)
@@ -802,18 +770,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   ): string[] {
     const stats = getChildStatistics(childId)
     if (!stats) return []
-    let sessions = stats.sessions
-    if (gradeLevelName) {
-      sessions = sessions.filter((s) => s.gradeLevelName === gradeLevelName)
-    }
-    if (subjectName) {
-      sessions = sessions.filter((s) => s.subjectName === subjectName)
-    }
-    if (topicName) {
-      sessions = sessions.filter((s) => s.topicName === topicName)
-    }
-    const subTopics = new Set(sessions.map((s) => s.subTopicName))
-    return Array.from(subTopics).sort()
+    return getUniqueSubTopics(stats.sessions, gradeLevelName, subjectName, topicName)
   }
 
   // Get recent sessions for a child (sorted by date descending)

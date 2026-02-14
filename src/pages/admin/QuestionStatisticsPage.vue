@@ -2,7 +2,6 @@
 import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useQuestionsStore, type QuestionWithStats } from '@/stores/questions'
-import { supabase } from '@/lib/supabaseClient'
 import { toast } from 'vue-sonner'
 import { Search, Clock, ArrowUpDown, RefreshCw } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
@@ -31,15 +30,12 @@ const isRefreshing = ref(false)
 async function refreshStatistics(): Promise<void> {
   isRefreshing.value = true
   try {
-    const { error } = await supabase.rpc('refresh_question_statistics')
-    if (error) throw error
-
-    // Re-fetch the statistics after refresh
-    await questionsStore.fetchQuestionStatistics()
+    const { error } = await questionsStore.refreshQuestionStatistics()
+    if (error) {
+      toast.error(error)
+      return
+    }
     toast.success('Statistics refreshed successfully')
-  } catch (err) {
-    console.error('Error refreshing statistics:', err)
-    toast.error('Failed to refresh statistics')
   } finally {
     isRefreshing.value = false
   }

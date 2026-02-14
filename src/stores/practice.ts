@@ -35,7 +35,16 @@ function shuffle<T>(array: T[]): T[] {
   return result
 }
 
-export type DateRangeFilter = 'today' | 'last7days' | 'last30days' | 'alltime'
+import {
+  type DateRangeFilter,
+  filterSessions,
+  getUniqueGradeLevels,
+  getUniqueSubjects,
+  getUniqueTopics,
+  getUniqueSubTopics,
+} from '@/lib/sessionFilters'
+
+export type { DateRangeFilter }
 
 export interface PracticeAnswer {
   id: string
@@ -84,24 +93,6 @@ export interface SessionLimitStatus {
   sessionsToday: number
   sessionLimit: number
   remainingSessions: number
-}
-
-export function getDateRangeStart(filter: DateRangeFilter): Date | null {
-  const now = new Date()
-  switch (filter) {
-    case 'today':
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    case 'last7days':
-      const sevenDaysAgo = new Date(now)
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      return sevenDaysAgo
-    case 'last30days':
-      const thirtyDaysAgo = new Date(now)
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      return thirtyDaysAgo
-    case 'alltime':
-      return null
-  }
 }
 
 export const usePracticeStore = defineStore('practice', () => {
@@ -1000,37 +991,28 @@ export const usePracticeStore = defineStore('practice', () => {
   ): PracticeSession[] {
     if (!authStore.user) return []
 
-    const dateRangeStart = dateRange ? getDateRangeStart(dateRange) : null
-
-    return sessionHistory.value
-      .filter((s) => s.studentId === authStore.user!.id)
-      .filter((s) => {
-        if (gradeLevelName && s.gradeLevelName !== gradeLevelName) return false
-        if (subjectName && s.subjectName !== subjectName) return false
-        if (topicName && s.topicName !== topicName) return false
-        if (subTopicName && s.subTopicName !== subTopicName) return false
-        // Date filter applies to completedAt; in-progress sessions always shown
-        if (dateRangeStart && s.completedAt) {
-          const sessionDate = new Date(s.completedAt)
-          if (sessionDate < dateRangeStart) return false
-        }
-        return true
-      })
-      .sort((a, b) => {
-        // In-progress sessions pinned to top, then completed descending by completedAt
-        const aCompleted = !!a.completedAt
-        const bCompleted = !!b.completedAt
-        if (!aCompleted && bCompleted) return -1
-        if (aCompleted && !bCompleted) return 1
-        if (!aCompleted && !bCompleted) {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
-          return dateB - dateA
-        }
-        const dateA = new Date(a.completedAt!).getTime()
-        const dateB = new Date(b.completedAt!).getTime()
+    const studentSessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
+    return filterSessions(studentSessions, {
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
+    }).sort((a, b) => {
+      // In-progress sessions pinned to top, then completed descending by completedAt
+      const aCompleted = !!a.completedAt
+      const bCompleted = !!b.completedAt
+      if (!aCompleted && bCompleted) return -1
+      if (aCompleted && !bCompleted) return 1
+      if (!aCompleted && !bCompleted) {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
         return dateB - dateA
-      })
+      }
+      const dateA = new Date(a.completedAt!).getTime()
+      const dateB = new Date(b.completedAt!).getTime()
+      return dateB - dateA
+    })
   }
 
   /**
@@ -1038,12 +1020,8 @@ export const usePracticeStore = defineStore('practice', () => {
    */
   function getHistoryGradeLevels(): string[] {
     if (!authStore.user) return []
-    const gradeLevels = new Set(
-      sessionHistory.value
-        .filter((s) => s.studentId === authStore.user!.id)
-        .map((s) => s.gradeLevelName),
-    )
-    return Array.from(gradeLevels).sort()
+    const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
+    return getUniqueGradeLevels(sessions)
   }
 
   /**
@@ -1052,11 +1030,7 @@ export const usePracticeStore = defineStore('practice', () => {
   function getHistorySubjects(gradeLevelName?: string): string[] {
     if (!authStore.user) return []
     const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
-    const filtered = gradeLevelName
-      ? sessions.filter((s) => s.gradeLevelName === gradeLevelName)
-      : sessions
-    const subjects = new Set(filtered.map((s) => s.subjectName))
-    return Array.from(subjects).sort()
+    return getUniqueSubjects(sessions, gradeLevelName)
   }
 
   /**
@@ -1064,15 +1038,8 @@ export const usePracticeStore = defineStore('practice', () => {
    */
   function getHistoryTopics(gradeLevelName?: string, subjectName?: string): string[] {
     if (!authStore.user) return []
-    let sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
-    if (gradeLevelName) {
-      sessions = sessions.filter((s) => s.gradeLevelName === gradeLevelName)
-    }
-    if (subjectName) {
-      sessions = sessions.filter((s) => s.subjectName === subjectName)
-    }
-    const topics = new Set(sessions.map((s) => s.topicName))
-    return Array.from(topics).sort()
+    const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
+    return getUniqueTopics(sessions, gradeLevelName, subjectName)
   }
 
   /**
@@ -1084,18 +1051,8 @@ export const usePracticeStore = defineStore('practice', () => {
     topicName?: string,
   ): string[] {
     if (!authStore.user) return []
-    let sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
-    if (gradeLevelName) {
-      sessions = sessions.filter((s) => s.gradeLevelName === gradeLevelName)
-    }
-    if (subjectName) {
-      sessions = sessions.filter((s) => s.subjectName === subjectName)
-    }
-    if (topicName) {
-      sessions = sessions.filter((s) => s.topicName === topicName)
-    }
-    const subTopics = new Set(sessions.map((s) => s.subTopicName))
-    return Array.from(subTopics).sort()
+    const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
+    return getUniqueSubTopics(sessions, gradeLevelName, subjectName, topicName)
   }
 
   /**
@@ -1480,6 +1437,27 @@ export const usePracticeStore = defineStore('practice', () => {
     resetPracticeNavigation()
   }
 
+  /**
+   * Generate AI summary for a completed session (Edge Function)
+   */
+  async function generateSessionSummary(
+    sessionId: string,
+  ): Promise<{ summary: string | null; error: string | null }> {
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('generate-session-summary', {
+        body: { sessionId },
+      })
+
+      if (fnError) {
+        return { summary: null, error: handleError(fnError, 'Failed to generate AI summary') }
+      }
+
+      return { summary: data?.summary ?? null, error: null }
+    } catch (err) {
+      return { summary: null, error: handleError(err, 'Failed to generate AI summary') }
+    }
+  }
+
   return {
     currentSession,
     sessionHistory,
@@ -1529,6 +1507,7 @@ export const usePracticeStore = defineStore('practice', () => {
     getHistoryTopics,
     getHistorySubTopics,
     getSessionById,
+    generateSessionSummary,
     resumeSession,
     optionNumberToId,
     optionNumbersToIds,

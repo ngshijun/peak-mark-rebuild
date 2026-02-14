@@ -589,6 +589,21 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   /**
+   * Refresh the materialized view for question statistics and re-fetch
+   */
+  async function refreshQuestionStatistics(): Promise<{ error: string | null }> {
+    try {
+      const { error: rpcError } = await supabase.rpc('refresh_question_statistics')
+      if (rpcError) throw rpcError
+
+      await fetchQuestionStatistics()
+      return { error: null }
+    } catch (err) {
+      return { error: handleError(err, 'Failed to refresh statistics') }
+    }
+  }
+
+  /**
    * Get questions with statistics
    */
   const questionsWithStats = computed<QuestionWithStats[]>(() => {
@@ -835,6 +850,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     getOptimizedQuestionImageUrl,
     getThumbnailQuestionImageUrl,
     fetchQuestionStatistics,
+    refreshQuestionStatistics,
     getStatsByQuestionId,
 
     // Filter helpers

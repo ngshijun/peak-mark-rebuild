@@ -8,8 +8,8 @@ import {
   type StudentSubscriptionStatus,
 } from '@/stores/practice'
 import { useQuestionsStore } from '@/stores/questions'
+import { formatDuration, formatDateTime } from '@/lib/date'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
-import { supabase } from '@/lib/supabaseClient'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -102,29 +102,6 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) {
-    return `${seconds}s`
-  }
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  if (remainingSeconds === 0) {
-    return `${minutes}m`
-  }
-  return `${minutes}m ${remainingSeconds}s`
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 function getAnswerForQuestion(questionId: string): PracticeAnswer | undefined {
   return session.value?.answers.find((a) => a.questionId === questionId)
 }
@@ -168,27 +145,15 @@ async function generateAiSummary() {
   if (!session.value || aiSummaryStatus.value === 'loading') return
 
   aiSummaryStatus.value = 'loading'
-  try {
-    const { data, error } = await supabase.functions.invoke('generate-session-summary', {
-      body: { sessionId: session.value.id },
-    })
+  const { summary, error } = await practiceStore.generateSessionSummary(session.value.id)
 
-    if (error) {
-      console.error('Failed to generate AI summary:', error)
-      aiSummaryStatus.value = 'failed'
-      return
-    }
-
-    if (data?.summary) {
-      session.value.aiSummary = data.summary
-      aiSummaryStatus.value = 'success'
-    } else {
-      aiSummaryStatus.value = 'failed'
-    }
-  } catch (err) {
-    console.error('Error generating AI summary:', err)
+  if (error || !summary) {
     aiSummaryStatus.value = 'failed'
+    return
   }
+
+  session.value.aiSummary = summary
+  aiSummaryStatus.value = 'success'
 }
 </script>
 
@@ -274,7 +239,7 @@ async function generateAiSummary() {
       </div>
 
       <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
-        Completed: {{ formatDate(session.completedAt) }}
+        Completed: {{ formatDateTime(session.completedAt) }}
       </div>
 
       <!-- AI Summary Card (always visible) -->

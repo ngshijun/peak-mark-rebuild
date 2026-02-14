@@ -803,6 +803,50 @@ export const usePetsStore = defineStore('pets', () => {
     adminPetsFilters.value.search = search
   }
 
+  // Gacha single pull (server-side RPC)
+  async function gachaPull(): Promise<{ petId: string | null; error: string | null }> {
+    try {
+      const { data: petId, error: rpcError } = await supabase.rpc('gacha_pull')
+      if (rpcError) {
+        return { petId: null, error: handleError(rpcError, 'Pull failed') }
+      }
+      return { petId: petId ?? null, error: null }
+    } catch (err) {
+      return { petId: null, error: handleError(err, 'Pull failed') }
+    }
+  }
+
+  // Gacha multi pull (10x, server-side RPC)
+  async function gachaMultiPull(): Promise<{ petIds: string[] | null; error: string | null }> {
+    try {
+      const { data: petIds, error: rpcError } = await supabase.rpc('gacha_multi_pull')
+      if (rpcError) {
+        return { petIds: null, error: handleError(rpcError, 'Pull failed') }
+      }
+      return { petIds: petIds ?? null, error: null }
+    } catch (err) {
+      return { petIds: null, error: handleError(err, 'Pull failed') }
+    }
+  }
+
+  // Exchange coins for food (server-side RPC)
+  async function exchangeCoinsForFood(foodAmount: number): Promise<{ error: string | null }> {
+    try {
+      const { error: rpcError } = await supabase.rpc('exchange_coins_for_food', {
+        p_food_amount: foodAmount,
+      })
+      if (rpcError) {
+        const message = rpcError.message.includes('Insufficient')
+          ? 'Not enough coins!'
+          : handleError(rpcError, 'Failed to exchange coins for food')
+        return { error: message }
+      }
+      return { error: null }
+    } catch (err) {
+      return { error: handleError(err, 'Failed to exchange coins for food') }
+    }
+  }
+
   // Reset user-specific state (call on logout)
   // Note: allPets is shared data and doesn't need reset
   function $reset() {
@@ -847,6 +891,11 @@ export const usePetsStore = defineStore('pets', () => {
     isPetOwned,
     getOwnedPet,
     getPetById,
+
+    // Gacha & exchange
+    gachaPull,
+    gachaMultiPull,
+    exchangeCoinsForFood,
 
     // Student actions
     addPet,

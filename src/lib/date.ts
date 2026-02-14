@@ -60,3 +60,56 @@ export function mytDateToUTCDate(mytDateStr: string): Date {
 export function utcDateToString(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
 }
+
+// ─── Display formatting utilities ────────────────────────────────────────────
+
+/**
+ * Formats seconds into a human-readable study time string.
+ * Examples: "5 sec", "3 min", "1 hr 30 min"
+ */
+export function formatStudyTime(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds} sec`
+  }
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes} min`
+  }
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  if (remainingMinutes === 0) {
+    return `${hours} hr`
+  }
+  return `${hours} hr ${remainingMinutes} min`
+}
+
+/**
+ * Formats seconds into a compact duration string.
+ * Examples: "5s", "3m", "1m 30s"
+ */
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}s`
+  }
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  if (remainingSeconds === 0) {
+    return `${minutes}m`
+  }
+  return `${minutes}m ${remainingSeconds}s`
+}
+
+/**
+ * Formats a date string into a locale date-time string.
+ * Example: "Jan 1, 2025, 10:30 AM"
+ */
+export function formatDateTime(dateString: string): string {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}

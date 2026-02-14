@@ -2,6 +2,7 @@
 import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useFeedbackStore, type QuestionFeedback } from '@/stores/feedback'
+import { formatDateTime } from '@/lib/date'
 import { useQuestionsStore, type Question } from '@/stores/questions'
 import type { Database } from '@/types/database.types'
 import { Search, Trash2, ArrowUpDown, Loader2, MoreHorizontal, Pencil } from 'lucide-vue-next'
@@ -93,18 +94,6 @@ const filteredFeedbacks = computed(() => {
       categoryConfig[f.category].label.toLowerCase().includes(query),
   )
 })
-
-// Format date display
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 // Delete Feedback Dialog
 const showDeleteDialog = ref(false)
@@ -252,7 +241,7 @@ const columns: ColumnDef<QuestionFeedback>[] = [
       return h(
         'div',
         { class: 'text-sm text-muted-foreground' },
-        formatDate(row.original.reportedAt),
+        formatDateTime(row.original.reportedAt),
       )
     },
   },

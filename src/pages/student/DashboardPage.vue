@@ -7,7 +7,7 @@ import { usePetsStore } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
-import DailyStatusButton from '@/components/dashboard/DailyStatusButton.vue'
+import DailyStatus from '@/components/dashboard/DailyStatus.vue'
 import BestSubjectCard from '@/components/dashboard/BestSubjectCard.vue'
 import CurrentPetCard from '@/components/dashboard/CurrentPetCard.vue'
 import SpinWheelCard from '@/components/dashboard/SpinWheelCard.vue'
@@ -22,7 +22,7 @@ const petsStore = usePetsStore()
 const authStore = useAuthStore()
 
 const isLoading = ref(true)
-const dailyStatusButtonRef = ref<InstanceType<typeof DailyStatusButton> | null>(null)
+const dailyStatusButtonRef = ref<InstanceType<typeof DailyStatus> | null>(null)
 
 // LocalStorage key for "don't show again today"
 const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
@@ -75,7 +75,7 @@ watch(isLoading, async (loading) => {
   if (!loading && shouldShowMoodReminder()) {
     // Wait for Vue to finish rendering the v-else content
     await nextTick()
-    // Open the DailyStatusButton dialog with "don't show again" option
+    // Open the DailyStatus dialog with "don't show again" option
     dailyStatusButtonRef.value?.openDialog(true)
   }
 })
@@ -91,7 +91,7 @@ watch(isLoading, async (loading) => {
       </div>
       <div v-if="!isLoading" class="flex items-center gap-2">
         <SpinWheelCard />
-        <DailyStatusButton ref="dailyStatusButtonRef" />
+        <DailyStatus ref="dailyStatusButtonRef" />
       </div>
     </div>
 

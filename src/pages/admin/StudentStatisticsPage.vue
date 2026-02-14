@@ -9,6 +9,7 @@ import {
   type StudentOwnedPet,
   type MoodEntry,
 } from '@/stores/admin-students'
+import { formatStudyTime, formatDuration, formatDateTime } from '@/lib/date'
 import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -308,45 +309,6 @@ const displayedSessions = computed(() => {
   return recentSessions.value
 })
 
-function formatStudyTime(seconds: number): string {
-  if (seconds < 60) {
-    return `${seconds} sec`
-  }
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) {
-    return `${minutes} min`
-  }
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-  if (remainingMinutes === 0) {
-    return `${hours} hr`
-  }
-  return `${hours} hr ${remainingMinutes} min`
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) {
-    return `${seconds}s`
-  }
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  if (remainingSeconds === 0) {
-    return `${minutes}m`
-  }
-  return `${minutes}m ${remainingSeconds}s`
-}
-
 // Column definitions for practice sessions table
 const columns: ColumnDef<StudentPracticeSession>[] = [
   {
@@ -366,7 +328,7 @@ const columns: ColumnDef<StudentPracticeSession>[] = [
       if (!completedAt) {
         return h('div', { class: 'text-muted-foreground' }, '-')
       }
-      return h('div', { class: 'text-sm' }, formatDate(completedAt))
+      return h('div', { class: 'text-sm' }, formatDateTime(completedAt))
     },
     sortingFn: (rowA, rowB) => {
       // In-progress (null) pinned to top when descending

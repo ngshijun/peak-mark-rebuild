@@ -3,7 +3,6 @@ import { ref, computed, Transition } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, rarityConfig, EVOLUTION_COSTS } from '@/stores/pets'
-import { supabase } from '@/lib/supabaseClient'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -177,24 +176,16 @@ async function handleExchangeFood() {
 
   isExchanging.value = true
   try {
-    const { error } = await supabase.rpc('exchange_coins_for_food', {
-      p_food_amount: foodAmount.value,
-    })
+    const { error } = await petsStore.exchangeCoinsForFood(foodAmount.value)
 
     if (error) {
-      toast.error(
-        error.message.includes('Insufficient')
-          ? 'Not enough coins!'
-          : 'Failed to exchange coins for food',
-      )
+      toast.error(error)
       return
     }
 
     await authStore.refreshProfile()
     toast.success(`Exchanged ${exchangeCost.value} coins for ${foodAmount.value} food!`)
     showFoodExchangeDialog.value = false
-  } catch {
-    toast.error('Failed to exchange coins for food')
   } finally {
     isExchanging.value = false
   }
