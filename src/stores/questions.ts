@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 import { useCurriculumStore } from './curriculum'
@@ -674,62 +674,69 @@ export const useQuestionsStore = defineStore('questions', () => {
   }
 
   // ============================================
-  // Question Bank Page Setters
+  // Cascading Filter Setter Factory
   // ============================================
-  function setQuestionBankGradeLevel(value: string) {
-    questionBankFilters.value.gradeLevel = value
-    // Reset dependent filters
-    questionBankFilters.value.subject = ALL_VALUE
-    questionBankFilters.value.topic = ALL_VALUE
-    questionBankFilters.value.subTopic = ALL_VALUE
-    // Reset pagination
-    questionBankPagination.value.pageIndex = 0
+  function createCascadingFilterSetters(
+    filters: Ref<{
+      gradeLevel: string
+      subject: string
+      topic: string
+      subTopic: string
+      search: string
+    }>,
+    pagination: Ref<{ pageIndex: number; pageSize: number }>,
+  ) {
+    return {
+      setGradeLevel(value: string) {
+        filters.value.gradeLevel = value
+        filters.value.subject = ALL_VALUE
+        filters.value.topic = ALL_VALUE
+        filters.value.subTopic = ALL_VALUE
+        pagination.value.pageIndex = 0
+      },
+      setSubject(value: string) {
+        filters.value.subject = value
+        filters.value.topic = ALL_VALUE
+        filters.value.subTopic = ALL_VALUE
+        pagination.value.pageIndex = 0
+      },
+      setTopic(value: string) {
+        filters.value.topic = value
+        filters.value.subTopic = ALL_VALUE
+        pagination.value.pageIndex = 0
+      },
+      setSubTopic(value: string) {
+        filters.value.subTopic = value
+        pagination.value.pageIndex = 0
+      },
+      setSearch(value: string) {
+        filters.value.search = value
+        pagination.value.pageIndex = 0
+      },
+      setPageIndex(value: number) {
+        pagination.value.pageIndex = value
+      },
+      setPageSize(value: number) {
+        pagination.value.pageSize = value
+        pagination.value.pageIndex = 0
+      },
+    }
   }
 
-  function setQuestionBankSubject(value: string) {
-    questionBankFilters.value.subject = value
-    // Reset dependent filters
-    questionBankFilters.value.topic = ALL_VALUE
-    questionBankFilters.value.subTopic = ALL_VALUE
-    // Reset pagination
-    questionBankPagination.value.pageIndex = 0
-  }
-
-  function setQuestionBankTopic(value: string) {
-    questionBankFilters.value.topic = value
-    // Reset dependent filter
-    questionBankFilters.value.subTopic = ALL_VALUE
-    // Reset pagination
-    questionBankPagination.value.pageIndex = 0
-  }
-
-  function setQuestionBankSubTopic(value: string) {
-    questionBankFilters.value.subTopic = value
-    // Reset pagination
-    questionBankPagination.value.pageIndex = 0
-  }
-
-  function setQuestionBankSearch(value: string) {
-    questionBankFilters.value.search = value
-    // Reset pagination
-    questionBankPagination.value.pageIndex = 0
-  }
-
-  function setQuestionBankPageIndex(value: number) {
-    questionBankPagination.value.pageIndex = value
-  }
-
-  function setQuestionBankPageSize(value: number) {
-    questionBankPagination.value.pageSize = value
-    questionBankPagination.value.pageIndex = 0
-  }
+  const questionBankSetters = createCascadingFilterSetters(
+    questionBankFilters,
+    questionBankPagination,
+  )
+  const questionStatisticsSetters = createCascadingFilterSetters(
+    questionStatisticsFilters,
+    questionStatisticsPagination,
+  )
 
   // ============================================
-  // Question Feedback Page Setters
+  // Question Feedback Page Setters (simpler, no cascading)
   // ============================================
   function setQuestionFeedbackSearch(value: string) {
     questionFeedbackFilters.value.search = value
-    // Reset pagination
     questionFeedbackPagination.value.pageIndex = 0
   }
 
@@ -740,57 +747,6 @@ export const useQuestionsStore = defineStore('questions', () => {
   function setQuestionFeedbackPageSize(value: number) {
     questionFeedbackPagination.value.pageSize = value
     questionFeedbackPagination.value.pageIndex = 0
-  }
-
-  // ============================================
-  // Question Statistics Page Setters
-  // ============================================
-  function setQuestionStatisticsGradeLevel(value: string) {
-    questionStatisticsFilters.value.gradeLevel = value
-    // Reset dependent filters
-    questionStatisticsFilters.value.subject = ALL_VALUE
-    questionStatisticsFilters.value.topic = ALL_VALUE
-    questionStatisticsFilters.value.subTopic = ALL_VALUE
-    // Reset pagination
-    questionStatisticsPagination.value.pageIndex = 0
-  }
-
-  function setQuestionStatisticsSubject(value: string) {
-    questionStatisticsFilters.value.subject = value
-    // Reset dependent filters
-    questionStatisticsFilters.value.topic = ALL_VALUE
-    questionStatisticsFilters.value.subTopic = ALL_VALUE
-    // Reset pagination
-    questionStatisticsPagination.value.pageIndex = 0
-  }
-
-  function setQuestionStatisticsTopic(value: string) {
-    questionStatisticsFilters.value.topic = value
-    // Reset dependent filter
-    questionStatisticsFilters.value.subTopic = ALL_VALUE
-    // Reset pagination
-    questionStatisticsPagination.value.pageIndex = 0
-  }
-
-  function setQuestionStatisticsSubTopic(value: string) {
-    questionStatisticsFilters.value.subTopic = value
-    // Reset pagination
-    questionStatisticsPagination.value.pageIndex = 0
-  }
-
-  function setQuestionStatisticsSearch(value: string) {
-    questionStatisticsFilters.value.search = value
-    // Reset pagination
-    questionStatisticsPagination.value.pageIndex = 0
-  }
-
-  function setQuestionStatisticsPageIndex(value: number) {
-    questionStatisticsPagination.value.pageIndex = value
-  }
-
-  function setQuestionStatisticsPageSize(value: number) {
-    questionStatisticsPagination.value.pageSize = value
-    questionStatisticsPagination.value.pageIndex = 0
   }
 
   return {
@@ -829,13 +785,13 @@ export const useQuestionsStore = defineStore('questions', () => {
     // Question Bank Page State
     questionBankFilters,
     questionBankPagination,
-    setQuestionBankGradeLevel,
-    setQuestionBankSubject,
-    setQuestionBankTopic,
-    setQuestionBankSubTopic,
-    setQuestionBankSearch,
-    setQuestionBankPageIndex,
-    setQuestionBankPageSize,
+    setQuestionBankGradeLevel: questionBankSetters.setGradeLevel,
+    setQuestionBankSubject: questionBankSetters.setSubject,
+    setQuestionBankTopic: questionBankSetters.setTopic,
+    setQuestionBankSubTopic: questionBankSetters.setSubTopic,
+    setQuestionBankSearch: questionBankSetters.setSearch,
+    setQuestionBankPageIndex: questionBankSetters.setPageIndex,
+    setQuestionBankPageSize: questionBankSetters.setPageSize,
 
     // Question Feedback Page State
     questionFeedbackFilters,
@@ -847,12 +803,12 @@ export const useQuestionsStore = defineStore('questions', () => {
     // Question Statistics Page State
     questionStatisticsFilters,
     questionStatisticsPagination,
-    setQuestionStatisticsGradeLevel,
-    setQuestionStatisticsSubject,
-    setQuestionStatisticsTopic,
-    setQuestionStatisticsSubTopic,
-    setQuestionStatisticsSearch,
-    setQuestionStatisticsPageIndex,
-    setQuestionStatisticsPageSize,
+    setQuestionStatisticsGradeLevel: questionStatisticsSetters.setGradeLevel,
+    setQuestionStatisticsSubject: questionStatisticsSetters.setSubject,
+    setQuestionStatisticsTopic: questionStatisticsSetters.setTopic,
+    setQuestionStatisticsSubTopic: questionStatisticsSetters.setSubTopic,
+    setQuestionStatisticsSearch: questionStatisticsSetters.setSearch,
+    setQuestionStatisticsPageIndex: questionStatisticsSetters.setPageIndex,
+    setQuestionStatisticsPageSize: questionStatisticsSetters.setPageSize,
   }
 })

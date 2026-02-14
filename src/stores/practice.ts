@@ -6,19 +6,17 @@ import { useQuestionsStore, type Question } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
+import {
+  useStudentSubscription,
+  type StudentSubscriptionStatus,
+  type SessionLimitStatus,
+} from '@/composables/useStudentSubscription'
+
+export type { StudentSubscriptionStatus, SessionLimitStatus }
 
 type PracticeSessionRow = Database['public']['Tables']['practice_sessions']['Row']
 type PracticeAnswerRow = Database['public']['Tables']['practice_answers']['Row']
-type SubscriptionTier = Database['public']['Enums']['subscription_tier']
 
-const FALLBACK_SESSIONS_PER_DAY = 3 // Fallback if database fetch fails
-
-// Cache TTL for subscription status (check frequently enough to catch changes)
-const SUBSCRIPTION_CACHE_TTL = 2 * 60 * 1000 // 2 minutes
-// Cache TTL for session limit (short since sessions can be completed)
-const SESSION_LIMIT_CACHE_TTL = 30 * 1000 // 30 seconds
-// Cache TTL for subscription plans (rarely change)
-const SUBSCRIPTION_PLANS_CACHE_TTL = 10 * 60 * 1000 // 10 minutes
 // Cache TTL for session history (new sessions are added in-memory, so stale risk is low)
 const SESSION_HISTORY_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
@@ -81,20 +79,6 @@ export interface PracticeSession {
   answers: PracticeAnswer[]
 }
 
-export interface StudentSubscriptionStatus {
-  isLinkedToParent: boolean
-  tier: SubscriptionTier
-  sessionsPerDay: number
-  canViewDetailedResults: boolean // Pro and Max tiers only
-}
-
-export interface SessionLimitStatus {
-  canStartSession: boolean
-  sessionsToday: number
-  sessionLimit: number
-  remainingSessions: number
-}
-
 export const usePracticeStore = defineStore('practice', () => {
   const currentSession = ref<PracticeSession | null>(null)
   const sessionHistory = ref<PracticeSession[]>([])
@@ -102,32 +86,7 @@ export const usePracticeStore = defineStore('practice', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  // Subscription status cache
-  const subscriptionStatusCache = ref<{
-    status: StudentSubscriptionStatus | null
-    lastFetched: number | null
-  }>({
-    status: null,
-    lastFetched: null,
-  })
-
-  // Session limit cache (invalidated after completing a session)
-  const sessionLimitCache = ref<{
-    status: SessionLimitStatus | null
-    lastFetched: number | null
-  }>({
-    status: null,
-    lastFetched: null,
-  })
-
-  // Subscription plans cache (keyed by tier, rarely changes)
-  const subscriptionPlansCache = ref<{
-    plans: Map<string, number> // tier -> sessions_per_day
-    lastFetched: number | null
-  }>({
-    plans: new Map(),
-    lastFetched: null,
-  })
+  const subscription = useStudentSubscription()
 
   // History page filter state (persisted across navigation)
   const historyFilters = ref({
@@ -313,207 +272,6 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
-   * Check if subscription plans cache is stale
-   */
-  function isSubscriptionPlansCacheStale(): boolean {
-    if (!subscriptionPlansCache.value.lastFetched) return true
-    return Date.now() - subscriptionPlansCache.value.lastFetched > SUBSCRIPTION_PLANS_CACHE_TTL
-  }
-
-  /**
-   * Fetch all subscription plans and cache them (parallelizable)
-   */
-  async function fetchSubscriptionPlans(): Promise<void> {
-    if (!isSubscriptionPlansCacheStale() && subscriptionPlansCache.value.plans.size > 0) {
-      return
-    }
-    try {
-      const { data } = await supabase.from('subscription_plans').select('id, sessions_per_day')
-      if (data) {
-        const plans = new Map<string, number>()
-        for (const plan of data) {
-          plans.set(plan.id, plan.sessions_per_day ?? FALLBACK_SESSIONS_PER_DAY)
-        }
-        subscriptionPlansCache.value = { plans, lastFetched: Date.now() }
-      }
-    } catch {
-      // Keep existing cache on error
-    }
-  }
-
-  /**
-   * Get sessions per day for a tier (from cache)
-   */
-  function getSessionsPerDayForTier(tier: string): number {
-    return subscriptionPlansCache.value.plans.get(tier) ?? FALLBACK_SESSIONS_PER_DAY
-  }
-
-  /**
-   * Get the basic tier's sessions per day from cache
-   */
-  async function getBasicTierSessionsPerDay(): Promise<number> {
-    await fetchSubscriptionPlans()
-    return getSessionsPerDayForTier('core')
-  }
-
-  /**
-   * Check if subscription status cache is stale
-   */
-  function isSubscriptionCacheStale(): boolean {
-    if (!subscriptionStatusCache.value.status || !subscriptionStatusCache.value.lastFetched) {
-      return true
-    }
-    return Date.now() - subscriptionStatusCache.value.lastFetched > SUBSCRIPTION_CACHE_TTL
-  }
-
-  /**
-   * Get student's subscription status - checks if linked to parent and their subscription tier
-   * Uses cache to avoid repeated database calls
-   */
-  async function getStudentSubscriptionStatus(force = false): Promise<StudentSubscriptionStatus> {
-    // Return cached status if still valid
-    if (!force && !isSubscriptionCacheStale() && subscriptionStatusCache.value.status) {
-      return subscriptionStatusCache.value.status
-    }
-
-    if (!authStore.user || authStore.user.userType !== 'student') {
-      const basicSessionsPerDay = await getBasicTierSessionsPerDay()
-      const status: StudentSubscriptionStatus = {
-        isLinkedToParent: false,
-        tier: 'core',
-        sessionsPerDay: basicSessionsPerDay,
-        canViewDetailedResults: false,
-      }
-      subscriptionStatusCache.value = { status, lastFetched: Date.now() }
-      return status
-    }
-
-    try {
-      // Fetch profile tier, parent link, and subscription plans in parallel
-      // fetchSubscriptionPlans() is fire-and-forget (returns void), errors are handled internally
-      const [profileResult, linksResult] = await Promise.all([
-        supabase
-          .from('student_profiles')
-          .select('subscription_tier')
-          .eq('id', authStore.user.id)
-          .maybeSingle(),
-        supabase
-          .from('parent_student_links')
-          .select('parent_id')
-          .eq('student_id', authStore.user.id)
-          .limit(1),
-        fetchSubscriptionPlans().catch((err) => {
-          // Log warning if plans fetch failed (non-critical, will use fallback)
-          console.warn('Failed to fetch subscription plans:', err)
-        }),
-      ])
-
-      const tier = (profileResult.data?.subscription_tier as SubscriptionTier) ?? 'core'
-      const isLinkedToParent = (linksResult.data?.length ?? 0) > 0
-      const sessionsPerDay = getSessionsPerDayForTier(tier)
-      const canViewDetailedResults = tier === 'pro' || tier === 'max'
-
-      const status: StudentSubscriptionStatus = {
-        isLinkedToParent,
-        tier,
-        sessionsPerDay,
-        canViewDetailedResults,
-      }
-      subscriptionStatusCache.value = { status, lastFetched: Date.now() }
-      return status
-    } catch (err) {
-      console.error('Error getting subscription status:', err)
-      const basicSessionsPerDay = await getBasicTierSessionsPerDay()
-      const status: StudentSubscriptionStatus = {
-        isLinkedToParent: false,
-        tier: 'core',
-        sessionsPerDay: basicSessionsPerDay,
-        canViewDetailedResults: false,
-      }
-      subscriptionStatusCache.value = { status, lastFetched: Date.now() }
-      return status
-    }
-  }
-
-  /**
-   * Check if session limit cache is stale
-   */
-  function isSessionLimitCacheStale(): boolean {
-    if (!sessionLimitCache.value.status || !sessionLimitCache.value.lastFetched) return true
-    return Date.now() - sessionLimitCache.value.lastFetched > SESSION_LIMIT_CACHE_TTL
-  }
-
-  /**
-   * Invalidate session limit cache (call after completing a session)
-   */
-  function invalidateSessionLimitCache(): void {
-    sessionLimitCache.value = { status: null, lastFetched: null }
-  }
-
-  /**
-   * Check session limit for current student (with caching)
-   */
-  async function checkSessionLimit(
-    force = false,
-    preloadedSubscriptionStatus?: StudentSubscriptionStatus,
-  ): Promise<SessionLimitStatus> {
-    if (!authStore.user || authStore.user.userType !== 'student') {
-      return {
-        canStartSession: false,
-        sessionsToday: 0,
-        sessionLimit: 0,
-        remainingSessions: 0,
-      }
-    }
-
-    // Return cached status if still valid
-    if (!force && !isSessionLimitCacheStale() && sessionLimitCache.value.status) {
-      return sessionLimitCache.value.status
-    }
-
-    const subscriptionStatus = preloadedSubscriptionStatus ?? (await getStudentSubscriptionStatus())
-
-    // Get today's date range
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date()
-    todayEnd.setHours(23, 59, 59, 999)
-
-    // Count all sessions started today
-    const { count, error: countError } = await supabase
-      .from('practice_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('student_id', authStore.user.id)
-      .gte('created_at', todayStart.toISOString())
-      .lte('created_at', todayEnd.toISOString())
-
-    if (countError) {
-      console.error('Error counting sessions:', countError)
-      const status: SessionLimitStatus = {
-        canStartSession: true, // Allow on error to not block users
-        sessionsToday: 0,
-        sessionLimit: subscriptionStatus.sessionsPerDay,
-        remainingSessions: subscriptionStatus.sessionsPerDay,
-      }
-      // Don't cache error results
-      return status
-    }
-
-    const sessionsToday = count ?? 0
-    const remainingSessions = Math.max(0, subscriptionStatus.sessionsPerDay - sessionsToday)
-
-    const status: SessionLimitStatus = {
-      canStartSession: sessionsToday < subscriptionStatus.sessionsPerDay,
-      sessionsToday,
-      sessionLimit: subscriptionStatus.sessionsPerDay,
-      remainingSessions,
-    }
-
-    sessionLimitCache.value = { status, lastFetched: Date.now() }
-    return status
-  }
-
-  /**
    * Fetch session history for the current student
    */
   async function fetchSessionHistory(force = false): Promise<{ error: string | null }> {
@@ -586,10 +344,10 @@ export const usePracticeStore = defineStore('practice', () => {
 
     try {
       // Check session limit before starting
-      const limitStatus = await checkSessionLimit()
+      const limitStatus = await subscription.checkSessionLimit()
       if (!limitStatus.canStartSession) {
-        const subStatus = subscriptionStatusCache.value.status
-        const isMaxTier = subStatus?.tier === 'max'
+        const subStatus = await subscription.getStudentSubscriptionStatus()
+        const isMaxTier = subStatus.tier === 'max'
         return {
           session: null,
           error: isMaxTier
@@ -730,7 +488,7 @@ export const usePracticeStore = defineStore('practice', () => {
       sessionHistory.value.unshift(session)
 
       // Invalidate session limit cache (session count changed)
-      invalidateSessionLimitCache()
+      subscription.invalidateSessionLimitCache()
 
       return { session, error: null }
     } catch (err) {
@@ -929,7 +687,7 @@ export const usePracticeStore = defineStore('practice', () => {
       await authStore.refreshProfile()
 
       // Invalidate session limit cache (session count changed)
-      invalidateSessionLimitCache()
+      subscription.invalidateSessionLimitCache()
 
       // Generate AI summary for Max tier subscribers (non-blocking)
       generateAiSummary(currentSession.value.id)
@@ -948,7 +706,7 @@ export const usePracticeStore = defineStore('practice', () => {
   async function generateAiSummary(sessionId: string): Promise<void> {
     try {
       // Check subscription status
-      const subscriptionStatus = await getStudentSubscriptionStatus()
+      const subscriptionStatus = await subscription.getStudentSubscriptionStatus()
       if (subscriptionStatus.tier !== 'max') {
         return // Only Max tier gets AI summaries
       }
@@ -1428,9 +1186,7 @@ export const usePracticeStore = defineStore('practice', () => {
     sessionHistoryLastFetched.value = null
     isLoading.value = false
     error.value = null
-    subscriptionStatusCache.value = { status: null, lastFetched: null }
-    sessionLimitCache.value = { status: null, lastFetched: null }
-    subscriptionPlansCache.value = { plans: new Map(), lastFetched: null }
+    subscription.$reset()
     subTopicProgress.value = new Map()
     resetHistoryFilters()
     historyPagination.value = { pageIndex: 0, pageSize: 10 }
@@ -1511,8 +1267,8 @@ export const usePracticeStore = defineStore('practice', () => {
     resumeSession,
     optionNumberToId,
     optionNumbersToIds,
-    getStudentSubscriptionStatus,
-    checkSessionLimit,
+    getStudentSubscriptionStatus: subscription.getStudentSubscriptionStatus,
+    checkSessionLimit: subscription.checkSessionLimit,
     $reset,
   }
 })

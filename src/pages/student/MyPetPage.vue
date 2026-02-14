@@ -2,35 +2,14 @@
 import { ref, computed, Transition } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, EVOLUTION_COSTS } from '@/stores/pets'
+import { usePetsStore, rarityConfig } from '@/stores/pets'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  Heart,
-  Sparkles,
-  Hand,
-  ArrowUp,
-  Star,
-  Plus,
-  Minus,
-  Loader2,
-  ShoppingCart,
-  Apple,
-  CirclePoundSterling,
-  PawPrint,
-} from 'lucide-vue-next'
+import { Heart, Sparkles, Hand, Star, Apple, ShoppingCart } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import FoodExchangeDialog from '@/components/student/FoodExchangeDialog.vue'
+import EvolutionCard from '@/components/student/EvolutionCard.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -39,8 +18,11 @@ const petsStore = usePetsStore()
 const selectedPet = computed(() => petsStore.selectedPet)
 const selectedOwnedPet = computed(() => petsStore.selectedOwnedPet)
 const currentFood = computed(() => authStore.studentProfile?.food ?? 0)
+const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
 
-// Pet conversation messages pool - motivational messages for students
+const FOOD_PRICE = 50
+
+// Pet conversation messages pool
 const pettingMessages = [
   "You're doing amazing! Keep it up!",
   'Every practice makes you stronger!',
@@ -88,7 +70,7 @@ const evolutionProgress = computed(() => {
   return petsStore.getEvolutionProgress(selectedOwnedPet.value)
 })
 
-// Get current tier image (optimized for display)
+// Get current tier image
 const currentTierImage = computed(() => {
   if (!selectedPet.value || !selectedOwnedPet.value) return ''
   return petsStore.getOptimizedPetImageUrlForTier(selectedPet.value, selectedOwnedPet.value.tier)
@@ -105,32 +87,21 @@ const showFoodParticles = ref(false)
 // Pet conversation bubble state
 const showConversationBubble = ref(false)
 const currentMessage = ref('')
-const conversationType = ref<'petting' | 'feeding' | 'hungry' | 'maxTier'>('petting')
 let conversationTimeout: ReturnType<typeof setTimeout> | null = null
 
 // Food exchange dialog state
 const showFoodExchangeDialog = ref(false)
-const foodAmount = ref(1)
-const isExchanging = ref(false)
-const FOOD_PRICE = 50 // coins per food
+const foodExchangeRef = ref<InstanceType<typeof FoodExchangeDialog> | null>(null)
 
-const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
-const exchangeCost = computed(() => foodAmount.value * FOOD_PRICE)
-const canAffordExchange = computed(() => currentCoins.value >= exchangeCost.value)
-
-// Helper to get random message from pool
 function getRandomMessage(messages: string[]): string {
   return messages[Math.floor(Math.random() * messages.length)]!
 }
 
-// Show pet conversation bubble
 function showPetConversation(type: 'petting' | 'feeding' | 'hungry' | 'maxTier') {
-  // Clear any existing timeout
   if (conversationTimeout) {
     clearTimeout(conversationTimeout)
   }
 
-  conversationType.value = type
   switch (type) {
     case 'petting':
       currentMessage.value = getRandomMessage(pettingMessages)
@@ -147,51 +118,15 @@ function showPetConversation(type: 'petting' | 'feeding' | 'hungry' | 'maxTier')
   }
   showConversationBubble.value = true
 
-  // Auto-hide bubble after 3 seconds
   conversationTimeout = setTimeout(() => {
     showConversationBubble.value = false
   }, 3000)
 }
 
-// Click on pet to interact (same as Pet button)
 function onPetClick() {
   petPet()
 }
 
-function incrementFood(amount = 1) {
-  const maxAffordable = Math.floor(currentCoins.value / FOOD_PRICE)
-  foodAmount.value = Math.min(foodAmount.value + amount, maxAffordable)
-}
-
-function decrementFood(amount = 1) {
-  foodAmount.value = Math.max(foodAmount.value - amount, 1)
-}
-
-function resetFoodExchange() {
-  foodAmount.value = 1
-}
-
-async function handleExchangeFood() {
-  if (!canAffordExchange.value || isExchanging.value) return
-
-  isExchanging.value = true
-  try {
-    const { error } = await petsStore.exchangeCoinsForFood(foodAmount.value)
-
-    if (error) {
-      toast.error(error)
-      return
-    }
-
-    await authStore.refreshProfile()
-    toast.success(`Exchanged ${exchangeCost.value} coins for ${foodAmount.value} food!`)
-    showFoodExchangeDialog.value = false
-  } finally {
-    isExchanging.value = false
-  }
-}
-
-// Pet the pet
 function petPet() {
   if (isPetting.value) return
 
@@ -208,7 +143,6 @@ function petPet() {
   }, 300)
 }
 
-// Feed the pet for evolution
 async function feedPet() {
   if (isFeeding.value || !selectedOwnedPet.value) return
 
@@ -253,7 +187,6 @@ async function feedPet() {
   }, 300)
 }
 
-// Evolve the pet
 async function evolvePet() {
   if (isEvolving.value || !selectedOwnedPet.value) return
 
@@ -272,7 +205,6 @@ async function evolvePet() {
     toast.success(`Your pet evolved to Tier ${result.newTier}!`)
   }
 
-  // Refresh owned pets to get updated data
   await petsStore.fetchOwnedPets()
 
   setTimeout(() => {
@@ -280,11 +212,25 @@ async function evolvePet() {
   }, 1500)
 }
 
+async function handleExchangeFood(amount: number) {
+  const { error } = await petsStore.exchangeCoinsForFood(amount)
+
+  if (error) {
+    toast.error(error)
+    foodExchangeRef.value?.handleDone()
+    return
+  }
+
+  await authStore.refreshProfile()
+  toast.success(`Exchanged ${amount * FOOD_PRICE} coins for ${amount} food!`)
+  showFoodExchangeDialog.value = false
+  foodExchangeRef.value?.handleDone()
+}
+
 function goToCollections() {
   router.push('/student/collections')
 }
 
-// Tier label helper
 function getTierLabel(tier: number): string {
   switch (tier) {
     case 1:
@@ -312,113 +258,10 @@ function getTierLabel(tier: number): string {
           <Sparkles class="mr-2 size-4" />
           Unlock New Pets
         </Button>
-        <Dialog v-model:open="showFoodExchangeDialog" @update:open="resetFoodExchange">
-          <DialogTrigger as-child>
-            <Button>
-              <ShoppingCart class="mr-2 size-4" />
-              Buy Food
-            </Button>
-          </DialogTrigger>
-          <DialogContent class="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Buy Food</DialogTitle>
-              <DialogDescription>Exchange coins for food to feed your pet.</DialogDescription>
-            </DialogHeader>
-            <div class="space-y-4 py-4">
-              <!-- Exchange Rate Info -->
-              <div class="rounded-lg bg-muted p-3 text-center text-sm">
-                <span class="text-muted-foreground">Exchange Rate: </span>
-                <span class="font-semibold">{{ FOOD_PRICE }} coins = 1 food</span>
-              </div>
-
-              <!-- Amount Selector -->
-              <div class="flex items-center justify-center gap-1.5">
-                <button
-                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="foodAmount <= 10"
-                  @click="decrementFood(10)"
-                >
-                  -10
-                </button>
-                <button
-                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="foodAmount <= 5"
-                  @click="decrementFood(5)"
-                >
-                  -5
-                </button>
-                <button
-                  class="flex size-9 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="foodAmount <= 1"
-                  @click="decrementFood()"
-                >
-                  <Minus class="size-4" />
-                </button>
-                <div class="flex min-w-16 flex-col items-center">
-                  <div class="flex items-center gap-1.5">
-                    <Apple class="size-5 text-green-600 dark:text-green-400" />
-                    <span class="text-2xl font-bold">{{ foodAmount }}</span>
-                  </div>
-                </div>
-                <button
-                  class="flex size-9 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="!canAffordExchange || currentCoins < (foodAmount + 1) * FOOD_PRICE"
-                  @click="incrementFood()"
-                >
-                  <Plus class="size-4" />
-                </button>
-                <button
-                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="!canAffordExchange || currentCoins < (foodAmount + 5) * FOOD_PRICE"
-                  @click="incrementFood(5)"
-                >
-                  +5
-                </button>
-                <button
-                  class="flex size-9 items-center justify-center rounded-full border text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="!canAffordExchange || currentCoins < (foodAmount + 10) * FOOD_PRICE"
-                  @click="incrementFood(10)"
-                >
-                  +10
-                </button>
-              </div>
-
-              <!-- Cost Display -->
-              <div class="flex items-center justify-center gap-2 text-lg">
-                <span class="text-muted-foreground">Cost:</span>
-                <div class="flex items-center gap-1">
-                  <CirclePoundSterling class="size-5 text-amber-600 dark:text-amber-400" />
-                  <span
-                    class="font-bold"
-                    :class="canAffordExchange ? 'text-amber-600' : 'text-red-500'"
-                  >
-                    {{ exchangeCost.toLocaleString() }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Current Balance -->
-              <div class="text-center text-sm text-muted-foreground">
-                Your balance:
-                <span class="font-semibold text-amber-600">{{
-                  currentCoins.toLocaleString()
-                }}</span>
-                coins
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" @click="showFoodExchangeDialog = false">Cancel</Button>
-              <Button
-                :disabled="!canAffordExchange || isExchanging"
-                class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
-                @click="handleExchangeFood"
-              >
-                <Loader2 v-if="isExchanging" class="mr-2 size-4 animate-spin" />
-                Buy Food
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button @click="showFoodExchangeDialog = true">
+          <ShoppingCart class="mr-2 size-4" />
+          Buy Food
+        </Button>
       </div>
     </div>
 
@@ -493,7 +336,7 @@ function getTierLabel(tier: number): string {
                 style="border-width: 2px; border-style: dotted"
               />
 
-              <!-- Floating hearts animation (scattered around the pet) -->
+              <!-- Floating hearts animation -->
               <div v-if="showHearts" class="pointer-events-none absolute inset-0">
                 <Heart
                   v-for="(pos, i) in [
@@ -516,7 +359,7 @@ function getTierLabel(tier: number): string {
                 />
               </div>
 
-              <!-- Sparkles animation for feeding (scattered) -->
+              <!-- Sparkles animation for feeding -->
               <div v-if="showSparkles" class="pointer-events-none absolute inset-0">
                 <Sparkles
                   v-for="(pos, i) in [
@@ -539,7 +382,7 @@ function getTierLabel(tier: number): string {
                 />
               </div>
 
-              <!-- Food particles animation (scattered) -->
+              <!-- Food particles animation -->
               <div v-if="showFoodParticles" class="pointer-events-none absolute inset-0">
                 <div
                   v-for="(pos, i) in [
@@ -586,7 +429,7 @@ function getTierLabel(tier: number): string {
                 />
               </div>
 
-              <!-- Conversation Bubble (right-skewed) -->
+              <!-- Conversation Bubble -->
               <Transition name="bubble">
                 <div
                   v-if="showConversationBubble"
@@ -596,7 +439,6 @@ function getTierLabel(tier: number): string {
                     class="relative rounded-2xl border-2 border-purple-300 bg-white px-4 py-3 shadow-lg dark:border-purple-600 dark:bg-card"
                   >
                     <p class="max-w-44 text-sm font-medium">{{ currentMessage }}</p>
-                    <!-- Speech bubble tail pointing left (toward pet) -->
                     <div
                       class="absolute -left-2 top-1/2 size-3 -translate-y-1/2 rotate-45 border-b-2 border-l-2 border-purple-300 bg-white dark:border-purple-600 dark:bg-card"
                     ></div>
@@ -639,95 +481,25 @@ function getTierLabel(tier: number): string {
         </Card>
 
         <!-- Evolution Card -->
-        <Card class="border-purple-200 dark:border-purple-900">
-          <CardHeader>
-            <CardTitle class="flex items-center gap-2">
-              <ArrowUp class="size-5 text-purple-500" />
-              Evolution
-            </CardTitle>
-            <CardDescription>Feed your pet to evolve it!</CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-6">
-            <!-- Current Tier -->
-            <div
-              class="rounded-lg bg-gradient-to-r from-purple-100 to-fuchsia-100 p-4 text-center dark:bg-card dark:from-purple-950/20 dark:to-fuchsia-950/20"
-            >
-              <p class="text-sm text-muted-foreground">Current Tier</p>
-              <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                {{ selectedOwnedPet?.tier ?? 1 }}
-                <span class="text-base font-normal text-muted-foreground">/ 3</span>
-              </p>
-            </div>
-
-            <!-- Evolution Progress -->
-            <div v-if="evolutionProgress && !evolutionProgress.isMaxTier">
-              <div class="mb-2 flex items-center justify-between">
-                <span class="text-sm font-medium">Evolution Progress</span>
-                <span class="text-sm text-muted-foreground">
-                  {{ evolutionProgress.foodFed }} / {{ evolutionProgress.requiredFood }}
-                </span>
-              </div>
-              <Progress
-                :model-value="(evolutionProgress.foodFed / evolutionProgress.requiredFood) * 100"
-                class="h-3"
-              />
-              <p class="mt-2 text-xs text-muted-foreground">
-                Feed {{ evolutionProgress.requiredFood - evolutionProgress.foodFed }} more food to
-                evolve
-              </p>
-            </div>
-
-            <!-- Max Tier Message -->
-            <div
-              v-else-if="evolutionProgress?.isMaxTier"
-              class="rounded-lg bg-gradient-to-r from-yellow-100 to-amber-100 p-4 text-center dark:bg-card dark:from-yellow-900/30 dark:to-amber-900/30"
-            >
-              <Star class="mx-auto size-8 text-yellow-500" />
-              <p class="mt-2 font-medium text-yellow-700 dark:text-yellow-400">Max Tier Reached!</p>
-              <p class="text-sm text-yellow-600 dark:text-yellow-500">Your pet is fully evolved</p>
-            </div>
-
-            <!-- Evolve Button -->
-            <Button
-              v-if="evolutionProgress?.canEvolve"
-              class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-              size="lg"
-              :disabled="isEvolving"
-              @click="evolvePet"
-            >
-              <Loader2 v-if="isEvolving" class="mr-2 size-5 animate-spin" />
-              <ArrowUp v-else class="mr-2 size-5" />
-              Evolve to Tier {{ (selectedOwnedPet?.tier ?? 1) + 1 }}!
-            </Button>
-
-            <!-- Evolution Costs Info -->
-            <div class="rounded-lg border border-purple-200 p-4 dark:border-purple-900">
-              <h4 class="mb-2 text-sm font-medium">Evolution Costs</h4>
-              <ul class="space-y-1 text-sm text-muted-foreground">
-                <li class="flex justify-between">
-                  <span>Tier 1 → 2</span>
-                  <span class="font-medium">{{ EVOLUTION_COSTS.tier1to2 }} food</span>
-                </li>
-                <li class="flex justify-between">
-                  <span>Tier 2 → 3</span>
-                  <span class="font-medium">{{ EVOLUTION_COSTS.tier2to3 }} food</span>
-                </li>
-              </ul>
-            </div>
-
-            <!-- Quick Actions -->
-            <Button
-              variant="outline"
-              class="w-full border-purple-300 dark:border-purple-700"
-              @click="goToCollections"
-            >
-              <Sparkles class="mr-2 size-4 text-purple-500" />
-              View Collection
-            </Button>
-          </CardContent>
-        </Card>
+        <EvolutionCard
+          :current-tier="selectedOwnedPet?.tier ?? 1"
+          :evolution-progress="evolutionProgress"
+          :is-evolving="isEvolving"
+          @evolve="evolvePet"
+          @view-collection="goToCollections"
+        />
       </div>
     </template>
+
+    <!-- Food Exchange Dialog -->
+    <FoodExchangeDialog
+      ref="foodExchangeRef"
+      :open="showFoodExchangeDialog"
+      :current-coins="currentCoins"
+      :exchange-rate="FOOD_PRICE"
+      @update:open="showFoodExchangeDialog = $event"
+      @exchange="handleExchangeFood"
+    />
   </div>
 </template>
 
@@ -839,7 +611,7 @@ function getTierLabel(tier: number): string {
   animation: glow 0.5s ease-in-out infinite;
 }
 
-/* Speech bubble transition (right-skewed) */
+/* Speech bubble transition */
 .bubble-enter-active {
   animation: bubble-in 0.3s ease-out;
 }

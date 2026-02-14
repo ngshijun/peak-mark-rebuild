@@ -7,6 +7,25 @@ import { toMYTDateString } from '@/lib/date'
 // Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
 const STATS_CACHE_TTL = 5 * 60 * 1000
 
+/** Create a Map with keys for the last 12 months, initialized with defaultValue */
+function initializeMonthlyMap<T>(defaultValue: () => T): Map<string, T> {
+  const now = new Date()
+  const map = new Map<string, T>()
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    map.set(key, defaultValue())
+  }
+  return map
+}
+
+/** Convert a YYYY-MM key to a display label like "Jan 2026" */
+function monthKeyToLabel(monthKey: string): string {
+  const [year, monthNum] = monthKey.split('-')
+  const date = new Date(Number(year), Number(monthNum) - 1, 1)
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+}
+
 export interface MonthlyRevenue {
   month: string // YYYY-MM format
   label: string // e.g., "Jan 2026"
@@ -259,18 +278,8 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       // Process monthly revenue for chart
       if (monthlyRevenueResult.data) {
-        // Create a map of all 12 months with 0 as default
-        const now = new Date()
-        const monthlyMap = new Map<string, number>()
+        const monthlyMap = initializeMonthlyMap(() => 0)
 
-        // Initialize all 12 months with 0
-        for (let i = 11; i >= 0; i--) {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-          monthlyMap.set(key, 0)
-        }
-
-        // Aggregate payments by month
         for (const payment of monthlyRevenueResult.data) {
           if (payment.created_at) {
             const date = new Date(payment.created_at)
@@ -280,31 +289,17 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           }
         }
 
-        // Convert to array with labels
-        stats.value.revenue.monthly = Array.from(monthlyMap.entries()).map(([month, cents]) => {
-          const [year, monthNum] = month.split('-')
-          const date = new Date(Number(year), Number(monthNum) - 1, 1)
-          return {
-            month,
-            label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-            amount: cents / 100,
-          }
-        })
+        stats.value.revenue.monthly = Array.from(monthlyMap.entries()).map(([month, cents]) => ({
+          month,
+          label: monthKeyToLabel(month),
+          amount: cents / 100,
+        }))
       }
 
       // Process monthly upgrades for stacked bar chart
       if (monthlyUpgradesResult.data) {
-        const now = new Date()
-        const upgradesMap = new Map<string, { plus: number; pro: number; max: number }>()
+        const upgradesMap = initializeMonthlyMap(() => ({ plus: 0, pro: 0, max: 0 }))
 
-        // Initialize all 12 months with 0 for each tier
-        for (let i = 11; i >= 0; i--) {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-          upgradesMap.set(key, { plus: 0, pro: 0, max: 0 })
-        }
-
-        // Aggregate upgrades by month and tier
         for (const upgrade of monthlyUpgradesResult.data) {
           if (upgrade.created_at && upgrade.tier) {
             const date = new Date(upgrade.created_at)
@@ -317,18 +312,13 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           }
         }
 
-        // Convert to array with labels
-        stats.value.upgrades = Array.from(upgradesMap.entries()).map(([month, counts]) => {
-          const [year, monthNum] = month.split('-')
-          const date = new Date(Number(year), Number(monthNum) - 1, 1)
-          return {
-            month,
-            label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-            plus: counts.plus,
-            pro: counts.pro,
-            max: counts.max,
-          }
-        })
+        stats.value.upgrades = Array.from(upgradesMap.entries()).map(([month, counts]) => ({
+          month,
+          label: monthKeyToLabel(month),
+          plus: counts.plus,
+          pro: counts.pro,
+          max: counts.max,
+        }))
       }
 
       // Process subscription tier distribution
