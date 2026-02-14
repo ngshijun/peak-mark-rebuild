@@ -46,7 +46,6 @@ import {
   Flame,
   Apple,
   PawPrint,
-  SmilePlus,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-vue-next'
@@ -716,8 +715,8 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
           Pets ({{ totalOwnedPets }}/{{ totalPets }})
         </TabsTrigger>
         <TabsTrigger v-if="engagement" value="mood">
-          <SmilePlus class="mr-1.5 size-4" />
-          Mood
+          <Calendar class="mr-1.5 size-4" />
+          Daily Status
         </TabsTrigger>
       </TabsList>
 
@@ -1313,8 +1312,8 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
         <Card>
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
-              <SmilePlus class="size-5" />
-              Mood History
+              <Calendar class="size-5" />
+              Daily Status
             </CardTitle>
           </CardHeader>
           <CardContent>

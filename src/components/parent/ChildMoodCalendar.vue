@@ -170,7 +170,7 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
         <div
           v-for="(cell, index) in calendarDays"
           :key="index"
-          class="relative flex aspect-square items-center justify-center rounded text-xs"
+          class="relative flex aspect-[3/2] items-center justify-center rounded text-xs"
           :class="{
             'bg-green-100 dark:bg-green-950/30':
               cell.day && !isFuture(cell.date) && getStatusForDate(cell.date)?.hasPracticed,
