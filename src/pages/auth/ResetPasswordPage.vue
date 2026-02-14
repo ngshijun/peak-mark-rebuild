@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, Field as VeeField } from 'vee-validate'
-import { useAuth, getSession, signOut } from '@/composables/useAuth'
+import { useAuthStore } from '@/stores/auth'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { KeyRound, Loader2, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
-const { updatePassword } = useAuth()
+const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
 const isValidToken = ref(false)
@@ -53,7 +53,7 @@ onMounted(async () => {
 
     // If no hash with recovery type, redirect to forgot-password
     if (!hash || !hash.includes('type=recovery')) {
-      const session = await getSession()
+      const session = await authStore.getSession()
       // Only allow if there's an existing session (user already authenticated via reset link)
       if (!session) {
         router.replace('/forgot-password')
@@ -65,7 +65,7 @@ onMounted(async () => {
     }
 
     // Has recovery hash - let Supabase process it
-    const session = await getSession()
+    const session = await authStore.getSession()
 
     if (!session) {
       tokenError.value = 'Invalid or expired reset link. Please request a new one.'
@@ -89,7 +89,7 @@ const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true
 
   try {
-    const result = await updatePassword(values.password)
+    const result = await authStore.updatePassword(values.password)
 
     if (result.error) {
       toast.error(result.error)
@@ -100,7 +100,7 @@ const onSubmit = handleSubmit(async (values) => {
     toast.success('Password updated successfully!')
 
     // Sign out after password reset so user can log in fresh
-    await signOut()
+    await authStore.signOut()
   } catch (err) {
     console.error('Failed to reset password:', err)
     toast.error('An unexpected error occurred')

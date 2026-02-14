@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
-import { useAuth } from '@/composables/useAuth'
+import { useAuthStore } from '@/stores/auth'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { KeyRound, Loader2, ArrowLeft, CheckCircle } from 'lucide-vue-next'
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { toast } from 'vue-sonner'
 
-const { resetPassword } = useAuth()
+const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
 const emailSent = ref(false)
@@ -34,7 +34,7 @@ const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true
 
   try {
-    const result = await resetPassword(values.email)
+    const result = await authStore.resetPassword(values.email)
 
     if (result.error) {
       toast.error(result.error)

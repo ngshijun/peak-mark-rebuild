@@ -76,9 +76,9 @@ const onSubmit = form.handleSubmit(async (formValues) => {
     const optionImagePaths: Record<string, string | null> = { a: null, b: null, c: null, d: null }
 
     // Upload question image if present
-    if (form.questionImageFile.value) {
+    if (form.questionImage.value.file) {
       const uploadResult = await questionsStore.uploadQuestionImage(
-        form.questionImageFile.value,
+        form.questionImage.value.file,
         questionId,
       )
       if (uploadResult.path) {
@@ -91,7 +91,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
     // Upload option images if present (for MCQ/MRQ)
     if (formValues.type === 'mcq' || formValues.type === 'mrq') {
       for (const optionId of ['a', 'b', 'c', 'd'] as const) {
-        const file = form.optionImageFiles.value[optionId]
+        const file = form.optionImages.value[optionId].file
         if (file) {
           const uploadResult = await questionsStore.uploadQuestionImage(file, questionId, optionId)
           if (uploadResult.path) {
@@ -118,11 +118,11 @@ const onSubmit = form.handleSubmit(async (formValues) => {
 
       // Compute image hash from File objects (no network fetch needed)
       const imageHash = await computeQuestionImageHash({
-        questionImage: form.questionImageFile.value,
-        optionAImage: form.optionImageFiles.value.a,
-        optionBImage: form.optionImageFiles.value.b,
-        optionCImage: form.optionImageFiles.value.c,
-        optionDImage: form.optionImageFiles.value.d,
+        questionImage: form.questionImage.value.file,
+        optionAImage: form.optionImages.value.a.file,
+        optionBImage: form.optionImages.value.b.file,
+        optionCImage: form.optionImages.value.c.file,
+        optionDImage: form.optionImages.value.d.file,
       })
 
       await questionsStore.updateQuestion(questionId, {

@@ -58,19 +58,19 @@ const onSubmit = form.handleSubmit(async (formValues) => {
     // Track image paths to update
     let questionImagePath: string | null = props.question.imagePath
     const optionImagePaths: Record<string, string | null> = {
-      a: form.originalOptionImagePaths.value.a ?? null,
-      b: form.originalOptionImagePaths.value.b ?? null,
-      c: form.originalOptionImagePaths.value.c ?? null,
-      d: form.originalOptionImagePaths.value.d ?? null,
+      a: form.optionImages.value.a.originalPath,
+      b: form.optionImages.value.b.originalPath,
+      c: form.optionImages.value.c.originalPath,
+      d: form.optionImages.value.d.originalPath,
     }
 
     // Handle question image changes
-    if (form.questionImageFile.value) {
-      if (form.originalImagePath.value) {
-        await questionsStore.deleteQuestionImage(form.originalImagePath.value)
+    if (form.questionImage.value.file) {
+      if (form.questionImage.value.originalPath) {
+        await questionsStore.deleteQuestionImage(form.questionImage.value.originalPath)
       }
       const uploadResult = await questionsStore.uploadQuestionImage(
-        form.questionImageFile.value,
+        form.questionImage.value.file,
         questionId,
       )
       if (uploadResult.path) {
@@ -78,30 +78,31 @@ const onSubmit = form.handleSubmit(async (formValues) => {
       } else {
         console.error('Failed to upload question image:', uploadResult.error)
       }
-    } else if (form.questionImageRemoved.value && form.originalImagePath.value) {
-      await questionsStore.deleteQuestionImage(form.originalImagePath.value)
+    } else if (form.questionImage.value.removed && form.questionImage.value.originalPath) {
+      await questionsStore.deleteQuestionImage(form.questionImage.value.originalPath)
       questionImagePath = null
     }
 
     // Handle option image changes (for MCQ/MRQ)
     if (formValues.type === 'mcq' || formValues.type === 'mrq') {
       for (const optionId of ['a', 'b', 'c', 'd'] as const) {
-        const file = form.optionImageFiles.value[optionId]
-        if (file) {
-          if (form.originalOptionImagePaths.value[optionId]) {
-            await questionsStore.deleteQuestionImage(form.originalOptionImagePaths.value[optionId]!)
+        const optImg = form.optionImages.value[optionId]
+        if (optImg.file) {
+          if (optImg.originalPath) {
+            await questionsStore.deleteQuestionImage(optImg.originalPath)
           }
-          const uploadResult = await questionsStore.uploadQuestionImage(file, questionId, optionId)
+          const uploadResult = await questionsStore.uploadQuestionImage(
+            optImg.file,
+            questionId,
+            optionId,
+          )
           if (uploadResult.path) {
             optionImagePaths[optionId] = uploadResult.path
           } else {
             console.error(`Failed to upload option ${optionId} image:`, uploadResult.error)
           }
-        } else if (
-          form.optionImagesRemoved.value[optionId] &&
-          form.originalOptionImagePaths.value[optionId]
-        ) {
-          await questionsStore.deleteQuestionImage(form.originalOptionImagePaths.value[optionId]!)
+        } else if (optImg.removed && optImg.originalPath) {
+          await questionsStore.deleteQuestionImage(optImg.originalPath)
           optionImagePaths[optionId] = null
         }
       }
@@ -138,44 +139,44 @@ const onSubmit = form.handleSubmit(async (formValues) => {
 
     // Recompute image hash if any images were changed
     const imagesChanged =
-      form.questionImageFile.value ||
-      form.questionImageRemoved.value ||
-      Object.values(form.optionImageFiles.value).some((f) => f !== null) ||
-      Object.values(form.optionImagesRemoved.value).some((removed) => removed)
+      form.questionImage.value.file ||
+      form.questionImage.value.removed ||
+      Object.values(form.optionImages.value).some((o) => o.file !== null) ||
+      Object.values(form.optionImages.value).some((o) => o.removed)
 
     if (imagesChanged) {
       const imageHash = await computeQuestionImageHash({
-        questionImage: form.questionImageFile.value
-          ? form.questionImageFile.value
-          : form.questionImageRemoved.value
+        questionImage: form.questionImage.value.file
+          ? form.questionImage.value.file
+          : form.questionImage.value.removed
             ? null
             : questionImagePath
               ? questionsStore.getQuestionImageUrl(questionImagePath)
               : null,
-        optionAImage: form.optionImageFiles.value.a
-          ? form.optionImageFiles.value.a
-          : form.optionImagesRemoved.value.a
+        optionAImage: form.optionImages.value.a.file
+          ? form.optionImages.value.a.file
+          : form.optionImages.value.a.removed
             ? null
             : optionImagePaths.a
               ? questionsStore.getQuestionImageUrl(optionImagePaths.a)
               : null,
-        optionBImage: form.optionImageFiles.value.b
-          ? form.optionImageFiles.value.b
-          : form.optionImagesRemoved.value.b
+        optionBImage: form.optionImages.value.b.file
+          ? form.optionImages.value.b.file
+          : form.optionImages.value.b.removed
             ? null
             : optionImagePaths.b
               ? questionsStore.getQuestionImageUrl(optionImagePaths.b)
               : null,
-        optionCImage: form.optionImageFiles.value.c
-          ? form.optionImageFiles.value.c
-          : form.optionImagesRemoved.value.c
+        optionCImage: form.optionImages.value.c.file
+          ? form.optionImages.value.c.file
+          : form.optionImages.value.c.removed
             ? null
             : optionImagePaths.c
               ? questionsStore.getQuestionImageUrl(optionImagePaths.c)
               : null,
-        optionDImage: form.optionImageFiles.value.d
-          ? form.optionImageFiles.value.d
-          : form.optionImagesRemoved.value.d
+        optionDImage: form.optionImages.value.d.file
+          ? form.optionImages.value.d.file
+          : form.optionImages.value.d.removed
             ? null
             : optionImagePaths.d
               ? questionsStore.getQuestionImageUrl(optionImagePaths.d)

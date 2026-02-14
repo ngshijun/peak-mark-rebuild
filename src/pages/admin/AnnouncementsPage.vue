@@ -1,21 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, h, onMounted, nextTick } from 'vue'
-import { useForm, Field as VeeField } from 'vee-validate'
+import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import {
-  useAnnouncementsStore,
-  audienceConfig,
-  type Announcement,
-  type AnnouncementAudience,
-} from '@/stores/announcements'
-import { announcementFormSchema } from '@/lib/validations'
+import { useAnnouncementsStore, audienceConfig, type Announcement } from '@/stores/announcements'
 import {
   Search,
   Plus,
   Trash2,
   Loader2,
-  ImagePlus,
-  X,
   Pin,
   PinOff,
   ArrowUpDown,
@@ -25,24 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
-import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { DataTable } from '@/components/ui/data-table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,27 +34,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDetailDialog.vue'
+import AnnouncementFormDialog from '@/components/admin/AnnouncementFormDialog.vue'
 import { toast } from 'vue-sonner'
 import { formatDate, formatTimeAgo } from '@/lib/date'
 
 const announcementsStore = useAnnouncementsStore()
-
-// Form setup
-const {
-  handleSubmit,
-  resetForm,
-  setValues,
-  errors: formErrors,
-} = useForm({
-  validationSchema: announcementFormSchema,
-  initialValues: {
-    title: '',
-    content: '',
-    targetAudience: 'all' as AnnouncementAudience,
-    expiresAt: null as string | null,
-    isPinned: false,
-  },
-})
 
 // Fetch announcements on mount
 onMounted(async () => {
@@ -112,113 +70,22 @@ function handleRowClick(announcement: Announcement) {
 }
 
 // Add/Edit Dialog
-const showDialog = ref(false)
+const showFormDialog = ref(false)
 const editingAnnouncement = ref<Announcement | null>(null)
-const formImagePath = ref<string | null>(null)
-const formImageFile = ref<File | null>(null)
-const imageInputRef = ref<HTMLInputElement | null>(null)
-const isSaving = ref(false)
-const showExpiryInput = ref(false)
 
 function openAddDialog() {
   editingAnnouncement.value = null
-  resetForm()
-  formImagePath.value = null
-  formImageFile.value = null
-  showExpiryInput.value = false
-  showDialog.value = true
+  showFormDialog.value = true
 }
 
-async function openEditDialog(announcement: Announcement) {
+function openEditDialog(announcement: Announcement) {
   editingAnnouncement.value = announcement
-  formImagePath.value = announcement.imagePath
-  formImageFile.value = null
-  showExpiryInput.value = !!announcement.expiresAt
-  showDialog.value = true
-  await nextTick()
-  setValues({
-    title: announcement.title,
-    content: announcement.content,
-    targetAudience: announcement.targetAudience,
-    expiresAt: announcement.expiresAt,
-    isPinned: announcement.isPinned,
-  })
+  showFormDialog.value = true
 }
 
-function handleImageUpload(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      formImageFile.value = file
-      formImagePath.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
+async function handleFormSaved() {
+  await announcementsStore.fetchAnnouncements()
 }
-
-function removeImage() {
-  formImagePath.value = null
-  formImageFile.value = null
-  if (imageInputRef.value) imageInputRef.value.value = ''
-}
-
-const handleSave = handleSubmit(async (values) => {
-  isSaving.value = true
-
-  try {
-    let imagePath = formImagePath.value
-
-    // Upload image if new file selected
-    if (formImageFile.value) {
-      const { path, error: uploadError } = await announcementsStore.uploadImage(formImageFile.value)
-      if (uploadError) {
-        toast.error(uploadError)
-        return
-      }
-      imagePath = path
-    }
-
-    if (editingAnnouncement.value) {
-      // Update existing announcement
-      const { error } = await announcementsStore.updateAnnouncement(editingAnnouncement.value.id, {
-        title: values.title,
-        content: values.content,
-        targetAudience: values.targetAudience,
-        imagePath,
-        expiresAt: values.expiresAt || null,
-        isPinned: values.isPinned,
-      })
-      if (error) {
-        toast.error(error)
-        return
-      }
-      toast.success('Announcement updated successfully')
-    } else {
-      // Create new announcement
-      const { error } = await announcementsStore.createAnnouncement({
-        title: values.title,
-        content: values.content,
-        targetAudience: values.targetAudience,
-        imagePath,
-        expiresAt: values.expiresAt || null,
-        isPinned: values.isPinned,
-      })
-      if (error) {
-        toast.error(error)
-        return
-      }
-      toast.success('Announcement created successfully')
-    }
-
-    showDialog.value = false
-    // Refresh announcements list after save
-    await announcementsStore.fetchAnnouncements()
-  } finally {
-    isSaving.value = false
-  }
-})
 
 // Pin toggle
 const togglingPinId = ref<string | null>(null)
@@ -477,208 +344,11 @@ const columns: ColumnDef<Announcement>[] = [
     </template>
 
     <!-- Add/Edit Announcement Dialog -->
-    <Dialog v-model:open="showDialog">
-      <DialogContent class="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{{
-            editingAnnouncement ? 'Edit Announcement' : 'New Announcement'
-          }}</DialogTitle>
-          <DialogDescription>
-            {{
-              editingAnnouncement
-                ? 'Update announcement details.'
-                : 'Create a new announcement for users.'
-            }}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form class="space-y-4 py-4" @submit="handleSave">
-          <!-- Title -->
-          <VeeField v-slot="{ field, errors }" name="title">
-            <Field :data-invalid="!!errors.length">
-              <FieldLabel for="announcement-title">Title</FieldLabel>
-              <Input
-                id="announcement-title"
-                placeholder="Enter announcement title"
-                :disabled="isSaving"
-                :aria-invalid="!!errors.length"
-                v-bind="field"
-              />
-              <FieldError :errors="errors" />
-            </Field>
-          </VeeField>
-
-          <!-- Content -->
-          <VeeField v-slot="{ field, errors }" name="content">
-            <Field :data-invalid="!!errors.length">
-              <FieldLabel for="announcement-content">Content</FieldLabel>
-              <Textarea
-                id="announcement-content"
-                placeholder="Enter announcement content..."
-                rows="4"
-                :disabled="isSaving"
-                :aria-invalid="!!errors.length"
-                v-bind="field"
-              />
-              <FieldError :errors="errors" />
-            </Field>
-          </VeeField>
-
-          <!-- Target Audience and Pin Row -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Target Audience -->
-            <VeeField v-slot="{ handleChange, value, errors }" name="targetAudience">
-              <Field :data-invalid="!!errors.length">
-                <FieldLabel>Target Audience</FieldLabel>
-                <Select
-                  :model-value="value"
-                  :disabled="isSaving"
-                  @update:model-value="handleChange"
-                >
-                  <SelectTrigger class="w-full" :class="{ 'border-destructive': !!errors.length }">
-                    <SelectValue placeholder="Select audience" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="(config, audience) in audienceConfig"
-                      :key="audience"
-                      :value="audience"
-                    >
-                      <span :class="config.color">{{ config.label }}</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldError :errors="errors" />
-              </Field>
-            </VeeField>
-
-            <!-- Pin to Top -->
-            <VeeField v-slot="{ handleChange, value }" name="isPinned">
-              <Field>
-                <FieldLabel>Pin to Top</FieldLabel>
-                <Select
-                  :model-value="value ? 'yes' : 'no'"
-                  :disabled="isSaving"
-                  @update:model-value="(val) => handleChange(val === 'yes')"
-                >
-                  <SelectTrigger class="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no">No</SelectItem>
-                    <SelectItem value="yes">Yes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </VeeField>
-          </div>
-
-          <!-- Image Upload and Expiry Row -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Image Upload -->
-            <div class="space-y-2">
-              <FieldLabel>Image (Optional)</FieldLabel>
-              <div v-if="formImagePath" class="relative inline-block">
-                <img
-                  :src="
-                    formImageFile ? formImagePath : announcementsStore.getImageUrl(formImagePath)
-                  "
-                  alt="Announcement image preview"
-                  class="h-24 max-w-full rounded-lg border object-contain"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  class="absolute -right-2 -top-2 size-6"
-                  :disabled="isSaving"
-                  @click="removeImage"
-                >
-                  <X class="size-4" />
-                </Button>
-              </div>
-              <div v-else>
-                <input
-                  ref="imageInputRef"
-                  type="file"
-                  accept="image/*"
-                  class="hidden"
-                  @change="handleImageUpload"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  class="w-full"
-                  :disabled="isSaving"
-                  @click="imageInputRef?.click()"
-                >
-                  <ImagePlus class="mr-2 size-4" />
-                  Upload Image
-                </Button>
-              </div>
-            </div>
-
-            <!-- Expiry Date -->
-            <VeeField v-slot="{ field, errors, setValue }" name="expiresAt">
-              <Field :data-invalid="!!errors.length">
-                <FieldLabel>Expires At (Optional)</FieldLabel>
-                <div v-if="field.value || showExpiryInput" class="flex items-center gap-2">
-                  <Input
-                    id="expires-at"
-                    type="datetime-local"
-                    :disabled="isSaving"
-                    :aria-invalid="!!errors.length"
-                    class="flex-1"
-                    v-bind="field"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="size-8 shrink-0"
-                    :disabled="isSaving"
-                    @click="
-                      () => {
-                        setValue(null)
-                        showExpiryInput = false
-                      }
-                    "
-                  >
-                    <X class="size-4" />
-                  </Button>
-                </div>
-                <Button
-                  v-else
-                  type="button"
-                  variant="outline"
-                  class="w-full justify-start text-muted-foreground"
-                  :disabled="isSaving"
-                  @click="showExpiryInput = true"
-                >
-                  No expiry date - click to set
-                </Button>
-                <FieldError :errors="errors" />
-              </Field>
-            </VeeField>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              :disabled="isSaving"
-              @click="showDialog = false"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" :disabled="isSaving">
-              <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-              {{ editingAnnouncement ? 'Update' : 'Create' }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <AnnouncementFormDialog
+      v-model:open="showFormDialog"
+      :announcement="editingAnnouncement"
+      @saved="handleFormSaved"
+    />
 
     <!-- Preview Announcement Dialog -->
     <AnnouncementDetailDialog

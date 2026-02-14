@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import { toast } from 'vue-sonner'
 import type { Database } from '@/types/database.types'
 
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
@@ -142,6 +143,7 @@ export const useStudentSubscriptionStore = defineStore('studentSubscription', ()
       return status
     } catch (err) {
       console.error('Error getting subscription status:', err)
+      toast.warning('Could not verify your subscription. Using default plan.')
       const basicSessionsPerDay = await getBasicTierSessionsPerDay()
       const status: StudentSubscriptionStatus = {
         isLinkedToParent: false,

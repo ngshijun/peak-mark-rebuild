@@ -95,6 +95,38 @@ export const defaultOptions: MCQOption[] = [
   { id: 'd', text: '', imagePath: null, isCorrect: false },
 ]
 
+export interface QuestionImageState {
+  displayUrl: string
+  file: File | null
+  originalPath: string | null
+  removed: boolean
+}
+
+export interface OptionImageState {
+  file: File | null
+  originalPath: string | null
+  removed: boolean
+}
+
+type OptionId = 'a' | 'b' | 'c' | 'd'
+export type OptionImagesMap = Record<OptionId, OptionImageState>
+
+const defaultQuestionImage: QuestionImageState = {
+  displayUrl: '',
+  file: null,
+  originalPath: null,
+  removed: false,
+}
+
+function freshOptionImages(): OptionImagesMap {
+  return {
+    a: { file: null, originalPath: null, removed: false },
+    b: { file: null, originalPath: null, removed: false },
+    c: { file: null, originalPath: null, removed: false },
+    d: { file: null, originalPath: null, removed: false },
+  }
+}
+
 export function useQuestionForm() {
   const curriculumStore = useCurriculumStore()
   const questionsStore = useQuestionsStore()
@@ -117,41 +149,16 @@ export function useQuestionForm() {
       },
     })
 
-  // ─── Image handling refs ────────────────────────────────────────────────────
-  const formImageUrl = ref('')
+  // ─── Consolidated image state ──────────────────────────────────────────────
+  const questionImage = ref<QuestionImageState>({ ...defaultQuestionImage })
+  const optionImages = ref<OptionImagesMap>(freshOptionImages())
+
   const imageInputRef = ref<HTMLInputElement | null>(null)
   const optionImageInputRefs = ref<Record<string, HTMLInputElement | null>>({
     a: null,
     b: null,
     c: null,
     d: null,
-  })
-
-  // Store actual File objects for upload
-  const questionImageFile = ref<File | null>(null)
-  const optionImageFiles = ref<Record<string, File | null>>({
-    a: null,
-    b: null,
-    c: null,
-    d: null,
-  })
-
-  // Edit-only: track original image paths for cleanup
-  const originalImagePath = ref<string | null>(null)
-  const originalOptionImagePaths = ref<Record<string, string | null>>({
-    a: null,
-    b: null,
-    c: null,
-    d: null,
-  })
-
-  // Edit-only: track if images were removed (to delete from storage)
-  const questionImageRemoved = ref(false)
-  const optionImagesRemoved = ref<Record<string, boolean>>({
-    a: false,
-    b: false,
-    c: false,
-    d: false,
   })
 
   // ─── Curriculum fetch ────────────────────────────────────────────────────────
@@ -185,22 +192,22 @@ export function useQuestionForm() {
     const target = event.target as HTMLInputElement
     const file = target.files?.[0]
     if (file) {
-      questionImageFile.value = file
+      questionImage.value.file = file
       const reader = new FileReader()
       reader.onload = (e) => {
-        formImageUrl.value = e.target?.result as string
+        questionImage.value.displayUrl = e.target?.result as string
       }
       reader.readAsDataURL(file)
     }
   }
 
   function removeImage() {
-    formImageUrl.value = ''
-    questionImageFile.value = null
     // Mark for deletion if there was an original image (edit mode)
-    if (originalImagePath.value) {
-      questionImageRemoved.value = true
+    if (questionImage.value.originalPath) {
+      questionImage.value.removed = true
     }
+    questionImage.value.displayUrl = ''
+    questionImage.value.file = null
     if (imageInputRef.value) {
       imageInputRef.value.value = ''
     }
@@ -210,9 +217,9 @@ export function useQuestionForm() {
     const target = event.target as HTMLInputElement
     const file = target.files?.[0]
     if (file) {
-      optionImageFiles.value[optionId] = file
+      optionImages.value[optionId].file = file
       // Reset removal flag since we're adding a new image (edit mode)
-      optionImagesRemoved.value[optionId] = false
+      optionImages.value[optionId].removed = false
       const reader = new FileReader()
       reader.onload = (e) => {
         const currentOptions = values.options || []
@@ -231,10 +238,10 @@ export function useQuestionForm() {
       opt.id === optionId ? { ...opt, imagePath: null } : opt,
     )
     setFieldValue('options', options)
-    optionImageFiles.value[optionId] = null
+    optionImages.value[optionId].file = null
     // Mark for deletion if there was an original image (edit mode)
-    if (originalOptionImagePaths.value[optionId]) {
-      optionImagesRemoved.value[optionId] = true
+    if (optionImages.value[optionId].originalPath) {
+      optionImages.value[optionId].removed = true
     }
     const inputRef = optionImageInputRefs.value[optionId]
     if (inputRef) {
@@ -300,24 +307,43 @@ export function useQuestionForm() {
         options: [...defaultOptions.map((o) => ({ ...o }))],
       },
     })
-    formImageUrl.value = ''
-    questionImageFile.value = null
-    optionImageFiles.value = { a: null, b: null, c: null, d: null }
+    questionImage.value = { ...defaultQuestionImage }
+    optionImages.value = freshOptionImages()
   }
 
   function initializeEditForm(question: Question) {
     // Store original image paths for cleanup
-    originalImagePath.value = question.imagePath
-    originalOptionImagePaths.value = {
-      a: question.options.find((o) => o.id === 'a')?.imagePath ?? null,
-      b: question.options.find((o) => o.id === 'b')?.imagePath ?? null,
-      c: question.options.find((o) => o.id === 'c')?.imagePath ?? null,
-      d: question.options.find((o) => o.id === 'd')?.imagePath ?? null,
+    questionImage.value = {
+      displayUrl: question.imagePath
+        ? questionsStore.getOptimizedQuestionImageUrl(question.imagePath)
+        : '',
+      file: null,
+      originalPath: question.imagePath,
+      removed: false,
     }
 
-    // Reset removal tracking
-    questionImageRemoved.value = false
-    optionImagesRemoved.value = { a: false, b: false, c: false, d: false }
+    optionImages.value = {
+      a: {
+        file: null,
+        originalPath: question.options.find((o) => o.id === 'a')?.imagePath ?? null,
+        removed: false,
+      },
+      b: {
+        file: null,
+        originalPath: question.options.find((o) => o.id === 'b')?.imagePath ?? null,
+        removed: false,
+      },
+      c: {
+        file: null,
+        originalPath: question.options.find((o) => o.id === 'c')?.imagePath ?? null,
+        removed: false,
+      },
+      d: {
+        file: null,
+        originalPath: question.options.find((o) => o.id === 'd')?.imagePath ?? null,
+        removed: false,
+      },
+    }
 
     // Set form values
     const hierarchy = curriculumStore.getSubTopicWithHierarchy(question.subTopicId)
@@ -337,17 +363,6 @@ export function useQuestionForm() {
         isCorrect: opt.isCorrect,
       })),
     })
-
-    // Set question image URL for display
-    if (question.imagePath) {
-      formImageUrl.value = questionsStore.getOptimizedQuestionImageUrl(question.imagePath)
-    } else {
-      formImageUrl.value = ''
-    }
-
-    // Clear file refs (these are for new uploads only)
-    questionImageFile.value = null
-    optionImageFiles.value = { a: null, b: null, c: null, d: null }
   }
 
   return {
@@ -363,12 +378,11 @@ export function useQuestionForm() {
     availableTopics,
     availableSubTopics,
 
-    // Image state
-    formImageUrl,
+    // Consolidated image state
+    questionImage,
+    optionImages,
     imageInputRef,
     optionImageInputRefs,
-    questionImageFile,
-    optionImageFiles,
 
     // Image handlers
     handleImageUpload,
@@ -380,12 +394,6 @@ export function useQuestionForm() {
     setCorrectOption,
     toggleCorrectOption,
     updateOptionText,
-
-    // Edit-only state
-    originalImagePath,
-    originalOptionImagePaths,
-    questionImageRemoved,
-    optionImagesRemoved,
 
     // Edit-only helpers
     getOptionImageUrl,

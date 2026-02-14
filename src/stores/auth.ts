@@ -1,22 +1,155 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase } from '@/lib/supabaseClient'
-import {
-  signUp as authSignUp,
-  signIn as authSignIn,
-  signOut as authSignOut,
-  fetchUserProfile,
-  ensureProfileExists,
-  type AuthUser,
-} from '@/composables/useAuth'
+import { supabase, clearSupabaseAuth } from '@/lib/supabaseClient'
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { resetAllStores } from '@/lib/piniaResetPlugin'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
 
 type UserType = Database['public']['Enums']['user_type']
 
+export interface AuthUser {
+  id: string
+  email: string
+  name: string
+  userType: UserType
+  avatarPath: string | null
+  dateOfBirth: string | null
+  createdAt: string | null
+  // Student-specific fields
+  studentProfile?: {
+    xp: number
+    coins: number
+    food: number
+    gradeLevelId: string | null
+    selectedPetId: string | null
+  }
+  // Parent-specific fields
+  parentProfile?: {
+    createdAt: string | null
+  }
+}
+
 // XP required for each level (cumulative)
 const XP_PER_LEVEL = 500
+
+/**
+ * Fetch the user's profile from the database
+ * This includes the main profile and type-specific profile (student/parent)
+ */
+async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
+  try {
+    // Fetch main profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (profileError || !profile) {
+      console.error('Error fetching profile:', profileError)
+      return null
+    }
+
+    const authUser: AuthUser = {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      userType: profile.user_type,
+      avatarPath: profile.avatar_path,
+      dateOfBirth: profile.date_of_birth,
+      createdAt: profile.created_at,
+    }
+
+    // Fetch type-specific profile
+    if (profile.user_type === 'student') {
+      const { data: studentProfile } = await supabase
+        .from('student_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (studentProfile) {
+        authUser.studentProfile = {
+          xp: studentProfile.xp ?? 0,
+          coins: studentProfile.coins ?? 0,
+          food: studentProfile.food ?? 0,
+          gradeLevelId: studentProfile.grade_level_id,
+          selectedPetId: studentProfile.selected_pet_id,
+        }
+      }
+    } else if (profile.user_type === 'parent') {
+      const { data: parentProfile } = await supabase
+        .from('parent_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (parentProfile) {
+        authUser.parentProfile = {
+          createdAt: parentProfile.created_at,
+        }
+      }
+    }
+
+    return authUser
+  } catch (err) {
+    console.error('Error fetching user profile:', err)
+    return null
+  }
+}
+
+/**
+ * Ensure the user's profile exists in the database
+ * This is a fallback in case the DB trigger didn't create it on signup
+ * Called on first login to guarantee profile exists
+ */
+async function ensureProfileExists(user: SupabaseUser): Promise<{ error: string | null }> {
+  try {
+    // Check if profile already exists using maybeSingle() to avoid error when not found
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    // If profile exists, we're done
+    if (existingProfile) {
+      return { error: null }
+    }
+
+    // If there was an error other than "not found", return it
+    if (checkError) {
+      console.error('Error checking profile:', checkError)
+      return { error: handleError(checkError, 'An unexpected error occurred.') }
+    }
+
+    // Profile doesn't exist, create it atomically using RPC function
+    const userMetadata = user.user_metadata || {}
+    const userType = (userMetadata.user_type as UserType) || 'student'
+    const name = (userMetadata.name as string) || 'User'
+    const dateOfBirth = userMetadata.date_of_birth as string | undefined
+
+    // Create main profile and type-specific profile atomically
+    const { error: rpcError } = await supabase.rpc('create_user_profile', {
+      p_user_id: user.id,
+      p_email: user.email!,
+      p_name: name,
+      p_user_type: userType,
+      p_date_of_birth: dateOfBirth,
+    })
+
+    if (rpcError) {
+      console.error('Error creating profile:', rpcError)
+      return { error: handleError(rpcError, 'An unexpected error occurred.') }
+    }
+
+    return { error: null }
+  } catch (err) {
+    const message = handleError(err, 'An unexpected error occurred.')
+    return { error: message }
+  }
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null)
@@ -143,8 +276,27 @@ export const useAuthStore = defineStore('auth', () => {
   ) {
     isLoading.value = true
     try {
-      const result = await authSignUp(email, password, name, userTypeParam, dateOfBirth)
-      return result
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            user_type: userTypeParam,
+            date_of_birth: dateOfBirth,
+          },
+        },
+      })
+
+      if (signUpError) {
+        const message = handleError(signUpError, 'An unexpected error occurred.')
+        return { user: null, error: message }
+      }
+
+      return { user: data.user, error: null }
+    } catch (err) {
+      const message = handleError(err, 'An unexpected error occurred.')
+      return { user: null, error: message }
     } finally {
       isLoading.value = false
     }
@@ -156,17 +308,30 @@ export const useAuthStore = defineStore('auth', () => {
   async function signIn(email: string, password: string) {
     isLoading.value = true
     try {
-      const result = await authSignIn(email, password)
-      if (result.user && !result.error) {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        const message = handleError(signInError, 'An unexpected error occurred.')
+        return { user: null, session: null, error: message }
+      }
+
+      if (data.user) {
         // Ensure profile exists on first login
-        await ensureProfileExists(result.user)
+        await ensureProfileExists(data.user)
         // Fetch the user profile
-        const profile = await fetchUserProfile(result.user.id)
+        const profile = await fetchUserProfile(data.user.id)
         if (profile) {
           user.value = profile
         }
       }
-      return result
+
+      return { user: data.user, session: data.session, error: null }
+    } catch (err) {
+      const message = handleError(err, 'An unexpected error occurred.')
+      return { user: null, session: null, error: message }
     } finally {
       isLoading.value = false
     }
@@ -174,13 +339,39 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Sign out the current user
+   *
+   * Note: When the session is already invalid (e.g., logged out from another domain),
+   * Supabase's signOut() cannot clear localStorage because _useSession() fails first.
+   * In this case, we treat the error as success since the user IS logged out server-side.
    */
   async function signOut() {
     isLoading.value = true
     try {
-      const result = await authSignOut()
+      const { error: signOutError } = await supabase.auth.signOut()
+
+      if (signOutError) {
+        // Check if the error indicates the session is already invalid/gone
+        const isSessionGone =
+          signOutError.message.includes('session_not_found') ||
+          signOutError.code === 'session_not_found' ||
+          signOutError.message.includes('Invalid Refresh Token') ||
+          signOutError.message.includes('invalid_grant') ||
+          signOutError.message.includes('Auth session missing') ||
+          signOutError.status === 403 ||
+          signOutError.status === 401
+
+        if (!isSessionGone) {
+          const msg = handleError(signOutError, 'An unexpected error occurred.')
+          // Still clear local state even on unexpected errors
+          user.value = null
+          return { error: msg }
+        }
+        // For session-gone errors: user IS logged out server-side
+        // Clear localStorage since Supabase couldn't do it
+        clearSupabaseAuth()
+      }
+
       // Always clear local user state when signing out
-      // Even if the server returns an error, we want to clear the local session
       user.value = null
 
       // Clean up auth listener to prevent memory leaks
@@ -190,21 +381,68 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       // SECURITY: Reset ALL stores to prevent data leakage after logout
-      // This is critical for shared devices where another user may log in
-      // The piniaResetPlugin automatically tracks all stores with $reset()
-      // Excluded stores: auth (this store), theme, language (device preferences)
       const { failed } = resetAllStores()
 
       // If any store reset failed, force a page reload to ensure clean state
       if (failed.length > 0) {
         console.warn('Some stores failed to reset, forcing page reload for security')
         window.location.href = '/login'
-        return result
+        return { error: null }
       }
 
-      return result
+      return { error: null }
+    } catch (err) {
+      const message = handleError(err, 'An unexpected error occurred.')
+      user.value = null
+      return { error: message }
     } finally {
       isLoading.value = false
+    }
+  }
+
+  /**
+   * Get the current session
+   */
+  async function getSession(): Promise<Session | null> {
+    const { data } = await supabase.auth.getSession()
+    return data.session
+  }
+
+  /**
+   * Send password reset email
+   */
+  async function resetPassword(email: string): Promise<{ error: string | null }> {
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (resetError) {
+        return { error: handleError(resetError, 'An unexpected error occurred.') }
+      }
+
+      return { error: null }
+    } catch (err) {
+      return { error: handleError(err, 'An unexpected error occurred.') }
+    }
+  }
+
+  /**
+   * Update user password
+   */
+  async function updatePassword(newPassword: string): Promise<{ error: string | null }> {
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (updateError) {
+        return { error: handleError(updateError, 'An unexpected error occurred.') }
+      }
+
+      return { error: null }
+    } catch (err) {
+      return { error: handleError(err, 'An unexpected error occurred.') }
     }
   }
 
@@ -436,6 +674,9 @@ export const useAuthStore = defineStore('auth', () => {
     signUp,
     signIn,
     signOut,
+    getSession,
+    resetPassword,
+    updatePassword,
     refreshProfile,
     updateName,
     updateDateOfBirth,

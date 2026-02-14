@@ -199,9 +199,9 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <!-- Question Image -->
   <Field>
     <FieldLabel>Question Image (Optional)</FieldLabel>
-    <div v-if="f.formImageUrl.value" class="relative inline-block">
+    <div v-if="f.questionImage.value.displayUrl" class="relative inline-block">
       <img
-        :src="f.formImageUrl.value"
+        :src="f.questionImage.value.displayUrl"
         alt="Question image"
         class="max-h-48 rounded-lg border object-contain"
       />

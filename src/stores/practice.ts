@@ -28,6 +28,7 @@ export const usePracticeStore = defineStore('practice', () => {
   const currentSession = ref<PracticeSession | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const aiSummaryStatus = ref<'idle' | 'generating' | 'generated' | 'failed'>('idle')
 
   const subscription = useStudentSubscriptionStore()
 
@@ -465,6 +466,8 @@ export const usePracticeStore = defineStore('practice', () => {
         return // Only Max tier gets AI summaries
       }
 
+      aiSummaryStatus.value = 'generating'
+
       // Call Edge Function to generate summary
       const { data, error } = await supabase.functions.invoke('generate-session-summary', {
         body: { sessionId },
@@ -472,6 +475,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       if (error) {
         console.error('Failed to generate AI summary:', error)
+        aiSummaryStatus.value = 'failed'
         return
       }
 
@@ -479,8 +483,10 @@ export const usePracticeStore = defineStore('practice', () => {
       if (currentSession.value?.id === sessionId && data?.summary) {
         currentSession.value.aiSummary = data.summary
       }
+      aiSummaryStatus.value = 'generated'
     } catch (err) {
       console.error('Error generating AI summary:', err)
+      aiSummaryStatus.value = 'failed'
     }
   }
 
@@ -666,6 +672,7 @@ export const usePracticeStore = defineStore('practice', () => {
     currentSession.value = null
     isLoading.value = false
     error.value = null
+    aiSummaryStatus.value = 'idle'
     subscription.$reset()
     subTopicProgress.value = new Map()
     resetPracticeNavigation()
@@ -697,6 +704,7 @@ export const usePracticeStore = defineStore('practice', () => {
     currentSession,
     isLoading,
     error,
+    aiSummaryStatus,
     isSessionActive,
     currentQuestion,
     currentQuestionNumber,
