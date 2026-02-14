@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import confetti from 'canvas-confetti'
+import { ref, computed, onMounted } from 'vue'
 import {
   useLeaderboardStore,
   type LeaderboardStudent,
@@ -10,16 +9,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -28,10 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Trophy, Medal, Award, Loader2, CirclePoundSterling, CalendarClock } from 'lucide-vue-next'
+import { Trophy, Loader2, CirclePoundSterling, CalendarClock } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import fireGif from '@/assets/icons/fire.gif'
 import { useCountdownTimer } from '@/composables/useCountdownTimer'
+import LeaderboardTable from '@/components/student/LeaderboardTable.vue'
+import WeeklyRewardDialog from '@/components/student/WeeklyRewardDialog.vue'
 
 const leaderboardStore = useLeaderboardStore()
 const authStore = useAuthStore()
@@ -56,13 +48,6 @@ const { countdown } = useCountdownTimer()
 const showRewardDialog = ref(false)
 const lastWeekReward = ref<WeeklyReward | null>(null)
 
-function getOrdinalSuffix(rank: number): string {
-  if (rank === 1) return 'st'
-  if (rank === 2) return 'nd'
-  if (rank === 3) return 'rd'
-  return 'th'
-}
-
 async function checkWeeklyReward() {
   if (!leaderboardStore.hasUnseenReward) return
 
@@ -72,20 +57,6 @@ async function checkWeeklyReward() {
   lastWeekReward.value = reward
   showRewardDialog.value = true
 }
-
-// Fire confetti when reward dialog opens
-watch(showRewardDialog, (open) => {
-  if (open) {
-    const duration = 1500
-    const end = Date.now() + duration
-    const frame = () => {
-      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })
-      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } })
-      if (Date.now() < end) requestAnimationFrame(frame)
-    }
-    frame()
-  }
-})
 
 function dismissRewardDialog() {
   showRewardDialog.value = false
@@ -185,28 +156,6 @@ onMounted(async () => {
   // Check for weekly reward notification
   checkWeeklyReward()
 })
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-}
-
-function getRankIcon(rank: number) {
-  if (rank === 1) return Trophy
-  if (rank === 2) return Medal
-  if (rank === 3) return Award
-  return null
-}
-
-function getRankColor(rank: number): string {
-  if (rank === 1) return 'text-yellow-500'
-  if (rank === 2) return 'text-gray-400'
-  if (rank === 3) return 'text-amber-600'
-  return 'text-muted-foreground'
-}
 </script>
 
 <template>
@@ -248,7 +197,6 @@ function getRankColor(rank: number): string {
 
       <!-- All-Time Tab -->
       <TabsContent value="all-time">
-        <!-- Loading State -->
         <div v-if="leaderboardStore.isLoading" class="flex items-center justify-center py-12">
           <Loader2 class="size-8 animate-spin text-muted-foreground" />
         </div>
@@ -266,157 +214,72 @@ function getRankColor(rank: number): string {
             </CardTitle>
           </CardHeader>
           <CardContent class="p-0">
-            <div v-if="displayedStudents.length === 0" class="py-12 text-center">
-              <p class="text-muted-foreground">No students found for this grade level.</p>
-            </div>
-
-            <div v-else class="divide-y">
-              <div
-                v-for="student in displayedStudents"
-                :key="student.id"
-                class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
-                :class="{
-                  'bg-primary/5': authStore.user?.id === student.id,
-                }"
-              >
-                <!-- Rank -->
-                <div class="flex w-12 items-center justify-center">
-                  <component
-                    :is="getRankIcon(student.rank)"
-                    v-if="getRankIcon(student.rank)"
-                    class="size-6"
-                    :class="getRankColor(student.rank)"
-                  />
-                  <span v-else class="text-lg font-semibold" :class="getRankColor(student.rank)">
-                    {{ student.rank }}
-                  </span>
-                </div>
-
-                <!-- Avatar -->
-                <Avatar class="size-10">
-                  <AvatarImage
-                    :src="leaderboardStore.getAvatarUrl(student.avatarPath)"
-                    :alt="student.name"
-                  />
-                  <AvatarFallback>{{ getInitials(student.name) }}</AvatarFallback>
-                </Avatar>
-
-                <!-- Student Info -->
-                <div class="min-w-0 flex-1">
-                  <p class="truncate font-medium">
-                    {{ student.name }}
-                    <Badge
-                      v-if="authStore.user?.id === student.id"
-                      variant="secondary"
-                      class="ml-2"
-                    >
-                      You
-                    </Badge>
-                  </p>
-                  <p class="text-sm text-muted-foreground">{{ student.gradeLevelName ?? 'N/A' }}</p>
-                </div>
-
-                <!-- Stats -->
+            <LeaderboardTable
+              :entries="displayedStudents"
+              :current-student-entry="currentStudentInfo"
+              empty-message="No students found for this grade level."
+            >
+              <template #stats="{ entry }">
                 <div class="flex items-center gap-6">
-                  <!-- Streak -->
                   <div class="w-12 text-center">
                     <p class="text-sm text-muted-foreground">Streak</p>
                     <p class="flex items-center justify-center gap-1 font-semibold">
                       <img
-                        v-if="student.currentStreak > 0"
+                        v-if="(entry as LeaderboardStudent).currentStreak > 0"
                         :src="fireGif"
                         alt="fire"
                         loading="lazy"
                         class="size-4"
                       />
-                      {{ student.currentStreak }}
+                      {{ (entry as LeaderboardStudent).currentStreak }}
                     </p>
                   </div>
-
-                  <!-- Level -->
                   <div class="w-12 text-center">
                     <p class="text-sm text-muted-foreground">Level</p>
-                    <p class="font-semibold">{{ student.level }}</p>
+                    <p class="font-semibold">{{ (entry as LeaderboardStudent).level }}</p>
                   </div>
-
-                  <!-- XP -->
                   <div class="w-12 text-center">
                     <p class="text-sm text-muted-foreground">XP</p>
-                    <p class="font-semibold">{{ student.xp.toLocaleString() }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Current student row if not in top 20 -->
-              <template v-if="currentStudentInfo">
-                <div class="border-t-2 border-dashed" />
-                <div class="flex items-center gap-4 bg-primary/5 px-6 py-4">
-                  <!-- Rank -->
-                  <div class="flex w-12 items-center justify-center">
-                    <span class="text-lg font-semibold text-muted-foreground">
-                      {{ currentStudentInfo.rank }}
-                    </span>
-                  </div>
-
-                  <!-- Avatar -->
-                  <Avatar class="size-10">
-                    <AvatarImage
-                      :src="leaderboardStore.getAvatarUrl(currentStudentInfo.avatarPath)"
-                      :alt="currentStudentInfo.name"
-                    />
-                    <AvatarFallback>{{ getInitials(currentStudentInfo.name) }}</AvatarFallback>
-                  </Avatar>
-
-                  <!-- Student Info -->
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium">
-                      {{ currentStudentInfo.name }}
-                      <Badge variant="secondary" class="ml-2">You</Badge>
+                    <p class="font-semibold">
+                      {{ (entry as LeaderboardStudent).xp.toLocaleString() }}
                     </p>
-                    <p class="text-sm text-muted-foreground">
-                      {{ currentStudentInfo.gradeLevelName ?? 'N/A' }}
-                    </p>
-                  </div>
-
-                  <!-- Stats -->
-                  <div class="flex items-center gap-6">
-                    <!-- Streak -->
-                    <div class="w-12 text-center">
-                      <p class="text-sm text-muted-foreground">Streak</p>
-                      <p class="flex items-center justify-center gap-1 font-semibold">
-                        <img
-                          v-if="currentStudentInfo.currentStreak > 0"
-                          :src="fireGif"
-                          alt="fire"
-                          loading="lazy"
-                          class="size-4"
-                        />
-                        {{ currentStudentInfo.currentStreak }}
-                      </p>
-                    </div>
-
-                    <!-- Level -->
-                    <div class="w-12 text-center">
-                      <p class="text-sm text-muted-foreground">Level</p>
-                      <p class="font-semibold">{{ currentStudentInfo.level }}</p>
-                    </div>
-
-                    <!-- XP -->
-                    <div class="w-12 text-center">
-                      <p class="text-sm text-muted-foreground">XP</p>
-                      <p class="font-semibold">{{ currentStudentInfo.xp.toLocaleString() }}</p>
-                    </div>
                   </div>
                 </div>
               </template>
-            </div>
+              <template #current-student-stats="{ entry }">
+                <div class="flex items-center gap-6">
+                  <div class="w-12 text-center">
+                    <p class="text-sm text-muted-foreground">Streak</p>
+                    <p class="flex items-center justify-center gap-1 font-semibold">
+                      <img
+                        v-if="(entry as LeaderboardStudent).currentStreak > 0"
+                        :src="fireGif"
+                        alt="fire"
+                        loading="lazy"
+                        class="size-4"
+                      />
+                      {{ (entry as LeaderboardStudent).currentStreak }}
+                    </p>
+                  </div>
+                  <div class="w-12 text-center">
+                    <p class="text-sm text-muted-foreground">Level</p>
+                    <p class="font-semibold">{{ (entry as LeaderboardStudent).level }}</p>
+                  </div>
+                  <div class="w-12 text-center">
+                    <p class="text-sm text-muted-foreground">XP</p>
+                    <p class="font-semibold">
+                      {{ (entry as LeaderboardStudent).xp.toLocaleString() }}
+                    </p>
+                  </div>
+                </div>
+              </template>
+            </LeaderboardTable>
           </CardContent>
         </Card>
       </TabsContent>
 
       <!-- Weekly Tab -->
       <TabsContent value="weekly">
-        <!-- Loading State -->
         <div v-if="leaderboardStore.isWeeklyLoading" class="flex items-center justify-center py-12">
           <Loader2 class="size-8 animate-spin text-muted-foreground" />
         </div>
@@ -438,196 +301,76 @@ function getRankColor(rank: number): string {
             </CardTitle>
           </CardHeader>
           <CardContent class="p-0">
-            <div v-if="displayedWeeklyStudents.length === 0" class="py-12 text-center">
-              <p class="text-muted-foreground">No students have earned XP this week yet.</p>
-            </div>
-
-            <div v-else class="divide-y">
-              <div
-                v-for="student in displayedWeeklyStudents"
-                :key="student.id"
-                class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
-                :class="{
-                  'bg-primary/5': authStore.user?.id === student.id,
-                }"
-              >
-                <!-- Rank -->
-                <div class="flex w-12 items-center justify-center">
-                  <component
-                    :is="getRankIcon(student.rank)"
-                    v-if="getRankIcon(student.rank)"
-                    class="size-6"
-                    :class="getRankColor(student.rank)"
-                  />
-                  <span v-else class="text-lg font-semibold" :class="getRankColor(student.rank)">
-                    {{ student.rank }}
-                  </span>
-                </div>
-
-                <!-- Avatar -->
-                <Avatar class="size-10">
-                  <AvatarImage
-                    :src="leaderboardStore.getAvatarUrl(student.avatarPath)"
-                    :alt="student.name"
-                  />
-                  <AvatarFallback>{{ getInitials(student.name) }}</AvatarFallback>
-                </Avatar>
-
-                <!-- Student Info -->
-                <div class="min-w-0 flex-1">
-                  <p class="truncate font-medium">
-                    {{ student.name }}
-                    <Badge
-                      v-if="authStore.user?.id === student.id"
-                      variant="secondary"
-                      class="ml-2"
-                    >
-                      You
-                    </Badge>
-                  </p>
-                  <p class="text-sm text-muted-foreground">{{ student.gradeLevelName ?? 'N/A' }}</p>
-                </div>
-
-                <!-- Stats -->
+            <LeaderboardTable
+              :entries="displayedWeeklyStudents"
+              :current-student-entry="currentWeeklyStudentInfo"
+              empty-message="No students have earned XP this week yet."
+            >
+              <template #stats="{ entry }">
                 <div class="flex items-center gap-6">
-                  <!-- Coin Reward -->
-                  <div v-if="getWeeklyReward(student.rank)" class="w-12 text-center">
+                  <div
+                    v-if="getWeeklyReward((entry as WeeklyLeaderboardStudent).rank)"
+                    class="w-12 text-center"
+                  >
                     <p class="text-sm text-muted-foreground">Reward</p>
                     <p
                       class="flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
                     >
                       <CirclePoundSterling class="size-3.5" />
-                      {{ getWeeklyReward(student.rank) }}
+                      {{ getWeeklyReward((entry as WeeklyLeaderboardStudent).rank) }}
                     </p>
                   </div>
                   <div v-else class="w-12" />
-
-                  <!-- Level -->
                   <div class="w-12 text-center">
                     <p class="text-sm text-muted-foreground">Level</p>
-                    <p class="font-semibold">{{ student.level }}</p>
+                    <p class="font-semibold">{{ (entry as WeeklyLeaderboardStudent).level }}</p>
                   </div>
-
-                  <!-- Weekly XP -->
                   <div class="w-16 text-center">
                     <p class="text-sm text-muted-foreground">XP</p>
-                    <p class="font-semibold">{{ student.weeklyXp.toLocaleString() }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Current student row if not in top 20 -->
-              <template v-if="currentWeeklyStudentInfo">
-                <div class="border-t-2 border-dashed" />
-                <div class="flex items-center gap-4 bg-primary/5 px-6 py-4">
-                  <!-- Rank -->
-                  <div class="flex w-12 items-center justify-center">
-                    <span class="text-lg font-semibold text-muted-foreground">
-                      {{ currentWeeklyStudentInfo.rank }}
-                    </span>
-                  </div>
-
-                  <!-- Avatar -->
-                  <Avatar class="size-10">
-                    <AvatarImage
-                      :src="leaderboardStore.getAvatarUrl(currentWeeklyStudentInfo.avatarPath)"
-                      :alt="currentWeeklyStudentInfo.name"
-                    />
-                    <AvatarFallback>{{
-                      getInitials(currentWeeklyStudentInfo.name)
-                    }}</AvatarFallback>
-                  </Avatar>
-
-                  <!-- Student Info -->
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium">
-                      {{ currentWeeklyStudentInfo.name }}
-                      <Badge variant="secondary" class="ml-2">You</Badge>
+                    <p class="font-semibold">
+                      {{ (entry as WeeklyLeaderboardStudent).weeklyXp.toLocaleString() }}
                     </p>
-                    <p class="text-sm text-muted-foreground">
-                      {{ currentWeeklyStudentInfo.gradeLevelName ?? 'N/A' }}
-                    </p>
-                  </div>
-
-                  <!-- Stats -->
-                  <div class="flex items-center gap-6">
-                    <!-- Coin Reward placeholder -->
-                    <div
-                      v-if="getWeeklyReward(currentWeeklyStudentInfo.rank)"
-                      class="w-12 text-center"
-                    >
-                      <p class="text-sm text-muted-foreground">Reward</p>
-                      <p
-                        class="flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
-                      >
-                        <CirclePoundSterling class="size-3.5" />
-                        {{ getWeeklyReward(currentWeeklyStudentInfo.rank) }}
-                      </p>
-                    </div>
-                    <div v-else class="w-12" />
-
-                    <!-- Level -->
-                    <div class="w-12 text-center">
-                      <p class="text-sm text-muted-foreground">Level</p>
-                      <p class="font-semibold">{{ currentWeeklyStudentInfo.level }}</p>
-                    </div>
-
-                    <!-- Weekly XP -->
-                    <div class="w-16 text-center">
-                      <p class="text-sm text-muted-foreground">XP</p>
-                      <p class="font-semibold">
-                        {{ currentWeeklyStudentInfo.weeklyXp.toLocaleString() }}
-                      </p>
-                    </div>
                   </div>
                 </div>
               </template>
-            </div>
+              <template #current-student-stats="{ entry }">
+                <div class="flex items-center gap-6">
+                  <div
+                    v-if="getWeeklyReward((entry as WeeklyLeaderboardStudent).rank)"
+                    class="w-12 text-center"
+                  >
+                    <p class="text-sm text-muted-foreground">Reward</p>
+                    <p
+                      class="flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
+                    >
+                      <CirclePoundSterling class="size-3.5" />
+                      {{ getWeeklyReward((entry as WeeklyLeaderboardStudent).rank) }}
+                    </p>
+                  </div>
+                  <div v-else class="w-12" />
+                  <div class="w-12 text-center">
+                    <p class="text-sm text-muted-foreground">Level</p>
+                    <p class="font-semibold">{{ (entry as WeeklyLeaderboardStudent).level }}</p>
+                  </div>
+                  <div class="w-16 text-center">
+                    <p class="text-sm text-muted-foreground">XP</p>
+                    <p class="font-semibold">
+                      {{ (entry as WeeklyLeaderboardStudent).weeklyXp.toLocaleString() }}
+                    </p>
+                  </div>
+                </div>
+              </template>
+            </LeaderboardTable>
           </CardContent>
         </Card>
       </TabsContent>
     </Tabs>
 
     <!-- Weekly Reward Notification Dialog -->
-    <Dialog
+    <WeeklyRewardDialog
       :open="showRewardDialog"
-      @update:open="
-        (v: boolean) => {
-          if (!v) dismissRewardDialog()
-        }
-      "
-    >
-      <DialogContent class="max-w-sm text-center">
-        <DialogHeader>
-          <DialogTitle class="text-center text-xl">Weekly Leaderboard Results</DialogTitle>
-          <DialogDescription class="text-center">
-            Last week's competition has ended!
-          </DialogDescription>
-        </DialogHeader>
-
-        <div v-if="lastWeekReward" class="space-y-4 py-2">
-          <div class="flex flex-col items-center gap-2">
-            <Trophy class="size-12 text-yellow-500" />
-            <p class="text-2xl font-bold">
-              {{ lastWeekReward.rank }}{{ getOrdinalSuffix(lastWeekReward.rank) }} Place
-            </p>
-            <p class="text-sm text-muted-foreground">
-              You earned {{ lastWeekReward.weeklyXp.toLocaleString() }} XP last week
-            </p>
-          </div>
-
-          <div
-            class="flex items-center justify-center gap-2 rounded-lg bg-amber-100 px-4 py-3 dark:bg-amber-950/30"
-          >
-            <CirclePoundSterling class="size-5 text-amber-600 dark:text-amber-400" />
-            <span class="text-lg font-bold text-amber-600 dark:text-amber-400">
-              +{{ lastWeekReward.coinsAwarded }} Coins
-            </span>
-          </div>
-
-          <Button class="w-full" @click="dismissRewardDialog"> Awesome! </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      :reward="lastWeekReward"
+      @dismiss="dismissRewardDialog"
+    />
   </div>
 </template>
