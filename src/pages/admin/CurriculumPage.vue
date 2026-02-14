@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useForm, Field as VeeField } from 'vee-validate'
-import { useCurriculumStore, type Subject, type Topic, type SubTopic } from '@/stores/curriculum'
-import { addCurriculumItemFormSchema } from '@/lib/validations'
-import { Plus, Trash2, ImagePlus, Loader2, X, Pencil } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { useCurriculumStore } from '@/stores/curriculum'
+import CurriculumAddDialog from '@/components/admin/CurriculumAddDialog.vue'
+import CurriculumEditImageDialog from '@/components/admin/CurriculumEditImageDialog.vue'
+import CurriculumDeleteDialog from '@/components/admin/CurriculumDeleteDialog.vue'
+import CurriculumEditNameDialog from '@/components/admin/CurriculumEditNameDialog.vue'
+import { Plus, Trash2, ImagePlus, Loader2, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import {
   Breadcrumb,
@@ -13,45 +15,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Field, FieldLabel, FieldError } from '@/components/ui/field'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { toast } from 'vue-sonner'
 
 const curriculumStore = useCurriculumStore()
-
-// Add item form
-const { handleSubmit: handleAddSubmit, resetForm: resetAddForm } = useForm({
-  validationSchema: addCurriculumItemFormSchema,
-  initialValues: {
-    name: '',
-  },
-})
 
 // Navigation state (from store for persistence)
 const selectedGradeLevelId = computed({
@@ -66,10 +32,6 @@ const selectedTopicId = computed({
   get: () => curriculumStore.adminCurriculumNavigation.selectedTopicId,
   set: (val) => curriculumStore.setAdminCurriculumTopic(val),
 })
-
-// Loading states
-const isSaving = ref(false)
-const isDeleting = ref(false)
 
 // Computed for navigation
 const selectedGradeLevel = computed(() => {
@@ -107,49 +69,6 @@ const addButtonLabel = computed(() => {
       return 'Add Sub-Topic'
   }
 })
-
-// Dialog state
-const showAddDialog = ref(false)
-const addType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
-const newItemCoverImagePreview = ref('')
-const newItemCoverImageFile = ref<File | null>(null)
-const dialogGradeLevelId = ref('')
-const dialogSubjectId = ref('')
-const dialogTopicId = ref('')
-const addImageInputRef = ref<HTMLInputElement | null>(null)
-
-// Edit cover image dialog
-const showEditImageDialog = ref(false)
-const editImageType = ref<'subject' | 'topic' | 'subtopic'>('subject')
-const editImagePreview = ref('')
-const editImageFile = ref<File | null>(null)
-const editImageGradeLevelId = ref('')
-const editImageSubjectId = ref('')
-const editImageTopicId = ref('')
-const editImageSubTopicId = ref('')
-const editImageItemName = ref('')
-const editImageInputRef = ref<HTMLInputElement | null>(null)
-const editImageHasCustomImage = ref(false)
-
-// Delete confirmation dialog
-const showDeleteDialog = ref(false)
-const deleteType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
-const deleteItemName = ref('')
-const deleteConfirmInput = ref('')
-const deleteGradeLevelId = ref('')
-const deleteSubjectId = ref('')
-const deleteTopicId = ref('')
-const deleteSubTopicId = ref('')
-
-// Edit name dialog
-const showEditNameDialog = ref(false)
-const editNameType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
-const editNameValue = ref('')
-const editNameGradeLevelId = ref('')
-const editNameSubjectId = ref('')
-const editNameTopicId = ref('')
-const editNameSubTopicId = ref('')
-const editNameCurrentName = ref('')
 
 function getImageUrl(coverImagePath: string | null): string {
   if (!coverImagePath) return ''
@@ -195,159 +114,31 @@ function goBackToTopics() {
   selectedTopicId.value = null
 }
 
-// Dialog functions
-function openAddDialog(
-  type: 'grade' | 'subject' | 'topic' | 'subtopic',
-  gradeLevelId?: string,
-  subjectId?: string,
-  topicId?: string,
-) {
+// Add dialog state
+const showAddDialog = ref(false)
+const addType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
+const addDialogGradeLevelId = ref('')
+const addDialogSubjectId = ref('')
+const addDialogTopicId = ref('')
+
+function openAddDialog(type: 'grade' | 'subject' | 'topic' | 'subtopic') {
   addType.value = type
-  resetAddForm()
-  newItemCoverImagePreview.value = ''
-  newItemCoverImageFile.value = null
-  dialogGradeLevelId.value = gradeLevelId ?? selectedGradeLevelId.value ?? ''
-  dialogSubjectId.value = subjectId ?? selectedSubjectId.value ?? ''
-  dialogTopicId.value = topicId ?? selectedTopicId.value ?? ''
+  addDialogGradeLevelId.value = selectedGradeLevelId.value ?? ''
+  addDialogSubjectId.value = selectedSubjectId.value ?? ''
+  addDialogTopicId.value = selectedTopicId.value ?? ''
   showAddDialog.value = true
 }
 
-function handleAddImageSelect(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    newItemCoverImageFile.value = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      newItemCoverImagePreview.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-}
-
-function removeAddImage() {
-  newItemCoverImagePreview.value = ''
-  newItemCoverImageFile.value = null
-  if (addImageInputRef.value) {
-    addImageInputRef.value.value = ''
-  }
-}
-
-const handleAdd = handleAddSubmit(async (values) => {
-  isSaving.value = true
-
-  try {
-    let itemId: string | undefined
-
-    if (addType.value === 'grade') {
-      const result = await curriculumStore.addGradeLevel(values.name.trim())
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      toast.success('Grade level added successfully')
-    } else if (addType.value === 'subject' && dialogGradeLevelId.value) {
-      // First create the subject without image
-      const result = await curriculumStore.addSubject(dialogGradeLevelId.value, values.name.trim())
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      itemId = result.id
-
-      // Upload image if provided
-      if (newItemCoverImageFile.value && itemId) {
-        const uploadResult = await curriculumStore.uploadCurriculumImage(
-          newItemCoverImageFile.value,
-          'subject',
-          itemId,
-        )
-        if (uploadResult.success && uploadResult.path) {
-          await curriculumStore.updateSubjectCoverImage(
-            dialogGradeLevelId.value,
-            itemId,
-            uploadResult.path,
-          )
-        }
-      }
-      toast.success('Subject added successfully')
-    } else if (addType.value === 'topic' && dialogGradeLevelId.value && dialogSubjectId.value) {
-      // First create the topic without image
-      const result = await curriculumStore.addTopic(
-        dialogGradeLevelId.value,
-        dialogSubjectId.value,
-        values.name.trim(),
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      itemId = result.id
-
-      // Upload image if provided
-      if (newItemCoverImageFile.value && itemId) {
-        const uploadResult = await curriculumStore.uploadCurriculumImage(
-          newItemCoverImageFile.value,
-          'topic',
-          itemId,
-        )
-        if (uploadResult.success && uploadResult.path) {
-          await curriculumStore.updateTopicCoverImage(
-            dialogGradeLevelId.value,
-            dialogSubjectId.value,
-            itemId,
-            uploadResult.path,
-          )
-        }
-      }
-      toast.success('Topic added successfully')
-    } else if (
-      addType.value === 'subtopic' &&
-      dialogGradeLevelId.value &&
-      dialogSubjectId.value &&
-      dialogTopicId.value
-    ) {
-      // First create the sub-topic without image
-      const result = await curriculumStore.addSubTopic(
-        dialogGradeLevelId.value,
-        dialogSubjectId.value,
-        dialogTopicId.value,
-        values.name.trim(),
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      itemId = result.id
-
-      // Upload image if provided
-      if (newItemCoverImageFile.value && itemId) {
-        const uploadResult = await curriculumStore.uploadCurriculumImage(
-          newItemCoverImageFile.value,
-          'subtopic',
-          itemId,
-        )
-        if (uploadResult.success && uploadResult.path) {
-          await curriculumStore.updateSubTopicCoverImage(
-            dialogGradeLevelId.value,
-            dialogSubjectId.value,
-            dialogTopicId.value,
-            itemId,
-            uploadResult.path,
-          )
-        }
-      }
-      toast.success('Sub-topic added successfully')
-    }
-
-    showAddDialog.value = false
-    resetAddForm()
-    newItemCoverImagePreview.value = ''
-    newItemCoverImageFile.value = null
-  } finally {
-    isSaving.value = false
-  }
-})
+// Edit image dialog state
+const showEditImageDialog = ref(false)
+const editImageType = ref<'subject' | 'topic' | 'subtopic'>('subject')
+const editImageGradeLevelId = ref('')
+const editImageSubjectId = ref('')
+const editImageTopicId = ref('')
+const editImageSubTopicId = ref('')
+const editImageItemName = ref('')
+const editImageCurrentUrl = ref('')
+const editImageHasCustomImage = ref(false)
 
 function openEditImageDialog(
   type: 'subject' | 'topic' | 'subtopic',
@@ -365,145 +156,20 @@ function openEditImageDialog(
   editImageTopicId.value = topicId ?? ''
   editImageSubTopicId.value = subTopicId ?? ''
   editImageItemName.value = itemName
-  editImagePreview.value = currentImage
-  editImageFile.value = null
+  editImageCurrentUrl.value = currentImage
   editImageHasCustomImage.value = hasCustomImage
   showEditImageDialog.value = true
 }
 
-function handleEditImageSelect(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    editImageFile.value = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      editImagePreview.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-}
+// Delete dialog state
+const showDeleteDialog = ref(false)
+const deleteType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
+const deleteItemName = ref('')
+const deleteGradeLevelId = ref('')
+const deleteSubjectId = ref('')
+const deleteTopicId = ref('')
+const deleteSubTopicId = ref('')
 
-async function handleEditImage() {
-  if (!editImageFile.value) {
-    showEditImageDialog.value = false
-    return
-  }
-
-  isSaving.value = true
-
-  try {
-    let itemId: string
-    if (editImageType.value === 'subject') {
-      itemId = editImageSubjectId.value
-    } else if (editImageType.value === 'topic') {
-      itemId = editImageTopicId.value
-    } else {
-      itemId = editImageSubTopicId.value
-    }
-
-    // Upload the image
-    const uploadResult = await curriculumStore.uploadCurriculumImage(
-      editImageFile.value,
-      editImageType.value,
-      itemId,
-    )
-
-    if (!uploadResult.success || !uploadResult.path) {
-      toast.error(uploadResult.error ?? 'Failed to upload image')
-      return
-    }
-
-    // Update the cover image path
-    if (editImageType.value === 'subject') {
-      const result = await curriculumStore.updateSubjectCoverImage(
-        editImageGradeLevelId.value,
-        editImageSubjectId.value,
-        uploadResult.path,
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-    } else if (editImageType.value === 'topic') {
-      const result = await curriculumStore.updateTopicCoverImage(
-        editImageGradeLevelId.value,
-        editImageSubjectId.value,
-        editImageTopicId.value,
-        uploadResult.path,
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-    } else if (editImageType.value === 'subtopic') {
-      const result = await curriculumStore.updateSubTopicCoverImage(
-        editImageGradeLevelId.value,
-        editImageSubjectId.value,
-        editImageTopicId.value,
-        editImageSubTopicId.value,
-        uploadResult.path,
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-    }
-
-    toast.success('Cover image updated successfully')
-    showEditImageDialog.value = false
-    editImagePreview.value = ''
-    editImageFile.value = null
-  } finally {
-    isSaving.value = false
-  }
-}
-
-async function handleRemoveImage() {
-  isSaving.value = true
-
-  try {
-    let result: { success: boolean; error: string | null }
-
-    if (editImageType.value === 'subject') {
-      result = await curriculumStore.updateSubjectCoverImage(
-        editImageGradeLevelId.value,
-        editImageSubjectId.value,
-        null,
-      )
-    } else if (editImageType.value === 'topic') {
-      result = await curriculumStore.updateTopicCoverImage(
-        editImageGradeLevelId.value,
-        editImageSubjectId.value,
-        editImageTopicId.value,
-        null,
-      )
-    } else {
-      result = await curriculumStore.updateSubTopicCoverImage(
-        editImageGradeLevelId.value,
-        editImageSubjectId.value,
-        editImageTopicId.value,
-        editImageSubTopicId.value,
-        null,
-      )
-    }
-
-    if (result.error) {
-      toast.error(result.error)
-      return
-    }
-
-    toast.success('Cover image removed successfully')
-    showEditImageDialog.value = false
-    editImagePreview.value = ''
-    editImageFile.value = null
-    editImageHasCustomImage.value = false
-  } finally {
-    isSaving.value = false
-  }
-}
-
-// Delete dialog functions
 function openDeleteDialog(
   type: 'grade' | 'subject' | 'topic' | 'subtopic',
   itemName: string,
@@ -514,7 +180,6 @@ function openDeleteDialog(
 ) {
   deleteType.value = type
   deleteItemName.value = itemName
-  deleteConfirmInput.value = ''
   deleteGradeLevelId.value = gradeLevelId
   deleteSubjectId.value = subjectId ?? ''
   deleteTopicId.value = topicId ?? ''
@@ -522,119 +187,28 @@ function openDeleteDialog(
   showDeleteDialog.value = true
 }
 
-function getDeleteDialogDescription() {
-  switch (deleteType.value) {
-    case 'grade':
-      return 'This will permanently delete this grade level and all its subjects, topics, sub-topics, questions, and practice sessions. This action cannot be undone.'
-    case 'subject':
-      return 'This will permanently delete this subject and all its topics, sub-topics, questions, and practice sessions. This action cannot be undone.'
-    case 'topic':
-      return 'This will permanently delete this topic and all its sub-topics, questions, and practice sessions. This action cannot be undone.'
-    case 'subtopic':
-      return 'This will permanently delete this sub-topic and all its questions and practice sessions. This action cannot be undone.'
+function handleDeleted(
+  type: 'grade' | 'subject' | 'topic' | 'subtopic',
+  ids: { subjectId: string; topicId: string },
+) {
+  if (type === 'subject' && selectedSubjectId.value === ids.subjectId) {
+    selectedSubjectId.value = null
+    selectedTopicId.value = null
+  }
+  if (type === 'topic' && selectedTopicId.value === ids.topicId) {
+    selectedTopicId.value = null
   }
 }
 
-async function confirmDelete() {
-  isDeleting.value = true
-  try {
-    let result: { error: string | null }
+// Edit name dialog state
+const showEditNameDialog = ref(false)
+const editNameType = ref<'grade' | 'subject' | 'topic' | 'subtopic'>('grade')
+const editNameCurrentName = ref('')
+const editNameGradeLevelId = ref('')
+const editNameSubjectId = ref('')
+const editNameTopicId = ref('')
+const editNameSubTopicId = ref('')
 
-    switch (deleteType.value) {
-      case 'grade':
-        result = await curriculumStore.deleteGradeLevel(deleteGradeLevelId.value)
-        if (!result.error) {
-          toast.success('Grade level deleted successfully')
-        }
-        break
-      case 'subject':
-        result = await curriculumStore.deleteSubject(
-          deleteGradeLevelId.value,
-          deleteSubjectId.value,
-        )
-        if (!result.error) {
-          if (selectedSubjectId.value === deleteSubjectId.value) {
-            selectedSubjectId.value = null
-            selectedTopicId.value = null
-          }
-          toast.success('Subject deleted successfully')
-        }
-        break
-      case 'topic':
-        result = await curriculumStore.deleteTopic(
-          deleteGradeLevelId.value,
-          deleteSubjectId.value,
-          deleteTopicId.value,
-        )
-        if (!result.error) {
-          if (selectedTopicId.value === deleteTopicId.value) {
-            selectedTopicId.value = null
-          }
-          toast.success('Topic deleted successfully')
-        }
-        break
-      case 'subtopic':
-        result = await curriculumStore.deleteSubTopic(
-          deleteGradeLevelId.value,
-          deleteSubjectId.value,
-          deleteTopicId.value,
-          deleteSubTopicId.value,
-        )
-        if (!result.error) {
-          toast.success('Sub-topic deleted successfully')
-        }
-        break
-    }
-
-    if (result.error) {
-      toast.error(result.error)
-    }
-  } finally {
-    isDeleting.value = false
-    showDeleteDialog.value = false
-  }
-}
-
-function getDialogTitle() {
-  switch (addType.value) {
-    case 'grade':
-      return 'Add Grade Level'
-    case 'subject':
-      return 'Add Subject'
-    case 'topic':
-      return 'Add Topic'
-    case 'subtopic':
-      return 'Add Sub-Topic'
-  }
-}
-
-function getDialogDescription() {
-  switch (addType.value) {
-    case 'grade':
-      return 'Add a new grade level to the curriculum.'
-    case 'subject':
-      return 'Add a new subject with an optional cover image.'
-    case 'topic':
-      return 'Add a new topic with an optional cover image.'
-    case 'subtopic':
-      return 'Add a new sub-topic with an optional cover image.'
-  }
-}
-
-function getInputLabel() {
-  switch (addType.value) {
-    case 'grade':
-      return 'Grade Level Name'
-    case 'subject':
-      return 'Subject Name'
-    case 'topic':
-      return 'Topic Name'
-    case 'subtopic':
-      return 'Sub-Topic Name'
-  }
-}
-
-// Edit name dialog functions
 function openEditNameDialog(
   type: 'grade' | 'subject' | 'topic' | 'subtopic',
   currentName: string,
@@ -644,97 +218,12 @@ function openEditNameDialog(
   subTopicId?: string,
 ) {
   editNameType.value = type
-  editNameValue.value = currentName
   editNameCurrentName.value = currentName
   editNameGradeLevelId.value = gradeLevelId
   editNameSubjectId.value = subjectId ?? ''
   editNameTopicId.value = topicId ?? ''
   editNameSubTopicId.value = subTopicId ?? ''
   showEditNameDialog.value = true
-}
-
-function getEditNameDialogTitle() {
-  switch (editNameType.value) {
-    case 'grade':
-      return 'Edit Grade Level Name'
-    case 'subject':
-      return 'Edit Subject Name'
-    case 'topic':
-      return 'Edit Topic Name'
-    case 'subtopic':
-      return 'Edit Sub-Topic Name'
-  }
-}
-
-function getEditNameInputLabel() {
-  switch (editNameType.value) {
-    case 'grade':
-      return 'Grade Level Name'
-    case 'subject':
-      return 'Subject Name'
-    case 'topic':
-      return 'Topic Name'
-    case 'subtopic':
-      return 'Sub-Topic Name'
-  }
-}
-
-async function handleEditName() {
-  const trimmedName = editNameValue.value.trim()
-  if (!trimmedName) {
-    toast.error('Name cannot be empty')
-    return
-  }
-
-  if (trimmedName === editNameCurrentName.value) {
-    showEditNameDialog.value = false
-    return
-  }
-
-  isSaving.value = true
-
-  try {
-    let result: { success: boolean; error: string | null }
-
-    switch (editNameType.value) {
-      case 'grade':
-        result = await curriculumStore.updateGradeLevel(editNameGradeLevelId.value, trimmedName)
-        break
-      case 'subject':
-        result = await curriculumStore.updateSubject(
-          editNameGradeLevelId.value,
-          editNameSubjectId.value,
-          { name: trimmedName },
-        )
-        break
-      case 'topic':
-        result = await curriculumStore.updateTopic(
-          editNameGradeLevelId.value,
-          editNameSubjectId.value,
-          editNameTopicId.value,
-          { name: trimmedName },
-        )
-        break
-      case 'subtopic':
-        result = await curriculumStore.updateSubTopic(
-          editNameGradeLevelId.value,
-          editNameSubjectId.value,
-          editNameTopicId.value,
-          editNameSubTopicId.value,
-          { name: trimmedName },
-        )
-        break
-    }
-
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success('Name updated successfully')
-      showEditNameDialog.value = false
-    }
-  } finally {
-    isSaving.value = false
-  }
 }
 </script>
 
@@ -825,7 +314,6 @@ async function handleEditName() {
               variant="destructive"
               size="icon"
               class="size-8"
-              :disabled="isDeleting"
               @click.stop="openDeleteDialog('grade', grade.name, grade.id)"
             >
               <Trash2 class="size-4" />
@@ -909,7 +397,6 @@ async function handleEditName() {
               variant="destructive"
               size="icon"
               class="size-8"
-              :disabled="isDeleting"
               @click.stop="
                 openDeleteDialog('subject', subject.name, selectedGradeLevel.id, subject.id)
               "
@@ -1003,7 +490,6 @@ async function handleEditName() {
               variant="destructive"
               size="icon"
               class="size-8"
-              :disabled="isDeleting"
               @click.stop="
                 openDeleteDialog(
                   'topic',
@@ -1099,7 +585,6 @@ async function handleEditName() {
               variant="destructive"
               size="icon"
               class="size-8"
-              :disabled="isDeleting"
               @click.stop="
                 openDeleteDialog(
                   'subtopic',
@@ -1135,262 +620,46 @@ async function handleEditName() {
       </div>
     </div>
 
-    <!-- Add Dialog -->
-    <Dialog v-model:open="showAddDialog">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{{ getDialogTitle() }}</DialogTitle>
-          <DialogDescription>{{ getDialogDescription() }}</DialogDescription>
-        </DialogHeader>
+    <!-- Dialogs -->
+    <CurriculumAddDialog
+      v-model:open="showAddDialog"
+      :add-type="addType"
+      :grade-level-id="addDialogGradeLevelId"
+      :subject-id="addDialogSubjectId"
+      :topic-id="addDialogTopicId"
+    />
 
-        <form class="space-y-4 py-4" @submit="handleAdd">
-          <!-- Grade Level Select (for subject when not in context) -->
-          <div v-if="addType === 'subject' && !dialogGradeLevelId" class="space-y-2">
-            <FieldLabel>Grade Level</FieldLabel>
-            <Select v-model="dialogGradeLevelId">
-              <SelectTrigger>
-                <SelectValue placeholder="Select a grade level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="grade in curriculumStore.gradeLevels"
-                  :key="grade.id"
-                  :value="grade.id"
-                >
-                  {{ grade.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <CurriculumEditImageDialog
+      v-model:open="showEditImageDialog"
+      :image-type="editImageType"
+      :grade-level-id="editImageGradeLevelId"
+      :subject-id="editImageSubjectId"
+      :topic-id="editImageTopicId"
+      :sub-topic-id="editImageSubTopicId"
+      :item-name="editImageItemName"
+      :current-image-url="editImageCurrentUrl"
+      :has-custom-image="editImageHasCustomImage"
+    />
 
-          <!-- Subject Select (for topic when not in context) -->
-          <div
-            v-if="addType === 'topic' && dialogGradeLevelId && !dialogSubjectId"
-            class="space-y-2"
-          >
-            <FieldLabel>Subject</FieldLabel>
-            <Select v-model="dialogSubjectId">
-              <SelectTrigger>
-                <SelectValue placeholder="Select a subject" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="subject in curriculumStore.gradeLevels.find(
-                    (g) => g.id === dialogGradeLevelId,
-                  )?.subjects ?? []"
-                  :key="subject.id"
-                  :value="subject.id"
-                >
-                  {{ subject.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <CurriculumDeleteDialog
+      v-model:open="showDeleteDialog"
+      :delete-type="deleteType"
+      :item-name="deleteItemName"
+      :grade-level-id="deleteGradeLevelId"
+      :subject-id="deleteSubjectId"
+      :topic-id="deleteTopicId"
+      :sub-topic-id="deleteSubTopicId"
+      @deleted="handleDeleted"
+    />
 
-          <!-- Name Input -->
-          <VeeField v-slot="{ field, errors }" name="name">
-            <Field :data-invalid="!!errors.length">
-              <FieldLabel :for="addType + '-name'">{{ getInputLabel() }}</FieldLabel>
-              <Input
-                :id="addType + '-name'"
-                :placeholder="'Enter ' + getInputLabel().toLowerCase()"
-                :disabled="isSaving"
-                :aria-invalid="!!errors.length"
-                v-bind="field"
-              />
-              <FieldError :errors="errors" />
-            </Field>
-          </VeeField>
-
-          <!-- Cover Image (for subject/topic) -->
-          <div v-if="addType !== 'grade'" class="space-y-2">
-            <FieldLabel>Cover Image (optional)</FieldLabel>
-            <div v-if="newItemCoverImagePreview" class="relative">
-              <div class="aspect-video w-full overflow-hidden rounded-lg border">
-                <img
-                  :src="newItemCoverImagePreview"
-                  alt="Cover image preview"
-                  class="size-full object-cover"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                class="absolute -right-2 -top-2 size-6"
-                :disabled="isSaving"
-                @click="removeAddImage"
-              >
-                <X class="size-4" />
-              </Button>
-            </div>
-            <div v-else>
-              <input
-                ref="addImageInputRef"
-                type="file"
-                accept="image/*"
-                class="hidden"
-                @change="handleAddImageSelect"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                class="w-full"
-                :disabled="isSaving"
-                @click="addImageInputRef?.click()"
-              >
-                <ImagePlus class="mr-2 size-4" />
-                Add Cover Image
-              </Button>
-              <p class="mt-1 text-xs text-muted-foreground">Leave empty to use a default image.</p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              :disabled="isSaving"
-              @click="showAddDialog = false"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" :disabled="isSaving">
-              <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-              Add
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Edit Image Dialog -->
-    <Dialog v-model:open="showEditImageDialog">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Cover Image</DialogTitle>
-          <DialogDescription>
-            Update the cover image for "{{ editImageItemName }}"
-          </DialogDescription>
-        </DialogHeader>
-
-        <div class="space-y-4 py-4">
-          <!-- Preview -->
-          <div
-            v-if="editImagePreview"
-            class="aspect-video w-full overflow-hidden rounded-lg border"
-          >
-            <img :src="editImagePreview" :alt="editImageItemName" class="size-full object-cover" />
-          </div>
-
-          <!-- Upload Button -->
-          <div>
-            <input
-              ref="editImageInputRef"
-              type="file"
-              accept="image/*"
-              class="hidden"
-              @change="handleEditImageSelect"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              class="w-full"
-              :disabled="isSaving"
-              @click="editImageInputRef?.click()"
-            >
-              <ImagePlus class="mr-2 size-4" />
-              {{ editImageFile ? 'Change Image' : 'Select New Image' }}
-            </Button>
-          </div>
-        </div>
-
-        <DialogFooter class="gap-2">
-          <Button variant="outline" :disabled="isSaving" @click="showEditImageDialog = false">
-            Cancel
-          </Button>
-          <Button
-            v-if="editImageHasCustomImage && !editImageFile"
-            variant="destructive"
-            :disabled="isSaving"
-            @click="handleRemoveImage"
-          >
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Remove Image
-          </Button>
-          <Button @click="handleEditImage" :disabled="!editImageFile || isSaving">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Delete Confirmation Dialog -->
-    <AlertDialog v-model:open="showDeleteDialog">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete "{{ deleteItemName }}"?</AlertDialogTitle>
-          <AlertDialogDescription as="div">
-            <p>{{ getDeleteDialogDescription() }}</p>
-            <p class="mt-3">
-              To confirm, type
-              <span class="font-semibold text-foreground">{{ deleteItemName }}</span>
-              below:
-            </p>
-            <Input
-              v-model="deleteConfirmInput"
-              class="mt-2"
-              :placeholder="deleteItemName"
-              :disabled="isDeleting"
-            />
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            class="bg-destructive text-white hover:bg-destructive/90"
-            :disabled="isDeleting || deleteConfirmInput !== deleteItemName"
-            @click="confirmDelete"
-          >
-            <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-
-    <!-- Edit Name Dialog -->
-    <Dialog v-model:open="showEditNameDialog">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{{ getEditNameDialogTitle() }}</DialogTitle>
-          <DialogDescription> Update the name for "{{ editNameCurrentName }}" </DialogDescription>
-        </DialogHeader>
-
-        <div class="space-y-4 py-4">
-          <Field>
-            <FieldLabel for="edit-name-input">{{ getEditNameInputLabel() }}</FieldLabel>
-            <Input
-              id="edit-name-input"
-              v-model="editNameValue"
-              :placeholder="'Enter ' + getEditNameInputLabel().toLowerCase()"
-              :disabled="isSaving"
-              @keydown.enter.prevent="handleEditName"
-            />
-          </Field>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" :disabled="isSaving" @click="showEditNameDialog = false">
-            Cancel
-          </Button>
-          <Button :disabled="isSaving || !editNameValue.trim()" @click="handleEditName">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <CurriculumEditNameDialog
+      v-model:open="showEditNameDialog"
+      :edit-type="editNameType"
+      :current-name="editNameCurrentName"
+      :grade-level-id="editNameGradeLevelId"
+      :subject-id="editNameSubjectId"
+      :topic-id="editNameTopicId"
+      :sub-topic-id="editNameSubTopicId"
+    />
   </div>
 </template>

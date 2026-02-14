@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
+import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
 
 export type PetRarity = Database['public']['Enums']['pet_rarity']
 
@@ -190,59 +191,17 @@ export const usePetsStore = defineStore('pets', () => {
     }
   }
 
-  // Image transform options for optimization
-  interface ImageTransformOptions {
-    width?: number
-    height?: number
-    quality?: number
-    resize?: 'cover' | 'contain' | 'fill'
-  }
-
-  // Get pet image URL from storage path with optional transformation
+  // Get pet image URL from storage path with optional transformation and cache-busting
   function getPetImageUrl(
     imagePath: string | null,
     updatedAt?: string | null,
     transform?: ImageTransformOptions,
   ): string {
-    if (!imagePath) return ''
-    // If it's already a full URL, return as-is (with cache bust if needed)
-    if (imagePath.startsWith('http')) {
-      if (updatedAt) {
-        const separator = imagePath.includes('?') ? '&' : '?'
-        return `${imagePath}${separator}v=${new Date(updatedAt).getTime()}`
-      }
-      return imagePath
-    }
-    // If it's a data URL (preview), return as-is
-    if (imagePath.startsWith('data:')) {
-      return imagePath
-    }
-
-    // Apply transformation if provided (enables automatic WebP conversion)
-    if (transform) {
-      const { data } = supabase.storage.from('pet-images').getPublicUrl(imagePath, {
-        transform: {
-          width: transform.width,
-          height: transform.height,
-          quality: transform.quality ?? 80,
-          resize: transform.resize ?? 'contain',
-        },
-      })
-      // Add cache-busting query param if updatedAt is provided
-      if (updatedAt) {
-        const separator = data.publicUrl.includes('?') ? '&' : '?'
-        return `${data.publicUrl}${separator}v=${new Date(updatedAt).getTime()}`
-      }
-      return data.publicUrl
-    }
-
-    // Otherwise, get the public URL from storage
-    const { data } = supabase.storage.from('pet-images').getPublicUrl(imagePath)
-    // Add cache-busting query param if updatedAt is provided
-    if (updatedAt) {
-      return `${data.publicUrl}?v=${new Date(updatedAt).getTime()}`
-    }
-    return data.publicUrl
+    const url = getStorageImageUrl('pet-images', imagePath, transform)
+    if (!url || !updatedAt) return url
+    // Add cache-busting query param for pet images that change on evolution
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}v=${new Date(updatedAt).getTime()}`
   }
 
   // Get optimized pet image URL (medium size for dialog display)

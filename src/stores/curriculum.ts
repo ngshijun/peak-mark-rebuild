@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
+import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
 
 type GradeLevelRow = Database['public']['Tables']['grade_levels']['Row']
 type SubjectRow = Database['public']['Tables']['subjects']['Row']
@@ -809,36 +810,8 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     }
   }
 
-  /**
-   * Image transformation options for Supabase Storage
-   */
-  interface ImageTransformOptions {
-    width?: number
-    height?: number
-    quality?: number
-    resize?: 'cover' | 'contain' | 'fill'
-  }
-
-  /**
-   * Get public URL for a curriculum image with optional transformation
-   */
   function getCurriculumImageUrl(path: string | null, transform?: ImageTransformOptions): string {
-    if (!path) return ''
-
-    if (transform) {
-      const { data } = supabase.storage.from('curriculum-images').getPublicUrl(path, {
-        transform: {
-          width: transform.width,
-          height: transform.height,
-          quality: transform.quality ?? 80,
-          resize: transform.resize ?? 'contain',
-        },
-      })
-      return data.publicUrl
-    }
-
-    const { data } = supabase.storage.from('curriculum-images').getPublicUrl(path)
-    return data.publicUrl
+    return getStorageImageUrl('curriculum-images', path, transform)
   }
 
   /**

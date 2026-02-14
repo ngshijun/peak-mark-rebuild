@@ -8,17 +8,15 @@ import {
   type StudentSubscriptionStatus,
 } from '@/stores/practice'
 import { useQuestionsStore } from '@/stores/questions'
-import { formatDuration, formatDateTime } from '@/lib/date'
+import { formatDateTime } from '@/lib/date'
 import { useStudentDashboardStore } from '@/stores/studentDashboard'
 import { parseSimpleMarkdown } from '@/lib/utils'
+import SessionSummaryCards from '@/components/session/SessionSummaryCards.vue'
+import SessionQuestionCard from '@/components/session/SessionQuestionCard.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
-  CheckCircle2,
-  XCircle,
-  Clock,
   ArrowLeft,
   Loader2,
   Lock,
@@ -102,34 +100,8 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-function getAnswerForQuestion(questionId: string): PracticeAnswer | undefined {
-  return session.value?.answers.find((a) => a.questionId === questionId)
-}
-
-// Convert selectedOptions (number[]) to option ids (letters)
-function getSelectedOptionIds(answer: PracticeAnswer | undefined): string[] {
-  if (!answer?.selectedOptions) return []
-  return practiceStore.optionNumbersToIds(answer.selectedOptions)
-}
-
-// Check if an option was selected
-function wasOptionSelected(answer: PracticeAnswer | undefined, optionId: string): boolean {
-  return getSelectedOptionIds(answer).includes(optionId)
-}
-
-// Check if question is deleted
-function isQuestionDeleted(question: unknown): boolean {
-  return (question as { isDeleted?: boolean })?.isDeleted === true
-}
-
-// Get answer by index (for deleted questions where questionId is null)
 function getAnswerByIndex(index: number): PracticeAnswer | undefined {
   return session.value?.answers[index]
-}
-
-// Helper to check if an option is filled (has text or image)
-function isOptionFilled(opt: { text?: string | null; imagePath?: string | null }): boolean {
-  return !!(opt.text && opt.text.trim()) || !!opt.imagePath
 }
 
 function goBack() {
@@ -193,50 +165,12 @@ async function generateAiSummary() {
       </div>
 
       <!-- Summary Cards -->
-      <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Card>
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div
-              class="text-3xl font-bold"
-              :class="{
-                'text-green-600': summary.score >= 80,
-                'text-yellow-600': summary.score >= 60 && summary.score < 80,
-                'text-red-600': summary.score < 60,
-              }"
-            >
-              {{ summary.score }}%
-            </div>
-            <div class="text-sm text-muted-foreground">Score</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div class="flex items-center gap-1 text-3xl font-bold text-green-600">
-              <CheckCircle2 class="size-6" />
-              {{ summary.correctAnswers }}
-            </div>
-            <div class="text-sm text-muted-foreground">Correct</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div class="flex items-center gap-1 text-3xl font-bold text-red-600">
-              <XCircle class="size-6" />
-              {{ summary.incorrectAnswers }}
-            </div>
-            <div class="text-sm text-muted-foreground">Incorrect</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="flex flex-col items-center justify-center p-4">
-            <div class="flex items-center gap-1 text-3xl font-bold">
-              <Clock class="size-6 text-muted-foreground" />
-              {{ formatDuration(summary.durationSeconds) }}
-            </div>
-            <div class="text-sm text-muted-foreground">Time Used</div>
-          </CardContent>
-        </Card>
-      </div>
+      <SessionSummaryCards
+        :score="summary.score"
+        :correct-answers="summary.correctAnswers"
+        :incorrect-answers="summary.incorrectAnswers"
+        :duration-seconds="summary.durationSeconds"
+      />
 
       <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
         Completed: {{ formatDateTime(session.completedAt) }}
@@ -354,218 +288,16 @@ async function generateAiSummary() {
       <div v-else class="space-y-4">
         <h2 class="text-lg font-semibold">Question Details</h2>
 
-        <Card
+        <SessionQuestionCard
           v-for="(question, index) in session.questions"
           :key="question.id"
-          :class="{
-            'border-gray-300 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/20':
-              isQuestionDeleted(question),
-            'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20':
-              !isQuestionDeleted(question) && getAnswerByIndex(index)?.isCorrect,
-            'border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20':
-              !isQuestionDeleted(question) &&
-              getAnswerByIndex(index) &&
-              !getAnswerByIndex(index)?.isCorrect,
-          }"
-        >
-          <CardHeader class="pb-2">
-            <div class="flex items-start justify-between gap-2">
-              <CardTitle class="text-sm font-medium"> Question {{ index + 1 }} </CardTitle>
-              <div class="flex items-center gap-2">
-                <span
-                  v-if="getAnswerByIndex(index)?.timeSpentSeconds != null"
-                  class="flex items-center gap-1 text-xs text-muted-foreground"
-                >
-                  <Clock class="size-3" />
-                  {{ formatDuration(getAnswerByIndex(index)?.timeSpentSeconds ?? 0) }}
-                </span>
-                <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
-                  Deleted
-                </Badge>
-                <template v-else>
-                  <Badge variant="secondary" class="shrink-0">
-                    {{
-                      question.type === 'mcq'
-                        ? 'Multiple Choice'
-                        : question.type === 'mrq'
-                          ? 'Multiple Response'
-                          : 'Short Answer'
-                    }}
-                  </Badge>
-                </template>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent class="space-y-3">
-            <!-- Deleted Question Notice -->
-            <div v-if="isQuestionDeleted(question)" class="text-sm text-muted-foreground italic">
-              <p>This question has been deleted from the question bank.</p>
-              <p class="mt-2">
-                Your answer was:
-                <span
-                  :class="
-                    getAnswerByIndex(index)?.isCorrect
-                      ? 'text-green-600 font-medium'
-                      : 'text-red-600 font-medium'
-                  "
-                >
-                  {{ getAnswerByIndex(index)?.isCorrect ? 'Correct' : 'Incorrect' }}
-                </span>
-              </p>
-            </div>
-
-            <!-- Question Text -->
-            <template v-else>
-              <p class="text-sm whitespace-pre-line">{{ question.question }}</p>
-
-              <!-- Question Image if exists (optimized for faster loading) -->
-              <img
-                v-if="question.imagePath"
-                :src="questionsStore.getOptimizedQuestionImageUrl(question.imagePath)"
-                :alt="`Question ${index + 1} image`"
-                class="max-h-40 rounded-md object-contain"
-                loading="lazy"
-              />
-
-              <!-- MCQ/MRQ Options (filtered to show only non-empty options) -->
-              <div
-                v-if="(question.type === 'mcq' || question.type === 'mrq') && question.options"
-                class="space-y-2"
-              >
-                <div
-                  v-for="option in question.options.filter(isOptionFilled)"
-                  :key="option.id"
-                  class="flex items-center gap-2 rounded-md border p-2 text-sm"
-                  :class="{
-                    'border-green-500 bg-green-100 dark:bg-green-900/30':
-                      option.isCorrect &&
-                      (question.type === 'mcq' ||
-                        wasOptionSelected(getAnswerByIndex(index), option.id)),
-                    'border-red-500 bg-red-100 dark:bg-red-900/30':
-                      (!option.isCorrect &&
-                        wasOptionSelected(getAnswerByIndex(index), option.id)) ||
-                      (question.type === 'mrq' &&
-                        option.isCorrect &&
-                        !wasOptionSelected(getAnswerByIndex(index), option.id)),
-                  }"
-                >
-                  <!-- Correct and selected -->
-                  <span
-                    v-if="option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id)"
-                    class="text-green-600"
-                  >
-                    <CheckCircle2 class="size-4" />
-                  </span>
-                  <!-- MCQ: Correct but NOT selected -->
-                  <span
-                    v-else-if="
-                      question.type === 'mcq' &&
-                      option.isCorrect &&
-                      !wasOptionSelected(getAnswerByIndex(index), option.id)
-                    "
-                    class="text-green-600"
-                  >
-                    <CheckCircle2 class="size-4" />
-                  </span>
-                  <!-- MRQ: Correct but NOT selected (missed) -->
-                  <span
-                    v-else-if="
-                      question.type === 'mrq' &&
-                      option.isCorrect &&
-                      !wasOptionSelected(getAnswerByIndex(index), option.id)
-                    "
-                    class="text-red-600"
-                  >
-                    <XCircle class="size-4" />
-                  </span>
-                  <!-- Incorrect and selected -->
-                  <span
-                    v-else-if="wasOptionSelected(getAnswerByIndex(index), option.id)"
-                    class="text-red-600"
-                  >
-                    <XCircle class="size-4" />
-                  </span>
-                  <!-- Incorrect and not selected -->
-                  <span v-else class="size-4" />
-                  <div class="flex flex-1 items-center gap-2">
-                    <span v-if="option.text">{{ option.text }}</span>
-                    <img
-                      v-if="option.imagePath"
-                      :src="questionsStore.getThumbnailQuestionImageUrl(option.imagePath)"
-                      :alt="`Option ${option.id.toUpperCase()}`"
-                      class="max-h-12 rounded border object-contain"
-                      loading="lazy"
-                    />
-                  </div>
-                  <!-- Labels for clarity -->
-                  <Badge
-                    v-if="option.isCorrect && wasOptionSelected(getAnswerByIndex(index), option.id)"
-                    variant="outline"
-                    class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
-                  >
-                    Your answer
-                  </Badge>
-                  <Badge
-                    v-else-if="
-                      question.type === 'mcq' &&
-                      option.isCorrect &&
-                      !wasOptionSelected(getAnswerByIndex(index), option.id)
-                    "
-                    variant="outline"
-                    class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
-                  >
-                    Correct answer
-                  </Badge>
-                  <Badge
-                    v-else-if="
-                      question.type === 'mrq' &&
-                      option.isCorrect &&
-                      !wasOptionSelected(getAnswerByIndex(index), option.id)
-                    "
-                    variant="outline"
-                    class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
-                  >
-                    Correct answer
-                  </Badge>
-                  <Badge
-                    v-else-if="wasOptionSelected(getAnswerByIndex(index), option.id)"
-                    variant="outline"
-                    class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
-                  >
-                    Your answer
-                  </Badge>
-                </div>
-              </div>
-
-              <!-- Short Answer -->
-              <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
-                <div class="flex gap-2">
-                  <span class="font-medium">Your Answer:</span>
-                  <span
-                    :class="getAnswerByIndex(index)?.isCorrect ? 'text-green-600' : 'text-red-600'"
-                  >
-                    {{ getAnswerByIndex(index)?.textAnswer || '-' }}
-                  </span>
-                </div>
-                <div v-if="!getAnswerByIndex(index)?.isCorrect" class="flex gap-2">
-                  <span class="font-medium">Correct Answer:</span>
-                  <span class="text-green-600">{{ question.answer }}</span>
-                </div>
-              </div>
-
-              <!-- Explanation -->
-              <div
-                v-if="getAnswerByIndex(index)"
-                class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20"
-              >
-                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Explanation</p>
-                <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
-                  {{ question.explanation || 'No explanation available for this question.' }}
-                </p>
-              </div>
-            </template>
-          </CardContent>
-        </Card>
+          :question="question"
+          :answer="getAnswerByIndex(index)"
+          :index="index"
+          answer-label="Your"
+          :get-image-url="questionsStore.getOptimizedQuestionImageUrl"
+          :get-thumbnail-url="questionsStore.getThumbnailQuestionImageUrl"
+        />
       </div>
     </template>
 

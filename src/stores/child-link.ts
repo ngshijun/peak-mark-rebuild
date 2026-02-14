@@ -4,24 +4,9 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { useSubscriptionStore } from './subscription'
 import { handleError } from '@/lib/errors'
-import type { Database } from '@/types/database.types'
+import { mapInvitationRows, type ParentStudentInvitation } from '@/lib/invitations'
 
-type InvitationDirection = Database['public']['Enums']['invitation_direction']
-type InvitationStatus = Database['public']['Enums']['invitation_status']
-
-export interface ParentStudentInvitation {
-  id: string
-  parentId: string | null
-  parentEmail: string
-  parentName?: string
-  studentId: string | null
-  studentEmail: string
-  studentName?: string
-  direction: InvitationDirection
-  status: InvitationStatus
-  createdAt: string
-  respondedAt: string | null
-}
+export type { ParentStudentInvitation } from '@/lib/invitations'
 
 export interface LinkedChild {
   id: string
@@ -141,40 +126,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       if (fetchError) throw fetchError
 
-      // Collect all unique user IDs that need profile lookup
-      const userIds = new Set<string>()
-      for (const row of data ?? []) {
-        if (row.parent_id) userIds.add(row.parent_id)
-        if (row.student_id) userIds.add(row.student_id)
-      }
-
-      // Batch fetch all profiles in a single query
-      const profilesMap = new Map<string, string>()
-      if (userIds.size > 0) {
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('id', Array.from(userIds))
-
-        for (const profile of profilesData ?? []) {
-          profilesMap.set(profile.id, profile.name)
-        }
-      }
-
-      // Build invitations with names from the map
-      invitations.value = (data ?? []).map((row) => ({
-        id: row.id,
-        parentId: row.parent_id,
-        parentEmail: row.parent_email,
-        parentName: row.parent_id ? profilesMap.get(row.parent_id) : undefined,
-        studentId: row.student_id,
-        studentEmail: row.student_email,
-        studentName: row.student_id ? profilesMap.get(row.student_id) : undefined,
-        direction: row.direction,
-        status: row.status ?? 'pending',
-        createdAt: row.created_at ?? new Date().toISOString(),
-        respondedAt: row.responded_at,
-      }))
+      invitations.value = await mapInvitationRows(data ?? [])
 
       return { error: null }
     } catch (err) {

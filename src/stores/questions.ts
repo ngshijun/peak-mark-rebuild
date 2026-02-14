@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
+import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
 export type QuestionType = Database['public']['Enums']['question_type']
@@ -503,44 +504,8 @@ export const useQuestionsStore = defineStore('questions', () => {
     }
   }
 
-  /**
-   * Image transformation options for Supabase Storage
-   * Using transformations improves load times via:
-   * - Automatic WebP conversion
-   * - Size reduction
-   * - CDN caching of transformed images
-   */
-  interface ImageTransformOptions {
-    width?: number
-    height?: number
-    quality?: number
-    resize?: 'cover' | 'contain' | 'fill'
-  }
-
-  /**
-   * Get public URL for a question image with optional transformation
-   * Transformations are cached at CDN edge for fast delivery
-   */
   function getQuestionImageUrl(path: string | null, transform?: ImageTransformOptions): string {
-    if (!path) return ''
-    // Check if it's already a full URL
-    if (path.startsWith('http')) return path
-
-    // Apply transformation if provided (enables automatic WebP conversion)
-    if (transform) {
-      const { data } = supabase.storage.from('question-images').getPublicUrl(path, {
-        transform: {
-          width: transform.width,
-          height: transform.height,
-          quality: transform.quality ?? 80,
-          resize: transform.resize ?? 'contain',
-        },
-      })
-      return data.publicUrl
-    }
-
-    const { data } = supabase.storage.from('question-images').getPublicUrl(path)
-    return data.publicUrl
+    return getStorageImageUrl('question-images', path, transform)
   }
 
   /**

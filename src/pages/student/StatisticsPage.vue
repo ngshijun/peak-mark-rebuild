@@ -1,33 +1,16 @@
 <script setup lang="ts">
-import { computed, ref, h, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import type { ColumnDef } from '@tanstack/vue-table'
 import { usePracticeStore, type DateRangeFilter } from '@/stores/practice'
-import { formatStudyTime, formatDuration, formatDateTime } from '@/lib/date'
 import { useAuthStore } from '@/stores/auth'
+import { ALL_VALUE, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
+import StatisticsFilterBar from '@/components/statistics/StatisticsFilterBar.vue'
+import StatisticsSummaryCards from '@/components/statistics/StatisticsSummaryCards.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  ArrowUpDown,
-  Calendar,
-  Loader2,
-  Target,
-  BookOpen,
-  Clock,
-  Layers,
-  History,
-} from 'lucide-vue-next'
+import { Loader2, BookOpen, History } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,37 +26,7 @@ const router = useRouter()
 const practiceStore = usePracticeStore()
 const authStore = useAuthStore()
 
-const ALL_VALUE = '__all__'
 const hideInProgress = ref(false)
-
-// Status config for badge styling (matching admin announcement pattern)
-const statusConfig = {
-  completed: {
-    label: 'Completed',
-    bgColor: 'bg-green-100 dark:bg-green-950/30',
-    color: 'text-green-700 dark:text-green-400',
-  },
-  in_progress: {
-    label: 'In Progress',
-    bgColor: 'bg-amber-100 dark:bg-amber-950/30',
-    color: 'text-amber-700 dark:text-amber-400',
-  },
-} as const
-
-const dateRangeOptions = [
-  { value: 'today' as DateRangeFilter, label: 'Today' },
-  { value: 'last7days' as DateRangeFilter, label: 'Last 7 Days' },
-  { value: 'last30days' as DateRangeFilter, label: 'Last 30 Days' },
-  { value: 'alltime' as DateRangeFilter, label: 'All Time' },
-]
-
-// Helper to convert ALL_VALUE to undefined for store calls
-const gradeLevelFilter = computed(() =>
-  practiceStore.historyFilters.gradeLevel === ALL_VALUE
-    ? undefined
-    : practiceStore.historyFilters.gradeLevel,
-)
-
 const isLoading = ref(true)
 
 // Fetch session history on mount
@@ -87,6 +40,12 @@ onMounted(async () => {
   }
 })
 
+// Helper to convert ALL_VALUE to undefined for store calls
+const gradeLevelFilter = computed(() =>
+  practiceStore.historyFilters.gradeLevel === ALL_VALUE
+    ? undefined
+    : practiceStore.historyFilters.gradeLevel,
+)
 const subjectFilter = computed(() =>
   practiceStore.historyFilters.subject === ALL_VALUE
     ? undefined
@@ -101,29 +60,15 @@ const subTopicFilter = computed(() =>
     : practiceStore.historyFilters.subTopic,
 )
 
-// Get available grade levels from history
-const availableGradeLevels = computed(() => {
-  return practiceStore.getHistoryGradeLevels()
-})
-
-// Get available subjects from history (filtered by grade level)
-const availableSubjects = computed(() => {
-  return practiceStore.getHistorySubjects(gradeLevelFilter.value)
-})
-
-// Get available topics (filtered by grade level and subject)
-const availableTopics = computed(() => {
-  return practiceStore.getHistoryTopics(gradeLevelFilter.value, subjectFilter.value)
-})
-
-// Get available sub-topics (filtered by grade level, subject, and topic)
-const availableSubTopics = computed(() => {
-  return practiceStore.getHistorySubTopics(
-    gradeLevelFilter.value,
-    subjectFilter.value,
-    topicFilter.value,
-  )
-})
+// Get available filter options
+const availableGradeLevels = computed(() => practiceStore.getHistoryGradeLevels())
+const availableSubjects = computed(() => practiceStore.getHistorySubjects(gradeLevelFilter.value))
+const availableTopics = computed(() =>
+  practiceStore.getHistoryTopics(gradeLevelFilter.value, subjectFilter.value),
+)
+const availableSubTopics = computed(() =>
+  practiceStore.getHistorySubTopics(gradeLevelFilter.value, subjectFilter.value, topicFilter.value),
+)
 
 // Helper type for table row
 interface HistoryRow {
@@ -153,15 +98,10 @@ const historyData = computed<HistoryRow[]>(() => {
 
   return filteredSessions.map((session) => {
     const isCompleted = !!session.completedAt
-    // Use correctCount and totalQuestions from session data (stored in DB)
-    // instead of answers array which is not loaded in history fetch
     const correctAnswers = session.correctCount
     const totalQuestions = session.totalQuestions
     const score =
       isCompleted && totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : null
-
-    // Use totalTimeSeconds from session (sum of time spent on each question)
-    // This accurately tracks actual time spent, even if student left and came back
     const timeUsedSeconds = isCompleted ? session.totalTimeSeconds : null
 
     return {
@@ -214,138 +154,7 @@ const subTopicsPracticed = computed(() => {
   return subTopicSet.size
 })
 
-// Column definitions
-const columns: ColumnDef<HistoryRow>[] = [
-  {
-    accessorKey: 'completedAt',
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: 'ghost',
-          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-        },
-        () => ['Completed At', h(ArrowUpDown, { class: 'ml-2 size-4' })],
-      )
-    },
-    cell: ({ row }) => {
-      const completedAt = row.original.completedAt
-      if (!completedAt) {
-        return h('div', { class: 'text-muted-foreground' }, '-')
-      }
-      return h('div', { class: 'text-sm' }, formatDateTime(completedAt))
-    },
-    sortingFn: (rowA, rowB) => {
-      // In-progress (null) pinned to top when descending
-      const a = rowA.original.completedAt
-      const b = rowB.original.completedAt
-      if (!a && !b) return 0
-      if (!a) return 1
-      if (!b) return -1
-      return new Date(a).getTime() - new Date(b).getTime()
-    },
-  },
-  {
-    accessorKey: 'gradeLevelName',
-    header: 'Grade',
-    cell: ({ row }) => {
-      return h('div', {}, row.original.gradeLevelName)
-    },
-  },
-  {
-    accessorKey: 'subjectName',
-    header: 'Subject',
-    cell: ({ row }) => {
-      return h('div', { class: 'font-medium' }, row.original.subjectName)
-    },
-  },
-  {
-    accessorKey: 'topicName',
-    header: 'Topic',
-    cell: ({ row }) => {
-      return h('div', {}, row.original.topicName)
-    },
-  },
-  {
-    accessorKey: 'subTopicName',
-    header: 'Sub-Topic',
-    cell: ({ row }) => {
-      return h('div', {}, row.original.subTopicName)
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: 'ghost',
-          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-        },
-        () => ['Status', h(ArrowUpDown, { class: 'ml-2 size-4' })],
-      )
-    },
-    cell: ({ row }) => {
-      const status = row.original.status
-      const config = statusConfig[status]
-      return h(
-        Badge,
-        {
-          variant: 'secondary',
-          class: `${config.bgColor} ${config.color}`,
-        },
-        () => config.label,
-      )
-    },
-  },
-  {
-    accessorKey: 'score',
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: 'ghost',
-          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-        },
-        () => ['Score', h(ArrowUpDown, { class: 'ml-2 size-4' })],
-      )
-    },
-    cell: ({ row }) => {
-      const score = row.original.score
-      const correct = row.original.correctAnswers
-      const total = row.original.totalQuestions
-
-      if (score === null) {
-        return h('div', { class: 'text-muted-foreground' }, '-')
-      }
-
-      const colorClass =
-        score >= 80 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'
-
-      return h('div', { class: colorClass }, `${score}% (${correct}/${total})`)
-    },
-  },
-  {
-    accessorKey: 'timeUsedSeconds',
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: 'ghost',
-          onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-        },
-        () => ['Duration', h(ArrowUpDown, { class: 'ml-2 size-4' })],
-      )
-    },
-    cell: ({ row }) => {
-      const seconds = row.original.timeUsedSeconds
-      if (seconds === null) {
-        return h('div', { class: 'text-muted-foreground' }, '-')
-      }
-      return h('div', {}, formatDuration(seconds))
-    },
-  },
-]
+const columns = createPracticeHistoryColumns<HistoryRow>()
 
 const showResumeDialog = ref(false)
 const pendingResumeSession = ref<HistoryRow | null>(null)
@@ -383,147 +192,32 @@ function confirmResume() {
 
     <template v-else>
       <!-- Filters Row -->
-      <div class="flex flex-wrap items-center gap-3">
-        <!-- Date Range Selector -->
-        <Select
-          :model-value="practiceStore.historyFilters.dateRange"
-          @update:model-value="practiceStore.setHistoryDateRange($event as DateRangeFilter)"
-        >
-          <SelectTrigger class="w-[140px]">
-            <Calendar class="mr-2 size-4" />
-            <SelectValue placeholder="Date range" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem
-              v-for="option in dateRangeOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <!-- Grade Level Selector -->
-        <Select
-          :model-value="practiceStore.historyFilters.gradeLevel"
-          @update:model-value="practiceStore.setHistoryGradeLevel($event as string)"
-        >
-          <SelectTrigger class="w-[130px]">
-            <SelectValue placeholder="All Grades" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="ALL_VALUE">All Grades</SelectItem>
-            <SelectItem v-for="grade in availableGradeLevels" :key="grade" :value="grade">
-              {{ grade }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <!-- Subject Selector -->
-        <Select
-          :model-value="practiceStore.historyFilters.subject"
-          :disabled="practiceStore.historyFilters.gradeLevel === ALL_VALUE"
-          @update:model-value="practiceStore.setHistorySubject($event as string)"
-        >
-          <SelectTrigger class="w-[140px]">
-            <SelectValue placeholder="All Subjects" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
-            <SelectItem v-for="subject in availableSubjects" :key="subject" :value="subject">
-              {{ subject }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <!-- Topic Selector -->
-        <Select
-          :model-value="practiceStore.historyFilters.topic"
-          :disabled="practiceStore.historyFilters.subject === ALL_VALUE"
-          @update:model-value="practiceStore.setHistoryTopic($event as string)"
-        >
-          <SelectTrigger class="w-[140px]">
-            <SelectValue placeholder="All Topics" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
-            <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
-              {{ topic }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <!-- Sub-Topic Selector -->
-        <Select
-          :model-value="practiceStore.historyFilters.subTopic"
-          :disabled="practiceStore.historyFilters.topic === ALL_VALUE"
-          @update:model-value="practiceStore.setHistorySubTopic($event as string)"
-        >
-          <SelectTrigger class="w-[140px]">
-            <SelectValue placeholder="All Sub-Topics" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="ALL_VALUE">All Sub-Topics</SelectItem>
-            <SelectItem v-for="subTopic in availableSubTopics" :key="subTopic" :value="subTopic">
-              {{ subTopic }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <!-- Hide In Progress Checkbox -->
-        <label class="flex items-center gap-2 text-sm">
-          <Checkbox v-model="hideInProgress" />
-          Hide in progress
-        </label>
-      </div>
+      <StatisticsFilterBar
+        :date-range="practiceStore.historyFilters.dateRange"
+        :grade-level="practiceStore.historyFilters.gradeLevel"
+        :subject="practiceStore.historyFilters.subject"
+        :topic="practiceStore.historyFilters.topic"
+        :sub-topic="practiceStore.historyFilters.subTopic"
+        :available-grade-levels="availableGradeLevels"
+        :available-subjects="availableSubjects"
+        :available-topics="availableTopics"
+        :available-sub-topics="availableSubTopics"
+        :hide-in-progress="hideInProgress"
+        @update:date-range="practiceStore.setHistoryDateRange($event)"
+        @update:grade-level="practiceStore.setHistoryGradeLevel($event)"
+        @update:subject="practiceStore.setHistorySubject($event)"
+        @update:topic="practiceStore.setHistoryTopic($event)"
+        @update:sub-topic="practiceStore.setHistorySubTopic($event)"
+        @update:hide-in-progress="hideInProgress = $event"
+      />
 
       <!-- Statistics Cards -->
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <!-- Average Score Card -->
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Average Score</CardTitle>
-            <Target class="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-3xl font-bold">{{ averageScore }}%</div>
-          </CardContent>
-        </Card>
-
-        <!-- Total Sessions Card -->
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Sessions Completed</CardTitle>
-            <BookOpen class="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-3xl font-bold">{{ totalSessions }}</div>
-          </CardContent>
-        </Card>
-
-        <!-- Study Time Card -->
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Study Time</CardTitle>
-            <Clock class="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-3xl font-bold">{{ formatStudyTime(totalStudyTime) }}</div>
-          </CardContent>
-        </Card>
-
-        <!-- Sub-Topics Practiced Card -->
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Sub-Topics Practiced</CardTitle>
-            <Layers class="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-3xl font-bold">{{ subTopicsPracticed }}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatisticsSummaryCards
+        :average-score="averageScore"
+        :total-sessions="totalSessions"
+        :total-study-time="totalStudyTime"
+        :sub-topics-practiced="subTopicsPracticed"
+      />
 
       <!-- Practice History Table -->
       <Card>

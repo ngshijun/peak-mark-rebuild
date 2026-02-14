@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
+import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
 import type { Database } from '@/types/database.types'
 
 export type AnnouncementAudience = Database['public']['Enums']['announcement_audience']
@@ -215,40 +216,8 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     }
   }
 
-  /**
-   * Image transformation options for Supabase Storage
-   */
-  interface ImageTransformOptions {
-    width?: number
-    height?: number
-    quality?: number
-    resize?: 'cover' | 'contain' | 'fill'
-  }
-
-  /**
-   * Get public URL for an announcement image with optional transformation
-   */
   function getImageUrl(imagePath: string | null, transform?: ImageTransformOptions): string {
-    if (!imagePath) return ''
-    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-      return imagePath
-    }
-
-    // Apply transformation if provided (enables automatic WebP conversion)
-    if (transform) {
-      const { data } = supabase.storage.from('announcement-images').getPublicUrl(imagePath, {
-        transform: {
-          width: transform.width,
-          height: transform.height,
-          quality: transform.quality ?? 80,
-          resize: transform.resize ?? 'contain',
-        },
-      })
-      return data.publicUrl
-    }
-
-    const { data } = supabase.storage.from('announcement-images').getPublicUrl(imagePath)
-    return data.publicUrl
+    return getStorageImageUrl('announcement-images', imagePath, transform)
   }
 
   /**
