@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCurriculumStore } from '@/stores/curriculum'
+import { type CurriculumIds, curriculumEntityConfig } from '@/lib/curriculumEntityConfig'
 import { ImagePlus, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,6 +31,7 @@ const emit = defineEmits<{
 }>()
 
 const curriculumStore = useCurriculumStore()
+const config = computed(() => curriculumEntityConfig[props.imageType])
 
 const isSaving = ref(false)
 const imagePreview = ref('')
@@ -61,6 +63,13 @@ function handleImageSelect(event: Event) {
   }
 }
 
+const ids = computed<CurriculumIds>(() => ({
+  gradeLevelId: props.gradeLevelId,
+  subjectId: props.subjectId,
+  topicId: props.topicId,
+  subTopicId: props.subTopicId,
+}))
+
 async function handleSave() {
   if (!imageFile.value) {
     emit('update:open', false)
@@ -70,14 +79,7 @@ async function handleSave() {
   isSaving.value = true
 
   try {
-    let itemId: string
-    if (props.imageType === 'subject') {
-      itemId = props.subjectId
-    } else if (props.imageType === 'topic') {
-      itemId = props.topicId
-    } else {
-      itemId = props.subTopicId
-    }
+    const itemId = config.value.getItemId(ids.value)
 
     const uploadResult = await curriculumStore.uploadCurriculumImage(
       imageFile.value,
@@ -90,39 +92,14 @@ async function handleSave() {
       return
     }
 
-    if (props.imageType === 'subject') {
-      const result = await curriculumStore.updateSubjectCoverImage(
-        props.gradeLevelId,
-        props.subjectId,
-        uploadResult.path,
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-    } else if (props.imageType === 'topic') {
-      const result = await curriculumStore.updateTopicCoverImage(
-        props.gradeLevelId,
-        props.subjectId,
-        props.topicId,
-        uploadResult.path,
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-    } else {
-      const result = await curriculumStore.updateSubTopicCoverImage(
-        props.gradeLevelId,
-        props.subjectId,
-        props.topicId,
-        props.subTopicId,
-        uploadResult.path,
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
+    const result = await config.value.updateCoverImage(
+      curriculumStore,
+      ids.value,
+      uploadResult.path,
+    )
+    if (result.error) {
+      toast.error(result.error)
+      return
     }
 
     toast.success('Cover image updated successfully')
@@ -136,30 +113,7 @@ async function handleRemove() {
   isSaving.value = true
 
   try {
-    let result: { success: boolean; error: string | null }
-
-    if (props.imageType === 'subject') {
-      result = await curriculumStore.updateSubjectCoverImage(
-        props.gradeLevelId,
-        props.subjectId,
-        null,
-      )
-    } else if (props.imageType === 'topic') {
-      result = await curriculumStore.updateTopicCoverImage(
-        props.gradeLevelId,
-        props.subjectId,
-        props.topicId,
-        null,
-      )
-    } else {
-      result = await curriculumStore.updateSubTopicCoverImage(
-        props.gradeLevelId,
-        props.subjectId,
-        props.topicId,
-        props.subTopicId,
-        null,
-      )
-    }
+    const result = await config.value.updateCoverImage(curriculumStore, ids.value, null)
 
     if (result.error) {
       toast.error(result.error)

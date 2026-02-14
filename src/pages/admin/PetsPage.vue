@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
+import { useAdminPetsStore } from '@/stores/admin-pets'
 import { petFormSchema } from '@/lib/validations'
 import { Search, Plus, Trash2, Loader2, ImagePlus, X, Pencil } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
@@ -38,6 +39,7 @@ import {
 import { toast } from 'vue-sonner'
 
 const petsStore = usePetsStore()
+const adminPetsStore = useAdminPetsStore()
 
 // Pet form
 const {
@@ -66,7 +68,7 @@ const raritiesDesc = [...rarities].reverse()
 
 function filteredPetsByRarity(rarity: PetRarity) {
   const pets = petsStore.petsByRarity[rarity] ?? []
-  const searchQuery = petsStore.adminPetsFilters.search
+  const searchQuery = adminPetsStore.adminPetsFilters.search
   if (!searchQuery) return pets
   const query = searchQuery.toLowerCase()
   return pets.filter((p) => p.name.toLowerCase().includes(query))
@@ -164,7 +166,7 @@ const handleSave = handlePetSubmit(async (values) => {
 
     // Upload tier 1 image if new file selected
     if (formImageFile.value) {
-      const { path, error: uploadError } = await petsStore.uploadPetImage(
+      const { path, error: uploadError } = await adminPetsStore.uploadPetImage(
         formImageFile.value,
         editingPet.value?.id,
       )
@@ -177,7 +179,7 @@ const handleSave = handlePetSubmit(async (values) => {
 
     // Upload tier 2 image if new file selected
     if (formTier2ImageFile.value) {
-      const { path, error: uploadError } = await petsStore.uploadPetImage(
+      const { path, error: uploadError } = await adminPetsStore.uploadPetImage(
         formTier2ImageFile.value,
         editingPet.value?.id ? `${editingPet.value.id}_tier2` : undefined,
       )
@@ -190,7 +192,7 @@ const handleSave = handlePetSubmit(async (values) => {
 
     // Upload tier 3 image if new file selected
     if (formTier3ImageFile.value) {
-      const { path, error: uploadError } = await petsStore.uploadPetImage(
+      const { path, error: uploadError } = await adminPetsStore.uploadPetImage(
         formTier3ImageFile.value,
         editingPet.value?.id ? `${editingPet.value.id}_tier3` : undefined,
       )
@@ -203,7 +205,7 @@ const handleSave = handlePetSubmit(async (values) => {
 
     if (editingPet.value) {
       // Update existing pet
-      const { error } = await petsStore.updatePet(editingPet.value.id, {
+      const { error } = await adminPetsStore.updatePet(editingPet.value.id, {
         name: values.name,
         rarity: values.rarity,
         imagePath,
@@ -221,7 +223,7 @@ const handleSave = handlePetSubmit(async (values) => {
         toast.error('Tier 1 image is required')
         return
       }
-      const { error } = await petsStore.createPet({
+      const { error } = await adminPetsStore.createPet({
         name: values.name,
         rarity: values.rarity,
         imagePath,
@@ -257,7 +259,7 @@ async function confirmDelete() {
 
   isDeleting.value = true
   try {
-    const { error } = await petsStore.deletePet(deletingPet.value.id)
+    const { error } = await adminPetsStore.deletePet(deletingPet.value.id)
     if (error) {
       toast.error(error)
     } else {
@@ -302,10 +304,10 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
         <div class="relative max-w-sm flex-1">
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            :model-value="petsStore.adminPetsFilters.search"
+            :model-value="adminPetsStore.adminPetsFilters.search"
             placeholder="Search pets..."
             class="pl-9"
-            @update:model-value="petsStore.setAdminPetsSearch(String($event))"
+            @update:model-value="adminPetsStore.setAdminPetsSearch(String($event))"
           />
         </div>
       </div>
@@ -437,7 +439,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
           <div v-else class="py-12 text-center">
             <p class="text-muted-foreground">
               {{
-                petsStore.adminPetsFilters.search
+                adminPetsStore.adminPetsFilters.search
                   ? 'No matching pets.'
                   : 'No pets in this rarity yet.'
               }}

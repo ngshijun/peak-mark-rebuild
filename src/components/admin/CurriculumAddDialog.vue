@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { addCurriculumItemFormSchema } from '@/lib/validations'
+import {
+  type CurriculumLevel,
+  type CurriculumIds,
+  curriculumEntityConfig,
+} from '@/lib/curriculumEntityConfig'
 import { ImagePlus, Loader2, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,8 +29,6 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
 
-type CurriculumLevel = 'grade' | 'subject' | 'topic' | 'subtopic'
-
 const props = defineProps<{
   open: boolean
   addType: CurriculumLevel
@@ -39,6 +42,7 @@ const emit = defineEmits<{
 }>()
 
 const curriculumStore = useCurriculumStore()
+const config = computed(() => curriculumEntityConfig[props.addType])
 
 const { handleSubmit, resetForm } = useForm({
   validationSchema: addCurriculumItemFormSchema,
@@ -67,45 +71,6 @@ watch(
   },
 )
 
-function getDialogTitle() {
-  switch (props.addType) {
-    case 'grade':
-      return 'Add Grade Level'
-    case 'subject':
-      return 'Add Subject'
-    case 'topic':
-      return 'Add Topic'
-    case 'subtopic':
-      return 'Add Sub-Topic'
-  }
-}
-
-function getDialogDescription() {
-  switch (props.addType) {
-    case 'grade':
-      return 'Add a new grade level to the curriculum.'
-    case 'subject':
-      return 'Add a new subject with an optional cover image.'
-    case 'topic':
-      return 'Add a new topic with an optional cover image.'
-    case 'subtopic':
-      return 'Add a new sub-topic with an optional cover image.'
-  }
-}
-
-function getInputLabel() {
-  switch (props.addType) {
-    case 'grade':
-      return 'Grade Level Name'
-    case 'subject':
-      return 'Subject Name'
-    case 'topic':
-      return 'Topic Name'
-    case 'subtopic':
-      return 'Sub-Topic Name'
-  }
-}
-
 function handleImageSelect(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -131,116 +96,60 @@ const handleAdd = handleSubmit(async (values) => {
   isSaving.value = true
 
   try {
-    let itemId: string | undefined
-
-    if (props.addType === 'grade') {
-      const result = await curriculumStore.addGradeLevel(values.name.trim())
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      toast.success('Grade level added successfully')
-    } else if (props.addType === 'subject' && dialogGradeLevelId.value) {
-      const result = await curriculumStore.addSubject(dialogGradeLevelId.value, values.name.trim())
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      itemId = result.id
-
-      if (imageFile.value && itemId) {
-        const uploadResult = await curriculumStore.uploadCurriculumImage(
-          imageFile.value,
-          'subject',
-          itemId,
-        )
-        if (uploadResult.success && uploadResult.path) {
-          await curriculumStore.updateSubjectCoverImage(
-            dialogGradeLevelId.value,
-            itemId,
-            uploadResult.path,
-          )
-        }
-      }
-      toast.success('Subject added successfully')
-    } else if (props.addType === 'topic' && dialogGradeLevelId.value && dialogSubjectId.value) {
-      const result = await curriculumStore.addTopic(
-        dialogGradeLevelId.value,
-        dialogSubjectId.value,
-        values.name.trim(),
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      itemId = result.id
-
-      if (imageFile.value && itemId) {
-        const uploadResult = await curriculumStore.uploadCurriculumImage(
-          imageFile.value,
-          'topic',
-          itemId,
-        )
-        if (uploadResult.success && uploadResult.path) {
-          await curriculumStore.updateTopicCoverImage(
-            dialogGradeLevelId.value,
-            dialogSubjectId.value,
-            itemId,
-            uploadResult.path,
-          )
-        }
-      }
-      toast.success('Topic added successfully')
-    } else if (
-      props.addType === 'subtopic' &&
-      dialogGradeLevelId.value &&
-      dialogSubjectId.value &&
-      dialogTopicId.value
-    ) {
-      const result = await curriculumStore.addSubTopic(
-        dialogGradeLevelId.value,
-        dialogSubjectId.value,
-        dialogTopicId.value,
-        values.name.trim(),
-      )
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      itemId = result.id
-
-      if (imageFile.value && itemId) {
-        const uploadResult = await curriculumStore.uploadCurriculumImage(
-          imageFile.value,
-          'subtopic',
-          itemId,
-        )
-        if (uploadResult.success && uploadResult.path) {
-          await curriculumStore.updateSubTopicCoverImage(
-            dialogGradeLevelId.value,
-            dialogSubjectId.value,
-            dialogTopicId.value,
-            itemId,
-            uploadResult.path,
-          )
-        }
-      }
-      toast.success('Sub-topic added successfully')
+    const ids: CurriculumIds = {
+      gradeLevelId: dialogGradeLevelId.value,
+      subjectId: dialogSubjectId.value,
+      topicId: dialogTopicId.value,
+      subTopicId: '',
     }
 
+    const result = await config.value.add(curriculumStore, ids, values.name.trim())
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+
+    const itemId = result.id
+
+    if (imageFile.value && itemId && config.value.imageType) {
+      const uploadResult = await curriculumStore.uploadCurriculumImage(
+        imageFile.value,
+        config.value.imageType,
+        itemId,
+      )
+      if (uploadResult.success && uploadResult.path) {
+        const imageIds: CurriculumIds = { ...ids, [getItemIdKey()]: itemId }
+        await config.value.updateCoverImage(curriculumStore, imageIds, uploadResult.path)
+      }
+    }
+
+    toast.success(`${config.value.label} added successfully`)
     emit('update:open', false)
   } finally {
     isSaving.value = false
   }
 })
+
+function getItemIdKey(): keyof CurriculumIds {
+  switch (props.addType) {
+    case 'subject':
+      return 'subjectId'
+    case 'topic':
+      return 'topicId'
+    case 'subtopic':
+      return 'subTopicId'
+    default:
+      return 'gradeLevelId'
+  }
+}
 </script>
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ getDialogTitle() }}</DialogTitle>
-        <DialogDescription>{{ getDialogDescription() }}</DialogDescription>
+        <DialogTitle>Add {{ config.label }}</DialogTitle>
+        <DialogDescription>{{ config.addDescription }}</DialogDescription>
       </DialogHeader>
 
       <form class="space-y-4 py-4" @submit="handleAdd">
@@ -287,10 +196,10 @@ const handleAdd = handleSubmit(async (values) => {
         <!-- Name Input -->
         <VeeField v-slot="{ field, errors }" name="name">
           <Field :data-invalid="!!errors.length">
-            <FieldLabel :for="addType + '-name'">{{ getInputLabel() }}</FieldLabel>
+            <FieldLabel :for="addType + '-name'">{{ config.inputLabel }}</FieldLabel>
             <Input
               :id="addType + '-name'"
-              :placeholder="'Enter ' + getInputLabel().toLowerCase()"
+              :placeholder="'Enter ' + config.inputLabel.toLowerCase()"
               :disabled="isSaving"
               :aria-invalid="!!errors.length"
               v-bind="field"
@@ -300,7 +209,7 @@ const handleAdd = handleSubmit(async (values) => {
         </VeeField>
 
         <!-- Cover Image (for subject/topic/subtopic) -->
-        <div v-if="addType !== 'grade'" class="space-y-2">
+        <div v-if="config.hasImage" class="space-y-2">
           <FieldLabel>Cover Image (optional)</FieldLabel>
           <div v-if="imagePreview" class="relative">
             <div class="aspect-video w-full overflow-hidden rounded-lg border">

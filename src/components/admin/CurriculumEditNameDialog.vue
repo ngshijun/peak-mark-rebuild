@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCurriculumStore } from '@/stores/curriculum'
+import {
+  type CurriculumLevel,
+  type CurriculumIds,
+  curriculumEntityConfig,
+} from '@/lib/curriculumEntityConfig'
 import { Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,8 +19,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
-
-type CurriculumLevel = 'grade' | 'subject' | 'topic' | 'subtopic'
 
 const props = defineProps<{
   open: boolean
@@ -32,6 +35,7 @@ const emit = defineEmits<{
 }>()
 
 const curriculumStore = useCurriculumStore()
+const config = computed(() => curriculumEntityConfig[props.editType])
 const isSaving = ref(false)
 const nameValue = ref('')
 
@@ -43,32 +47,6 @@ watch(
     }
   },
 )
-
-function getTitle() {
-  switch (props.editType) {
-    case 'grade':
-      return 'Edit Grade Level Name'
-    case 'subject':
-      return 'Edit Subject Name'
-    case 'topic':
-      return 'Edit Topic Name'
-    case 'subtopic':
-      return 'Edit Sub-Topic Name'
-  }
-}
-
-function getInputLabel() {
-  switch (props.editType) {
-    case 'grade':
-      return 'Grade Level Name'
-    case 'subject':
-      return 'Subject Name'
-    case 'topic':
-      return 'Topic Name'
-    case 'subtopic':
-      return 'Sub-Topic Name'
-  }
-}
 
 async function handleSave() {
   const trimmedName = nameValue.value.trim()
@@ -85,35 +63,14 @@ async function handleSave() {
   isSaving.value = true
 
   try {
-    let result: { success: boolean; error: string | null }
-
-    switch (props.editType) {
-      case 'grade':
-        result = await curriculumStore.updateGradeLevel(props.gradeLevelId, trimmedName)
-        break
-      case 'subject':
-        result = await curriculumStore.updateSubject(props.gradeLevelId, props.subjectId, {
-          name: trimmedName,
-        })
-        break
-      case 'topic':
-        result = await curriculumStore.updateTopic(
-          props.gradeLevelId,
-          props.subjectId,
-          props.topicId,
-          { name: trimmedName },
-        )
-        break
-      case 'subtopic':
-        result = await curriculumStore.updateSubTopic(
-          props.gradeLevelId,
-          props.subjectId,
-          props.topicId,
-          props.subTopicId,
-          { name: trimmedName },
-        )
-        break
+    const ids: CurriculumIds = {
+      gradeLevelId: props.gradeLevelId,
+      subjectId: props.subjectId,
+      topicId: props.topicId,
+      subTopicId: props.subTopicId,
     }
+
+    const result = await config.value.updateName(curriculumStore, ids, trimmedName)
 
     if (result.error) {
       toast.error(result.error)
@@ -131,17 +88,17 @@ async function handleSave() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ getTitle() }}</DialogTitle>
+        <DialogTitle>Edit {{ config.label }} Name</DialogTitle>
         <DialogDescription> Update the name for "{{ currentName }}" </DialogDescription>
       </DialogHeader>
 
       <div class="space-y-4 py-4">
         <Field>
-          <FieldLabel for="edit-name-input">{{ getInputLabel() }}</FieldLabel>
+          <FieldLabel for="edit-name-input">{{ config.inputLabel }}</FieldLabel>
           <Input
             id="edit-name-input"
             v-model="nameValue"
-            :placeholder="'Enter ' + getInputLabel().toLowerCase()"
+            :placeholder="'Enter ' + config.inputLabel.toLowerCase()"
             :disabled="isSaving"
             @keydown.enter.prevent="handleSave"
           />

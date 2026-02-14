@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCurriculumStore } from '@/stores/curriculum'
+import {
+  type CurriculumLevel,
+  type CurriculumIds,
+  curriculumEntityConfig,
+} from '@/lib/curriculumEntityConfig'
 import { Loader2 } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import {
@@ -15,8 +20,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'vue-sonner'
 
-type CurriculumLevel = 'grade' | 'subject' | 'topic' | 'subtopic'
-
 const props = defineProps<{
   open: boolean
   deleteType: CurriculumLevel
@@ -29,18 +32,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  deleted: [
-    type: CurriculumLevel,
-    ids: {
-      gradeLevelId: string
-      subjectId: string
-      topicId: string
-      subTopicId: string
-    },
-  ]
+  deleted: [type: CurriculumLevel, ids: CurriculumIds]
 }>()
 
 const curriculumStore = useCurriculumStore()
+const config = computed(() => curriculumEntityConfig[props.deleteType])
 const isDeleting = ref(false)
 const confirmInput = ref('')
 
@@ -53,61 +49,23 @@ watch(
   },
 )
 
-function getDescription() {
-  switch (props.deleteType) {
-    case 'grade':
-      return 'This will permanently delete this grade level and all its subjects, topics, sub-topics, questions, and practice sessions. This action cannot be undone.'
-    case 'subject':
-      return 'This will permanently delete this subject and all its topics, sub-topics, questions, and practice sessions. This action cannot be undone.'
-    case 'topic':
-      return 'This will permanently delete this topic and all its sub-topics, questions, and practice sessions. This action cannot be undone.'
-    case 'subtopic':
-      return 'This will permanently delete this sub-topic and all its questions and practice sessions. This action cannot be undone.'
-  }
-}
-
 async function confirmDelete() {
   isDeleting.value = true
   try {
-    let result: { error: string | null }
-
-    switch (props.deleteType) {
-      case 'grade':
-        result = await curriculumStore.deleteGradeLevel(props.gradeLevelId)
-        if (!result.error) toast.success('Grade level deleted successfully')
-        break
-      case 'subject':
-        result = await curriculumStore.deleteSubject(props.gradeLevelId, props.subjectId)
-        if (!result.error) toast.success('Subject deleted successfully')
-        break
-      case 'topic':
-        result = await curriculumStore.deleteTopic(
-          props.gradeLevelId,
-          props.subjectId,
-          props.topicId,
-        )
-        if (!result.error) toast.success('Topic deleted successfully')
-        break
-      case 'subtopic':
-        result = await curriculumStore.deleteSubTopic(
-          props.gradeLevelId,
-          props.subjectId,
-          props.topicId,
-          props.subTopicId,
-        )
-        if (!result.error) toast.success('Sub-topic deleted successfully')
-        break
+    const ids: CurriculumIds = {
+      gradeLevelId: props.gradeLevelId,
+      subjectId: props.subjectId,
+      topicId: props.topicId,
+      subTopicId: props.subTopicId,
     }
+
+    const result = await config.value.delete(curriculumStore, ids)
 
     if (result.error) {
       toast.error(result.error)
     } else {
-      emit('deleted', props.deleteType, {
-        gradeLevelId: props.gradeLevelId,
-        subjectId: props.subjectId,
-        topicId: props.topicId,
-        subTopicId: props.subTopicId,
-      })
+      toast.success(`${config.value.label} deleted successfully`)
+      emit('deleted', props.deleteType, ids)
     }
   } finally {
     isDeleting.value = false
@@ -122,7 +80,7 @@ async function confirmDelete() {
       <AlertDialogHeader>
         <AlertDialogTitle>Delete "{{ itemName }}"?</AlertDialogTitle>
         <AlertDialogDescription as="div">
-          <p>{{ getDescription() }}</p>
+          <p>{{ config.deleteDescription }}</p>
           <p class="mt-3">
             To confirm, type
             <span class="font-semibold text-foreground">{{ itemName }}</span>
