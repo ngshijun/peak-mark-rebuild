@@ -9,7 +9,7 @@ import {
 } from '@/stores/practice'
 import { useQuestionsStore } from '@/stores/questions'
 import { formatDateTime } from '@/lib/date'
-import { useStudentDashboardStore } from '@/stores/studentDashboard'
+import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import SessionSummaryCards from '@/components/session/SessionSummaryCards.vue'
 import SessionQuestionCard from '@/components/session/SessionQuestionCard.vue'

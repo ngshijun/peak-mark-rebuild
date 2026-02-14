@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { useStudentDashboardStore } from '@/stores/studentDashboard'
+import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import { usePracticeStore } from '@/stores/practice'
 import { usePetsStore } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'

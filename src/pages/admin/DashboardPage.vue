@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useAdminDashboardStore } from '@/stores/adminDashboard'
+import { useAdminDashboardStore } from '@/stores/admin-dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Users, Activity, BookOpen, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'

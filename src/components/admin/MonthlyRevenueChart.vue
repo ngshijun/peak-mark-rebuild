@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAdminDashboardStore, type MonthlyRevenue } from '@/stores/adminDashboard'
+import { useAdminDashboardStore, type MonthlyRevenue } from '@/stores/admin-dashboard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ChartContainer,

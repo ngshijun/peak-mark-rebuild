@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useStudentDashboardStore, type MoodType } from '@/stores/studentDashboard'
+import { useStudentDashboardStore, type MoodType } from '@/stores/student-dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {

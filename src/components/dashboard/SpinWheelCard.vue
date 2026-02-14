@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useStudentDashboardStore } from '@/stores/studentDashboard'
+import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import {
   Dialog,
   DialogContent,

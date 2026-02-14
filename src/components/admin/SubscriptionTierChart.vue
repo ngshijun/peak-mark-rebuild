@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAdminDashboardStore, type TierDistribution } from '@/stores/adminDashboard'
+import { useAdminDashboardStore, type TierDistribution } from '@/stores/admin-dashboard'
 import {
   Card,
   CardContent,
