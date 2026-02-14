@@ -6,10 +6,10 @@ import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
 import {
-  useStudentSubscription,
+  useStudentSubscriptionStore,
   type StudentSubscriptionStatus,
   type SessionLimitStatus,
-} from '@/composables/useStudentSubscription'
+} from '@/stores/student-subscription'
 import {
   type PracticeAnswer,
   type PracticeSession,
@@ -29,7 +29,7 @@ export const usePracticeStore = defineStore('practice', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const subscription = useStudentSubscription()
+  const subscription = useStudentSubscriptionStore()
 
   // Practice page navigation state (persisted across navigation)
   const practiceNavigation = ref({

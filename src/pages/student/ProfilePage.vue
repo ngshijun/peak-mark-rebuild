@@ -1,17 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useForm, Field as VeeField } from 'vee-validate'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePracticeStore, type StudentSubscriptionStatus } from '@/stores/practice'
 import { useSubscriptionStore } from '@/stores/subscription'
 import { useCurriculumStore } from '@/stores/curriculum'
-import { editNameFormSchema } from '@/lib/validations'
+import { useProfileEditor } from '@/composables/useProfileEditor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import {
   Select,
   SelectContent,
@@ -29,7 +26,10 @@ import {
 } from '@/components/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarPicker } from '@/components/ui/calendar'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { toast } from 'vue-sonner'
+import EditAvatarDialog from '@/components/shared/EditAvatarDialog.vue'
+import EditNameDialog from '@/components/shared/EditNameDialog.vue'
 import {
   Cake,
   Mail,
@@ -41,26 +41,21 @@ import {
   Pencil,
   Camera,
   Loader2,
-  ImagePlus,
-  Dices,
   Zap,
   Sparkles,
   Crown,
   CreditCard,
   Check,
 } from 'lucide-vue-next'
-import {
-  type DateValue,
-  getLocalTimeZone,
-  today,
-  parseDate,
-  CalendarDate,
-} from '@internationalized/date'
+import { type DateValue, getLocalTimeZone, today, parseDate } from '@internationalized/date'
 import { createYearRange } from 'reka-ui/date'
+
 const authStore = useAuthStore()
 const practiceStore = usePracticeStore()
 const subscriptionStore = useSubscriptionStore()
 const curriculumStore = useCurriculumStore()
+const { isSaving, userInitials, formattedDateJoined, userAvatarUrl, saveAvatar, saveName } =
+  useProfileEditor()
 
 // Subscription
 const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)
@@ -79,65 +74,19 @@ function getTierIcon(tier: string) {
   }
 }
 
-// Grade levels (from curriculum store)
-
 // Dialog states
 const showAvatarDialog = ref(false)
-const avatarPreviewUrl = ref('')
-const avatarFile = ref<File | null>(null)
 const showEditNameDialog = ref(false)
 const showEditBirthdayDialog = ref(false)
 const editBirthdayValue = ref<DateValue | undefined>(undefined)
-const isSaving = ref(false)
-
-// Edit name form
-const {
-  handleSubmit: handleNameSubmit,
-  resetForm: resetNameForm,
-  setValues: setNameValues,
-} = useForm({
-  validationSchema: editNameFormSchema,
-  initialValues: {
-    name: '',
-  },
-})
-
-// Reset form when dialog opens
-watch(showEditNameDialog, (open) => {
-  if (open) {
-    setNameValues({ name: authStore.user?.name ?? '' })
-  }
-})
-
-// Avatar file input ref
-const avatarInputRef = ref<HTMLInputElement | null>(null)
-
-const userInitials = computed(() => {
-  if (!authStore.user?.name) return '?'
-  return authStore.user.name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-})
-
-const formattedDateJoined = computed(() => {
-  if (!authStore.user?.createdAt) return 'N/A'
-  return new Date(authStore.user.createdAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-})
 
 const age = computed(() => {
   if (!authStore.user?.dateOfBirth) return null
-  const today = new Date()
+  const now = new Date()
   const birthDate = new Date(authStore.user.dateOfBirth)
-  let years = today.getFullYear() - birthDate.getFullYear()
-  const monthDiff = today.getMonth() - birthDate.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+  let years = now.getFullYear() - birthDate.getFullYear()
+  const monthDiff = now.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
     years--
   }
   return years
@@ -160,11 +109,6 @@ const currentGradeName = computed(() => {
   return grade?.name ?? 'Not set'
 })
 
-// Get avatar URL from storage path
-const userAvatarUrl = computed(() => {
-  return authStore.getAvatarUrl(authStore.user?.avatarPath ?? null)
-})
-
 onMounted(async () => {
   isLoadingPlans.value = true
   await Promise.all([
@@ -178,80 +122,15 @@ onMounted(async () => {
   })
 })
 
-function openAvatarDialog() {
-  avatarPreviewUrl.value = ''
-  avatarFile.value = null
-  showAvatarDialog.value = true
+async function handleAvatarSave(payload: { file: File | null; previewUrl: string }) {
+  const success = await saveAvatar(payload.file, payload.previewUrl)
+  if (success) showAvatarDialog.value = false
 }
 
-function handleAvatarFileSelect(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    avatarFile.value = file
-    // Create preview URL
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      avatarPreviewUrl.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
+async function handleNameSave(name: string) {
+  const success = await saveName(name)
+  if (success) showEditNameDialog.value = false
 }
-
-function generateRandomAvatar() {
-  const seed = Math.random().toString(36).substring(7)
-  avatarPreviewUrl.value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
-  avatarFile.value = null // Clear file since we're using generated avatar
-}
-
-async function saveAvatar() {
-  if (!avatarPreviewUrl.value) {
-    showAvatarDialog.value = false
-    return
-  }
-
-  isSaving.value = true
-  try {
-    let result: { path: string | null; error: string | null }
-
-    if (avatarFile.value) {
-      // Upload file to storage
-      result = await authStore.uploadAvatar(avatarFile.value)
-    } else {
-      // Upload from URL (dicebear)
-      result = await authStore.uploadAvatarFromUrl(avatarPreviewUrl.value)
-    }
-
-    if (result.error) {
-      toast.error(result.error)
-      return
-    }
-    toast.success('Avatar updated successfully')
-    showAvatarDialog.value = false
-  } finally {
-    isSaving.value = false
-  }
-}
-
-function openEditNameDialog() {
-  showEditNameDialog.value = true
-}
-
-const saveName = handleNameSubmit(async (values) => {
-  isSaving.value = true
-  try {
-    const result = await authStore.updateName(values.name.trim())
-    if (result.error) {
-      toast.error(result.error)
-      return
-    }
-    toast.success('Name updated successfully')
-    showEditNameDialog.value = false
-    resetNameForm()
-  } finally {
-    isSaving.value = false
-  }
-})
 
 async function handleGradeChange(value: unknown) {
   if (!value || typeof value !== 'string') return
@@ -270,7 +149,6 @@ async function handleGradeChange(value: unknown) {
 }
 
 function openEditBirthdayDialog() {
-  // Convert string date to DateValue for calendar
   if (authStore.user?.dateOfBirth) {
     const dateStr = authStore.user.dateOfBirth.split('T')[0]
     if (dateStr) {
@@ -287,7 +165,6 @@ function openEditBirthdayDialog() {
 async function saveBirthday() {
   isSaving.value = true
   try {
-    // Convert DateValue back to string (YYYY-MM-DD format)
     const dateString = editBirthdayValue.value?.toString() ?? null
     const result = await authStore.updateDateOfBirth(dateString)
     if (result.error) {
@@ -301,10 +178,8 @@ async function saveBirthday() {
   }
 }
 
-// Computed for max date (today) for birthday calendar
 const maxBirthdayDate = computed(() => today(getLocalTimeZone()))
 
-// Year range for birthday picker (last 25 years, newest first)
 const birthdayYearRange = computed(() => {
   const now = today(getLocalTimeZone())
   return createYearRange({
@@ -335,14 +210,19 @@ const birthdayYearRange = computed(() => {
               size="icon"
               variant="secondary"
               class="absolute -bottom-1 -right-1 size-8 rounded-full"
-              @click="openAvatarDialog"
+              @click="showAvatarDialog = true"
             >
               <Camera class="size-4" />
             </Button>
           </div>
           <CardTitle class="mt-4 flex min-w-0 items-center justify-center gap-2">
             <span class="min-w-0 truncate">{{ authStore.user?.name }}</span>
-            <Button size="icon" variant="ghost" class="size-6 shrink-0" @click="openEditNameDialog">
+            <Button
+              size="icon"
+              variant="ghost"
+              class="size-6 shrink-0"
+              @click="showEditNameDialog = true"
+            >
               <Pencil class="size-3" />
             </Button>
           </CardTitle>
@@ -527,98 +407,20 @@ const birthdayYearRange = computed(() => {
       </CardContent>
     </Card>
 
-    <!-- Avatar Dialog -->
-    <Dialog v-model:open="showAvatarDialog">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Change Profile Picture</DialogTitle>
-          <DialogDescription> Upload an image or generate a random avatar. </DialogDescription>
-        </DialogHeader>
-        <div class="space-y-4">
-          <div class="flex justify-center">
-            <Avatar class="size-24">
-              <AvatarImage :src="avatarPreviewUrl || userAvatarUrl" alt="Preview" />
-              <AvatarFallback class="text-2xl">{{ userInitials }}</AvatarFallback>
-            </Avatar>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <input
-              ref="avatarInputRef"
-              type="file"
-              accept="image/*"
-              class="hidden"
-              @change="handleAvatarFileSelect"
-            />
-            <Button
-              variant="outline"
-              class="w-full"
-              :disabled="isSaving"
-              @click="avatarInputRef?.click()"
-            >
-              <ImagePlus class="mr-2 size-4" />
-              Upload Image
-            </Button>
-            <Button
-              variant="outline"
-              class="w-full"
-              :disabled="isSaving"
-              @click="generateRandomAvatar"
-            >
-              <Dices class="mr-2 size-4" />
-              Random Avatar
-            </Button>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" :disabled="isSaving" @click="showAvatarDialog = false">
-            Cancel
-          </Button>
-          <Button :disabled="isSaving || !avatarPreviewUrl" @click="saveAvatar">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <EditAvatarDialog
+      v-model:open="showAvatarDialog"
+      :current-avatar-url="userAvatarUrl"
+      :user-initials="userInitials"
+      :is-saving="isSaving"
+      @save="handleAvatarSave"
+    />
 
-    <!-- Edit Name Dialog -->
-    <Dialog v-model:open="showEditNameDialog">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Name</DialogTitle>
-          <DialogDescription>Enter your new display name.</DialogDescription>
-        </DialogHeader>
-        <form @submit="saveName">
-          <VeeField v-slot="{ field, errors }" name="name">
-            <Field :data-invalid="!!errors.length">
-              <FieldLabel for="new-name">Name</FieldLabel>
-              <Input
-                id="new-name"
-                placeholder="Enter your name"
-                :disabled="isSaving"
-                :aria-invalid="!!errors.length"
-                v-bind="field"
-              />
-              <FieldError :errors="errors" />
-            </Field>
-          </VeeField>
-          <DialogFooter class="mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              :disabled="isSaving"
-              @click="showEditNameDialog = false"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" :disabled="isSaving">
-              <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-              Save
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <EditNameDialog
+      v-model:open="showEditNameDialog"
+      :current-name="authStore.user?.name ?? ''"
+      :is-saving="isSaving"
+      @save="handleNameSave"
+    />
 
     <!-- Edit Birthday Dialog -->
     <Dialog v-model:open="showEditBirthdayDialog">

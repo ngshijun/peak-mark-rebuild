@@ -1,10 +1,7 @@
 import type { Database } from '@/types/database.types'
 
 export type { DateRangeFilter } from '@/lib/sessionFilters'
-export type {
-  StudentSubscriptionStatus,
-  SessionLimitStatus,
-} from '@/composables/useStudentSubscription'
+export type { StudentSubscriptionStatus, SessionLimitStatus } from '@/stores/student-subscription'
 
 type PracticeAnswerRow = Database['public']['Tables']['practice_answers']['Row']
 
