@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import { useSubscriptionStore } from './subscription'
 import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
@@ -33,6 +34,7 @@ export interface LinkedChild {
 
 export const useChildLinkStore = defineStore('childLink', () => {
   const authStore = useAuthStore()
+  const subscriptionStore = useSubscriptionStore()
 
   const linkedChildren = ref<LinkedChild[]>([])
   const invitations = ref<ParentStudentInvitation[]>([])
@@ -430,6 +432,15 @@ export const useChildLinkStore = defineStore('childLink', () => {
   ): Promise<{ success?: boolean; error?: string }> {
     if (!authStore.user || !authStore.isParent) {
       return { error: 'Not authenticated as parent' }
+    }
+
+    // Pre-check: block unlink if child has an active paid subscription
+    const subscription = subscriptionStore.getChildSubscription(childId)
+    if (subscription.isActive && subscription.tier !== 'core') {
+      return {
+        error:
+          'Cannot unlink while an active paid subscription exists. Please cancel the subscription first.',
+      }
     }
 
     try {

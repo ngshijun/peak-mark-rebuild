@@ -406,6 +406,28 @@ export const useParentLinkStore = defineStore('parentLink', () => {
       return { error: 'Not authenticated as student' }
     }
 
+    // Pre-check: block unlink if an active paid subscription exists for this link
+    try {
+      const { data: activeSub } = await supabase
+        .from('child_subscriptions')
+        .select('id')
+        .eq('parent_id', parentId)
+        .eq('student_id', authStore.user.id)
+        .eq('is_active', true)
+        .neq('tier', 'core')
+        .limit(1)
+        .maybeSingle()
+
+      if (activeSub) {
+        return {
+          error:
+            'Cannot unlink while an active paid subscription exists. Please ask your parent to cancel the subscription first.',
+        }
+      }
+    } catch (err) {
+      return { error: handleError(err, 'Failed to check subscription status.') }
+    }
+
     try {
       const { error: deleteError } = await supabase
         .from('parent_student_links')

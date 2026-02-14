@@ -123,9 +123,9 @@ function mapPostgrestError(err: PostgrestError): string {
     // Undefined column
     case '42703':
       return 'Something went wrong. Please try again later.'
-    // Raise exception from PL/pgSQL (custom RPC error messages)
+    // Raise exception from PL/pgSQL (custom trigger/RPC error messages)
     case 'P0001':
-      return 'This action could not be completed. Please try again.'
+      return err.message || 'This action could not be completed. Please try again.'
   }
 
   // PostgREST-specific codes (PGRST prefix)

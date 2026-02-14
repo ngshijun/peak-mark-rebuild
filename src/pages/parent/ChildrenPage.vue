@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useChildLinkStore } from '@/stores/child-link'
+import { useSubscriptionStore } from '@/stores/subscription'
 import { inviteEmailFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,12 @@ import { Users, Mail, Send, Check, X, Trash2, Clock, UserPlus, Loader2 } from 'l
 import { toast } from 'vue-sonner'
 
 const childLinkStore = useChildLinkStore()
+const subscriptionStore = useSubscriptionStore()
+
+function hasActivePaidSubscription(childId: string): boolean {
+  const sub = subscriptionStore.getChildSubscription(childId)
+  return sub.isActive && sub.tier !== 'core'
+}
 
 const inviteDialogOpen = ref(false)
 const inviteSuccess = ref(false)
@@ -241,19 +248,28 @@ function resetInviteForm() {
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remove Child</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription v-if="hasActivePaidSubscription(child.id)">
+                      {{ child.name }} has an active paid subscription. You must cancel the
+                      subscription before unlinking this child.
+                    </AlertDialogDescription>
+                    <AlertDialogDescription v-else>
                       Are you sure you want to remove {{ child.name }} from your linked children?
                       You will no longer be able to view their progress.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      class="bg-destructive text-white hover:bg-destructive/90"
-                      @click="handleRemoveChild(child.id)"
-                    >
-                      Remove
-                    </AlertDialogAction>
+                    <AlertDialogCancel v-if="hasActivePaidSubscription(child.id)">
+                      Close
+                    </AlertDialogCancel>
+                    <template v-else>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        class="bg-destructive text-white hover:bg-destructive/90"
+                        @click="handleRemoveChild(child.id)"
+                      >
+                        Remove
+                      </AlertDialogAction>
+                    </template>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
