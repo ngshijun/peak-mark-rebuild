@@ -59,11 +59,11 @@ const uploadResult = ref<BulkUploadResult | null>(null)
 const isLoading = ref(false)
 
 // Collapsible states
-const parseErrorsOpen = ref(false)
-const curriculumErrorsOpen = ref(false)
-const duplicatesOpen = ref(false)
-const withinFileDuplicatesOpen = ref(false)
-const failedOpen = ref(false)
+const isParseErrorsOpen = ref(false)
+const isCurriculumErrorsOpen = ref(false)
+const isDuplicatesOpen = ref(false)
+const isWithinFileDuplicatesOpen = ref(false)
+const isFailedOpen = ref(false)
 
 // Computed
 const canUpload = computed(() => {
@@ -171,11 +171,11 @@ function reset() {
   uploadProgress.value = 0
   uploadTotal.value = 0
   uploadResult.value = null
-  parseErrorsOpen.value = false
-  curriculumErrorsOpen.value = false
-  duplicatesOpen.value = false
-  withinFileDuplicatesOpen.value = false
-  failedOpen.value = false
+  isParseErrorsOpen.value = false
+  isCurriculumErrorsOpen.value = false
+  isDuplicatesOpen.value = false
+  isWithinFileDuplicatesOpen.value = false
+  isFailedOpen.value = false
 }
 
 function close() {
@@ -297,14 +297,14 @@ const progressPercent = computed(() => {
         <!-- Parse Errors -->
         <Collapsible
           v-if="parseResult?.errors.length"
-          v-model:open="parseErrorsOpen"
+          v-model:open="isParseErrorsOpen"
           class="rounded-lg border border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/10"
         >
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-red-600"
           >
             <span>Parse Errors ({{ parseResult.errors.length }})</span>
-            <component :is="parseErrorsOpen ? ChevronDown : ChevronRight" class="size-4" />
+            <component :is="isParseErrorsOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
             <div class="max-h-32 space-y-1 overflow-y-auto">
@@ -322,14 +322,14 @@ const progressPercent = computed(() => {
         <!-- Curriculum Errors -->
         <Collapsible
           v-if="validationResult?.curriculumErrors.length"
-          v-model:open="curriculumErrorsOpen"
+          v-model:open="isCurriculumErrorsOpen"
           class="rounded-lg border border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/10"
         >
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-red-600"
           >
             <span>Curriculum Errors ({{ validationResult.curriculumErrors.length }})</span>
-            <component :is="curriculumErrorsOpen ? ChevronDown : ChevronRight" class="size-4" />
+            <component :is="isCurriculumErrorsOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
             <div class="max-h-32 space-y-1 overflow-y-auto">
@@ -347,14 +347,14 @@ const progressPercent = computed(() => {
         <!-- Duplicates -->
         <Collapsible
           v-if="validationResult?.duplicates.length"
-          v-model:open="duplicatesOpen"
+          v-model:open="isDuplicatesOpen"
           class="rounded-lg border border-yellow-200 bg-yellow-50/50 dark:border-yellow-900 dark:bg-yellow-950/10"
         >
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-yellow-600"
           >
             <span>Duplicates in Database ({{ validationResult.duplicates.length }})</span>
-            <component :is="duplicatesOpen ? ChevronDown : ChevronRight" class="size-4" />
+            <component :is="isDuplicatesOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
             <div class="max-h-32 space-y-1 overflow-y-auto">
@@ -426,14 +426,14 @@ const progressPercent = computed(() => {
         <!-- Failed items -->
         <Collapsible
           v-if="uploadResult?.failed.length"
-          v-model:open="failedOpen"
+          v-model:open="isFailedOpen"
           class="rounded-lg border border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/10"
         >
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-red-600"
           >
             <span>Failed Items ({{ uploadResult.failed.length }})</span>
-            <component :is="failedOpen ? ChevronDown : ChevronRight" class="size-4" />
+            <component :is="isFailedOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
             <div class="max-h-32 space-y-1 overflow-y-auto">

@@ -25,9 +25,9 @@ const showDontShowAgain = ref(false)
 const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
 
 // Initialize from localStorage — checked if dismissed today
-const isDismissedToday =
-  localStorage.getItem(MOOD_REMINDER_DISMISSED_KEY) === dashboardStore.getTodayString()
-const dontShowAgainToday = ref(isDismissedToday)
+const isDismissedToday = ref(
+  localStorage.getItem(MOOD_REMINDER_DISMISSED_KEY) === dashboardStore.getTodayString(),
+)
 
 const moods: { type: MoodType; emoji: string; label: string }[] = [
   { type: 'sad', emoji: '😢', label: 'Sad' },
@@ -46,7 +46,7 @@ function getMoodLabel(mood: MoodType | null | undefined): string {
 }
 
 // Sync checkbox to localStorage
-watch(dontShowAgainToday, (checked) => {
+watch(isDismissedToday, (checked) => {
   if (checked) {
     localStorage.setItem(MOOD_REMINDER_DISMISSED_KEY, dashboardStore.getTodayString())
   } else {
@@ -134,7 +134,7 @@ defineExpose({
         v-if="showDontShowAgain || !dashboardStore.hasMoodToday"
         class="flex items-center gap-2 border-t pt-4"
       >
-        <Checkbox id="dontShowAgain" v-model="dontShowAgainToday" :disabled="isSaving" />
+        <Checkbox id="dontShowAgain" v-model="isDismissedToday" :disabled="isSaving" />
         <label for="dontShowAgain" class="cursor-pointer select-none text-sm text-muted-foreground">
           Don't show again today
         </label>

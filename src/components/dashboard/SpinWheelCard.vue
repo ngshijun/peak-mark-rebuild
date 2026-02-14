@@ -15,7 +15,7 @@ const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
 const isSpinning = ref(false)
 const rotation = ref(0)
-const justSpun = ref(false) // Tracks if user just spun (for animation)
+const hasJustSpun = ref(false) // Tracks if user just spun (for animation)
 
 const segments = [5, 10, 15, 5, 10, 15, 5, 10] // 8 segments (multiples of 5)
 const segmentAngle = 360 / segments.length
@@ -83,7 +83,7 @@ async function spin() {
     }
 
     isSpinning.value = false
-    justSpun.value = true
+    hasJustSpun.value = true
   }, 4000)
 }
 
@@ -94,7 +94,7 @@ function closeDialog() {
 // Reset bounce animation state when dialog closes (any method)
 watch(isOpen, (open) => {
   if (!open) {
-    justSpun.value = false
+    hasJustSpun.value = false
   }
 })
 </script>
@@ -160,7 +160,7 @@ watch(isOpen, (open) => {
         <!-- Reward Display (only shown after wheel stops successfully) -->
         <div
           v-if="reward !== null && !isSpinning && !spinError"
-          :class="['text-center', { 'animate-bounce': justSpun }]"
+          :class="['text-center', { 'animate-bounce': hasJustSpun }]"
         >
           <p class="text-lg font-bold text-green-600">Congratulations!</p>
           <div class="mt-2 flex items-center justify-center gap-2">
