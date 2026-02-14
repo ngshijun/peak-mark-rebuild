@@ -84,7 +84,8 @@ onMounted(async () => {
         description: 'Your subscription has been successfully activated.',
       })
       // Refresh subscriptions to show the new status
-      await subscriptionStore.fetchChildrenSubscriptions(true)
+      const childIds = childLinkStore.linkedChildren.map((c) => c.id)
+      await subscriptionStore.fetchChildrenSubscriptions(childIds, true)
     } else {
       toast.error('Sync issue', {
         description: error || 'Subscription may not be fully synced. Please refresh the page.',

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
@@ -76,7 +75,6 @@ const PLANS_CACHE_TTL = 10 * 60 * 1000 // 10 minutes - plans rarely change
 const SUBSCRIPTIONS_CACHE_TTL = 2 * 60 * 1000 // 2 minutes - subscriptions may change more often
 
 export const useSubscriptionStore = defineStore('subscription', () => {
-  const childLinkStore = useChildLinkStore()
   const authStore = useAuthStore()
 
   // Define subscription plans (fetched from DB)
@@ -146,12 +144,18 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   /**
    * Fetch subscriptions for all linked children (with caching)
    */
-  async function fetchChildrenSubscriptions(force = false): Promise<{ error: string | null }> {
+  async function fetchChildrenSubscriptions(
+    childIds?: string[],
+    force = false,
+  ): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
       return { error: 'Not authenticated as parent' }
     }
 
-    if (childLinkStore.linkedChildren.length === 0) {
+    // Use provided childIds, or fall back to IDs from existing subscriptions (for internal re-fetches)
+    const ids = childIds ?? childSubscriptions.value.map((s) => s.childId)
+
+    if (ids.length === 0) {
       childSubscriptions.value = []
       return { error: null }
     }
@@ -165,13 +169,11 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     error.value = null
 
     try {
-      const childIds = childLinkStore.linkedChildren.map((c) => c.id)
-
       const { data, error: fetchError } = await supabase
         .from('child_subscriptions')
         .select('*')
         .eq('parent_id', authStore.user.id)
-        .in('student_id', childIds)
+        .in('student_id', ids)
 
       if (fetchError) throw fetchError
 
@@ -182,7 +184,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       }
 
       // Build subscription array for all children (default to basic if not found)
-      childSubscriptions.value = childIds.map((childId) => {
+      childSubscriptions.value = ids.map((childId) => {
         const existing = subscriptionMap.get(childId)
         if (existing) {
           const subscription: ChildSubscription = {
@@ -440,7 +442,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       // Refresh subscriptions to get updated data (non-blocking, non-critical)
       // If refresh fails, the modification still succeeded - just log a warning
       try {
-        await fetchChildrenSubscriptions(true) // Force refresh
+        await fetchChildrenSubscriptions(undefined, true) // Force refresh
       } catch (refreshErr) {
         console.warn('Failed to refresh subscriptions after modification:', refreshErr)
         // Invalidate cache so next access will fetch fresh data

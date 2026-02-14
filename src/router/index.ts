@@ -40,7 +40,8 @@ async function parentRouteGuard() {
 
   // After children are loaded, preload their subscriptions
   if (childLinkStore.linkedChildren.length > 0) {
-    await subscriptionStore.fetchChildrenSubscriptions()
+    const childIds = childLinkStore.linkedChildren.map((c) => c.id)
+    await subscriptionStore.fetchChildrenSubscriptions(childIds)
   }
 }
 

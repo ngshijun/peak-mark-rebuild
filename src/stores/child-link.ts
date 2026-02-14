@@ -19,7 +19,6 @@ export interface LinkedChild {
 
 export const useChildLinkStore = defineStore('childLink', () => {
   const authStore = useAuthStore()
-  const subscriptionStore = useSubscriptionStore()
 
   const linkedChildren = ref<LinkedChild[]>([])
   const invitations = ref<ParentStudentInvitation[]>([])
@@ -387,7 +386,8 @@ export const useChildLinkStore = defineStore('childLink', () => {
     }
 
     // Pre-check: block unlink if child has an active paid subscription
-    const subscription = subscriptionStore.getChildSubscription(childId)
+    // Instantiate lazily inside function body to avoid circular init (subscription ↔ child-link)
+    const subscription = useSubscriptionStore().getChildSubscription(childId)
     if (subscription.isActive && subscription.tier !== 'core') {
       return {
         error:
