@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
-import { mapInvitationRows, type ParentStudentInvitation } from '@/lib/invitations'
+import { useInvitations } from '@/composables/useInvitations'
 
 export type { ParentStudentInvitation } from '@/lib/invitations'
 
@@ -18,9 +18,24 @@ export const useParentLinkStore = defineStore('parentLink', () => {
   const authStore = useAuthStore()
 
   const linkedParents = ref<LinkedParent[]>([])
-  const invitations = ref<ParentStudentInvitation[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+
+  // Whether student already has a linked parent
+  const hasLinkedParent = computed(() => linkedParents.value.length > 0)
+
+  const inv = useInvitations('student', {
+    canSend: () => (hasLinkedParent.value ? 'You can only have one linked parent' : null),
+    canAccept: () => (hasLinkedParent.value ? 'You can only have one linked parent' : null),
+    onAccepted: (result) => {
+      linkedParents.value.push({
+        id: result.parent_id as string,
+        name: result.parent_name as string,
+        email: result.parent_email as string,
+        linkedAt: result.linked_at as string,
+      })
+    },
+  })
 
   /**
    * Fetch linked parents for current student
@@ -73,276 +88,24 @@ export const useParentLinkStore = defineStore('parentLink', () => {
   }
 
   /**
-   * Fetch invitations for current student
+   * Fetch all data
    */
-  async function fetchInvitations(): Promise<{ error: string | null }> {
-    if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
-    }
-
+  async function fetchAll(): Promise<{ error: string | null }> {
     isLoading.value = true
     error.value = null
 
     try {
-      // Fetch invitations where student email matches
-      const { data, error: fetchError } = await supabase
-        .from('parent_student_invitations')
-        .select('*')
-        .or(`student_id.eq.${authStore.user.id},student_email.eq.${authStore.user.email}`)
-        .in('status', ['pending'])
-        .order('created_at', { ascending: false })
+      const [parentsResult, invitationsResult] = await Promise.all([
+        fetchLinkedParents(),
+        inv.fetchInvitations(),
+      ])
 
-      if (fetchError) throw fetchError
-
-      invitations.value = await mapInvitationRows(data ?? [])
+      if (parentsResult.error) return parentsResult
+      if (invitationsResult.error) return invitationsResult
 
       return { error: null }
-    } catch (err) {
-      const message = handleError(err, 'Failed to load invitations.')
-      error.value = message
-      return { error: message }
     } finally {
       isLoading.value = false
-    }
-  }
-
-  /**
-   * Fetch all data
-   */
-  async function fetchAll(): Promise<{ error: string | null }> {
-    const [parentsResult, invitationsResult] = await Promise.all([
-      fetchLinkedParents(),
-      fetchInvitations(),
-    ])
-
-    if (parentsResult.error) return parentsResult
-    if (invitationsResult.error) return invitationsResult
-
-    return { error: null }
-  }
-
-  // Whether student already has a linked parent
-  const hasLinkedParent = computed(() => linkedParents.value.length > 0)
-
-  // Get invitations sent to current student (from parents)
-  const receivedInvitations = computed(() => {
-    if (!authStore.user || !authStore.isStudent) return []
-    return invitations.value.filter(
-      (inv) =>
-        (inv.studentId === authStore.user!.id ||
-          inv.studentEmail.toLowerCase() === authStore.user!.email.toLowerCase()) &&
-        inv.direction === 'parent_to_student' &&
-        inv.status === 'pending',
-    )
-  })
-
-  // Get invitations sent by current student (to parents)
-  const sentInvitations = computed(() => {
-    if (!authStore.user || !authStore.isStudent) return []
-    return invitations.value.filter(
-      (inv) =>
-        inv.studentId === authStore.user!.id &&
-        inv.direction === 'student_to_parent' &&
-        inv.status === 'pending',
-    )
-  })
-
-  /**
-   * Send invitation to parent
-   */
-  async function sendInvitation(
-    parentEmail: string,
-  ): Promise<{ success?: boolean; invitation?: ParentStudentInvitation; error?: string }> {
-    if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
-    }
-
-    // Check if student already has a linked parent
-    if (hasLinkedParent.value) {
-      return { error: 'You can only have one linked parent' }
-    }
-
-    // Check if invitation already exists
-    const existingInvitation = invitations.value.find(
-      (inv) =>
-        inv.parentEmail.toLowerCase() === parentEmail.toLowerCase() && inv.status === 'pending',
-    )
-    if (existingInvitation) {
-      return { error: 'An invitation is already pending for this email' }
-    }
-
-    try {
-      // Look up the parent by email - they must exist in the system
-      const { data: parentProfile, error: lookupError } = await supabase
-        .from('profiles')
-        .select('id, name, user_type')
-        .eq('email', parentEmail.toLowerCase())
-        .single()
-
-      if (lookupError || !parentProfile) {
-        return { error: 'No parent account found with this email address' }
-      }
-
-      if (parentProfile.user_type !== 'parent') {
-        return { error: 'This email is not associated with a parent account' }
-      }
-
-      const { data, error: insertError } = await supabase
-        .from('parent_student_invitations')
-        .insert({
-          parent_id: parentProfile.id,
-          parent_email: parentEmail,
-          student_id: authStore.user.id,
-          student_email: authStore.user.email,
-          direction: 'student_to_parent',
-          status: 'pending',
-        })
-        .select()
-        .single()
-
-      if (insertError) throw insertError
-
-      const invitation: ParentStudentInvitation = {
-        id: data.id,
-        parentId: data.parent_id,
-        parentEmail: data.parent_email,
-        parentName: parentProfile.name,
-        studentId: data.student_id,
-        studentEmail: data.student_email,
-        studentName: authStore.user.name,
-        direction: data.direction,
-        status: data.status ?? 'pending',
-        createdAt: data.created_at ?? new Date().toISOString(),
-        respondedAt: data.responded_at,
-      }
-
-      invitations.value.push(invitation)
-
-      return { success: true, invitation }
-    } catch (err) {
-      return { error: handleError(err, 'Failed to send invitation. Please try again.') }
-    }
-  }
-
-  /**
-   * Accept invitation from parent
-   */
-  async function acceptInvitation(
-    invitationId: string,
-  ): Promise<{ success?: boolean; error?: string }> {
-    if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
-    }
-
-    const invitation = invitations.value.find((inv) => inv.id === invitationId)
-    if (!invitation) {
-      return { error: 'Invitation not found' }
-    }
-
-    if (hasLinkedParent.value) {
-      return { error: 'You can only have one linked parent' }
-    }
-
-    try {
-      // Accept invitation atomically using RPC function
-      // This updates invitation status and creates the link in a single transaction
-      const { data, error: rpcError } = await supabase.rpc('accept_parent_student_invitation', {
-        p_invitation_id: invitationId,
-        p_accepting_user_id: authStore.user.id,
-        p_is_parent: false,
-      })
-
-      if (rpcError) throw rpcError
-
-      // RPC returns an array, get the first (and only) result
-      const result = data?.[0]
-      if (result) {
-        // Add to linked parents using data from RPC response
-        linkedParents.value.push({
-          id: result.parent_id,
-          name: result.parent_name,
-          email: result.parent_email,
-          linkedAt: result.linked_at,
-        })
-      }
-
-      // Remove from invitations
-      const index = invitations.value.findIndex((inv) => inv.id === invitationId)
-      if (index !== -1) {
-        invitations.value.splice(index, 1)
-      }
-
-      return { success: true }
-    } catch (err: unknown) {
-      return { error: handleError(err, 'Failed to accept invitation. Please try again.') }
-    }
-  }
-
-  /**
-   * Reject invitation from parent
-   */
-  async function rejectInvitation(
-    invitationId: string,
-  ): Promise<{ success?: boolean; error?: string }> {
-    if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
-    }
-
-    try {
-      const { error: updateError } = await supabase
-        .from('parent_student_invitations')
-        .update({
-          status: 'rejected',
-          responded_at: new Date().toISOString(),
-          student_id: authStore.user.id,
-        })
-        .eq('id', invitationId)
-
-      if (updateError) throw updateError
-
-      // Remove from invitations
-      const index = invitations.value.findIndex((inv) => inv.id === invitationId)
-      if (index !== -1) {
-        invitations.value.splice(index, 1)
-      }
-
-      return { success: true }
-    } catch (err) {
-      return { error: handleError(err, 'Failed to decline invitation. Please try again.') }
-    }
-  }
-
-  /**
-   * Cancel sent invitation
-   */
-  async function cancelInvitation(
-    invitationId: string,
-  ): Promise<{ success?: boolean; error?: string }> {
-    if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
-    }
-
-    try {
-      const { error: updateError } = await supabase
-        .from('parent_student_invitations')
-        .update({
-          status: 'cancelled',
-          responded_at: new Date().toISOString(),
-        })
-        .eq('id', invitationId)
-        .eq('student_id', authStore.user.id)
-
-      if (updateError) throw updateError
-
-      // Remove from invitations
-      const index = invitations.value.findIndex((inv) => inv.id === invitationId)
-      if (index !== -1) {
-        invitations.value.splice(index, 1)
-      }
-
-      return { success: true }
-    } catch (err) {
-      return { error: handleError(err, 'Failed to cancel invitation. Please try again.') }
     }
   }
 
@@ -436,34 +199,34 @@ export const useParentLinkStore = defineStore('parentLink', () => {
   // Reset store state (call on logout)
   function $reset() {
     linkedParents.value = []
-    invitations.value = []
     activeSubscriberIds.value = new Set()
     isLoading.value = false
     error.value = null
+    inv.$reset()
   }
 
   return {
     // State
     linkedParents,
-    invitations,
+    invitations: inv.invitations,
     isLoading,
     error,
 
     // Computed
     hasLinkedParent,
-    receivedInvitations,
-    sentInvitations,
+    receivedInvitations: inv.receivedInvitations,
+    sentInvitations: inv.sentInvitations,
 
     // Actions
     fetchLinkedParents,
-    fetchInvitations,
+    fetchInvitations: inv.fetchInvitations,
     fetchAll,
     fetchActiveSubscribers,
     hasActivePaidSubscription,
-    sendInvitation,
-    acceptInvitation,
-    rejectInvitation,
-    cancelInvitation,
+    sendInvitation: inv.sendInvitation,
+    acceptInvitation: inv.acceptInvitation,
+    rejectInvitation: inv.rejectInvitation,
+    cancelInvitation: inv.cancelInvitation,
     removeLinkedParent,
     $reset,
   }

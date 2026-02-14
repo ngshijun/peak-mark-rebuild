@@ -2,12 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useCurriculumStore, type SubTopic } from '@/stores/curriculum'
+import { useCurriculumStore } from '@/stores/curriculum'
 import {
   usePracticeStore,
   type SessionLimitStatus,
   type StudentSubscriptionStatus,
 } from '@/stores/practice'
+import { usePracticeProgress } from '@/composables/usePracticeProgress'
 import { Loader2, Clock, CircleCheck, GraduationCap } from 'lucide-vue-next'
 import {
   AlertDialog,
@@ -36,6 +37,13 @@ const router = useRouter()
 const authStore = useAuthStore()
 const curriculumStore = useCurriculumStore()
 const practiceStore = usePracticeStore()
+const {
+  isSubTopicFullyPracticed,
+  getTopicProgress,
+  isTopicFullyPracticed,
+  getSubjectProgress,
+  isSubjectFullyPracticed,
+} = usePracticeProgress()
 
 // Navigation state (from store for persistence)
 const selectedSubjectId = computed({
@@ -119,54 +127,6 @@ function getImageUrl(coverImagePath: string | null): string {
   return curriculumStore.getOptimizedImageUrl(coverImagePath)
 }
 
-// Progress calculation helpers
-function isSubTopicFullyPracticed(subTopic: { id: string; questionCount: number }) {
-  return (
-    subTopic.questionCount > 0 &&
-    practiceStore.getSubTopicAnsweredCount(subTopic.id) >= subTopic.questionCount
-  )
-}
-
-function getTopicProgress(topic: (typeof availableSubjects.value)[0]['topics'][0]) {
-  const totalSubTopics = topic.subTopics.length
-  const completedSubTopics = topic.subTopics.filter(isSubTopicFullyPracticed).length
-  return { total: totalSubTopics, completed: completedSubTopics }
-}
-
-function isTopicFullyPracticed(topic: (typeof availableSubjects.value)[0]['topics'][0]) {
-  const { total, completed } = getTopicProgress(topic)
-  return total > 0 && completed >= total
-}
-
-function getSubjectProgress(subject: (typeof availableSubjects.value)[0]) {
-  const totalTopics = subject.topics.length
-  const completedTopics = subject.topics.filter(isTopicFullyPracticed).length
-  return { total: totalTopics, completed: completedTopics }
-}
-
-function isSubjectFullyPracticed(subject: (typeof availableSubjects.value)[0]) {
-  const { total, completed } = getSubjectProgress(subject)
-  return total > 0 && completed >= total
-}
-
-function selectSubject(subjectId: string) {
-  selectedSubjectId.value = subjectId
-  selectedTopicId.value = null
-}
-
-function goBackToSubjects() {
-  selectedSubjectId.value = null
-  selectedTopicId.value = null
-}
-
-function selectTopic(topicId: string) {
-  selectedTopicId.value = topicId
-}
-
-function goBackToTopics() {
-  selectedTopicId.value = null
-}
-
 function selectSubTopic(subTopicId: string) {
   if (!selectedTopic.value || isStartingSession.value) return
 
@@ -233,7 +193,9 @@ async function confirmStartSession() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink v-if="selectedSubject" as-child>
-                <button @click="goBackToSubjects">{{ studentGradeLevelName }}</button>
+                <button @click="practiceStore.resetPracticeNavigation()">
+                  {{ studentGradeLevelName }}
+                </button>
               </BreadcrumbLink>
               <BreadcrumbPage v-else>{{ studentGradeLevelName }}</BreadcrumbPage>
             </BreadcrumbItem>
@@ -241,7 +203,9 @@ async function confirmStartSession() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink v-if="selectedTopic" as-child>
-                  <button @click="goBackToTopics">{{ selectedSubject.name }}</button>
+                  <button @click="practiceStore.setPracticeTopic(null)">
+                    {{ selectedSubject.name }}
+                  </button>
                 </BreadcrumbLink>
                 <BreadcrumbPage v-else>{{ selectedSubject.name }}</BreadcrumbPage>
               </BreadcrumbItem>
@@ -329,7 +293,7 @@ async function confirmStartSession() {
               'border-2 border-green-500 bg-green-50 dark:bg-green-950/30':
                 isSubjectFullyPracticed(subject),
             }"
-            @click="selectSubject(subject.id)"
+            @click="practiceStore.setPracticeSubject(subject.id)"
           >
             <div v-if="subject.coverImagePath" class="aspect-video w-full overflow-hidden">
               <img
@@ -386,7 +350,7 @@ async function confirmStartSession() {
               'border-2 border-green-500 bg-green-50 dark:bg-green-950/30':
                 isTopicFullyPracticed(topic),
             }"
-            @click="selectTopic(topic.id)"
+            @click="practiceStore.setPracticeTopic(topic.id)"
           >
             <div v-if="topic.coverImagePath" class="aspect-video w-full overflow-hidden">
               <img

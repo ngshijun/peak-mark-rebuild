@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { useSubscriptionStore } from './subscription'
 import { handleError } from '@/lib/errors'
-import { mapInvitationRows, type ParentStudentInvitation } from '@/lib/invitations'
+import { useInvitations } from '@/composables/useInvitations'
 
 export type { ParentStudentInvitation } from '@/lib/invitations'
 
@@ -21,9 +21,25 @@ export const useChildLinkStore = defineStore('childLink', () => {
   const authStore = useAuthStore()
 
   const linkedChildren = ref<LinkedChild[]>([])
-  const invitations = ref<ParentStudentInvitation[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+
+  const inv = useInvitations('parent', {
+    canSend: (email) =>
+      linkedChildren.value.some((c) => c.email.toLowerCase() === email.toLowerCase())
+        ? 'This child is already linked to your account'
+        : null,
+    onAccepted: (result) => {
+      linkedChildren.value.push({
+        id: result.student_id as string,
+        name: result.student_name as string,
+        email: result.student_email as string,
+        avatarPath: (result.student_avatar_path as string | null) ?? null,
+        gradeLevelName: (result.student_grade_level_name as string | null) ?? null,
+        linkedAt: result.linked_at as string,
+      })
+    },
+  })
 
   /**
    * Fetch linked children for current parent
@@ -38,8 +54,6 @@ export const useChildLinkStore = defineStore('childLink', () => {
     error.value = null
 
     try {
-      // Single query with joins - fetches links, profiles, and student profiles together
-      // student_profiles is nested within profiles since student_profiles.id references profiles.id
       const { data: linksData, error: linksError } = await supabase
         .from('parent_student_links')
         .select(
@@ -104,274 +118,24 @@ export const useChildLinkStore = defineStore('childLink', () => {
   }
 
   /**
-   * Fetch invitations for current parent
+   * Fetch all data
    */
-  async function fetchInvitations(): Promise<{ error: string | null }> {
-    if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
-    }
-
+  async function fetchAll(): Promise<{ error: string | null }> {
     isLoading.value = true
     error.value = null
 
     try {
-      // Fetch invitations where parent email or ID matches
-      const { data, error: fetchError } = await supabase
-        .from('parent_student_invitations')
-        .select('*')
-        .or(`parent_id.eq.${authStore.user.id},parent_email.eq.${authStore.user.email}`)
-        .in('status', ['pending'])
-        .order('created_at', { ascending: false })
+      const [childrenResult, invitationsResult] = await Promise.all([
+        fetchLinkedChildren(),
+        inv.fetchInvitations(),
+      ])
 
-      if (fetchError) throw fetchError
-
-      invitations.value = await mapInvitationRows(data ?? [])
+      if (childrenResult.error) return childrenResult
+      if (invitationsResult.error) return invitationsResult
 
       return { error: null }
-    } catch (err) {
-      const message = handleError(err, 'Failed to load invitations.')
-      error.value = message
-      return { error: message }
     } finally {
       isLoading.value = false
-    }
-  }
-
-  /**
-   * Fetch all data
-   */
-  async function fetchAll(): Promise<{ error: string | null }> {
-    const [childrenResult, invitationsResult] = await Promise.all([
-      fetchLinkedChildren(),
-      fetchInvitations(),
-    ])
-
-    if (childrenResult.error) return childrenResult
-    if (invitationsResult.error) return invitationsResult
-
-    return { error: null }
-  }
-
-  // Get invitations sent to current parent (from students)
-  const receivedInvitations = computed(() => {
-    if (!authStore.user || !authStore.isParent) return []
-    return invitations.value.filter(
-      (inv) =>
-        (inv.parentId === authStore.user!.id ||
-          inv.parentEmail.toLowerCase() === authStore.user!.email.toLowerCase()) &&
-        inv.direction === 'student_to_parent' &&
-        inv.status === 'pending',
-    )
-  })
-
-  // Get invitations sent by current parent (to students)
-  const sentInvitations = computed(() => {
-    if (!authStore.user || !authStore.isParent) return []
-    return invitations.value.filter(
-      (inv) =>
-        inv.parentId === authStore.user!.id &&
-        inv.direction === 'parent_to_student' &&
-        inv.status === 'pending',
-    )
-  })
-
-  /**
-   * Send invitation to child (student)
-   */
-  async function sendInvitation(
-    childEmail: string,
-  ): Promise<{ success?: boolean; invitation?: ParentStudentInvitation; error?: string }> {
-    if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
-    }
-
-    // Check if already linked
-    const alreadyLinked = linkedChildren.value.some(
-      (c) => c.email.toLowerCase() === childEmail.toLowerCase(),
-    )
-    if (alreadyLinked) {
-      return { error: 'This child is already linked to your account' }
-    }
-
-    // Check if invitation already exists
-    const existingInvitation = invitations.value.find(
-      (inv) =>
-        inv.studentEmail.toLowerCase() === childEmail.toLowerCase() && inv.status === 'pending',
-    )
-    if (existingInvitation) {
-      return { error: 'An invitation is already pending for this email' }
-    }
-
-    try {
-      // Look up the student by email - they must exist in the system
-      const { data: studentProfile, error: lookupError } = await supabase
-        .from('profiles')
-        .select('id, name, user_type')
-        .eq('email', childEmail.toLowerCase())
-        .single()
-
-      if (lookupError || !studentProfile) {
-        return { error: 'No student account found with this email address' }
-      }
-
-      if (studentProfile.user_type !== 'student') {
-        return { error: 'This email is not associated with a student account' }
-      }
-
-      const { data, error: insertError } = await supabase
-        .from('parent_student_invitations')
-        .insert({
-          parent_id: authStore.user.id,
-          parent_email: authStore.user.email,
-          student_id: studentProfile.id,
-          student_email: childEmail,
-          direction: 'parent_to_student',
-          status: 'pending',
-        })
-        .select()
-        .single()
-
-      if (insertError) throw insertError
-
-      const invitation: ParentStudentInvitation = {
-        id: data.id,
-        parentId: data.parent_id,
-        parentEmail: data.parent_email,
-        parentName: authStore.user.name,
-        studentId: data.student_id,
-        studentEmail: data.student_email,
-        studentName: studentProfile.name,
-        direction: data.direction,
-        status: data.status ?? 'pending',
-        createdAt: data.created_at ?? new Date().toISOString(),
-        respondedAt: data.responded_at,
-      }
-
-      invitations.value.push(invitation)
-
-      return { success: true, invitation }
-    } catch (err) {
-      return { error: handleError(err, 'Failed to send invitation. Please try again.') }
-    }
-  }
-
-  /**
-   * Accept invitation from child (student)
-   */
-  async function acceptInvitation(
-    invitationId: string,
-  ): Promise<{ success?: boolean; error?: string }> {
-    if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
-    }
-
-    const invitation = invitations.value.find((inv) => inv.id === invitationId)
-    if (!invitation) {
-      return { error: 'Invitation not found' }
-    }
-
-    try {
-      // Accept invitation atomically using RPC function
-      // This updates invitation status and creates the link in a single transaction
-      const { data, error: rpcError } = await supabase.rpc('accept_parent_student_invitation', {
-        p_invitation_id: invitationId,
-        p_accepting_user_id: authStore.user.id,
-        p_is_parent: true,
-      })
-
-      if (rpcError) throw rpcError
-
-      // RPC returns an array, get the first (and only) result
-      const result = data?.[0]
-      if (result) {
-        // Add to linked children using data from RPC response
-        linkedChildren.value.push({
-          id: result.student_id,
-          name: result.student_name,
-          email: result.student_email,
-          avatarPath: result.student_avatar_path,
-          gradeLevelName: result.student_grade_level_name,
-          linkedAt: result.linked_at,
-        })
-      }
-
-      // Remove from invitations
-      const index = invitations.value.findIndex((inv) => inv.id === invitationId)
-      if (index !== -1) {
-        invitations.value.splice(index, 1)
-      }
-
-      return { success: true }
-    } catch (err: unknown) {
-      return { error: handleError(err, 'Failed to accept invitation. Please try again.') }
-    }
-  }
-
-  /**
-   * Reject invitation from child (student)
-   */
-  async function rejectInvitation(
-    invitationId: string,
-  ): Promise<{ success?: boolean; error?: string }> {
-    if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
-    }
-
-    try {
-      const { error: updateError } = await supabase
-        .from('parent_student_invitations')
-        .update({
-          status: 'rejected',
-          responded_at: new Date().toISOString(),
-          parent_id: authStore.user.id,
-        })
-        .eq('id', invitationId)
-
-      if (updateError) throw updateError
-
-      // Remove from invitations
-      const index = invitations.value.findIndex((inv) => inv.id === invitationId)
-      if (index !== -1) {
-        invitations.value.splice(index, 1)
-      }
-
-      return { success: true }
-    } catch (err) {
-      return { error: handleError(err, 'Failed to decline invitation. Please try again.') }
-    }
-  }
-
-  /**
-   * Cancel sent invitation
-   */
-  async function cancelInvitation(
-    invitationId: string,
-  ): Promise<{ success?: boolean; error?: string }> {
-    if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
-    }
-
-    try {
-      const { error: updateError } = await supabase
-        .from('parent_student_invitations')
-        .update({
-          status: 'cancelled',
-          responded_at: new Date().toISOString(),
-        })
-        .eq('id', invitationId)
-        .eq('parent_id', authStore.user.id)
-
-      if (updateError) throw updateError
-
-      // Remove from invitations
-      const index = invitations.value.findIndex((inv) => inv.id === invitationId)
-      if (index !== -1) {
-        invitations.value.splice(index, 1)
-      }
-
-      return { success: true }
-    } catch (err) {
-      return { error: handleError(err, 'Failed to cancel invitation. Please try again.') }
     }
   }
 
@@ -386,7 +150,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
     }
 
     // Pre-check: block unlink if child has an active paid subscription
-    // Instantiate lazily inside function body to avoid circular init (subscription ↔ child-link)
+    // Instantiate lazily inside function body to avoid circular init (subscription <-> child-link)
     const subscription = useSubscriptionStore().getChildSubscription(childId)
     if (subscription.isActive && subscription.tier !== 'core') {
       return {
@@ -428,30 +192,30 @@ export const useChildLinkStore = defineStore('childLink', () => {
   // Reset store state (call on logout)
   function $reset() {
     linkedChildren.value = []
-    invitations.value = []
     isLoading.value = false
     error.value = null
+    inv.$reset()
   }
 
   return {
     // State
     linkedChildren,
-    invitations,
+    invitations: inv.invitations,
     isLoading,
     error,
 
     // Computed
-    receivedInvitations,
-    sentInvitations,
+    receivedInvitations: inv.receivedInvitations,
+    sentInvitations: inv.sentInvitations,
 
     // Actions
     fetchLinkedChildren,
-    fetchInvitations,
+    fetchInvitations: inv.fetchInvitations,
     fetchAll,
-    sendInvitation,
-    acceptInvitation,
-    rejectInvitation,
-    cancelInvitation,
+    sendInvitation: inv.sendInvitation,
+    acceptInvitation: inv.acceptInvitation,
+    rejectInvitation: inv.rejectInvitation,
+    cancelInvitation: inv.cancelInvitation,
     removeLinkedChild,
     getAvatarUrl,
     $reset,
