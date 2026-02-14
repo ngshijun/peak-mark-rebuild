@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { useStudentDashboardStore, type MoodType } from '@/stores/student-dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -24,10 +25,14 @@ const showDontShowAgain = ref(false)
 // LocalStorage key for "don't show again today"
 const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
 
-// Initialize from localStorage — checked if dismissed today
-const isDismissedToday = ref(
-  localStorage.getItem(MOOD_REMINDER_DISMISSED_KEY) === dashboardStore.getTodayString(),
-)
+// Persistent dismissed date — computed wraps as a boolean toggle
+const dismissedDate = useLocalStorage(MOOD_REMINDER_DISMISSED_KEY, '')
+const isDismissedToday = computed({
+  get: () => dismissedDate.value === dashboardStore.getTodayString(),
+  set: (val) => {
+    dismissedDate.value = val ? dashboardStore.getTodayString() : ''
+  },
+})
 
 const moods: { type: MoodType; emoji: string; label: string }[] = [
   { type: 'sad', emoji: '😢', label: 'Sad' },
@@ -44,15 +49,6 @@ function getMoodLabel(mood: MoodType | null | undefined): string {
   if (!mood) return 'Not set'
   return moods.find((m) => m.type === mood)?.label ?? 'Unknown'
 }
-
-// Sync checkbox to localStorage
-watch(isDismissedToday, (checked) => {
-  if (checked) {
-    localStorage.setItem(MOOD_REMINDER_DISMISSED_KEY, dashboardStore.getTodayString())
-  } else {
-    localStorage.removeItem(MOOD_REMINDER_DISMISSED_KEY)
-  }
-})
 
 async function selectMood(mood: MoodType) {
   isSaving.value = true

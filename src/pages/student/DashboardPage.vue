@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStudentDashboardStore } from '@/stores/student-dashboard'
-import { usePracticeStore } from '@/stores/practice'
+import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { usePetsStore } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
 import { Loader2 } from 'lucide-vue-next'
@@ -17,7 +17,7 @@ import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget.vue'
 
 const route = useRoute()
 const dashboardStore = useStudentDashboardStore()
-const practiceStore = usePracticeStore()
+const practiceStore = usePracticeHistoryStore()
 const petsStore = usePetsStore()
 const authStore = useAuthStore()
 

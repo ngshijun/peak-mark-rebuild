@@ -1,24 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useForm, Field as VeeField } from 'vee-validate'
 import { useChildLinkStore } from '@/stores/child-link'
 import { useSubscriptionStore } from '@/stores/subscription'
-import { inviteEmailFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Field, FieldLabel, FieldError } from '@/components/ui/field'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +17,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Users, Mail, Send, Check, X, Trash2, Clock, UserPlus, Loader2 } from 'lucide-vue-next'
+import InviteDialog from '@/components/shared/InviteDialog.vue'
+import InvitationCards from '@/components/shared/InvitationCards.vue'
+import { Users, Trash2, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
 const childLinkStore = useChildLinkStore()
@@ -45,13 +34,7 @@ const inviteDialogOpen = ref(false)
 const inviteSuccess = ref(false)
 const isSending = ref(false)
 const actionInProgress = ref<string | null>(null)
-
-const { handleSubmit, resetForm, setFieldError } = useForm({
-  validationSchema: inviteEmailFormSchema,
-  initialValues: {
-    email: '',
-  },
-})
+const inviteDialogRef = ref<InstanceType<typeof InviteDialog> | null>(null)
 
 onMounted(async () => {
   await childLinkStore.fetchAll()
@@ -65,35 +48,26 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-const onSubmit = handleSubmit(async (values) => {
+async function handleInviteSubmit(email: string) {
   inviteSuccess.value = false
   isSending.value = true
 
   try {
-    const result = await childLinkStore.sendInvitation(values.email.trim())
+    const result = await childLinkStore.sendInvitation(email)
     if (result.error) {
-      setFieldError('email', result.error)
+      inviteDialogRef.value?.setFieldError('email', result.error)
     } else {
       inviteSuccess.value = true
       toast.success('Invitation sent successfully!')
       setTimeout(() => {
         inviteSuccess.value = false
         inviteDialogOpen.value = false
-        resetForm()
       }, 1500)
     }
   } finally {
     isSending.value = false
   }
-})
+}
 
 async function handleAcceptInvitation(invitationId: string) {
   actionInProgress.value = invitationId
@@ -133,11 +107,6 @@ async function handleRemoveChild(childId: string) {
   await childLinkStore.removeLinkedChild(childId)
   actionInProgress.value = null
 }
-
-function resetInviteForm() {
-  resetForm()
-  inviteSuccess.value = false
-}
 </script>
 
 <template>
@@ -148,48 +117,20 @@ function resetInviteForm() {
         <h1 class="text-2xl font-bold">Children</h1>
         <p class="text-muted-foreground">Manage your linked children and invitations</p>
       </div>
-      <Dialog v-model:open="inviteDialogOpen" @update:open="resetInviteForm">
-        <DialogTrigger as-child>
-          <Button :disabled="childLinkStore.isLoading">
-            <UserPlus class="mr-2 size-4" />
-            Invite Child
-          </Button>
-        </DialogTrigger>
-        <DialogContent class="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Invite Child</DialogTitle>
-            <DialogDescription>
-              Send an invitation to link a child's account. You will be able to view their progress.
-            </DialogDescription>
-          </DialogHeader>
-          <form class="space-y-4" @submit="onSubmit">
-            <VeeField v-slot="{ field, errors }" name="email">
-              <Field :data-invalid="!!errors.length">
-                <FieldLabel for="childEmail">Child's Email</FieldLabel>
-                <Input
-                  id="childEmail"
-                  type="email"
-                  placeholder="Enter child's email address"
-                  :disabled="isSending"
-                  :aria-invalid="!!errors.length"
-                  v-bind="field"
-                />
-                <FieldError :errors="errors" />
-                <p v-if="inviteSuccess" class="text-sm text-green-600">
-                  Invitation sent successfully!
-                </p>
-              </Field>
-            </VeeField>
-            <DialogFooter>
-              <Button type="submit" :disabled="isSending || inviteSuccess">
-                <Loader2 v-if="isSending" class="mr-2 size-4 animate-spin" />
-                <Send v-else class="mr-2 size-4" />
-                {{ isSending ? 'Sending...' : 'Send Invitation' }}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <InviteDialog
+        ref="inviteDialogRef"
+        v-model:open="inviteDialogOpen"
+        entity-label="Child"
+        :is-sending="isSending"
+        :invite-success="inviteSuccess"
+        :trigger-disabled="childLinkStore.isLoading"
+        @submit="handleInviteSubmit"
+        @reset="inviteSuccess = false"
+      >
+        <template #description>
+          Send an invitation to link a child's account. You will be able to view their progress.
+        </template>
+      </InviteDialog>
     </div>
 
     <!-- Loading State -->
@@ -278,142 +219,21 @@ function resetInviteForm() {
         </CardContent>
       </Card>
 
-      <!-- Received Invitations (from children) Card -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2">
-            <Mail class="size-5" />
-            Invitations from Children
-            <Badge v-if="childLinkStore.receivedInvitations.length > 0" variant="secondary">
-              {{ childLinkStore.receivedInvitations.length }}
-            </Badge>
-          </CardTitle>
-          <CardDescription>Children who want to link with you</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div v-if="childLinkStore.receivedInvitations.length === 0" class="py-8 text-center">
-            <Mail class="mx-auto size-12 text-muted-foreground/50" />
-            <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
-          </div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="invitation in childLinkStore.receivedInvitations"
-              :key="invitation.id"
-              class="rounded-lg border p-4"
-            >
-              <div class="flex items-start justify-between">
-                <div>
-                  <p class="font-medium">{{ invitation.studentName || invitation.studentEmail }}</p>
-                  <p class="text-sm text-muted-foreground">{{ invitation.studentEmail }}</p>
-                  <p class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock class="size-3" />
-                    {{ formatDate(invitation.createdAt) }}
-                  </p>
-                </div>
-                <Badge variant="outline">Pending</Badge>
-              </div>
-              <div class="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  :disabled="actionInProgress === invitation.id"
-                  @click="handleAcceptInvitation(invitation.id)"
-                >
-                  <Loader2
-                    v-if="actionInProgress === invitation.id"
-                    class="mr-1 size-4 animate-spin"
-                  />
-                  <Check v-else class="mr-1 size-4" />
-                  Accept
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  :disabled="actionInProgress === invitation.id"
-                  @click="handleRejectInvitation(invitation.id)"
-                >
-                  <X class="mr-1 size-4" />
-                  Decline
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Sent Invitations (to children) Card -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2">
-            <Send class="size-5" />
-            Sent Invitations
-            <Badge v-if="childLinkStore.sentInvitations.length > 0" variant="secondary">
-              {{ childLinkStore.sentInvitations.length }}
-            </Badge>
-          </CardTitle>
-          <CardDescription>Invitations you've sent to children</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div v-if="childLinkStore.sentInvitations.length === 0" class="py-8 text-center">
-            <Send class="mx-auto size-12 text-muted-foreground/50" />
-            <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
-          </div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="invitation in childLinkStore.sentInvitations"
-              :key="invitation.id"
-              class="rounded-lg border p-4"
-            >
-              <div class="flex items-start justify-between">
-                <div>
-                  <p class="font-medium">{{ invitation.studentEmail }}</p>
-                  <p class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock class="size-3" />
-                    Sent on {{ formatDate(invitation.createdAt) }}
-                  </p>
-                </div>
-                <Badge variant="outline">Pending</Badge>
-              </div>
-              <div class="mt-3">
-                <AlertDialog>
-                  <AlertDialogTrigger as-child>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      class="text-destructive hover:text-destructive"
-                      :disabled="actionInProgress === invitation.id"
-                    >
-                      <Loader2
-                        v-if="actionInProgress === invitation.id"
-                        class="mr-1 size-4 animate-spin"
-                      />
-                      <X v-else class="mr-1 size-4" />
-                      Cancel
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to cancel this invitation to
-                        {{ invitation.studentEmail }}?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Keep</AlertDialogCancel>
-                      <AlertDialogAction
-                        class="bg-destructive text-white hover:bg-destructive/90"
-                        @click="handleCancelInvitation(invitation.id)"
-                      >
-                        Cancel Invitation
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <InvitationCards
+        :received-invitations="childLinkStore.receivedInvitations"
+        :sent-invitations="childLinkStore.sentInvitations"
+        :processing-id="actionInProgress"
+        received-title="Invitations from Children"
+        received-description="Children who want to link with you"
+        sent-title="Sent Invitations"
+        sent-description="Invitations you've sent to children"
+        :get-display-name="(inv) => inv.studentName || inv.studentEmail"
+        :get-display-email="(inv) => inv.studentEmail"
+        :get-sent-email="(inv) => inv.studentEmail"
+        @accept="handleAcceptInvitation"
+        @reject="handleRejectInvitation"
+        @cancel="handleCancelInvitation"
+      />
     </template>
   </div>
 </template>

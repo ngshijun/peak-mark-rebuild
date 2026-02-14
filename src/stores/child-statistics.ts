@@ -5,6 +5,7 @@ import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
+import type { SubTopicHierarchy } from '@/types/supabase-helpers'
 import {
   type DateRangeFilter,
   filterSessions,
@@ -105,6 +106,75 @@ export interface ChildDailyStatus {
 export interface DailySessionCount {
   date: string // YYYY-MM-DD
   count: number
+}
+
+/** Extract options from question row columns into a typed array */
+function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
+  const options: QuestionOption[] = []
+  if (q.option_1_text !== null || q.option_1_image_path !== null) {
+    options.push({
+      id: 'a',
+      text: q.option_1_text,
+      imagePath: q.option_1_image_path,
+      isCorrect: q.option_1_is_correct ?? false,
+    })
+  }
+  if (q.option_2_text !== null || q.option_2_image_path !== null) {
+    options.push({
+      id: 'b',
+      text: q.option_2_text,
+      imagePath: q.option_2_image_path,
+      isCorrect: q.option_2_is_correct ?? false,
+    })
+  }
+  if (q.option_3_text !== null || q.option_3_image_path !== null) {
+    options.push({
+      id: 'c',
+      text: q.option_3_text,
+      imagePath: q.option_3_image_path,
+      isCorrect: q.option_3_is_correct ?? false,
+    })
+  }
+  if (q.option_4_text !== null || q.option_4_image_path !== null) {
+    options.push({
+      id: 'd',
+      text: q.option_4_text,
+      imagePath: q.option_4_image_path,
+      isCorrect: q.option_4_is_correct ?? false,
+    })
+  }
+  return options
+}
+
+/** Build Question[] from answer rows and a questions map, with placeholders for deleted questions */
+function buildQuestionsFromAnswers(
+  answersData: Database['public']['Tables']['practice_answers']['Row'][],
+  questionsMap: Map<string, QuestionRow>,
+): Question[] {
+  return answersData.map((answer, index) => {
+    if (answer.question_id && questionsMap.has(answer.question_id)) {
+      const q = questionsMap.get(answer.question_id)!
+      return {
+        id: q.id,
+        type: q.type as 'mcq' | 'short_answer',
+        question: q.question,
+        explanation: q.explanation,
+        answer: q.answer,
+        imagePath: q.image_path,
+        options: q.type === 'mcq' ? extractOptionsFromQuestion(q) : undefined,
+      }
+    }
+    // Deleted question placeholder
+    return {
+      id: answer.question_id ?? `deleted-${index}`,
+      type: 'mcq' as const,
+      question: '[Question has been deleted]',
+      explanation: null,
+      answer: null,
+      imagePath: null,
+      isDeleted: true,
+    }
+  })
 }
 
 export const useChildStatisticsStore = defineStore('childStatistics', () => {
@@ -235,19 +305,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         const totalQuestions = session.total_questions ?? answersData.length
         const isCompleted = !!session.completed_at
 
-        const subTopic = session.sub_topics as unknown as {
-          id: string
-          name: string
-          topics: {
-            id: string
-            name: string
-            subjects: {
-              id: string
-              name: string
-              grade_levels: { id: string; name: string }
-            }
-          }
-        }
+        const subTopic = session.sub_topics as unknown as SubTopicHierarchy
 
         const durationSeconds = isCompleted
           ? answersData.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
@@ -475,69 +533,8 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         questionsMap.set(q.id, q)
       }
 
-      // Helper function to extract options from question columns
-      function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
-        const options: QuestionOption[] = []
-        if (q.option_1_text !== null || q.option_1_image_path !== null) {
-          options.push({
-            id: 'a',
-            text: q.option_1_text,
-            imagePath: q.option_1_image_path,
-            isCorrect: q.option_1_is_correct ?? false,
-          })
-        }
-        if (q.option_2_text !== null || q.option_2_image_path !== null) {
-          options.push({
-            id: 'b',
-            text: q.option_2_text,
-            imagePath: q.option_2_image_path,
-            isCorrect: q.option_2_is_correct ?? false,
-          })
-        }
-        if (q.option_3_text !== null || q.option_3_image_path !== null) {
-          options.push({
-            id: 'c',
-            text: q.option_3_text,
-            imagePath: q.option_3_image_path,
-            isCorrect: q.option_3_is_correct ?? false,
-          })
-        }
-        if (q.option_4_text !== null || q.option_4_image_path !== null) {
-          options.push({
-            id: 'd',
-            text: q.option_4_text,
-            imagePath: q.option_4_image_path,
-            isCorrect: q.option_4_is_correct ?? false,
-          })
-        }
-        return options
-      }
-
       // Build questions array in order of answers
-      const questions: Question[] = (answersData ?? []).map((answer, index) => {
-        if (answer.question_id && questionsMap.has(answer.question_id)) {
-          const q = questionsMap.get(answer.question_id)!
-          return {
-            id: q.id,
-            type: q.type as 'mcq' | 'short_answer',
-            question: q.question,
-            explanation: q.explanation,
-            answer: q.answer,
-            imagePath: q.image_path,
-            options: q.type === 'mcq' ? extractOptionsFromQuestion(q) : undefined,
-          }
-        }
-        // Deleted question placeholder
-        return {
-          id: answer.question_id ?? `deleted-${index}`,
-          type: 'mcq' as const,
-          question: '[Question has been deleted]',
-          explanation: null,
-          answer: null,
-          imagePath: null,
-          isDeleted: true,
-        }
-      })
+      const questions = buildQuestionsFromAnswers(answersData ?? [], questionsMap)
 
       // Build answers array
       const answers: PracticeAnswer[] = (answersData ?? []).map((a) => ({
@@ -550,19 +547,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       }))
 
       // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
-      const subTopic = sessionData.sub_topics as unknown as {
-        id: string
-        name: string
-        topics: {
-          id: string
-          name: string
-          subjects: {
-            id: string
-            name: string
-            grade_levels: { id: string; name: string }
-          }
-        }
-      }
+      const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
 
       // Use DB row fields for summary (works even when answers aren't loaded)
       const correctAnswers = canViewDetails

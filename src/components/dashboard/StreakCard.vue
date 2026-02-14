@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useStudentDashboardStore } from '@/stores/student-dashboard'
-import { usePracticeStore } from '@/stores/practice'
+import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRouter } from 'vue-router'
 import { Flame } from 'lucide-vue-next'
@@ -9,7 +9,7 @@ import fireGif from '@/assets/icons/fire.gif'
 import { toMYTDateString, getMYTDayOfWeek, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 
 const dashboardStore = useStudentDashboardStore()
-const practiceStore = usePracticeStore()
+const practiceStore = usePracticeHistoryStore()
 const router = useRouter()
 
 function goToPractice() {

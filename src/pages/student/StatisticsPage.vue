@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { usePracticeStore, type DateRangeFilter } from '@/stores/practice'
+import { usePracticeHistoryStore, type DateRangeFilter } from '@/stores/practice-history'
 import { useAuthStore } from '@/stores/auth'
 import { ALL_VALUE, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
 import StatisticsFilterBar from '@/components/statistics/StatisticsFilterBar.vue'
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 const router = useRouter()
-const practiceStore = usePracticeStore()
+const practiceStore = usePracticeHistoryStore()
 const authStore = useAuthStore()
 
 const hideInProgress = ref(false)

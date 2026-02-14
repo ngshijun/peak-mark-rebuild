@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  usePracticeStore,
-  type PracticeSession,
-  type StudentSubscriptionStatus,
-} from '@/stores/practice'
+import { usePracticeStore } from '@/stores/practice'
+import { usePracticeHistoryStore } from '@/stores/practice-history'
+import type { PracticeSession } from '@/lib/practiceHelpers'
+import type { StudentSubscriptionStatus } from '@/composables/useStudentSubscription'
 import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import SessionResultContent from '@/components/session/SessionResultContent.vue'
@@ -26,6 +25,7 @@ import {
 const route = useRoute()
 const router = useRouter()
 const practiceStore = usePracticeStore()
+const historyStore = usePracticeHistoryStore()
 const dashboardStore = useStudentDashboardStore()
 
 const sessionId = computed(() => route.params.sessionId as string)
@@ -56,7 +56,7 @@ const summary = computed(() => {
 onMounted(async () => {
   const [subStatus, result] = await Promise.all([
     practiceStore.getStudentSubscriptionStatus(),
-    practiceStore.getSessionById(sessionId.value),
+    historyStore.getSessionById(sessionId.value),
   ])
 
   subscriptionStatus.value = subStatus

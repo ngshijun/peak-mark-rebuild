@@ -24,16 +24,20 @@ const modelValue = useVModel(props, 'modelValue', emits, {
 })
 
 const showPassword = ref(false)
+const inputRef = ref<HTMLInputElement | null>(null)
 
 function toggleVisibility() {
   showPassword.value = !showPassword.value
 }
+
+defineExpose({ inputRef })
 </script>
 
 <template>
   <div class="relative">
     <input
       :id="id"
+      ref="inputRef"
       v-model="modelValue"
       :type="showPassword ? 'text' : 'password'"
       :placeholder="placeholder"

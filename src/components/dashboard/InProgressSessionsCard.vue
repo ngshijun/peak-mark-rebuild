@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { usePracticeStore } from '@/stores/practice'
+import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { ArrowUpDown, Play, ListTodo } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
-const practiceStore = usePracticeStore()
+const practiceStore = usePracticeHistoryStore()
 const router = useRouter()
 
 interface InProgressRow {

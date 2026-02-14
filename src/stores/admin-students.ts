@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
+import type { SubTopicHierarchy } from '@/types/supabase-helpers'
 import {
   type DateRangeFilter,
   filterSessions,
@@ -594,19 +595,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
         const totalQuestions = session.total_questions ?? answersData.length
         const isCompleted = !!session.completed_at
 
-        const subTopic = session.sub_topics as unknown as {
-          id: string
-          name: string
-          topics: {
-            id: string
-            name: string
-            subjects: {
-              id: string
-              name: string
-              grade_levels: { id: string; name: string }
-            }
-          }
-        }
+        const subTopic = session.sub_topics as unknown as SubTopicHierarchy
 
         const durationSeconds = isCompleted
           ? answersData.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
@@ -815,19 +804,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
       }))
 
       // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
-      const subTopic = sessionData.sub_topics as unknown as {
-        id: string
-        name: string
-        topics: {
-          id: string
-          name: string
-          subjects: {
-            id: string
-            name: string
-            grade_levels: { id: string; name: string }
-          }
-        }
-      }
+      const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
 
       const correctAnswers = answers.filter((a) => a.isCorrect).length
       const totalQuestions = sessionData.total_questions ?? answers.length

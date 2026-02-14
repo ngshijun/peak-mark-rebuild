@@ -15,6 +15,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
+const passwordRef = ref<InstanceType<typeof PasswordInput> | null>(null)
 
 const { handleSubmit } = useForm({
   validationSchema: loginFormSchema,
@@ -33,8 +34,7 @@ const onSubmit = handleSubmit(async (values) => {
     if (result.error) {
       toast.error(result.error)
       await nextTick()
-      const passwordInput = document.getElementById('password') as HTMLInputElement | null
-      passwordInput?.select()
+      passwordRef.value?.inputRef?.select()
       return
     }
 
@@ -92,6 +92,7 @@ const onSubmit = handleSubmit(async (values) => {
               <FieldLabel for="password">Password</FieldLabel>
               <PasswordInput
                 id="password"
+                ref="passwordRef"
                 placeholder="Enter your password"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"

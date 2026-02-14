@@ -11,6 +11,9 @@ type WeeklyLeaderboardRow = Database['public']['Views']['weekly_leaderboard']['R
 // XP required per level (same as auth store)
 const XP_PER_LEVEL = 500
 
+// Maximum number of entries to fetch for leaderboards
+const LEADERBOARD_LIMIT = 100
+
 export interface LeaderboardStudent {
   id: string
   name: string
@@ -96,7 +99,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
         .from('leaderboard')
         .select('*')
         .order('rank', { ascending: true })
-        .limit(100) // Get top 100 for filtering
+        .limit(LEADERBOARD_LIMIT)
 
       // Filter by grade level if specified
       if (gradeLevelId) {
@@ -144,7 +147,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
         .from('weekly_leaderboard')
         .select('*')
         .order('rank', { ascending: true })
-        .limit(100)
+        .limit(LEADERBOARD_LIMIT)
 
       if (fetchError) throw fetchError
 

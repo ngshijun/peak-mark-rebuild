@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { usePracticeStore } from '@/stores/practice'
+import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { useRouter } from 'vue-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy } from 'lucide-vue-next'
 
-const practiceStore = usePracticeStore()
+const practiceStore = usePracticeHistoryStore()
 const router = useRouter()
 
 interface SubjectStats {
