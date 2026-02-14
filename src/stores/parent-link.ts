@@ -399,10 +399,45 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     }
   }
 
+  // Parent IDs that have active paid subscriptions for this student
+  const activeSubscriberIds = ref<Set<string>>(new Set())
+
+  async function fetchActiveSubscribers(): Promise<{ error: string | null }> {
+    if (!authStore.user || !authStore.isStudent) {
+      return { error: 'Not authenticated as student' }
+    }
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('child_subscriptions')
+        .select('parent_id')
+        .eq('student_id', authStore.user.id)
+        .eq('is_active', true)
+        .neq('tier', 'core')
+
+      if (fetchError) throw fetchError
+
+      const ids = new Set<string>()
+      for (const row of data ?? []) {
+        ids.add(row.parent_id)
+      }
+      activeSubscriberIds.value = ids
+      return { error: null }
+    } catch (err) {
+      const message = handleError(err, 'Failed to check subscription status.')
+      return { error: message }
+    }
+  }
+
+  function hasActivePaidSubscription(parentId: string): boolean {
+    return activeSubscriberIds.value.has(parentId)
+  }
+
   // Reset store state (call on logout)
   function $reset() {
     linkedParents.value = []
     invitations.value = []
+    activeSubscriberIds.value = new Set()
     isLoading.value = false
     error.value = null
   }
@@ -423,6 +458,8 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     fetchLinkedParents,
     fetchInvitations,
     fetchAll,
+    fetchActiveSubscribers,
+    hasActivePaidSubscription,
     sendInvitation,
     acceptInvitation,
     rejectInvitation,

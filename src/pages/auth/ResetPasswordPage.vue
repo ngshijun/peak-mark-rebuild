@@ -2,8 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, Field as VeeField } from 'vee-validate'
-import { useAuth } from '@/composables/useAuth'
-import { supabase } from '@/lib/supabaseClient'
+import { useAuth, getSession, signOut } from '@/composables/useAuth'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { KeyRound, Loader2, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
@@ -54,9 +53,9 @@ onMounted(async () => {
 
     // If no hash with recovery type, redirect to forgot-password
     if (!hash || !hash.includes('type=recovery')) {
-      const { data } = await supabase.auth.getSession()
+      const session = await getSession()
       // Only allow if there's an existing session (user already authenticated via reset link)
-      if (!data.session) {
+      if (!session) {
         router.replace('/forgot-password')
         return
       }
@@ -66,12 +65,12 @@ onMounted(async () => {
     }
 
     // Has recovery hash - let Supabase process it
-    const { data, error } = await supabase.auth.getSession()
+    const session = await getSession()
 
-    if (error) {
+    if (!session) {
       tokenError.value = 'Invalid or expired reset link. Please request a new one.'
       isValidToken.value = false
-    } else if (data.session) {
+    } else if (session) {
       isValidToken.value = true
     } else {
       tokenError.value = 'Invalid or expired reset link. Please request a new one.'
@@ -100,7 +99,7 @@ const onSubmit = handleSubmit(async (values) => {
     toast.success('Password updated successfully!')
 
     // Sign out after password reset so user can log in fresh
-    await supabase.auth.signOut()
+    await signOut()
   } catch {
     toast.error('An unexpected error occurred')
   } finally {

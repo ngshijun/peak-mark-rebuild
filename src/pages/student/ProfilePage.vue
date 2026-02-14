@@ -4,7 +4,7 @@ import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { usePracticeStore, type StudentSubscriptionStatus } from '@/stores/practice'
 import { useSubscriptionStore } from '@/stores/subscription'
-import { supabase } from '@/lib/supabaseClient'
+import { useCurriculumStore } from '@/stores/curriculum'
 import { editNameFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -57,13 +57,10 @@ import {
   CalendarDate,
 } from '@internationalized/date'
 import { createYearRange } from 'reka-ui/date'
-import type { Database } from '@/types/database.types'
-
-type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
-
 const authStore = useAuthStore()
 const practiceStore = usePracticeStore()
 const subscriptionStore = useSubscriptionStore()
+const curriculumStore = useCurriculumStore()
 
 // Subscription
 const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)
@@ -82,9 +79,7 @@ function getTierIcon(tier: string) {
   }
 }
 
-// Grade levels
-const gradeLevels = ref<GradeLevel[]>([])
-const isLoadingGrades = ref(false)
+// Grade levels (from curriculum store)
 
 // Dialog states
 const showAvatarDialog = ref(false)
@@ -159,7 +154,9 @@ const formattedBirthday = computed(() => {
 
 const currentGradeName = computed(() => {
   if (!authStore.studentProfile?.gradeLevelId) return 'Not set'
-  const grade = gradeLevels.value.find((g) => g.id === authStore.studentProfile?.gradeLevelId)
+  const grade = curriculumStore.gradeLevels.find(
+    (g) => g.id === authStore.studentProfile?.gradeLevelId,
+  )
   return grade?.name ?? 'Not set'
 })
 
@@ -171,7 +168,7 @@ const userAvatarUrl = computed(() => {
 onMounted(async () => {
   isLoadingPlans.value = true
   await Promise.all([
-    fetchGradeLevels(),
+    curriculumStore.fetchCurriculum(),
     practiceStore.getStudentSubscriptionStatus().then((status) => {
       subscriptionStatus.value = status
     }),
@@ -180,24 +177,6 @@ onMounted(async () => {
     isLoadingPlans.value = false
   })
 })
-
-async function fetchGradeLevels() {
-  isLoadingGrades.value = true
-  try {
-    const { data, error } = await supabase
-      .from('grade_levels')
-      .select('*')
-      .order('display_order', { ascending: true })
-
-    if (error) throw error
-    gradeLevels.value = data ?? []
-  } catch (err) {
-    console.error('Error fetching grade levels:', err)
-    toast.error('Failed to load grade levels')
-  } finally {
-    isLoadingGrades.value = false
-  }
-}
 
 function openAvatarDialog() {
   avatarPreviewUrl.value = ''
@@ -447,14 +426,18 @@ const birthdayYearRange = computed(() => {
             </div>
             <Select
               :model-value="authStore.studentProfile?.gradeLevelId ?? undefined"
-              :disabled="isSaving || isLoadingGrades"
+              :disabled="isSaving || curriculumStore.isLoading"
               @update:model-value="handleGradeChange"
             >
               <SelectTrigger class="w-[140px]">
                 <SelectValue placeholder="Select grade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="grade in gradeLevels" :key="grade.id" :value="grade.id">
+                <SelectItem
+                  v-for="grade in curriculumStore.gradeLevels"
+                  :key="grade.id"
+                  :value="grade.id"
+                >
                   {{ grade.name }}
                 </SelectItem>
               </SelectContent>

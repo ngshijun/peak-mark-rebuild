@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useParentLinkStore } from '@/stores/parent-link'
-import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/lib/supabaseClient'
 import { inviteEmailFormSchema } from '@/lib/validations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -35,10 +33,6 @@ import { Users, Mail, Send, Check, X, Trash2, Clock, UserPlus, Loader2 } from 'l
 import { toast } from 'vue-sonner'
 
 const parentLinkStore = useParentLinkStore()
-const authStore = useAuthStore()
-
-// Track which parent IDs have active paid subscriptions
-const parentIdsWithActiveSub = ref<Set<string>>(new Set())
 
 const inviteDialogOpen = ref(false)
 const inviteSuccess = ref(false)
@@ -56,29 +50,8 @@ const { handleSubmit, resetForm, setFieldError } = useForm({
 // Fetch data on mount
 onMounted(async () => {
   await parentLinkStore.fetchAll()
-  await fetchActiveSubscriptions()
+  await parentLinkStore.fetchActiveSubscribers()
 })
-
-async function fetchActiveSubscriptions() {
-  if (!authStore.user) return
-
-  const { data } = await supabase
-    .from('child_subscriptions')
-    .select('parent_id')
-    .eq('student_id', authStore.user.id)
-    .eq('is_active', true)
-    .neq('tier', 'core')
-
-  const ids = new Set<string>()
-  for (const row of data ?? []) {
-    ids.add(row.parent_id)
-  }
-  parentIdsWithActiveSub.value = ids
-}
-
-function hasActivePaidSubscription(parentId: string): boolean {
-  return parentIdsWithActiveSub.value.has(parentId)
-}
 
 function getInitials(name: string): string {
   return name
@@ -281,7 +254,9 @@ function resetInviteForm() {
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remove Parent</AlertDialogTitle>
-                    <AlertDialogDescription v-if="hasActivePaidSubscription(parent.id)">
+                    <AlertDialogDescription
+                      v-if="parentLinkStore.hasActivePaidSubscription(parent.id)"
+                    >
                       You have an active paid subscription managed by {{ parent.name }}. Please ask
                       them to cancel the subscription before unlinking.
                     </AlertDialogDescription>
@@ -291,7 +266,7 @@ function resetInviteForm() {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel v-if="hasActivePaidSubscription(parent.id)">
+                    <AlertDialogCancel v-if="parentLinkStore.hasActivePaidSubscription(parent.id)">
                       Close
                     </AlertDialogCancel>
                     <template v-else>
