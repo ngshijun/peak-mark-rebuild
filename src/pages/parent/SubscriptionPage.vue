@@ -35,16 +35,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import {
-  Check,
-  Sparkles,
-  Zap,
-  Crown,
-  CreditCard,
-  Users,
-  Loader2,
-  ExternalLink,
-} from 'lucide-vue-next'
+import { Sparkles, Zap, Crown, CreditCard, Users, Loader2, ExternalLink } from 'lucide-vue-next'
+import PlanCard from '@/components/parent/PlanCard.vue'
+import UpgradePreviewDialog from '@/components/parent/UpgradePreviewDialog.vue'
 
 const subscriptionStore = useSubscriptionStore()
 const childLinkStore = useChildLinkStore()
@@ -57,6 +50,10 @@ const isLoadingPreview = ref(false)
 const previewError = ref<string | null>(null)
 const upgradeDialogOpen = ref(false)
 const pendingUpgradeTier = ref<SubscriptionTier | null>(null)
+
+const pendingPlan = computed(() =>
+  subscriptionStore.plans.find((p) => p.id === pendingUpgradeTier.value),
+)
 
 // Handle checkout redirect on mount
 // Note: Plans and subscriptions are preloaded by the route guard for faster initial render
@@ -73,7 +70,6 @@ onMounted(async () => {
   const isCanceled = urlParams.get('canceled') === 'true'
 
   if (isSuccess && sessionId && selectedChildId.value) {
-    // Sync subscription from Stripe to ensure database is up to date
     const { success, error } = await subscriptionStore.syncSubscription(
       selectedChildId.value,
       sessionId,
@@ -83,7 +79,6 @@ onMounted(async () => {
       toast.success('Subscription activated!', {
         description: 'Your subscription has been successfully activated.',
       })
-      // Refresh subscriptions to show the new status
       const childIds = childLinkStore.linkedChildren.map((c) => c.id)
       await subscriptionStore.fetchChildrenSubscriptions(childIds, true)
     } else {
@@ -91,7 +86,6 @@ onMounted(async () => {
         description: error || 'Subscription may not be fully synced. Please refresh the page.',
       })
     }
-    // Clean up URL
     window.history.replaceState({}, '', window.location.pathname)
   } else if (isCanceled) {
     toast.error('Checkout cancelled', {
@@ -124,13 +118,9 @@ function formatDate(dateString: string | null | undefined): string {
   })
 }
 
-/**
- * Handle clicking upgrade/downgrade button - fetches preview for upgrades
- */
 async function handlePlanChange(tier: SubscriptionTier) {
   if (!selectedChildId.value) return
 
-  // For basic tier, directly show cancel dialog (handled separately)
   if (tier === 'core') {
     pendingUpgradeTier.value = tier
     upgradeDialogOpen.value = true
@@ -139,7 +129,6 @@ async function handlePlanChange(tier: SubscriptionTier) {
 
   const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
 
-  // If user has an active Stripe subscription, fetch preview for both upgrades and downgrades
   if (hasStripe) {
     isLoadingPreview.value = true
     previewError.value = null
@@ -156,22 +145,17 @@ async function handlePlanChange(tier: SubscriptionTier) {
       upgradePreview.value = preview
     }
   } else {
-    // For new subscriptions, just open dialog
     pendingUpgradeTier.value = tier
     upgradeDialogOpen.value = true
   }
 }
 
-/**
- * Confirm the plan change after preview
- */
 async function confirmPlanChange() {
   if (!selectedChildId.value || !pendingUpgradeTier.value) return
 
   const tier = pendingUpgradeTier.value
   upgradeDialogOpen.value = false
 
-  // For basic tier, cancel the subscription
   if (tier === 'core') {
     await handleCancel()
     resetUpgradeState()
@@ -181,12 +165,10 @@ async function confirmPlanChange() {
   const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
 
   if (hasStripe) {
-    // Has existing Stripe subscription - modify it
     const result = await subscriptionStore.modifySubscription(selectedChildId.value, tier)
     if (result.error) {
       toast.error('Error', { description: result.error })
     } else if (result.type === 'scheduled') {
-      // Downgrade scheduled for next billing cycle
       const scheduledDate = result.scheduledDate
         ? new Date(result.scheduledDate).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -198,13 +180,11 @@ async function confirmPlanChange() {
         description: `Your plan will change to ${tier} on ${scheduledDate}. You'll keep your current plan until then.`,
       })
     } else {
-      // Upgrade applied immediately
       toast.success('Subscription upgraded!', {
         description: `Plan has been upgraded to ${tier}. Your billing cycle has been reset.`,
       })
     }
   } else {
-    // No Stripe subscription - create checkout session
     const { url, error } = await subscriptionStore.createCheckoutSession(
       selectedChildId.value,
       tier,
@@ -212,7 +192,6 @@ async function confirmPlanChange() {
     if (error) {
       toast.error('Error', { description: error })
     } else if (url) {
-      // Redirect to Stripe Checkout
       window.location.href = url
     }
   }
@@ -226,17 +205,12 @@ function resetUpgradeState() {
   pendingUpgradeTier.value = null
 }
 
-function formatCurrency(amount: number) {
-  return `RM ${(amount / 100).toFixed(2)}`
-}
-
 async function handleCancel() {
   if (!selectedChildId.value) return
 
   const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
 
   if (!hasStripe) {
-    // Already on core tier with no Stripe subscription - nothing to cancel
     toast.info('No active subscription', {
       description: 'This child is already on the basic tier.',
     })
@@ -260,46 +234,6 @@ async function handleOpenPortal() {
   } else if (url) {
     window.location.href = url
   }
-}
-
-function getTierIcon(tier: SubscriptionTier) {
-  switch (tier) {
-    case 'plus':
-      return Zap
-    case 'pro':
-      return Sparkles
-    case 'max':
-      return Crown
-    default:
-      return CreditCard
-  }
-}
-
-function getButtonText(planTier: SubscriptionTier, currentTier: SubscriptionTier) {
-  if (planTier === currentTier) return 'Current Plan'
-
-  // Check if this tier is scheduled
-  if (currentSubscription.value?.scheduledChange?.scheduledTier === planTier) {
-    return 'Scheduled'
-  }
-
-  if (planTier === 'core') return 'Downgrade'
-
-  const tierOrder: SubscriptionTier[] = ['core', 'plus', 'pro', 'max']
-  const planIndex = tierOrder.indexOf(planTier)
-  const currentIndex = tierOrder.indexOf(currentTier)
-
-  return planIndex > currentIndex ? 'Upgrade' : 'Downgrade'
-}
-
-function getButtonVariant(
-  planTier: SubscriptionTier,
-  currentTier: SubscriptionTier,
-  highlighted?: boolean,
-) {
-  if (planTier === currentTier) return 'outline' as const
-  if (highlighted) return 'default' as const
-  return 'outline' as const
 }
 
 function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChildSubscription>) {
@@ -500,191 +434,33 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
       <div v-if="currentSubscription">
         <h2 class="mb-4 text-xl font-semibold">Available Plans</h2>
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card
+          <PlanCard
             v-for="plan in subscriptionStore.plans"
             :key="plan.id"
-            :class="[
-              'relative flex flex-col',
-              plan.highlighted && 'border-primary shadow-md',
-              currentSubscription.tier === plan.id && 'bg-muted/50',
-            ]"
-          >
-            <!-- Popular Badge -->
-            <Badge v-if="plan.highlighted" class="absolute -top-2 left-1/2 -translate-x-1/2">
-              Most Popular
-            </Badge>
-
-            <CardHeader>
-              <div class="flex items-center gap-2">
-                <component :is="getTierIcon(plan.id)" class="size-5 text-primary" />
-                <CardTitle>{{ plan.name }}</CardTitle>
-              </div>
-              <CardDescription>
-                <span class="text-2xl font-bold text-foreground"
-                  >RM {{ plan.price.toFixed(2) }}</span
-                >
-                <span class="text-muted-foreground">/month</span>
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent class="flex-1">
-              <div class="mb-4">
-                <Badge variant="outline"> {{ plan.sessionsPerDay }} sessions/day </Badge>
-              </div>
-              <ul class="space-y-2">
-                <li
-                  v-for="(feature, index) in plan.features"
-                  :key="index"
-                  class="flex items-start gap-2 text-sm"
-                >
-                  <Check class="mt-0.5 size-4 shrink-0 text-green-500" />
-                  <span>{{ feature }}</span>
-                </li>
-              </ul>
-            </CardContent>
-
-            <CardFooter>
-              <Button
-                v-if="plan.id !== currentSubscription.tier"
-                class="w-full"
-                :variant="getButtonVariant(plan.id, currentSubscription.tier, plan.highlighted)"
-                :disabled="
-                  subscriptionStore.isProcessingPayment ||
-                  currentSubscription.scheduledChange?.scheduledTier === plan.id
-                "
-                @click="handlePlanChange(plan.id)"
-              >
-                <Loader2
-                  v-if="subscriptionStore.isProcessingPayment"
-                  class="mr-2 size-4 animate-spin"
-                />
-                {{ getButtonText(plan.id, currentSubscription.tier) }}
-              </Button>
-              <Button v-else class="w-full" variant="outline" disabled> Current Plan </Button>
-            </CardFooter>
-          </Card>
+            :plan="plan"
+            :current-tier="currentSubscription.tier"
+            :is-processing-payment="subscriptionStore.isProcessingPayment"
+            :scheduled-change="currentSubscription.scheduledChange"
+            @change="handlePlanChange"
+          />
         </div>
 
-        <!-- Upgrade/Downgrade Confirmation Dialog -->
-        <AlertDialog v-model:open="upgradeDialogOpen">
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {{
-                  getButtonText(pendingUpgradeTier ?? 'core', currentSubscription?.tier ?? 'core')
-                }}
-                to
-                {{ subscriptionStore.plans.find((p) => p.id === pendingUpgradeTier)?.name }}
-              </AlertDialogTitle>
-              <AlertDialogDescription as="div">
-                <!-- Loading preview state -->
-                <div v-if="isLoadingPreview" class="flex items-center justify-center py-4">
-                  <Loader2 class="mr-2 size-5 animate-spin" />
-                  <span>Calculating price...</span>
-                </div>
-
-                <!-- Preview error -->
-                <div v-else-if="previewError" class="text-destructive">
-                  {{ previewError }}
-                </div>
-
-                <!-- Upgrade preview with proration details -->
-                <template v-else-if="upgradePreview?.isUpgrade">
-                  <div class="space-y-4">
-                    <p>{{ upgradePreview.message }}</p>
-
-                    <!-- Line items breakdown -->
-                    <div
-                      v-if="upgradePreview.lineItems && upgradePreview.lineItems.length > 0"
-                      class="rounded-lg border p-3"
-                    >
-                      <p class="mb-2 text-sm font-medium">Price breakdown:</p>
-                      <ul class="space-y-1 text-sm">
-                        <li
-                          v-for="(item, index) in upgradePreview.lineItems"
-                          :key="index"
-                          class="flex justify-between"
-                        >
-                          <span :class="{ 'text-muted-foreground': item.proration }">
-                            {{ item.description }}
-                          </span>
-                          <span :class="{ 'text-green-600': item.amount < 0 }">
-                            {{ formatCurrency(item.amount) }}
-                          </span>
-                        </li>
-                      </ul>
-                      <div class="mt-2 flex justify-between border-t pt-2 font-medium">
-                        <span>Total due today</span>
-                        <span>
-                          {{ formatCurrency(upgradePreview.amountDue ?? 0) }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p class="text-sm text-muted-foreground">
-                      {{ selectedChild?.name }}'s new plan includes
-                      {{
-                        subscriptionStore.plans.find((p) => p.id === pendingUpgradeTier)
-                          ?.sessionsPerDay
-                      }}
-                      sessions per day.
-                    </p>
-                  </div>
-                </template>
-
-                <!-- Downgrade scheduled for next billing cycle -->
-                <template v-else-if="upgradePreview && !upgradePreview.isUpgrade">
-                  <div class="space-y-3">
-                    <p>{{ upgradePreview.message }}</p>
-                    <p class="text-sm text-muted-foreground">
-                      Your current plan will remain active until
-                      {{ formatDate(upgradePreview.effectiveDate) }}.
-                    </p>
-                  </div>
-                </template>
-
-                <!-- Downgrade to basic -->
-                <template v-else-if="pendingUpgradeTier === 'core'">
-                  {{ selectedChild?.name }} will be downgraded to the free Basic plan. Their
-                  sessions will be limited to
-                  {{ subscriptionStore.plans.find((p) => p.id === 'core')?.sessionsPerDay }} per
-                  day.
-                </template>
-
-                <!-- New subscription (no Stripe subscription yet) -->
-                <template
-                  v-else-if="!subscriptionStore.hasActiveStripeSubscription(selectedChildId)"
-                >
-                  You will be redirected to a secure checkout page to complete your payment.
-                  {{ selectedChild?.name }}'s new plan includes
-                  {{
-                    subscriptionStore.plans.find((p) => p.id === pendingUpgradeTier)?.sessionsPerDay
-                  }}
-                  sessions per day.
-                </template>
-
-                <!-- Downgrade with active subscription -->
-                <template v-else>
-                  {{ selectedChild?.name }} will be downgraded to the
-                  {{ subscriptionStore.plans.find((p) => p.id === pendingUpgradeTier)?.name }} plan.
-                  The change will take effect at the end of your current billing period.
-                </template>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel @click="resetUpgradeState">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                :disabled="isLoadingPreview || !!previewError"
-                @click="confirmPlanChange"
-              >
-                <template v-if="upgradePreview?.isUpgrade && upgradePreview.amountDue">
-                  Pay {{ formatCurrency(upgradePreview.amountDue) }}
-                </template>
-                <template v-else> Confirm </template>
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <UpgradePreviewDialog
+          :open="upgradeDialogOpen"
+          :pending-tier="pendingUpgradeTier"
+          :current-tier="currentSubscription?.tier ?? 'core'"
+          :preview="upgradePreview"
+          :is-loading="isLoadingPreview"
+          :error="previewError"
+          :child-name="selectedChild?.name ?? ''"
+          :pending-plan="pendingPlan"
+          :has-active-stripe-subscription="
+            subscriptionStore.hasActiveStripeSubscription(selectedChildId)
+          "
+          @update:open="upgradeDialogOpen = $event"
+          @confirm="confirmPlanChange"
+          @cancel="resetUpgradeState"
+        />
       </div>
 
       <!-- Feature Comparison Note -->
