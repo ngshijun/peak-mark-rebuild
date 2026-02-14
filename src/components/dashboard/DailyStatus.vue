@@ -20,10 +20,14 @@ const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
 const isSaving = ref(false)
 const showDontShowAgain = ref(false)
-const dontShowAgainToday = ref(false)
 
 // LocalStorage key for "don't show again today"
 const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
+
+// Initialize from localStorage — checked if dismissed today
+const isDismissedToday =
+  localStorage.getItem(MOOD_REMINDER_DISMISSED_KEY) === dashboardStore.getTodayString()
+const dontShowAgainToday = ref(isDismissedToday)
 
 const moods: { type: MoodType; emoji: string; label: string }[] = [
   { type: 'sad', emoji: '😢', label: 'Sad' },
@@ -41,19 +45,20 @@ function getMoodLabel(mood: MoodType | null | undefined): string {
   return moods.find((m) => m.type === mood)?.label ?? 'Unknown'
 }
 
+// Sync checkbox to localStorage
+watch(dontShowAgainToday, (checked) => {
+  if (checked) {
+    localStorage.setItem(MOOD_REMINDER_DISMISSED_KEY, dashboardStore.getTodayString())
+  } else {
+    localStorage.removeItem(MOOD_REMINDER_DISMISSED_KEY)
+  }
+})
+
 async function selectMood(mood: MoodType) {
   isSaving.value = true
   try {
     await dashboardStore.setMood(mood)
-
-    // If "don't show again" is checked, save to localStorage
-    if (dontShowAgainToday.value) {
-      localStorage.setItem(MOOD_REMINDER_DISMISSED_KEY, dashboardStore.getTodayString())
-    }
-
     isOpen.value = false
-    showDontShowAgain.value = false
-    dontShowAgainToday.value = false
   } finally {
     isSaving.value = false
   }
@@ -62,18 +67,8 @@ async function selectMood(mood: MoodType) {
 // Open dialog programmatically (called from parent)
 function openDialog(withDontShowAgain = false) {
   showDontShowAgain.value = withDontShowAgain
-  dontShowAgainToday.value = false
   isOpen.value = true
 }
-
-// Save "don't show again" preference when dialog is closed (dismissed without selecting mood)
-watch(isOpen, (open) => {
-  if (!open && dontShowAgainToday.value && showDontShowAgain.value) {
-    localStorage.setItem(MOOD_REMINDER_DISMISSED_KEY, dashboardStore.getTodayString())
-    showDontShowAgain.value = false
-    dontShowAgainToday.value = false
-  }
-})
 
 // Expose for parent component
 defineExpose({
@@ -135,7 +130,10 @@ defineExpose({
           <span class="text-sm font-medium">{{ mood.label }}</span>
         </Button>
       </div>
-      <div v-if="showDontShowAgain" class="flex items-center gap-2 border-t pt-4">
+      <div
+        v-if="showDontShowAgain || !dashboardStore.hasMoodToday"
+        class="flex items-center gap-2 border-t pt-4"
+      >
         <Checkbox id="dontShowAgain" v-model="dontShowAgainToday" :disabled="isSaving" />
         <label for="dontShowAgain" class="cursor-pointer select-none text-sm text-muted-foreground">
           Don't show again today
