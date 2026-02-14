@@ -19,50 +19,28 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/lib/supabaseClient'
+import { useCurriculumStore } from '@/stores/curriculum'
 import { toast } from 'vue-sonner'
 import { Loader2, CirclePoundSterling, Apple } from 'lucide-vue-next'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import LevelUpDialog from './LevelUpDialog.vue'
-import type { Database } from '@/types/database.types'
-
-type GradeLevel = Database['public']['Tables']['grade_levels']['Row']
 
 const authStore = useAuthStore()
+const curriculumStore = useCurriculumStore()
 
 // Grade selection dialog state
 const showGradeDialog = ref(false)
-const gradeLevels = ref<GradeLevel[]>([])
 const selectedGradeId = ref<string>('')
-const isLoadingGrades = ref(false)
 const isSaving = ref(false)
 
 // Check if student needs to set grade on mount
 onMounted(async () => {
   if (authStore.isStudent && !authStore.studentProfile?.gradeLevelId) {
-    await fetchGradeLevels()
+    await curriculumStore.fetchCurriculum()
     showGradeDialog.value = true
   }
 })
-
-async function fetchGradeLevels() {
-  isLoadingGrades.value = true
-  try {
-    const { data, error } = await supabase
-      .from('grade_levels')
-      .select('*')
-      .order('display_order', { ascending: true })
-
-    if (error) throw error
-    gradeLevels.value = data ?? []
-  } catch (err) {
-    console.error('Error fetching grade levels:', err)
-    toast.error('Failed to load grade levels')
-  } finally {
-    isLoadingGrades.value = false
-  }
-}
 
 async function handleSaveGrade() {
   if (!selectedGradeId.value) {
@@ -163,12 +141,16 @@ const greeting = computed(() => {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div class="py-4">
-          <Select v-model="selectedGradeId" :disabled="isLoadingGrades || isSaving">
+          <Select v-model="selectedGradeId" :disabled="curriculumStore.isLoading || isSaving">
             <SelectTrigger class="w-full">
               <SelectValue placeholder="Select your grade" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="grade in gradeLevels" :key="grade.id" :value="grade.id">
+              <SelectItem
+                v-for="grade in curriculumStore.gradeLevels"
+                :key="grade.id"
+                :value="grade.id"
+              >
                 {{ grade.name }}
               </SelectItem>
             </SelectContent>

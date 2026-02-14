@@ -1,5 +1,6 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import type { Question, MCQOption } from '@/stores/questions'
+import { shuffle } from '@/lib/practiceHelpers'
 
 /**
  * Composable for shuffling MCQ/MRQ options with per-question caching.
@@ -8,17 +9,6 @@ import type { Question, MCQOption } from '@/stores/questions'
  */
 export function useQuestionShuffle(currentQuestion: Ref<Question | null>) {
   const shuffledOptionsMap = ref<Map<string, MCQOption[]>>(new Map())
-
-  function shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      const temp = shuffled[i]!
-      shuffled[i] = shuffled[j]!
-      shuffled[j] = temp
-    }
-    return shuffled
-  }
 
   // Populate cache when question changes (side effect in a watcher, not computed)
   watch(
@@ -30,7 +20,7 @@ export function useQuestionShuffle(currentQuestion: Ref<Question | null>) {
       const nonEmptyOptions = question.options.filter(
         (opt) => (opt.text && opt.text.trim()) || opt.imagePath,
       )
-      shuffledOptionsMap.value.set(question.id, shuffleArray(nonEmptyOptions))
+      shuffledOptionsMap.value.set(question.id, shuffle(nonEmptyOptions))
     },
     { immediate: true },
   )

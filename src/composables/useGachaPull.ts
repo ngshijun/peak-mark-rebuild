@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onScopeDispose } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, type Pet, type PetRarity } from '@/stores/pets'
 import { toast } from 'vue-sonner'
@@ -20,6 +20,21 @@ const rarityColors: Record<PetRarity, string> = {
 export function useGachaPull() {
   const authStore = useAuthStore()
   const petsStore = usePetsStore()
+
+  const timeouts = new Set<ReturnType<typeof setTimeout>>()
+
+  function safeTimeout(fn: () => void, ms: number) {
+    const id = setTimeout(() => {
+      timeouts.delete(id)
+      fn()
+    }, ms)
+    timeouts.add(id)
+  }
+
+  onScopeDispose(() => {
+    for (const id of timeouts) clearTimeout(id)
+    timeouts.clear()
+  })
 
   const isRolling = ref(false)
   const showResultDialog = ref(false)
@@ -62,7 +77,7 @@ export function useGachaPull() {
     capsuleColor.value = rarityColors[pet.rarity]
     newPetIds.value = new Set(isPetNew(pet.id) ? [pet.id] : [])
 
-    setTimeout(async () => {
+    safeTimeout(async () => {
       pullResults.value = [pet]
       await Promise.all([authStore.refreshProfile(), petsStore.fetchOwnedPets()])
       isRolling.value = false
@@ -97,7 +112,7 @@ export function useGachaPull() {
 
     const pets = petIds.map((id) => getPetById(id)).filter((p): p is Pet => p !== undefined)
 
-    setTimeout(async () => {
+    safeTimeout(async () => {
       pullResults.value = pets
       await Promise.all([authStore.refreshProfile(), petsStore.fetchOwnedPets()])
       isRolling.value = false

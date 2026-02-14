@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import {
   Dialog,
@@ -49,6 +49,14 @@ const wheelStyle = computed(() => ({
 
 const pendingReward = ref<number | null>(null)
 const spinError = ref<string | null>(null)
+let spinTimerId: ReturnType<typeof setTimeout> | null = null
+
+onUnmounted(() => {
+  if (spinTimerId !== null) {
+    clearTimeout(spinTimerId)
+    spinTimerId = null
+  }
+})
 
 async function spin() {
   if (isSpinning.value || dashboardStore.hasSpunToday) return
@@ -73,7 +81,8 @@ async function spin() {
   rotation.value = finalRotation
 
   // Call RPC after animation completes (4 seconds matches CSS transition)
-  setTimeout(async () => {
+  spinTimerId = setTimeout(async () => {
+    spinTimerId = null
     const result = await dashboardStore.recordSpinReward(wonReward)
 
     if (result.error) {

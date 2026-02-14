@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Megaphone, ChevronRight, Pin } from 'lucide-vue-next'
 import { useAnnouncementsStore, audienceConfig, type Announcement } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
+import { formatTimeAgoCompact } from '@/lib/date'
 import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDetailDialog.vue'
 
 const router = useRouter()
@@ -24,22 +25,6 @@ function openAnnouncement(announcement: Announcement) {
 function goToAnnouncementsPage() {
   const basePath = authStore.userType === 'student' ? '/student' : '/parent'
   router.push(`${basePath}/announcements`)
-}
-
-function formatTimeAgo(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 </script>
 
@@ -77,7 +62,7 @@ function formatTimeAgo(dateStr: string | null): string {
                   {{ audienceConfig[announcement.targetAudience].label }}
                 </Badge>
                 <span class="text-xs text-muted-foreground">
-                  {{ formatTimeAgo(announcement.createdAt) }}
+                  {{ formatTimeAgoCompact(announcement.createdAt) }}
                 </span>
               </div>
             </div>
