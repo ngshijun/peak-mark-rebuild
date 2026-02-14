@@ -3,6 +3,8 @@ import { ref, computed, Transition } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, rarityConfig } from '@/stores/pets'
+import { usePetConversation } from '@/composables/usePetConversation'
+import { usePetAnimation } from '@/composables/usePetAnimation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,47 +24,8 @@ const currentCoins = computed(() => authStore.studentProfile?.coins ?? 0)
 
 const FOOD_PRICE = 50
 
-// Pet conversation messages pool
-const pettingMessages = [
-  "You're doing amazing! Keep it up!",
-  'Every practice makes you stronger!',
-  "I believe in you! You've got this!",
-  'Hard work always pays off!',
-  "You're smarter than you think!",
-  'Mistakes help us learn and grow!',
-  'Keep going, champion!',
-  'Your effort inspires me!',
-  "You're making great progress!",
-  'Never give up on your dreams!',
-  "One step at a time, you'll get there!",
-  "I'm so proud of how hard you work!",
-]
-
-const feedingMessages = [
-  "Thanks! Now let's ace that next quiz!",
-  'Yum! Ready to learn together?',
-  "Feeling energized! Let's study!",
-  'Brain food! Time to get smarter!',
-  "Thanks! You're the best study buddy!",
-  "Nom nom! Let's conquer those topics!",
-  'Delicious! Now back to learning!',
-  'I feel stronger! Just like your brain!',
-]
-
-const hungryMessages = [
-  'A little snack helps us think better!',
-  "Feed me and let's practice together!",
-  'Learning is easier on a full tummy!',
-  "Let's refuel and tackle more questions!",
-]
-
-const maxTierMessages = [
-  "We've grown so much together!",
-  'Your dedication got us here!',
-  'Nothing can stop us now!',
-  "We're an unstoppable team!",
-  'All that hard work paid off!',
-]
+const { showBubble: showConversationBubble, currentMessage, triggerMessage } = usePetConversation()
+const anim = usePetAnimation()
 
 // Evolution progress
 const evolutionProgress = computed(() => {
@@ -76,75 +39,18 @@ const currentTierImage = computed(() => {
   return petsStore.getOptimizedPetImageUrlForTier(selectedPet.value, selectedOwnedPet.value.tier)
 })
 
-// Animation states
-const isPetting = ref(false)
-const isFeeding = ref(false)
-const isEvolving = ref(false)
-const showHearts = ref(false)
-const showSparkles = ref(false)
-const showFoodParticles = ref(false)
-
-// Pet conversation bubble state
-const showConversationBubble = ref(false)
-const currentMessage = ref('')
-let conversationTimeout: ReturnType<typeof setTimeout> | null = null
-
 // Food exchange dialog state
 const showFoodExchangeDialog = ref(false)
 const foodExchangeRef = ref<InstanceType<typeof FoodExchangeDialog> | null>(null)
 
-function getRandomMessage(messages: string[]): string {
-  return messages[Math.floor(Math.random() * messages.length)]!
-}
-
-function showPetConversation(type: 'petting' | 'feeding' | 'hungry' | 'maxTier') {
-  if (conversationTimeout) {
-    clearTimeout(conversationTimeout)
-  }
-
-  switch (type) {
-    case 'petting':
-      currentMessage.value = getRandomMessage(pettingMessages)
-      break
-    case 'feeding':
-      currentMessage.value = getRandomMessage(feedingMessages)
-      break
-    case 'hungry':
-      currentMessage.value = getRandomMessage(hungryMessages)
-      break
-    case 'maxTier':
-      currentMessage.value = getRandomMessage(maxTierMessages)
-      break
-  }
-  showConversationBubble.value = true
-
-  conversationTimeout = setTimeout(() => {
-    showConversationBubble.value = false
-  }, 3000)
-}
-
 function onPetClick() {
-  petPet()
-}
-
-function petPet() {
-  if (isPetting.value) return
-
-  isPetting.value = true
-  showHearts.value = true
-  showPetConversation('petting')
-
-  setTimeout(() => {
-    isPetting.value = false
-  }, 300)
-
-  setTimeout(() => {
-    showHearts.value = false
-  }, 300)
+  if (anim.triggerPet()) {
+    triggerMessage('petting')
+  }
 }
 
 async function feedPet() {
-  if (isFeeding.value || !selectedOwnedPet.value) return
+  if (anim.isFeeding.value || !selectedOwnedPet.value) return
 
   if (evolutionProgress.value?.isMaxTier) {
     toast.info('Your pet is already at max tier!')
@@ -158,44 +64,33 @@ async function feedPet() {
 
   if (currentFood.value <= 0) {
     toast.warning('No food available!')
-    showPetConversation('hungry')
+    triggerMessage('hungry')
     return
   }
 
-  isFeeding.value = true
-  showSparkles.value = true
-  showFoodParticles.value = true
+  anim.triggerFeed()
 
   const result = await petsStore.feedPetForEvolution(selectedOwnedPet.value.id, 1)
 
   if (!result.success) {
     toast.error(result.error ?? 'Failed to feed pet')
   } else {
-    showPetConversation('feeding')
+    triggerMessage('feeding')
     if (result.canEvolve) {
       toast.success('Your pet is ready to evolve!')
     }
   }
-
-  setTimeout(() => {
-    isFeeding.value = false
-    showFoodParticles.value = false
-  }, 300)
-
-  setTimeout(() => {
-    showSparkles.value = false
-  }, 300)
 }
 
 async function evolvePet() {
-  if (isEvolving.value || !selectedOwnedPet.value) return
+  if (anim.isEvolving.value || !selectedOwnedPet.value) return
 
   if (!evolutionProgress.value?.canEvolve) {
     toast.warning('Not enough food fed to evolve!')
     return
   }
 
-  isEvolving.value = true
+  anim.triggerEvolve()
 
   const result = await petsStore.evolvePet(selectedOwnedPet.value.id)
 
@@ -208,7 +103,7 @@ async function evolvePet() {
   await petsStore.fetchOwnedPets()
 
   setTimeout(() => {
-    isEvolving.value = false
+    anim.endEvolve()
   }, 1500)
 }
 
@@ -337,7 +232,7 @@ function getTierLabel(tier: number): string {
               />
 
               <!-- Floating hearts animation -->
-              <div v-if="showHearts" class="pointer-events-none absolute inset-0">
+              <div v-if="anim.showHearts.value" class="pointer-events-none absolute inset-0">
                 <Heart
                   v-for="(pos, i) in [
                     { left: '25%', top: '30%' },
@@ -360,7 +255,7 @@ function getTierLabel(tier: number): string {
               </div>
 
               <!-- Sparkles animation for feeding -->
-              <div v-if="showSparkles" class="pointer-events-none absolute inset-0">
+              <div v-if="anim.showSparkles.value" class="pointer-events-none absolute inset-0">
                 <Sparkles
                   v-for="(pos, i) in [
                     { left: '20%', top: '25%' },
@@ -383,7 +278,7 @@ function getTierLabel(tier: number): string {
               </div>
 
               <!-- Food particles animation -->
-              <div v-if="showFoodParticles" class="pointer-events-none absolute inset-0">
+              <div v-if="anim.showFoodParticles.value" class="pointer-events-none absolute inset-0">
                 <div
                   v-for="(pos, i) in [
                     { left: '25%' },
@@ -405,7 +300,7 @@ function getTierLabel(tier: number): string {
 
               <!-- Evolution animation -->
               <div
-                v-if="isEvolving"
+                v-if="anim.isEvolving.value"
                 class="pointer-events-none absolute inset-0 flex items-center justify-center"
               >
                 <div class="absolute size-40 animate-ping rounded-full bg-yellow-400/30"></div>
@@ -416,16 +311,19 @@ function getTierLabel(tier: number): string {
               <div
                 class="relative transition-all duration-300"
                 :class="{
-                  'scale-110 -rotate-3': isPetting,
-                  'scale-105 animate-wiggle': isFeeding,
-                  'scale-125 animate-glow': isEvolving,
+                  'scale-110 -rotate-3': anim.isPetting.value,
+                  'scale-105 animate-wiggle': anim.isFeeding.value,
+                  'scale-125 animate-glow': anim.isEvolving.value,
                 }"
               >
                 <img
                   :src="currentTierImage"
                   :alt="selectedPet.name"
                   class="size-96 object-contain drop-shadow-lg"
-                  :class="{ 'animate-bounce-slow': !isPetting && !isFeeding && !isEvolving }"
+                  :class="{
+                    'animate-bounce-slow':
+                      !anim.isPetting.value && !anim.isFeeding.value && !anim.isEvolving.value,
+                  }"
                 />
               </div>
 
@@ -453,8 +351,8 @@ function getTierLabel(tier: number): string {
                 size="lg"
                 variant="outline"
                 class="flex-1 border-pink-300 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/30 dark:text-pink-400 dark:hover:bg-pink-950/50"
-                :disabled="isPetting"
-                @click="petPet"
+                :disabled="anim.isPetting.value"
+                @click="onPetClick"
               >
                 <Hand class="mr-2 size-5" />
                 Pet
@@ -465,7 +363,7 @@ function getTierLabel(tier: number): string {
                 variant="outline"
                 class="flex-1 border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-950/50"
                 :disabled="
-                  isFeeding ||
+                  anim.isFeeding.value ||
                   currentFood <= 0 ||
                   evolutionProgress?.isMaxTier ||
                   evolutionProgress?.canEvolve
@@ -484,7 +382,7 @@ function getTierLabel(tier: number): string {
         <EvolutionCard
           :current-tier="selectedOwnedPet?.tier ?? 1"
           :evolution-progress="evolutionProgress"
-          :is-evolving="isEvolving"
+          :is-evolving="anim.isEvolving.value"
           @evolve="evolvePet"
           @view-collection="goToCollections"
         />
