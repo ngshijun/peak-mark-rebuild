@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   useChildStatisticsStore,
   type ChildPracticeSessionFull,
+  type ChildSubscriptionStatus,
   type PracticeAnswer,
 } from '@/stores/child-statistics'
 import { useChildLinkStore } from '@/stores/child-link'
@@ -22,6 +23,7 @@ import {
   Lock,
   Sparkles,
   BotMessageSquare,
+  Crown,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -41,6 +43,7 @@ const session = ref<ChildPracticeSessionFull | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
 const subscriptionRequired = ref(false)
+const childSubscription = ref<ChildSubscriptionStatus | null>(null)
 
 const summary = computed(() => {
   if (!session.value) return null
@@ -59,7 +62,11 @@ const summary = computed(() => {
 })
 
 onMounted(async () => {
-  const result = await childStatisticsStore.getSessionById(childId.value, sessionId.value)
+  const [result, subStatus] = await Promise.all([
+    childStatisticsStore.getSessionById(childId.value, sessionId.value),
+    childStatisticsStore.getChildSubscriptionStatus(childId.value),
+  ])
+  childSubscription.value = subStatus
   if (result.session) {
     session.value = result.session
   }
@@ -197,9 +204,8 @@ function goBack() {
         Completed: {{ formatDate(session.completedAt) }}
       </div>
 
-      <!-- AI Summary (Max tier only) -->
+      <!-- AI Summary -->
       <Card
-        v-if="session.aiSummary"
         class="mb-6 border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20"
       >
         <CardHeader class="pb-2">
@@ -211,7 +217,28 @@ function goBack() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="text-sm leading-relaxed" v-html="parseSimpleMarkdown(session.aiSummary)" />
+          <!-- Non-Max tier: Upgrade message -->
+          <div
+            v-if="childSubscription?.tier !== 'max'"
+            class="flex items-center gap-3 text-sm text-muted-foreground"
+          >
+            <Crown class="size-5 text-amber-500" />
+            <span
+              >Upgrade to <strong>Max</strong> to unlock AI-powered feedback for each session.</span
+            >
+          </div>
+
+          <!-- Max tier: Show summary -->
+          <div
+            v-else-if="session.aiSummary"
+            class="text-sm leading-relaxed"
+            v-html="parseSimpleMarkdown(session.aiSummary)"
+          />
+
+          <!-- Max tier: No summary available -->
+          <div v-else class="text-sm text-muted-foreground">
+            No summary available for this session.
+          </div>
         </CardContent>
       </Card>
 
