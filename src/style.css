@@ -109,7 +109,7 @@
   --destructive: oklch(0.65 0.22 25);
   /* Borders and inputs */
   --border: oklch(0.34 0.008 260);
-  --input: oklch(0.3 0.008 260);
+  --input: oklch(0.4 0.01 260);
   --ring: oklch(0.65 0.25 292);
   /* Charts - vibrant colors for dark mode */
   --chart-1: oklch(0.65 0.25 292);
