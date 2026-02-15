@@ -10,8 +10,8 @@ import { getAvatarUrl } from '@/lib/storage'
 type LeaderboardRow = Database['public']['Views']['leaderboard']['Row']
 type WeeklyLeaderboardRow = Database['public']['Views']['weekly_leaderboard']['Row']
 
-// Maximum number of entries to fetch for leaderboards
-const LEADERBOARD_LIMIT = 100
+// Number of top ranks to display
+const TOP_RANKS = 20
 
 export interface LeaderboardStudent {
   id: string
@@ -85,35 +85,66 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     return map
   })
 
+  function mapLeaderboardRow(row: LeaderboardRow): LeaderboardStudent {
+    const xp = row.xp ?? 0
+    return {
+      id: row.id ?? '',
+      name: row.name ?? 'Unknown',
+      gradeLevelName: row.grade_level_name,
+      xp,
+      level: computeLevel(xp),
+      rank: row.rank ?? 0,
+      avatarPath: row.avatar_path,
+      currentStreak: row.current_streak ?? 0,
+    }
+  }
+
   /**
-   * Fetch leaderboard data from Supabase
+   * Fetch leaderboard data from Supabase.
+   * First counts how many students have rank <= TOP_RANKS (handles ties),
+   * then fetches that many rows. Also fetches the current student's row
+   * separately if they fall outside that range.
    */
   async function fetchLeaderboard(): Promise<{ error: string | null }> {
     isLoading.value = true
     error.value = null
 
     try {
+      // Count students with rank <= TOP_RANKS (may exceed TOP_RANKS due to ties)
+      const { count, error: countError } = await supabase
+        .from('leaderboard')
+        .select('*', { count: 'exact', head: true })
+        .lte('rank', TOP_RANKS)
+
+      if (countError) throw countError
+
+      const fetchLimit = count ?? TOP_RANKS
+
       const { data, error: fetchError } = await supabase
         .from('leaderboard')
         .select('*')
         .order('rank', { ascending: true })
-        .limit(LEADERBOARD_LIMIT)
+        .limit(fetchLimit)
 
       if (fetchError) throw fetchError
 
-      students.value = (data ?? []).map((row: LeaderboardRow) => {
-        const xp = row.xp ?? 0
-        return {
-          id: row.id ?? '',
-          name: row.name ?? 'Unknown',
-          gradeLevelName: row.grade_level_name,
-          xp,
-          level: computeLevel(xp),
-          rank: row.rank ?? 0,
-          avatarPath: row.avatar_path,
-          currentStreak: row.current_streak ?? 0,
+      const rows = (data ?? []).map(mapLeaderboardRow)
+
+      // If current student is not in the fetched results, fetch their row separately
+      const studentId = authStore.user?.id
+      if (studentId && authStore.isStudent && !rows.some((r) => r.id === studentId)) {
+        const { data: selfData } = await supabase
+          .from('leaderboard')
+          .select('*')
+          .eq('id', studentId)
+          .single()
+
+        if (selfData) {
+          rows.push(mapLeaderboardRow(selfData))
         }
-      })
+      }
+
+      students.value = rows
 
       return { error: null }
     } catch (err) {
@@ -125,34 +156,62 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     }
   }
 
+  function mapWeeklyLeaderboardRow(row: WeeklyLeaderboardRow): WeeklyLeaderboardStudent {
+    const totalXp = row.total_xp ?? 0
+    return {
+      id: row.id ?? '',
+      name: row.name ?? 'Unknown',
+      gradeLevelName: row.grade_level_name,
+      weeklyXp: row.weekly_xp ?? 0,
+      totalXp,
+      level: computeLevel(totalXp),
+      rank: row.rank ?? 0,
+      avatarPath: row.avatar_path,
+    }
+  }
+
   /**
-   * Fetch weekly leaderboard data from Supabase
+   * Fetch weekly leaderboard data from Supabase.
+   * Same count-then-fetch strategy as fetchLeaderboard.
    */
   async function fetchWeeklyLeaderboard(): Promise<{ error: string | null }> {
     isWeeklyLoading.value = true
 
     try {
+      const { count, error: countError } = await supabase
+        .from('weekly_leaderboard')
+        .select('*', { count: 'exact', head: true })
+        .lte('rank', TOP_RANKS)
+
+      if (countError) throw countError
+
+      const fetchLimit = count ?? TOP_RANKS
+
       const { data, error: fetchError } = await supabase
         .from('weekly_leaderboard')
         .select('*')
         .order('rank', { ascending: true })
-        .limit(LEADERBOARD_LIMIT)
+        .limit(fetchLimit)
 
       if (fetchError) throw fetchError
 
-      weeklyStudents.value = (data ?? []).map((row: WeeklyLeaderboardRow) => {
-        const totalXp = row.total_xp ?? 0
-        return {
-          id: row.id ?? '',
-          name: row.name ?? 'Unknown',
-          gradeLevelName: row.grade_level_name,
-          weeklyXp: row.weekly_xp ?? 0,
-          totalXp,
-          level: computeLevel(totalXp),
-          rank: row.rank ?? 0,
-          avatarPath: row.avatar_path,
+      const rows = (data ?? []).map(mapWeeklyLeaderboardRow)
+
+      // If current student is not in the fetched results, fetch their row separately
+      const studentId = authStore.user?.id
+      if (studentId && authStore.isStudent && !rows.some((r) => r.id === studentId)) {
+        const { data: selfData } = await supabase
+          .from('weekly_leaderboard')
+          .select('*')
+          .eq('id', studentId)
+          .single()
+
+        if (selfData) {
+          rows.push(mapWeeklyLeaderboardRow(selfData))
         }
-      })
+      }
+
+      weeklyStudents.value = rows
 
       return { error: null }
     } catch (err) {
@@ -234,14 +293,15 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     }
   }
 
-  // Get top 20 weekly students (optionally filtered by grade level name)
+  // Get top-ranked weekly students (optionally filtered by grade level name)
   function getWeeklyTop20(gradeLevelName?: string | null): WeeklyLeaderboardStudent[] {
     const filtered = gradeLevelName
       ? weeklyStudents.value.filter((s) => s.gradeLevelName === gradeLevelName)
       : weeklyStudents.value
 
     // Re-rank after filtering with RANK()-style tie handling
-    return assignRanks(filtered.slice(0, 20), (s) => s.weeklyXp)
+    const ranked = assignRanks(filtered, (s) => s.weeklyXp)
+    return ranked.filter((s) => s.rank <= TOP_RANKS)
   }
 
   // Get current student's weekly data (O(1) via Map)
@@ -258,14 +318,15 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     return students.value.filter((s) => s.gradeLevelName === gradeLevelName)
   }
 
-  // Get top 20 students (optionally filtered by grade level name)
+  // Get top-ranked students (optionally filtered by grade level name)
   function getTop20(gradeLevelName?: string | null): LeaderboardStudent[] {
     const filtered = gradeLevelName
       ? students.value.filter((s) => s.gradeLevelName === gradeLevelName)
       : students.value
 
     // Re-rank after filtering with RANK()-style tie handling
-    return assignRanks(filtered.slice(0, 20), (s) => s.xp)
+    const ranked = assignRanks(filtered, (s) => s.xp)
+    return ranked.filter((s) => s.rank <= TOP_RANKS)
   }
 
   // Get current student's rank (O(1) via Map)
@@ -274,10 +335,10 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     return studentById.value.get(authStore.user.id)?.rank ?? null
   })
 
-  // Check if current student is in top 20
+  // Check if current student is in top ranks
   const isCurrentStudentInTop20 = computed(() => {
     if (!currentStudentRank.value) return false
-    return currentStudentRank.value <= 20
+    return currentStudentRank.value <= TOP_RANKS
   })
 
   // Get current student's data from leaderboard (O(1) via Map)
