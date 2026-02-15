@@ -85,7 +85,7 @@ interface HistoryRow {
   totalQuestions: number
   correctAnswers: number
   answeredCount: number
-  timeUsedSeconds: number | null
+  durationSeconds: number | null
 }
 
 // Transform session data for table with filters applied
@@ -100,10 +100,10 @@ const historyData = computed<HistoryRow[]>(() => {
 
   return filteredSessions.map((session) => {
     const isCompleted = !!session.completedAt
-    const correctAnswers = session.correctCount
+    const correctAnswers = session.correctAnswers
     const totalQuestions = session.totalQuestions
     const score = isCompleted ? computeScorePercent(correctAnswers, totalQuestions) || null : null
-    const timeUsedSeconds = isCompleted ? session.totalTimeSeconds : null
+    const durationSeconds = isCompleted ? session.durationSeconds : null
 
     return {
       id: session.id,
@@ -117,7 +117,7 @@ const historyData = computed<HistoryRow[]>(() => {
       totalQuestions,
       correctAnswers,
       answeredCount: session.answerCount,
-      timeUsedSeconds,
+      durationSeconds,
     }
   })
 })
@@ -143,7 +143,7 @@ const averageScore = computed(() => {
 const totalSessions = computed(() => completedSessions.value.length)
 
 const totalStudyTime = computed(() => {
-  return completedSessions.value.reduce((sum, s) => sum + (s.timeUsedSeconds ?? 0), 0)
+  return completedSessions.value.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
 })
 
 const subTopicsPracticed = computed(() => {

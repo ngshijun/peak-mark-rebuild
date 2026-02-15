@@ -43,7 +43,7 @@ const summary = computed(() => {
   const totalQuestions = session.value.questions.length || session.value.totalQuestions
   const correctAnswers = session.value.answers.filter((a) => a.isCorrect).length
   const score = computeScorePercent(correctAnswers, totalQuestions)
-  const durationSeconds = session.value.totalTimeSeconds ?? 0
+  const durationSeconds = session.value.durationSeconds ?? 0
 
   return {
     totalQuestions,

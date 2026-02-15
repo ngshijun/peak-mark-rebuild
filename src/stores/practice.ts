@@ -232,9 +232,9 @@ export const usePracticeStore = defineStore('practice', () => {
         subTopicName: hierarchy.subTopic.name,
         totalQuestions: selectedQuestions.length,
         currentQuestionIndex: 0,
-        correctCount: 0,
+        correctAnswers: 0,
         answerCount: 0,
-        totalTimeSeconds: 0,
+        durationSeconds: 0,
         xpEarned: null,
         coinsEarned: null,
         aiSummary: null,
@@ -329,7 +329,7 @@ export const usePracticeStore = defineStore('practice', () => {
       // Update local counts for UI
       currentSession.value.answerCount++
       if (isCorrect) {
-        currentSession.value.correctCount++
+        currentSession.value.correctAnswers++
       }
 
       return { answer, error: null }
@@ -426,11 +426,11 @@ export const usePracticeStore = defineStore('practice', () => {
 
       // Update local session state with server-calculated values
       currentSession.value.completedAt = new Date().toISOString()
-      currentSession.value.totalTimeSeconds = currentSession.value.answers.reduce(
+      currentSession.value.durationSeconds = currentSession.value.answers.reduce(
         (sum, a) => sum + (a.timeSpentSeconds ?? 0),
         0,
       )
-      currentSession.value.correctCount = result.correct_count
+      currentSession.value.correctAnswers = result.correct_count
       currentSession.value.xpEarned = result.xp_earned
       currentSession.value.coinsEarned = result.coins_earned
 

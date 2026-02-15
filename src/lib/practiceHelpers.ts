@@ -27,9 +27,9 @@ export interface PracticeSession {
   subTopicName: string
   totalQuestions: number
   currentQuestionIndex: number
-  correctCount: number
+  correctAnswers: number
   answerCount: number // Actual number of answered questions
-  totalTimeSeconds: number
+  durationSeconds: number
   xpEarned: number | null
   coinsEarned: number | null
   createdAt: string | null

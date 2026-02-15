@@ -30,7 +30,7 @@ const topSubjects = computed<SubjectStats[]>(() => {
   >()
 
   completedSessions.forEach((session) => {
-    const score = computeScorePercent(session.correctCount, session.totalQuestions)
+    const score = computeScorePercent(session.correctAnswers, session.totalQuestions)
     const key = `${session.gradeLevelName}::${session.subjectName}`
     const existing = subjectMap.get(key)
 

@@ -38,9 +38,7 @@ export interface PracticeSessionRow {
   score: number | null
   totalQuestions: number
   correctAnswers: number
-  /** Student store uses timeUsedSeconds, parent/admin use durationSeconds */
-  timeUsedSeconds?: number | null
-  durationSeconds?: number | null
+  durationSeconds: number | null
 }
 
 export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): ColumnDef<T>[] {
@@ -158,7 +156,7 @@ export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): Co
         )
       },
       cell: ({ row }) => {
-        const seconds = row.original.timeUsedSeconds ?? row.original.durationSeconds
+        const seconds = row.original.durationSeconds
         if (seconds == null) {
           return h('div', { class: 'text-muted-foreground' }, '-')
         }

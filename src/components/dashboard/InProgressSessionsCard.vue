@@ -37,7 +37,7 @@ const inProgressData = computed<InProgressRow[]>(() => {
         subTopicName: session.subTopicName,
         answeredQuestions: session.answerCount,
         totalQuestions: session.totalQuestions,
-        correctAnswers: session.correctCount,
+        correctAnswers: session.correctAnswers,
       }
     })
 })
