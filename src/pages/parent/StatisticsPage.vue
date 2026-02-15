@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  useChildStatisticsStore,
-  type ChildPracticeSession,
-  type DateRangeFilter,
-} from '@/stores/child-statistics'
+import { useChildStatisticsStore, type ChildPracticeSession } from '@/stores/child-statistics'
 import { useChildLinkStore } from '@/stores/child-link'
-import { ALL_VALUE, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
+import { resolveFilterValue, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
+import { useStatisticsSummary } from '@/composables/useStatisticsSummary'
 import StatisticsFilterBar from '@/components/statistics/StatisticsFilterBar.vue'
 import StatisticsSummaryCards from '@/components/statistics/StatisticsSummaryCards.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,26 +61,16 @@ watch(selectedChildId, async (newChildId) => {
   }
 })
 
-// Helper to convert ALL_VALUE to undefined for store calls
+// Convert ALL_VALUE sentinel to undefined for store filter calls
 const gradeLevelFilter = computed(() =>
-  childStatisticsStore.statisticsFilters.gradeLevel === ALL_VALUE
-    ? undefined
-    : childStatisticsStore.statisticsFilters.gradeLevel,
+  resolveFilterValue(childStatisticsStore.statisticsFilters.gradeLevel),
 )
 const subjectFilter = computed(() =>
-  childStatisticsStore.statisticsFilters.subject === ALL_VALUE
-    ? undefined
-    : childStatisticsStore.statisticsFilters.subject,
+  resolveFilterValue(childStatisticsStore.statisticsFilters.subject),
 )
-const topicFilter = computed(() =>
-  childStatisticsStore.statisticsFilters.topic === ALL_VALUE
-    ? undefined
-    : childStatisticsStore.statisticsFilters.topic,
-)
+const topicFilter = computed(() => resolveFilterValue(childStatisticsStore.statisticsFilters.topic))
 const subTopicFilter = computed(() =>
-  childStatisticsStore.statisticsFilters.subTopic === ALL_VALUE
-    ? undefined
-    : childStatisticsStore.statisticsFilters.subTopic,
+  resolveFilterValue(childStatisticsStore.statisticsFilters.subTopic),
 )
 
 // Get available filter options
@@ -126,32 +113,9 @@ const filteredSessions = computed(() => {
   )
 })
 
-// Get only completed sessions for statistics
-const completedSessions = computed(() =>
-  filteredSessions.value.filter((s) => s.status === 'completed'),
-)
-
-const averageScore = computed(() => {
-  const sessions = completedSessions.value
-  if (sessions.length === 0) return 0
-  const totalScore = sessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
-  return Math.round(totalScore / sessions.length)
-})
-
-const totalSessions = computed(() => completedSessions.value.length)
-
-const totalStudyTime = computed(() => {
-  return completedSessions.value.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
-})
-
-const subTopicsPracticed = computed(() => {
-  const sessions = completedSessions.value
-  const subTopicSet = new Set<string>()
-  for (const s of sessions) {
-    subTopicSet.add(`${s.subjectName}-${s.topicName}-${s.subTopicName}`)
-  }
-  return subTopicSet.size
-})
+// Statistics computed values (only from completed sessions)
+const { averageScore, totalSessions, totalStudyTime, subTopicsPracticed } =
+  useStatisticsSummary(filteredSessions)
 
 // Get recent sessions for table
 const recentSessions = computed(() => {

@@ -8,6 +8,11 @@ import type { DateRangeFilter } from '@/lib/sessionFilters'
 
 export const ALL_VALUE = '__all__'
 
+/** Convert ALL_VALUE sentinel to undefined for store filter calls. */
+export function resolveFilterValue(value: string): string | undefined {
+  return value === ALL_VALUE ? undefined : value
+}
+
 export const statusConfig = {
   completed: {
     label: 'Completed',

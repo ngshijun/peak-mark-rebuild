@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { usePracticeHistoryStore, type DateRangeFilter } from '@/stores/practice-history'
+import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { useAuthStore } from '@/stores/auth'
-import { ALL_VALUE, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
+import { resolveFilterValue, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
 import { computeScorePercent } from '@/lib/questionHelpers'
+import { useStatisticsSummary } from '@/composables/useStatisticsSummary'
 import StatisticsFilterBar from '@/components/statistics/StatisticsFilterBar.vue'
 import StatisticsSummaryCards from '@/components/statistics/StatisticsSummaryCards.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,25 +43,11 @@ onMounted(async () => {
   }
 })
 
-// Helper to convert ALL_VALUE to undefined for store calls
-const gradeLevelFilter = computed(() =>
-  practiceStore.historyFilters.gradeLevel === ALL_VALUE
-    ? undefined
-    : practiceStore.historyFilters.gradeLevel,
-)
-const subjectFilter = computed(() =>
-  practiceStore.historyFilters.subject === ALL_VALUE
-    ? undefined
-    : practiceStore.historyFilters.subject,
-)
-const topicFilter = computed(() =>
-  practiceStore.historyFilters.topic === ALL_VALUE ? undefined : practiceStore.historyFilters.topic,
-)
-const subTopicFilter = computed(() =>
-  practiceStore.historyFilters.subTopic === ALL_VALUE
-    ? undefined
-    : practiceStore.historyFilters.subTopic,
-)
+// Convert ALL_VALUE sentinel to undefined for store filter calls
+const gradeLevelFilter = computed(() => resolveFilterValue(practiceStore.historyFilters.gradeLevel))
+const subjectFilter = computed(() => resolveFilterValue(practiceStore.historyFilters.subject))
+const topicFilter = computed(() => resolveFilterValue(practiceStore.historyFilters.topic))
+const subTopicFilter = computed(() => resolveFilterValue(practiceStore.historyFilters.subTopic))
 
 // Get available filter options
 const availableGradeLevels = computed(() => practiceStore.getHistoryGradeLevels())
@@ -131,29 +118,8 @@ const displayedHistory = computed(() => {
 })
 
 // Statistics computed values (only from completed sessions)
-const completedSessions = computed(() => historyData.value.filter((s) => s.status === 'completed'))
-
-const averageScore = computed(() => {
-  const sessions = completedSessions.value
-  if (sessions.length === 0) return 0
-  const totalScore = sessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
-  return Math.round(totalScore / sessions.length)
-})
-
-const totalSessions = computed(() => completedSessions.value.length)
-
-const totalStudyTime = computed(() => {
-  return completedSessions.value.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
-})
-
-const subTopicsPracticed = computed(() => {
-  const sessions = completedSessions.value
-  const subTopicSet = new Set<string>()
-  for (const s of sessions) {
-    subTopicSet.add(`${s.subjectName}-${s.topicName}-${s.subTopicName}`)
-  }
-  return subTopicSet.size
-})
+const { averageScore, totalSessions, totalStudyTime, subTopicsPracticed } =
+  useStatisticsSummary(historyData)
 
 const columns = createPracticeHistoryColumns<HistoryRow>()
 

@@ -8,7 +8,8 @@ import {
 } from '@/stores/admin-student-stats'
 import { useAdminStudentEngagementStore } from '@/stores/admin-student-engagement'
 import { usePetsStore } from '@/stores/pets'
-import { ALL_VALUE, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
+import { resolveFilterValue, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
+import { useStatisticsSummary } from '@/composables/useStatisticsSummary'
 import StatisticsFilterBar from '@/components/statistics/StatisticsFilterBar.vue'
 import StatisticsSummaryCards from '@/components/statistics/StatisticsSummaryCards.vue'
 import StudentInfoTab from '@/components/admin/StudentInfoTab.vue'
@@ -76,26 +77,14 @@ watch(studentId, async (newStudentId) => {
   }
 })
 
-// Helper to convert ALL_VALUE to undefined for store calls
+// Convert ALL_VALUE sentinel to undefined for store filter calls
 const gradeLevelFilter = computed(() =>
-  adminStatsStore.statisticsFilters.gradeLevel === ALL_VALUE
-    ? undefined
-    : adminStatsStore.statisticsFilters.gradeLevel,
+  resolveFilterValue(adminStatsStore.statisticsFilters.gradeLevel),
 )
-const subjectFilter = computed(() =>
-  adminStatsStore.statisticsFilters.subject === ALL_VALUE
-    ? undefined
-    : adminStatsStore.statisticsFilters.subject,
-)
-const topicFilter = computed(() =>
-  adminStatsStore.statisticsFilters.topic === ALL_VALUE
-    ? undefined
-    : adminStatsStore.statisticsFilters.topic,
-)
+const subjectFilter = computed(() => resolveFilterValue(adminStatsStore.statisticsFilters.subject))
+const topicFilter = computed(() => resolveFilterValue(adminStatsStore.statisticsFilters.topic))
 const subTopicFilter = computed(() =>
-  adminStatsStore.statisticsFilters.subTopic === ALL_VALUE
-    ? undefined
-    : adminStatsStore.statisticsFilters.subTopic,
+  resolveFilterValue(adminStatsStore.statisticsFilters.subTopic),
 )
 
 // Get available filter options
@@ -134,32 +123,9 @@ const filteredSessions = computed(() => {
   )
 })
 
-// Get only completed sessions for statistics
-const completedSessions = computed(() =>
-  filteredSessions.value.filter((s) => s.status === 'completed'),
-)
-
-const averageScore = computed(() => {
-  const sessions = completedSessions.value
-  if (sessions.length === 0) return 0
-  const totalScore = sessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
-  return Math.round(totalScore / sessions.length)
-})
-
-const totalSessions = computed(() => completedSessions.value.length)
-
-const totalStudyTime = computed(() => {
-  return completedSessions.value.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
-})
-
-const subTopicsPracticed = computed(() => {
-  const sessions = completedSessions.value
-  const subTopicSet = new Set<string>()
-  for (const s of sessions) {
-    subTopicSet.add(`${s.subjectName}-${s.topicName}-${s.subTopicName}`)
-  }
-  return subTopicSet.size
-})
+// Statistics computed values (only from completed sessions)
+const { averageScore, totalSessions, totalStudyTime, subTopicsPracticed } =
+  useStatisticsSummary(filteredSessions)
 
 // Get recent sessions for table
 const recentSessions = computed(() => {
