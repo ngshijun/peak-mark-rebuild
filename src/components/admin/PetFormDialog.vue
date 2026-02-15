@@ -202,7 +202,7 @@ const handleSave = handleSubmit(async (values) => {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="max-w-2xl">
+    <DialogContent class="sm:max-w-5xl">
       <DialogHeader>
         <DialogTitle>{{ pet ? 'Edit Pet' : 'Add Pet' }}</DialogTitle>
         <DialogDescription>
@@ -247,7 +247,7 @@ const handleSave = handleSubmit(async (values) => {
         <!-- Pet Images (3 Tiers) -->
         <div class="space-y-4">
           <FieldLabel>Evolution Images</FieldLabel>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-3 gap-6">
             <!-- Tier 1 Image -->
             <div class="space-y-2">
               <p class="text-xs font-medium text-muted-foreground">Tier 1 (Required)</p>

@@ -20,7 +20,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-7xl">
+    <DialogContent class="sm:max-w-5xl">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           Pet Preview

@@ -35,7 +35,7 @@ watch(
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="max-w-lg max-h-[80vh] overflow-y-auto">
+    <DialogContent class="sm:max-w-lg max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center gap-2">

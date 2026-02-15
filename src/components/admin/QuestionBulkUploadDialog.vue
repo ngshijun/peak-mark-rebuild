@@ -205,7 +205,7 @@ const progressPercent = computed(() => {
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="max-h-[85vh] max-w-2xl overflow-y-auto">
+    <DialogContent class="max-h-[85vh] sm:max-w-2xl overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Bulk Upload Questions</DialogTitle>
         <DialogDescription> Upload multiple questions from an Excel file </DialogDescription>

@@ -161,7 +161,7 @@ const handleSave = handleSubmit(async (values) => {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="max-w-lg">
+    <DialogContent class="sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>{{ announcement ? 'Edit Announcement' : 'New Announcement' }}</DialogTitle>
         <DialogDescription>
