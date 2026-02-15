@@ -2,18 +2,19 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { handleError } from '@/lib/errors'
-import { toMYTDateString } from '@/lib/date'
+import { toMYTDateString, toMYTMonthKey, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 
 // Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
 const STATS_CACHE_TTL = 5 * 60 * 1000
 
-/** Create a Map with keys for the last 12 months, initialized with defaultValue */
+/** Create a Map with keys for the last 12 months (MYT), initialized with defaultValue */
 function initializeMonthlyMap<T>(defaultValue: () => T): Map<string, T> {
-  const now = new Date()
+  const currentMonth = toMYTMonthKey()
+  const [cy, cm] = currentMonth.split('-').map(Number)
   const map = new Map<string, T>()
   for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const date = new Date(Date.UTC(cy!, cm! - 1 - i, 1))
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
     map.set(key, defaultValue())
   }
   return map
@@ -107,28 +108,30 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
     return toMYTDateString()
   }
 
-  // Get first day of current month
+  // Get first day of current month (MYT, returned as UTC ISO string)
   function getCurrentMonthStart(): string {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const [y, m] = toMYTMonthKey().split('-').map(Number)
+    // 1st of month midnight MYT = UTC -8 hours
+    return new Date(Date.UTC(y!, m! - 1, 1, -8)).toISOString()
   }
 
-  // Get first and last day of previous month
+  // Get first and last day of previous month (MYT, returned as UTC ISO strings)
   function getPreviousMonthRange(): { start: string; end: string } {
-    const now = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+    const [y, m] = toMYTMonthKey().split('-').map(Number)
+    // Previous month start: 1st of (month-1), midnight MYT
+    const start = new Date(Date.UTC(y!, m! - 2, 1, -8))
+    // Previous month end: last day of (month-1), 23:59:59.999 MYT
+    const end = new Date(Date.UTC(y!, m! - 1, 0, 15, 59, 59, 999))
     return {
       start: start.toISOString(),
       end: end.toISOString(),
     }
   }
 
-  // Get range for last 12 months (including current month)
+  // Get range for last 12 months including current month (MYT, returned as UTC ISO string)
   function getLast12MonthsStart(): string {
-    const now = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1)
-    return start.toISOString()
+    const [y, m] = toMYTMonthKey().split('-').map(Number)
+    return new Date(Date.UTC(y!, m! - 12, 1, -8)).toISOString()
   }
 
   // Fetch all dashboard stats (with cache check)
@@ -282,8 +285,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
         for (const payment of monthlyRevenueResult.data) {
           if (payment.created_at) {
-            const date = new Date(payment.created_at)
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+            const key = toMYTMonthKey(new Date(payment.created_at))
             const existing = monthlyMap.get(key) ?? 0
             monthlyMap.set(key, existing + (payment.amount_cents ?? 0))
           }
@@ -302,8 +304,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
         for (const upgrade of monthlyUpgradesResult.data) {
           if (upgrade.created_at && upgrade.tier) {
-            const date = new Date(upgrade.created_at)
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+            const key = toMYTMonthKey(new Date(upgrade.created_at))
             const existing = upgradesMap.get(key)
             if (existing) {
               const tier = upgrade.tier as 'plus' | 'pro' | 'max'

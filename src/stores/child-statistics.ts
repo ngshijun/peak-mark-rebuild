@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
+import { toMYTDateString, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
@@ -475,24 +476,21 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     const stats = getChildStatistics(childId)
     const sessions = stats?.sessions ?? []
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayUTC = mytDateToUTCDate(toMYTDateString())
 
     // Create a map for the last N days initialized to 0
     const countsMap = new Map<string, number>()
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-      countsMap.set(dateStr, 0)
+      const date = new Date(todayUTC)
+      date.setUTCDate(date.getUTCDate() - i)
+      countsMap.set(utcDateToString(date), 0)
     }
 
-    // Count completed sessions per day
+    // Count completed sessions per day (group by MYT date)
     sessions
       .filter((s) => s.status === 'completed' && s.completedAt)
       .forEach((session) => {
-        const completedDate = new Date(session.completedAt!)
-        const dateStr = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, '0')}-${String(completedDate.getDate()).padStart(2, '0')}`
+        const dateStr = toMYTDateString(new Date(session.completedAt!))
         if (countsMap.has(dateStr)) {
           countsMap.set(dateStr, (countsMap.get(dateStr) ?? 0) + 1)
         }

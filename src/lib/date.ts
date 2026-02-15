@@ -61,6 +61,27 @@ export function utcDateToString(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
 }
 
+/**
+ * Returns start and end of the current MYT day as UTC ISO strings.
+ * MYT is always UTC+8 (no DST), so midnight MYT = day-1 16:00 UTC.
+ * Useful for Supabase date-range queries anchored to the MYT calendar day.
+ */
+export function getMYTDayBoundsISO(date: Date = new Date()): { start: string; end: string } {
+  const mytDateStr = toMYTDateString(date)
+  const [y, m, d] = mytDateStr.split('-').map(Number)
+  const start = new Date(Date.UTC(y!, m! - 1, d!, -8)) // midnight MYT in UTC
+  const end = new Date(Date.UTC(y!, m! - 1, d!, 15, 59, 59, 999)) // 23:59:59.999 MYT in UTC
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
+/**
+ * Returns YYYY-MM month key in MYT timezone.
+ * Useful for grouping records by calendar month in MYT.
+ */
+export function toMYTMonthKey(date: Date = new Date()): string {
+  return toMYTDateString(date).slice(0, 7)
+}
+
 // ─── Display formatting utilities ────────────────────────────────────────────
 
 /**

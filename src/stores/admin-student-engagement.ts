@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
+import { toMYTDateString, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 import { computeLevel, XP_PER_LEVEL } from '@/lib/xp'
@@ -88,9 +89,9 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
 
     try {
       // Parallel fetch all engagement data
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]!
+      const todayUTC = mytDateToUTCDate(toMYTDateString())
+      todayUTC.setUTCDate(todayUTC.getUTCDate() - 30)
+      const thirtyDaysAgoStr = utcDateToString(todayUTC)
 
       const [profileResult, petsResult, moodResult, subscriptionResult, paymentResult] =
         await Promise.all([

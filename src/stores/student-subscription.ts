@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
+import { getMYTDayBoundsISO } from '@/lib/date'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
 
@@ -184,17 +185,14 @@ export const useStudentSubscriptionStore = defineStore('studentSubscription', ()
 
     const subscriptionStatus = preloadedSubscriptionStatus ?? (await getStudentSubscriptionStatus())
 
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date()
-    todayEnd.setHours(23, 59, 59, 999)
+    const { start: todayStart, end: todayEnd } = getMYTDayBoundsISO()
 
     const { count, error: countError } = await supabase
       .from('practice_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('student_id', authStore.user.id)
-      .gte('created_at', todayStart.toISOString())
-      .lte('created_at', todayEnd.toISOString())
+      .gte('created_at', todayStart)
+      .lte('created_at', todayEnd)
 
     if (countError) {
       console.error('Error counting sessions:', countError)
