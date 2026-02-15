@@ -55,7 +55,7 @@ watch(
       }
     "
   >
-    <DialogContent class="sm:max-w-sm text-center">
+    <DialogContent class="sm:max-w-md text-center">
       <DialogHeader>
         <DialogTitle class="text-center text-xl">Weekly Leaderboard Results</DialogTitle>
         <DialogDescription class="text-center">

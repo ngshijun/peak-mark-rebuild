@@ -62,7 +62,7 @@ defineExpose({ handleDone })
 
 <template>
   <Dialog :open="props.open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-sm">
+    <DialogContent class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>Buy Food</DialogTitle>
         <DialogDescription>Exchange coins for food to feed your pet.</DialogDescription>

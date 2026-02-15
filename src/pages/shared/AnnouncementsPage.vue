@@ -8,6 +8,8 @@ import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDet
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
@@ -60,12 +62,6 @@ async function handleMarkAllAsRead() {
     }
   } finally {
     isMarkingAllRead.value = false
-  }
-}
-
-function goToPage(page: number) {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
   }
 }
 </script>
@@ -123,20 +119,22 @@ function goToPage(page: number) {
             :page="currentPage"
             @update:page="(page: number) => (currentPage = page)"
           >
-            <PaginationContent class="flex items-center gap-1">
-              <PaginationPrevious
-                :disabled="currentPage === 1"
-                @click="goToPage(currentPage - 1)"
-              />
+            <PaginationContent v-slot="{ items }">
+              <PaginationPrevious />
 
-              <span class="px-4 text-sm text-muted-foreground">
-                Page {{ currentPage }} of {{ totalPages }}
-              </span>
+              <template v-for="(page, index) in items">
+                <PaginationItem
+                  v-if="page.type === 'page'"
+                  :key="index"
+                  :value="page.value"
+                  :is-active="page.value === currentPage"
+                >
+                  {{ page.value }}
+                </PaginationItem>
+                <PaginationEllipsis v-else :key="page.type" :index="index" />
+              </template>
 
-              <PaginationNext
-                :disabled="currentPage === totalPages"
-                @click="goToPage(currentPage + 1)"
-              />
+              <PaginationNext />
             </PaginationContent>
           </Pagination>
         </div>
