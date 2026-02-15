@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
@@ -19,7 +19,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
-const dateOfBirthValue = ref<DateValue | undefined>(undefined)
+const dateOfBirthValue = shallowRef<DateValue | undefined>(undefined)
 
 // Max date for birthday (today)
 const maxBirthdayDate = computed(() => today(getLocalTimeZone()))

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { shallowRef, watch, computed } from 'vue'
 import { type DateValue, getLocalTimeZone, today, parseDate } from '@internationalized/date'
 import { createYearRange } from 'reka-ui/date'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,7 @@ const emit = defineEmits<{
 
 const open = defineModel<boolean>('open', { required: true })
 
-const dateValue = ref<DateValue | undefined>(undefined)
+const dateValue = shallowRef<DateValue | undefined>(undefined)
 
 const maxDate = computed(() => today(getLocalTimeZone()))
 
