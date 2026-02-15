@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import PetFormDialog from '@/components/admin/PetFormDialog.vue'
+import PetPreviewDialog from '@/components/admin/PetPreviewDialog.vue'
 import { toast } from 'vue-sonner'
 
 const petsStore = usePetsStore()
@@ -43,6 +44,15 @@ function filteredPetsByRarity(rarity: PetRarity) {
 }
 
 const allFilteredPets = computed(() => raritiesDesc.flatMap((r) => filteredPetsByRarity(r)))
+
+// Preview Dialog
+const showPreviewDialog = ref(false)
+const previewPet = ref<Pet | null>(null)
+
+function openPreviewDialog(pet: Pet) {
+  previewPet.value = pet
+  showPreviewDialog.value = true
+}
 
 // Add/Edit Dialog
 const showPetDialog = ref(false)
@@ -94,7 +104,7 @@ async function confirmDelete() {
 function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
   const path = tier === 1 ? pet.imagePath : tier === 2 ? pet.tier2ImagePath : pet.tier3ImagePath
   if (!path) return null
-  return petsStore.getPetImageUrl(path, pet.updatedAt)
+  return petsStore.getOptimizedPetImageUrl(path, pet.updatedAt)
 }
 </script>
 
@@ -154,9 +164,10 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
               class="overflow-hidden gap-0 py-0"
               :class="rarityConfig[pet.rarity].borderColor"
             >
-              <div
-                class="grid grid-cols-3 gap-1 px-2 pt-2"
+              <button
+                class="grid cursor-pointer grid-cols-3 gap-1 px-2 pt-2"
                 :class="rarityConfig[pet.rarity].bgColor"
+                @click="openPreviewDialog(pet)"
               >
                 <div
                   v-for="tier in [1, 2, 3] as const"
@@ -172,7 +183,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
                   />
                   <span v-else class="text-xs text-muted-foreground">—</span>
                 </div>
-              </div>
+              </button>
               <div class="flex items-center justify-between px-3 py-2">
                 <div class="flex items-center gap-2">
                   <span class="font-medium">{{ pet.name }}</span>
@@ -217,7 +228,11 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
               :class="rarityConfig[rarity].borderColor"
             >
               <!-- Tier images row -->
-              <div class="grid grid-cols-3 gap-1 px-2 pt-2" :class="rarityConfig[rarity].bgColor">
+              <button
+                class="grid cursor-pointer grid-cols-3 gap-1 px-2 pt-2"
+                :class="rarityConfig[rarity].bgColor"
+                @click="openPreviewDialog(pet)"
+              >
                 <div
                   v-for="tier in [1, 2, 3] as const"
                   :key="tier"
@@ -232,7 +247,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
                   />
                   <span v-else class="text-xs text-muted-foreground">—</span>
                 </div>
-              </div>
+              </button>
 
               <!-- Info + actions -->
               <div class="flex items-center justify-between px-3 py-2">
@@ -266,6 +281,9 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
         </TabsContent>
       </Tabs>
     </template>
+
+    <!-- Pet Preview Dialog -->
+    <PetPreviewDialog v-model:open="showPreviewDialog" :pet="previewPet" />
 
     <!-- Add/Edit Pet Dialog -->
     <PetFormDialog v-model:open="showPetDialog" :pet="editingPet" @saved="onPetSaved" />
