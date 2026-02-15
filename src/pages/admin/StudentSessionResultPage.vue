@@ -5,24 +5,18 @@ import { useAdminStudentsStore } from '@/stores/admin-students'
 import {
   useAdminStudentStatsStore,
   type StudentPracticeSessionFull,
-  type PracticeAnswer,
 } from '@/stores/admin-student-stats'
-import { useQuestionsStore } from '@/stores/questions'
-import { formatDateTime } from '@/lib/date'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import { computeScorePercent } from '@/lib/questionHelpers'
-import SessionSummaryCards from '@/components/session/SessionSummaryCards.vue'
-import SessionQuestionCard from '@/components/session/SessionQuestionCard.vue'
+import SessionResultContent from '@/components/session/SessionResultContent.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Loader2, BotMessageSquare } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const adminStudentsStore = useAdminStudentsStore()
 const adminStatsStore = useAdminStudentStatsStore()
-const questionsStore = useQuestionsStore()
 
 const studentId = computed(() => route.params.studentId as string)
 const sessionId = computed(() => route.params.sessionId as string)
@@ -32,7 +26,6 @@ const student = computed(() => adminStudentsStore.getStudentById(studentId.value
 
 const session = ref<StudentPracticeSessionFull | null>(null)
 const isLoading = ref(true)
-const error = ref<string | null>(null)
 
 const summary = computed(() => {
   if (!session.value) return null
@@ -61,16 +54,11 @@ onMounted(async () => {
   if (result.session) {
     session.value = result.session
   } else {
-    error.value = result.error
     // Redirect if session not found
     router.push(`/admin/students/${studentId.value}/statistics`)
   }
   isLoading.value = false
 })
-
-function getAnswerByIndex(index: number): PracticeAnswer | undefined {
-  return session.value?.answers[index]
-}
 
 function goBack() {
   router.push(`/admin/students/${studentId.value}/statistics`)
@@ -99,53 +87,36 @@ function goBack() {
         </p>
       </div>
 
-      <!-- Summary Cards -->
-      <SessionSummaryCards
-        :score="summary.score"
-        :correct-answers="summary.correctAnswers"
-        :incorrect-answers="summary.incorrectAnswers"
-        :duration-seconds="summary.durationSeconds"
-      />
-
-      <div v-if="session.completedAt" class="mb-4 text-sm text-muted-foreground">
-        Completed: {{ formatDateTime(session.completedAt) }}
-      </div>
-
-      <!-- AI Summary -->
-      <Card
-        v-if="session.aiSummary"
-        class="mb-6 border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20"
+      <SessionResultContent
+        :summary="summary"
+        :completed-at="session.completedAt"
+        :questions="session.questions"
+        :answers="session.answers"
+        :is-locked="false"
+        answer-label="Student's"
       >
-        <CardHeader class="pb-2">
-          <CardTitle
-            class="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300"
+        <template #ai-summary>
+          <Card
+            v-if="session.aiSummary"
+            class="mb-6 border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/20"
           >
-            <BotMessageSquare class="size-4" />
-            AI Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="text-sm leading-relaxed" v-html="parseSimpleMarkdown(session.aiSummary)" />
-        </CardContent>
-      </Card>
-
-      <Separator class="mb-6" />
-
-      <!-- Questions List -->
-      <div class="space-y-4">
-        <h2 class="text-lg font-semibold">Question Details</h2>
-
-        <SessionQuestionCard
-          v-for="(question, index) in session.questions"
-          :key="question.id"
-          :question="question"
-          :answer="getAnswerByIndex(index)"
-          :index="index"
-          answer-label="Student's"
-          :get-image-url="questionsStore.getOptimizedQuestionImageUrl"
-          :get-thumbnail-url="questionsStore.getThumbnailQuestionImageUrl"
-        />
-      </div>
+            <CardHeader class="pb-2">
+              <CardTitle
+                class="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300"
+              >
+                <BotMessageSquare class="size-4" />
+                AI Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                class="text-sm leading-relaxed"
+                v-html="parseSimpleMarkdown(session.aiSummary)"
+              />
+            </CardContent>
+          </Card>
+        </template>
+      </SessionResultContent>
     </template>
 
     <!-- Empty State -->
