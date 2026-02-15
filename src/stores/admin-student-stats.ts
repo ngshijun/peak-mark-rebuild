@@ -6,14 +6,7 @@ import { useAdminStudentsStore } from './admin-students'
 import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 import type { SubTopicHierarchy } from '@/types/supabase-helpers'
-import {
-  type DateRangeFilter,
-  filterSessions,
-  getUniqueGradeLevels,
-  getUniqueSubjects,
-  getUniqueTopics,
-  getUniqueSubTopics,
-} from '@/lib/sessionFilters'
+import { type DateRangeFilter, createSessionLookupMethods } from '@/lib/sessionFilters'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
 import type {
   QuestionOption,
@@ -22,7 +15,11 @@ import type {
   PracticeSessionSummary,
   PracticeSessionFull,
 } from '@/types/session'
-import { buildQuestionsFromAnswers } from '@/lib/questionHelpers'
+import {
+  buildQuestionsFromAnswers,
+  mapAnswerRows,
+  assembleSessionFull,
+} from '@/lib/questionHelpers'
 
 // Cache TTL for student statistics (re-fetch when navigating back after this period)
 const STATISTICS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -288,49 +285,22 @@ export const useAdminStudentStatsStore = defineStore('adminStudentStats', () => 
         questionsMap.set(q.id, q)
       }
 
-      // Build questions array in order of answers
+      // Build questions and answers from DB rows
       const questions = buildQuestionsFromAnswers(answersData ?? [], questionsMap)
-
-      // Build answers array
-      const answers: PracticeAnswer[] = (answersData ?? []).map((a) => ({
-        questionId: a.question_id,
-        selectedOptions: a.selected_options,
-        textAnswer: a.text_answer,
-        isCorrect: a.is_correct ?? false,
-        answeredAt: a.answered_at ?? new Date().toISOString(),
-        timeSpentSeconds: a.time_spent_seconds,
-      }))
-
-      // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
+      const answers = mapAnswerRows(answersData ?? [])
       const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
 
       const correctAnswers = answers.filter((a) => a.isCorrect).length
-      const totalQuestions = sessionData.total_questions ?? answers.length
-      // Calculate duration from sum of time_spent_seconds in answers
       const durationSeconds = answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)
 
-      const session: StudentPracticeSessionFull = {
-        id: sessionData.id,
-        gradeLevelId: subTopic?.topics?.subjects?.grade_levels?.id ?? '',
-        gradeLevelName: subTopic?.topics?.subjects?.grade_levels?.name ?? 'Unknown',
-        subjectId: subTopic?.topics?.subjects?.id ?? '',
-        subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
-        topicId: subTopic?.topics?.id ?? '',
-        topicName: subTopic?.topics?.name ?? 'Unknown',
-        subTopicId: subTopic?.id ?? '',
-        subTopicName: subTopic?.name ?? 'Unknown',
-        score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
-        totalQuestions,
-        correctAnswers,
-        durationSeconds,
-        createdAt: sessionData.created_at ?? '',
-        startedAt: sessionData.created_at ?? '',
-        completedAt: sessionData.completed_at!,
-        status: 'completed',
+      const session: StudentPracticeSessionFull = assembleSessionFull(
+        sessionData,
+        subTopic,
         questions,
         answers,
-        aiSummary: sessionData.ai_summary ?? null,
-      }
+        correctAnswers,
+        durationSeconds,
+      )
 
       return { session, error: null }
     } catch (err) {
@@ -344,58 +314,9 @@ export const useAdminStudentStatsStore = defineStore('adminStudentStats', () => 
     return studentStatistics.value.find((stat) => stat.studentId === studentId)
   }
 
-  // Get filtered sessions for a student
-  function getFilteredSessions(
-    studentId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-    subTopicName?: string,
-    dateRange?: DateRangeFilter,
-  ): StudentPracticeSession[] {
-    const stats = getStudentStatistics(studentId)
-    if (!stats) return []
-    return filterSessions(stats.sessions, {
-      gradeLevelName,
-      subjectName,
-      topicName,
-      subTopicName,
-      dateRange,
-    })
-  }
-
-  // Get unique grade levels for a student
-  function getGradeLevels(studentId: string): string[] {
-    const stats = getStudentStatistics(studentId)
-    if (!stats) return []
-    return getUniqueGradeLevels(stats.sessions)
-  }
-
-  // Get unique subjects for a student (optionally filtered by grade level)
-  function getSubjects(studentId: string, gradeLevelName?: string): string[] {
-    const stats = getStudentStatistics(studentId)
-    if (!stats) return []
-    return getUniqueSubjects(stats.sessions, gradeLevelName)
-  }
-
-  // Get unique topics for a student (optionally filtered by grade level and subject)
-  function getTopics(studentId: string, gradeLevelName?: string, subjectName?: string): string[] {
-    const stats = getStudentStatistics(studentId)
-    if (!stats) return []
-    return getUniqueTopics(stats.sessions, gradeLevelName, subjectName)
-  }
-
-  // Get unique sub-topics for a student
-  function getSubTopics(
-    studentId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-  ): string[] {
-    const stats = getStudentStatistics(studentId)
-    if (!stats) return []
-    return getUniqueSubTopics(stats.sessions, gradeLevelName, subjectName, topicName)
-  }
+  // Cascading filter lookup methods (shared pattern)
+  const { getFilteredSessions, getGradeLevels, getSubjects, getTopics, getSubTopics } =
+    createSessionLookupMethods((studentId: string) => getStudentStatistics(studentId)?.sessions)
 
   // Reset store state
   function $reset() {

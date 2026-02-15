@@ -213,7 +213,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                     layout="month-and-year"
                     initial-focus
                     @update:model-value="
-                      (v: any) => {
+                      (v: DateValue | undefined) => {
                         dateOfBirthValue = v
                         handleChange(v?.toString() ?? '')
                       }

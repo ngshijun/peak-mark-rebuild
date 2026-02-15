@@ -119,3 +119,62 @@ export function getUniqueSubTopics<T extends FilterableSession>(
   }
   return Array.from(new Set(filtered.map((s) => s.subTopicName))).sort()
 }
+
+/**
+ * Factory that creates the 5 cascading filter lookup methods shared
+ * across statistics stores. Each store provides a function that
+ * returns sessions for a given entity ID.
+ */
+export function createSessionLookupMethods<T extends FilterableSession>(
+  getSessionsForId: (id: string) => T[] | undefined,
+) {
+  function getFilteredSessions(
+    id: string,
+    gradeLevelName?: string,
+    subjectName?: string,
+    topicName?: string,
+    subTopicName?: string,
+    dateRange?: DateRangeFilter,
+  ): T[] {
+    const sessions = getSessionsForId(id)
+    if (!sessions) return []
+    return filterSessions(sessions, {
+      gradeLevelName,
+      subjectName,
+      topicName,
+      subTopicName,
+      dateRange,
+    })
+  }
+
+  function getGradeLevels(id: string): string[] {
+    const sessions = getSessionsForId(id)
+    if (!sessions) return []
+    return getUniqueGradeLevels(sessions)
+  }
+
+  function getSubjects(id: string, gradeLevelName?: string): string[] {
+    const sessions = getSessionsForId(id)
+    if (!sessions) return []
+    return getUniqueSubjects(sessions, gradeLevelName)
+  }
+
+  function getTopics(id: string, gradeLevelName?: string, subjectName?: string): string[] {
+    const sessions = getSessionsForId(id)
+    if (!sessions) return []
+    return getUniqueTopics(sessions, gradeLevelName, subjectName)
+  }
+
+  function getSubTopics(
+    id: string,
+    gradeLevelName?: string,
+    subjectName?: string,
+    topicName?: string,
+  ): string[] {
+    const sessions = getSessionsForId(id)
+    if (!sessions) return []
+    return getUniqueSubTopics(sessions, gradeLevelName, subjectName, topicName)
+  }
+
+  return { getFilteredSessions, getGradeLevels, getSubjects, getTopics, getSubTopics }
+}

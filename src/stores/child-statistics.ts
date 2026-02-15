@@ -6,14 +6,7 @@ import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 import type { SubTopicHierarchy } from '@/types/supabase-helpers'
-import {
-  type DateRangeFilter,
-  filterSessions,
-  getUniqueGradeLevels,
-  getUniqueSubjects,
-  getUniqueTopics,
-  getUniqueSubTopics,
-} from '@/lib/sessionFilters'
+import { type DateRangeFilter, createSessionLookupMethods } from '@/lib/sessionFilters'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
 import type {
   QuestionOption,
@@ -22,7 +15,11 @@ import type {
   PracticeSessionSummary,
   PracticeSessionFull,
 } from '@/types/session'
-import { buildQuestionsFromAnswers } from '@/lib/questionHelpers'
+import {
+  buildQuestionsFromAnswers,
+  mapAnswerRows,
+  assembleSessionFull,
+} from '@/lib/questionHelpers'
 
 export type { DateRangeFilter, QuestionOption, PracticeAnswer, Question }
 export type ChildPracticeSession = PracticeSessionSummary
@@ -416,53 +413,27 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         questionsMap.set(q.id, q)
       }
 
-      // Build questions array in order of answers
+      // Build questions and answers from DB rows
       const questions = buildQuestionsFromAnswers(answersData ?? [], questionsMap)
-
-      // Build answers array
-      const answers: PracticeAnswer[] = (answersData ?? []).map((a) => ({
-        questionId: a.question_id,
-        selectedOptions: a.selected_options,
-        textAnswer: a.text_answer,
-        isCorrect: a.is_correct ?? false,
-        answeredAt: a.answered_at ?? new Date().toISOString(),
-        timeSpentSeconds: a.time_spent_seconds,
-      }))
-
-      // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
+      const answers = mapAnswerRows(answersData ?? [])
       const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
 
-      // Use DB row fields for summary (works even when answers aren't loaded)
+      // Use DB row fields for summary when answers aren't loaded (subscription-gated)
       const correctAnswers = canViewDetails
         ? answers.filter((a) => a.isCorrect).length
         : (sessionData.correct_count ?? 0)
-      const totalQuestions = sessionData.total_questions ?? answers.length
       const durationSeconds = canViewDetails
         ? answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)
         : (sessionData.total_time_seconds ?? 0)
 
-      const session: ChildPracticeSessionFull = {
-        id: sessionData.id,
-        gradeLevelId: subTopic?.topics?.subjects?.grade_levels?.id ?? '',
-        gradeLevelName: subTopic?.topics?.subjects?.grade_levels?.name ?? 'Unknown',
-        subjectId: subTopic?.topics?.subjects?.id ?? '',
-        subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
-        topicId: subTopic?.topics?.id ?? '',
-        topicName: subTopic?.topics?.name ?? 'Unknown',
-        subTopicId: subTopic?.id ?? '',
-        subTopicName: subTopic?.name ?? 'Unknown',
-        score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
-        totalQuestions,
-        correctAnswers,
-        durationSeconds,
-        createdAt: sessionData.created_at ?? '',
-        startedAt: sessionData.created_at ?? '',
-        completedAt: sessionData.completed_at!,
-        status: 'completed',
+      const session: ChildPracticeSessionFull = assembleSessionFull(
+        sessionData,
+        subTopic,
         questions,
         answers,
-        aiSummary: sessionData.ai_summary ?? null,
-      }
+        correctAnswers,
+        durationSeconds,
+      )
 
       return {
         session,
@@ -486,25 +457,9 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     return childrenStatistics.value.find((stat) => stat.childId === childId)
   }
 
-  // Get filtered sessions for a child
-  function getFilteredSessions(
-    childId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-    subTopicName?: string,
-    dateRange?: DateRangeFilter,
-  ): ChildPracticeSession[] {
-    const stats = getChildStatistics(childId)
-    if (!stats) return []
-    return filterSessions(stats.sessions, {
-      gradeLevelName,
-      subjectName,
-      topicName,
-      subTopicName,
-      dateRange,
-    })
-  }
+  // Cascading filter lookup methods (shared pattern)
+  const { getFilteredSessions, getGradeLevels, getSubjects, getTopics, getSubTopics } =
+    createSessionLookupMethods((childId: string) => getChildStatistics(childId)?.sessions)
 
   // Calculate average score for filtered sessions
   function getAverageScore(
@@ -605,39 +560,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     })
 
     return Array.from(subTopicMap.values()).sort((a, b) => b.count - a.count)
-  }
-
-  // Get unique grade levels for a child
-  function getGradeLevels(childId: string): string[] {
-    const stats = getChildStatistics(childId)
-    if (!stats) return []
-    return getUniqueGradeLevels(stats.sessions)
-  }
-
-  // Get unique subjects for a child (optionally filtered by grade level)
-  function getSubjects(childId: string, gradeLevelName?: string): string[] {
-    const stats = getChildStatistics(childId)
-    if (!stats) return []
-    return getUniqueSubjects(stats.sessions, gradeLevelName)
-  }
-
-  // Get unique topics for a child (optionally filtered by grade level and subject)
-  function getTopics(childId: string, gradeLevelName?: string, subjectName?: string): string[] {
-    const stats = getChildStatistics(childId)
-    if (!stats) return []
-    return getUniqueTopics(stats.sessions, gradeLevelName, subjectName)
-  }
-
-  // Get unique sub-topics for a child (optionally filtered by grade level, subject, and topic)
-  function getSubTopics(
-    childId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-  ): string[] {
-    const stats = getChildStatistics(childId)
-    if (!stats) return []
-    return getUniqueSubTopics(stats.sessions, gradeLevelName, subjectName, topicName)
   }
 
   // Get recent sessions for a child (sorted by date descending)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { sidebarNavConfig } from '@/config/navigation'
+import { sidebarNavConfig } from '@/lib/navigation'
 import { Sidebar, SidebarContent } from '@/components/ui/sidebar'
 import SidebarHeader from './SidebarHeader.vue'
 import SidebarNav from './SidebarNav.vue'

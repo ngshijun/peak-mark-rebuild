@@ -1,7 +1,9 @@
 import type { Database } from '@/types/database.types'
-import type { QuestionOption, Question } from '@/types/session'
+import type { SubTopicHierarchy } from '@/types/supabase-helpers'
+import type { QuestionOption, PracticeAnswer, Question, PracticeSessionFull } from '@/types/session'
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
+type AnswerRow = Database['public']['Tables']['practice_answers']['Row']
 
 /** Extract options from question row columns into a typed array */
 export function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
@@ -41,6 +43,18 @@ export function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
   return options
 }
 
+/** Map raw DB answer rows to typed PracticeAnswer[] */
+export function mapAnswerRows(rows: AnswerRow[]): PracticeAnswer[] {
+  return rows.map((a) => ({
+    questionId: a.question_id,
+    selectedOptions: a.selected_options,
+    textAnswer: a.text_answer,
+    isCorrect: a.is_correct ?? false,
+    answeredAt: a.answered_at ?? new Date().toISOString(),
+    timeSpentSeconds: a.time_spent_seconds,
+  }))
+}
+
 /** Build Question[] from answer rows and a questions map, with placeholders for deleted questions */
 export function buildQuestionsFromAnswers(
   answersData: Database['public']['Tables']['practice_answers']['Row'][],
@@ -70,4 +84,44 @@ export function buildQuestionsFromAnswers(
       isDeleted: true,
     }
   })
+}
+
+/** Assemble a PracticeSessionFull from its component parts */
+export function assembleSessionFull(
+  sessionData: {
+    id: string
+    created_at: string | null
+    completed_at: string | null
+    total_questions: number | null
+    ai_summary: string | null
+  },
+  subTopic: SubTopicHierarchy | null | undefined,
+  questions: Question[],
+  answers: PracticeAnswer[],
+  correctAnswers: number,
+  durationSeconds: number,
+): PracticeSessionFull {
+  const totalQuestions = sessionData.total_questions ?? answers.length
+  return {
+    id: sessionData.id,
+    gradeLevelId: subTopic?.topics?.subjects?.grade_levels?.id ?? '',
+    gradeLevelName: subTopic?.topics?.subjects?.grade_levels?.name ?? 'Unknown',
+    subjectId: subTopic?.topics?.subjects?.id ?? '',
+    subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
+    topicId: subTopic?.topics?.id ?? '',
+    topicName: subTopic?.topics?.name ?? 'Unknown',
+    subTopicId: subTopic?.id ?? '',
+    subTopicName: subTopic?.name ?? 'Unknown',
+    score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+    totalQuestions,
+    correctAnswers,
+    durationSeconds,
+    createdAt: sessionData.created_at ?? '',
+    startedAt: sessionData.created_at ?? '',
+    completedAt: sessionData.completed_at!,
+    status: 'completed',
+    questions,
+    answers,
+    aiSummary: sessionData.ai_summary ?? null,
+  }
 }
