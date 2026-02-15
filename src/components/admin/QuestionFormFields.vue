@@ -43,7 +43,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <div class="grid grid-cols-2 gap-4">
     <VeeField v-slot="{ handleChange, value }" name="type">
       <Field>
-        <FieldLabel>Question Type</FieldLabel>
+        <FieldLabel> Question Type <span class="text-destructive">*</span> </FieldLabel>
         <Select
           :model-value="value"
           :disabled="f.isSaving.value"
@@ -343,7 +343,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <!-- Explanation -->
   <VeeField v-slot="{ value, handleChange, handleBlur }" name="explanation">
     <Field>
-      <FieldLabel>Explanation</FieldLabel>
+      <FieldLabel>Explanation (Optional)</FieldLabel>
       <Textarea
         :model-value="value"
         @update:model-value="handleChange"

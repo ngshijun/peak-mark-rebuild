@@ -111,12 +111,12 @@ const columns: ColumnDef<Question>[] = [
       const type = row.original.type
       const config: Record<string, { label: string; color: string; bgColor: string }> = {
         mcq: {
-          label: 'MCQ',
+          label: 'Multiple Choice',
           color: 'text-blue-700 dark:text-blue-300',
           bgColor: 'bg-blue-100 dark:bg-blue-900/50',
         },
         mrq: {
-          label: 'MRQ',
+          label: 'Multiple Response',
           color: 'text-purple-700 dark:text-purple-300',
           bgColor: 'bg-purple-100 dark:bg-purple-900/50',
         },

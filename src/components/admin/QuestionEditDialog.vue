@@ -201,7 +201,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
     <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
         <DialogTitle>Edit Question</DialogTitle>
-        <DialogDescription>Update the question details.</DialogDescription>
+        <DialogDescription>Update an existing question in the question bank.</DialogDescription>
       </DialogHeader>
 
       <form class="space-y-4 py-4" @submit="onSubmit">
