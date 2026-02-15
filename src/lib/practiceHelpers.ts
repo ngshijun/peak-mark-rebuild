@@ -1,19 +1,8 @@
-import type { Database } from '@/types/database.types'
+import type { PracticeAnswer } from '@/types/session'
 
+export type { PracticeAnswer } from '@/types/session'
 export type { DateRangeFilter } from '@/lib/sessionFilters'
 export type { StudentSubscriptionStatus, SessionLimitStatus } from '@/stores/student-subscription'
-
-type PracticeAnswerRow = Database['public']['Tables']['practice_answers']['Row']
-
-export interface PracticeAnswer {
-  id: string
-  questionId: string | null
-  selectedOptions: number[] | null // Array of 1-4 for options a-d (MCQ: single element, MRQ: multiple)
-  textAnswer: string | null
-  isCorrect: boolean
-  answeredAt: string | null
-  timeSpentSeconds: number | null
-}
 
 export interface PracticeSession {
   id: string
@@ -75,19 +64,4 @@ export function optionNumberToId(optionNumber: number): string {
 export function optionNumbersToIds(optionNumbers: number[] | null): string[] {
   if (!optionNumbers) return []
   return optionNumbers.map((num) => optionNumberToId(num))
-}
-
-/**
- * Convert database row to PracticeAnswer
- */
-export function rowToAnswer(row: PracticeAnswerRow): PracticeAnswer {
-  return {
-    id: row.id,
-    questionId: row.question_id,
-    selectedOptions: row.selected_options,
-    textAnswer: row.text_answer,
-    isCorrect: row.is_correct,
-    answeredAt: row.answered_at,
-    timeSpentSeconds: row.time_spent_seconds,
-  }
 }

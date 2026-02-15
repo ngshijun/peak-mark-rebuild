@@ -5,7 +5,7 @@ import { useQuestionsStore, type Question } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
-import { computeScorePercent } from '@/lib/questionHelpers'
+import { computeScorePercent, mapAnswerRow } from '@/lib/questionHelpers'
 import {
   useStudentSubscriptionStore,
   type StudentSubscriptionStatus,
@@ -18,7 +18,6 @@ import {
   optionIdToNumber,
   optionNumberToId,
   optionNumbersToIds,
-  rowToAnswer,
 } from '@/lib/practiceHelpers'
 import { usePracticeHistoryStore } from './practice-history'
 
@@ -323,7 +322,7 @@ export const usePracticeStore = defineStore('practice', () => {
         return { answer: null, error: handleError(insertError, 'Failed to submit answer.') }
       }
 
-      const answer = rowToAnswer(answerData)
+      const answer = mapAnswerRow(answerData)
       currentSession.value.answers.push(answer)
 
       // Update local counts for UI

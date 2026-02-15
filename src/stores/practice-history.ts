@@ -14,7 +14,8 @@ import {
   getUniqueTopics,
   getUniqueSubTopics,
 } from '@/lib/sessionFilters'
-import { type PracticeAnswer, type PracticeSession, rowToAnswer } from '@/lib/practiceHelpers'
+import { type PracticeAnswer, type PracticeSession } from '@/lib/practiceHelpers'
+import { mapAnswerRow } from '@/lib/questionHelpers'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
 
 export type { DateRangeFilter }
@@ -303,7 +304,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
       }
 
       const session = rowToSession(sessionResult.data)
-      session.answers = (answersResult.data ?? []).map(rowToAnswer)
+      session.answers = (answersResult.data ?? []).map(mapAnswerRow)
 
       // Get all question IDs from answers (including null for deleted questions)
       const questionIds = session.answers.map((a) => a.questionId).filter(Boolean) as string[]

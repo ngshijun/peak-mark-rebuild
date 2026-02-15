@@ -53,16 +53,21 @@ export function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
   return options
 }
 
-/** Map raw DB answer rows to typed PracticeAnswer[] */
-export function mapAnswerRows(rows: AnswerRow[]): PracticeAnswer[] {
-  return rows.map((a) => ({
+/** Map a single raw DB answer row to typed PracticeAnswer */
+export function mapAnswerRow(a: AnswerRow): PracticeAnswer {
+  return {
     questionId: a.question_id,
     selectedOptions: a.selected_options,
     textAnswer: a.text_answer,
     isCorrect: a.is_correct ?? false,
     answeredAt: a.answered_at ?? new Date().toISOString(),
     timeSpentSeconds: a.time_spent_seconds,
-  }))
+  }
+}
+
+/** Map raw DB answer rows to typed PracticeAnswer[] */
+export function mapAnswerRows(rows: AnswerRow[]): PracticeAnswer[] {
+  return rows.map(mapAnswerRow)
 }
 
 /** Build SessionQuestion[] from answer rows and a questions map, with placeholders for deleted questions */
