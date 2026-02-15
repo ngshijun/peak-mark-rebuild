@@ -65,15 +65,15 @@ async function syncWithIds(
     ? new Date(subscription.current_period_end * 1000).toISOString()
     : null
   const startDate = subscription.start_date
-    ? new Date(subscription.start_date * 1000).toISOString().split('T')[0]
-    : new Date().toISOString().split('T')[0]
+    ? new Date(subscription.start_date * 1000).toISOString()
+    : new Date().toISOString()
 
   // next_billing_date is the end of current period (when next charge happens)
   // unless subscription is set to cancel at period end
   const nextBillingDate =
     subscription.cancel_at_period_end || !subscription.current_period_end
       ? null
-      : new Date(subscription.current_period_end * 1000).toISOString().split('T')[0]
+      : new Date(subscription.current_period_end * 1000).toISOString()
 
   // Check if subscription has a schedule - if not, clear scheduled fields
   // This handles the case when a schedule executes and the tier changes
