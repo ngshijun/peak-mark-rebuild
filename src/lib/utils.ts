@@ -13,6 +13,15 @@ export function valueUpdater<T>(updaterOrValue: Updater<T>, ref: Ref<T>) {
   ref.value = isFunction(updaterOrValue) ? updaterOrValue(ref.value) : updaterOrValue
 }
 
+/** Extract initials from a name (e.g. "John Doe" → "JD") */
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+}
+
 /**
  * Parses simple markdown to HTML.
  * Supports: **bold**, *italic*, and newlines.

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Trophy, Medal, Award } from 'lucide-vue-next'
+import { getInitials } from '@/lib/utils'
 
 export interface LeaderboardEntry {
   id: string
@@ -26,14 +27,6 @@ defineSlots<{
 
 const leaderboardStore = useLeaderboardStore()
 const authStore = useAuthStore()
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-}
 
 function getRankIcon(rank: number) {
   if (rank === 1) return Trophy

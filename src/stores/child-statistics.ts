@@ -7,26 +7,21 @@ import { handleError } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 import type { SubTopicHierarchy } from '@/types/supabase-helpers'
 import { type DateRangeFilter, createSessionLookupMethods } from '@/lib/sessionFilters'
+import { fetchSessionSummaries, fetchFullSessionDetails } from '@/lib/sessionFetching'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
 import type {
   QuestionOption,
   PracticeAnswer,
-  Question,
+  SessionQuestion,
   PracticeSessionSummary,
   PracticeSessionFull,
 } from '@/types/session'
-import {
-  buildQuestionsFromAnswers,
-  mapAnswerRows,
-  assembleSessionFull,
-  computeScorePercent,
-} from '@/lib/questionHelpers'
+import { assembleSessionFull } from '@/lib/questionHelpers'
 
 export type { DateRangeFilter, QuestionOption, PracticeAnswer, SessionQuestion }
 export type ChildPracticeSession = PracticeSessionSummary
 export type ChildPracticeSessionFull = PracticeSessionFull
 
-type QuestionRow = Database['public']['Tables']['questions']['Row']
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
 
 // Cache TTL for child subscription status
@@ -114,99 +109,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     error.value = null
 
     try {
-      // Fetch all practice sessions for this child (including in-progress)
-      const { data: sessionsData, error: fetchError } = await supabase
-        .from('practice_sessions')
-        .select(
-          `
-          id,
-          student_id,
-          topic_id,
-          total_questions,
-          created_at,
-          completed_at,
-          sub_topics (
-            id,
-            name,
-            topics (
-              id,
-              name,
-              subjects (
-                id,
-                name,
-                grade_levels (
-                  id,
-                  name
-                )
-              )
-            )
-          )
-        `,
-        )
-        .eq('student_id', childId)
-        .order('created_at', { ascending: false })
-
-      if (fetchError) throw fetchError
-
-      // Get all session IDs for batch query
-      const sessionIds = (sessionsData ?? []).map((s) => s.id)
-
-      // Batch fetch all answers in a single request
-      let allAnswersData: {
-        session_id: string
-        is_correct: boolean | null
-        time_spent_seconds: number | null
-      }[] = []
-      if (sessionIds.length > 0) {
-        const { data } = await supabase
-          .from('practice_answers')
-          .select('session_id, is_correct, time_spent_seconds')
-          .in('session_id', sessionIds)
-        allAnswersData = data ?? []
-      }
-
-      // Group answers by session_id
-      const answersBySession = new Map<
-        string,
-        { is_correct: boolean | null; time_spent_seconds: number | null }[]
-      >()
-      for (const answer of allAnswersData) {
-        if (!answersBySession.has(answer.session_id)) {
-          answersBySession.set(answer.session_id, [])
-        }
-        answersBySession.get(answer.session_id)!.push(answer)
-      }
-
-      // Build sessions with scores
-      const sessions: ChildPracticeSession[] = []
-
-      for (const session of sessionsData ?? []) {
-        const answersData = answersBySession.get(session.id) ?? []
-        const correctAnswers = answersData.filter((a) => a.is_correct).length
-        const totalQuestions = session.total_questions ?? answersData.length
-        const isCompleted = !!session.completed_at
-
-        const subTopic = session.sub_topics as unknown as SubTopicHierarchy
-
-        const durationSeconds = isCompleted
-          ? answersData.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
-          : null
-
-        sessions.push({
-          id: session.id,
-          gradeLevelName: subTopic?.topics?.subjects?.grade_levels?.name ?? 'Unknown',
-          subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
-          topicName: subTopic?.topics?.name ?? 'Unknown',
-          subTopicName: subTopic?.name ?? 'Unknown',
-          score: isCompleted ? computeScorePercent(correctAnswers, totalQuestions) || null : null,
-          totalQuestions,
-          correctAnswers,
-          durationSeconds,
-          createdAt: session.created_at ?? new Date().toISOString(),
-          completedAt: session.completed_at,
-          status: isCompleted ? 'completed' : 'in_progress',
-        })
-      }
+      const sessions = await fetchSessionSummaries(childId)
 
       // Update or add this child's statistics
       const existingIndex = childrenStatistics.value.findIndex((s) => s.childId === childId)
@@ -336,108 +239,61 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     const canViewDetails = subscriptionStatus.canViewDetailedResults
 
     try {
-      // Always fetch session row (for summary cards)
-      // Only fetch answers when subscription allows detailed view
-      const sessionPromise = supabase
+      if (canViewDetails) {
+        // Full details: fetch session + answers + questions via shared helper
+        const session = await fetchFullSessionDetails(childId, sessionId)
+        if (!session) return { session: null, error: 'Session not found' }
+        return { session, error: null }
+      }
+
+      // Subscription-gated: fetch session summary only (no answers/questions)
+      const { data: sessionData, error: fetchError } = await supabase
         .from('practice_sessions')
         .select(
           `
+          id,
+          total_questions,
+          correct_count,
+          total_time_seconds,
+          created_at,
+          completed_at,
+          ai_summary,
+          sub_topics (
             id,
-            student_id,
-            topic_id,
-            total_questions,
-            correct_count,
-            total_time_seconds,
-            created_at,
-            completed_at,
-            ai_summary,
-            sub_topics (
+            name,
+            topics (
               id,
               name,
-              topics (
+              subjects (
                 id,
                 name,
-                subjects (
+                grade_levels (
                   id,
-                  name,
-                  grade_levels (
-                    id,
-                    name
-                  )
+                  name
                 )
               )
             )
-          `,
+          )
+        `,
         )
         .eq('id', sessionId)
         .eq('student_id', childId)
         .single()
 
-      const answersPromise = canViewDetails
-        ? supabase
-            .from('practice_answers')
-            .select('*')
-            .eq('session_id', sessionId)
-            .order('answered_at', { ascending: true })
-        : Promise.resolve({
-            data: [] as Database['public']['Tables']['practice_answers']['Row'][],
-            error: null,
-          })
+      if (fetchError) throw fetchError
+      if (!sessionData) return { session: null, error: 'Session not found' }
 
-      const [sessionResult, answersResult] = await Promise.all([sessionPromise, answersPromise])
-
-      if (sessionResult.error) throw sessionResult.error
-      if (!sessionResult.data) return { session: null, error: 'Session not found' }
-      if (answersResult.error) throw answersResult.error
-
-      const sessionData = sessionResult.data
-      const answersData = answersResult.data
-
-      // Fetch questions only when detailed view is allowed
-      let questionsData: QuestionRow[] = []
-      if (canViewDetails) {
-        const questionIds = (answersData ?? [])
-          .map((a) => a.question_id)
-          .filter(Boolean) as string[]
-        if (questionIds.length > 0) {
-          const { data } = await supabase.from('questions').select('*').in('id', questionIds)
-          questionsData = data ?? []
-        }
-      }
-
-      // Build questions map
-      const questionsMap = new Map<string, QuestionRow>()
-      for (const q of questionsData) {
-        questionsMap.set(q.id, q)
-      }
-
-      // Build questions and answers from DB rows
-      const questions = buildQuestionsFromAnswers(answersData ?? [], questionsMap)
-      const answers = mapAnswerRows(answersData ?? [])
       const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
-
-      // Use DB row fields for summary when answers aren't loaded (subscription-gated)
-      const correctAnswers = canViewDetails
-        ? answers.filter((a) => a.isCorrect).length
-        : (sessionData.correct_count ?? 0)
-      const durationSeconds = canViewDetails
-        ? answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)
-        : (sessionData.total_time_seconds ?? 0)
-
       const session: ChildPracticeSessionFull = assembleSessionFull(
         sessionData,
         subTopic,
-        questions,
-        answers,
-        correctAnswers,
-        durationSeconds,
+        [],
+        [],
+        sessionData.correct_count ?? 0,
+        sessionData.total_time_seconds ?? 0,
       )
 
-      return {
-        session,
-        error: null,
-        subscriptionRequired: !canViewDetails ? true : undefined,
-      }
+      return { session, error: null, subscriptionRequired: true }
     } catch (err) {
       const message = handleError(err, 'Failed to fetch session.')
       return { session: null, error: message }

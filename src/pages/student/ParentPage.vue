@@ -19,6 +19,7 @@ import InviteDialog from '@/components/shared/InviteDialog.vue'
 import InvitationCards from '@/components/shared/InvitationCards.vue'
 import { Users, Trash2, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import { getInitials } from '@/lib/utils'
 
 const parentLinkStore = useParentLinkStore()
 
@@ -34,14 +35,6 @@ onMounted(async () => {
   await parentLinkStore.fetchAll()
   await parentLinkStore.fetchActiveSubscribers()
 })
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-}
 
 async function handleInviteSubmit(email: string) {
   inviteSuccess.value = false

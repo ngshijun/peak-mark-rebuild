@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
+import { computeLevel, XP_PER_LEVEL } from '@/lib/xp'
 
 // Cache TTL for engagement data (re-fetch when navigating back after this period)
 const ENGAGEMENT_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -134,8 +135,8 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
 
       const profile = profileResult.data
       const xp = profile?.xp ?? 0
-      const level = Math.floor(xp / 500) + 1
-      const xpProgress = xp % 500
+      const level = computeLevel(xp)
+      const xpProgress = xp % XP_PER_LEVEL
 
       // Transform owned pets
       const ownedPets: StudentOwnedPet[] = (petsResult.data ?? []).map((op) => {
