@@ -28,7 +28,7 @@ const maxBirthdayDate = computed(() => today(getLocalTimeZone()))
 const birthdayYearRange = computed(() => {
   const now = today(getLocalTimeZone())
   return createYearRange({
-    start: now.cycle('year', -25),
+    start: now.cycle('year', -100),
     end: now,
   }).reverse()
 })
@@ -54,7 +54,7 @@ const onSubmit = handleSubmit(async (formValues) => {
       formValues.password,
       formValues.name,
       formValues.userType,
-      formValues.userType === 'student' ? formValues.dateOfBirth || undefined : undefined,
+      formValues.dateOfBirth || undefined,
     )
 
     if (result.error) {
@@ -177,11 +177,7 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField
-            v-if="values.userType === 'student'"
-            v-slot="{ handleChange }"
-            name="dateOfBirth"
-          >
+          <VeeField v-slot="{ handleChange }" name="dateOfBirth">
             <Field>
               <FieldLabel>Date of Birth</FieldLabel>
               <Popover>

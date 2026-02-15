@@ -34,7 +34,7 @@ const maxDate = computed(() => today(getLocalTimeZone()))
 const yearRange = computed(() => {
   const now = today(getLocalTimeZone())
   return createYearRange({
-    start: now.cycle('year', -25),
+    start: now.cycle('year', -100),
     end: now,
   }).reverse()
 })
