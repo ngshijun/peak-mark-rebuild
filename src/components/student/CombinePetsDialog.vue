@@ -304,7 +304,7 @@ async function handleQuickCombine() {
             <template v-if="selectedPetsPreview[i - 1]">
               <img
                 :src="
-                  petsStore.getThumbnailPetImageUrl(
+                  petsStore.getOptimizedPetImageUrl(
                     selectedPetsPreview[i - 1]!.pet.imagePath,
                     selectedPetsPreview[i - 1]!.pet.updatedAt,
                   )
@@ -383,7 +383,7 @@ async function handleQuickCombine() {
               <img
                 v-if="getPetForOwnedPet(ownedPet)"
                 :src="
-                  petsStore.getThumbnailPetImageUrl(
+                  petsStore.getOptimizedPetImageUrl(
                     getPetForOwnedPet(ownedPet)!.imagePath,
                     getPetForOwnedPet(ownedPet)!.updatedAt,
                   )

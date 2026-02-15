@@ -204,11 +204,6 @@ export const usePetsStore = defineStore('pets', () => {
     return getPetImageUrl(imagePath, updatedAt, { width: 400, quality: 80 })
   }
 
-  // Get thumbnail pet image URL (small size for collection grid)
-  function getThumbnailPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
-    return getPetImageUrl(imagePath, updatedAt, { width: 128, quality: 75 })
-  }
-
   // Get pet image URL based on tier
   function getPetImageUrlForTier(pet: Pet, tier: number): string {
     let imagePath: string | null = pet.imagePath
@@ -229,17 +224,6 @@ export const usePetsStore = defineStore('pets', () => {
       imagePath = pet.tier3ImagePath
     }
     return getOptimizedPetImageUrl(imagePath, pet.updatedAt)
-  }
-
-  // Get thumbnail pet image URL based on tier (for collection grid)
-  function getThumbnailPetImageUrlForTier(pet: Pet, tier: number): string {
-    let imagePath: string | null = pet.imagePath
-    if (tier === 2 && pet.tier2ImagePath) {
-      imagePath = pet.tier2ImagePath
-    } else if (tier === 3 && pet.tier3ImagePath) {
-      imagePath = pet.tier3ImagePath
-    }
-    return getThumbnailPetImageUrl(imagePath, pet.updatedAt)
   }
 
   // Get evolution progress for an owned pet
@@ -674,8 +658,6 @@ export const usePetsStore = defineStore('pets', () => {
     getPetImageUrlForTier,
     getOptimizedPetImageUrl,
     getOptimizedPetImageUrlForTier,
-    getThumbnailPetImageUrl,
-    getThumbnailPetImageUrlForTier,
     getEvolutionProgress,
     isPetOwned,
     getOwnedPet,
