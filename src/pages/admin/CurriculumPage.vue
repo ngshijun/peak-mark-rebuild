@@ -5,7 +5,8 @@ import CurriculumAddDialog from '@/components/admin/CurriculumAddDialog.vue'
 import CurriculumEditImageDialog from '@/components/admin/CurriculumEditImageDialog.vue'
 import CurriculumDeleteDialog from '@/components/admin/CurriculumDeleteDialog.vue'
 import CurriculumEditNameDialog from '@/components/admin/CurriculumEditNameDialog.vue'
-import { Plus, Trash2, ImagePlus, Loader2, Pencil } from 'lucide-vue-next'
+import CurriculumLevelPanel from '@/components/admin/CurriculumLevelPanel.vue'
+import { Plus, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import {
   Breadcrumb,
@@ -15,7 +16,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Card, CardContent } from '@/components/ui/card'
 
 const curriculumStore = useCurriculumStore()
 
@@ -284,341 +284,133 @@ function openEditNameDialog(
     </div>
 
     <!-- Grade Level Selection (Level 1) -->
-    <div v-else-if="!selectedGradeLevel">
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          v-for="grade in curriculumStore.gradeLevels"
-          :key="grade.id"
-          class="group relative cursor-pointer transition-shadow hover:shadow-lg"
-          @click="selectGradeLevel(grade.id)"
-        >
-          <CardContent class="p-4">
-            <h3 class="text-lg font-semibold">{{ grade.name }}</h3>
-            <p class="text-sm text-muted-foreground">
-              {{ grade.subjects.length }} {{ grade.subjects.length === 1 ? 'subject' : 'subjects' }}
-            </p>
-          </CardContent>
-          <!-- Action buttons -->
-          <div
-            class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <Button
-              variant="secondary"
-              size="icon"
-              class="size-8"
-              @click.stop="openEditNameDialog('grade', grade.name, grade.id)"
-            >
-              <Pencil class="size-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              class="size-8"
-              @click.stop="openDeleteDialog('grade', grade.name, grade.id)"
-            >
-              <Trash2 class="size-4" />
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      <div
-        v-if="curriculumStore.gradeLevels.length === 0"
-        class="rounded-lg border border-dashed p-12 text-center"
-      >
-        <div class="mx-auto size-12 rounded-full bg-muted flex items-center justify-center">
-          <Plus class="size-6 text-muted-foreground" />
-        </div>
-        <h3 class="mt-4 text-lg font-medium">No grade levels yet</h3>
-        <p class="mt-2 text-sm text-muted-foreground">
-          Get started by adding your first grade level.
-        </p>
-        <Button class="mt-4" @click="openAddDialog('grade')">
-          <Plus class="mr-2 size-4" />
-          Add Grade Level
-        </Button>
-      </div>
-    </div>
+    <CurriculumLevelPanel
+      v-else-if="!selectedGradeLevel"
+      :items="curriculumStore.gradeLevels"
+      clickable
+      :get-description="
+        (g) => `${g.subjects.length} ${g.subjects.length === 1 ? 'subject' : 'subjects'}`
+      "
+      empty-title="No grade levels yet"
+      empty-description="Get started by adding your first grade level."
+      add-label="Add Grade Level"
+      @select="(g) => selectGradeLevel(g.id)"
+      @edit-name="(g) => openEditNameDialog('grade', g.name, g.id)"
+      @delete="(g) => openDeleteDialog('grade', g.name, g.id)"
+      @add="openAddDialog('grade')"
+    />
 
     <!-- Subject Selection (Level 2) -->
-    <div v-else-if="!selectedSubject">
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          v-for="subject in selectedGradeLevel.subjects"
-          :key="subject.id"
-          class="group relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
-          @click="selectSubject(subject.id)"
-        >
-          <div v-if="subject.coverImagePath" class="aspect-video w-full overflow-hidden">
-            <img
-              :src="getImageUrl(subject.coverImagePath)"
-              :alt="subject.name"
-              class="size-full object-cover transition-transform group-hover:scale-105"
-            />
-          </div>
-          <CardContent class="mt-auto p-4">
-            <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
-            <p class="text-sm text-muted-foreground">
-              {{ subject.topics.length }} {{ subject.topics.length === 1 ? 'topic' : 'topics' }}
-            </p>
-          </CardContent>
-          <!-- Action buttons -->
-          <div
-            class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <Button
-              variant="secondary"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openEditNameDialog('subject', subject.name, selectedGradeLevel.id, subject.id)
-              "
-            >
-              <Pencil class="size-4" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openEditImageDialog(
-                  'subject',
-                  selectedGradeLevel.id,
-                  subject.id,
-                  subject.name,
-                  getImageUrl(subject.coverImagePath),
-                  !!subject.coverImagePath,
-                )
-              "
-            >
-              <ImagePlus class="size-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openDeleteDialog('subject', subject.name, selectedGradeLevel.id, subject.id)
-              "
-            >
-              <Trash2 class="size-4" />
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      <div
-        v-if="selectedGradeLevel.subjects.length === 0"
-        class="rounded-lg border border-dashed p-12 text-center"
-      >
-        <div class="mx-auto size-12 rounded-full bg-muted flex items-center justify-center">
-          <Plus class="size-6 text-muted-foreground" />
-        </div>
-        <h3 class="mt-4 text-lg font-medium">No subjects yet</h3>
-        <p class="mt-2 text-sm text-muted-foreground">
-          Add subjects to {{ selectedGradeLevel.name }}.
-        </p>
-        <Button class="mt-4" @click="openAddDialog('subject')">
-          <Plus class="mr-2 size-4" />
-          Add Subject
-        </Button>
-      </div>
-    </div>
+    <CurriculumLevelPanel
+      v-else-if="!selectedSubject"
+      :items="selectedGradeLevel.subjects"
+      clickable
+      has-image
+      :get-cover-image-url="(s) => (s.coverImagePath ? getImageUrl(s.coverImagePath) : null)"
+      :get-description="(s) => `${s.topics.length} ${s.topics.length === 1 ? 'topic' : 'topics'}`"
+      empty-title="No subjects yet"
+      :empty-description="`Add subjects to ${selectedGradeLevel.name}.`"
+      add-label="Add Subject"
+      @select="(s) => selectSubject(s.id)"
+      @edit-name="(s) => openEditNameDialog('subject', s.name, selectedGradeLevel!.id, s.id)"
+      @edit-image="
+        (s) =>
+          openEditImageDialog(
+            'subject',
+            selectedGradeLevel!.id,
+            s.id,
+            s.name,
+            getImageUrl(s.coverImagePath),
+            !!s.coverImagePath,
+          )
+      "
+      @delete="(s) => openDeleteDialog('subject', s.name, selectedGradeLevel!.id, s.id)"
+      @add="openAddDialog('subject')"
+    />
 
     <!-- Topic Selection (Level 3) -->
-    <div v-else-if="!selectedTopic">
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          v-for="topic in selectedSubject.topics"
-          :key="topic.id"
-          class="group relative flex h-full cursor-pointer flex-col overflow-hidden transition-shadow hover:shadow-lg"
-          @click="selectTopic(topic.id)"
-        >
-          <div v-if="topic.coverImagePath" class="aspect-video w-full overflow-hidden">
-            <img
-              :src="getImageUrl(topic.coverImagePath)"
-              :alt="topic.name"
-              class="size-full object-cover transition-transform group-hover:scale-105"
-            />
-          </div>
-          <CardContent class="mt-auto p-4">
-            <h3 class="text-lg font-semibold">{{ topic.name }}</h3>
-            <p class="text-sm text-muted-foreground">
-              {{ topic.subTopics.length }}
-              {{ topic.subTopics.length === 1 ? 'sub-topic' : 'sub-topics' }}
-            </p>
-          </CardContent>
-          <!-- Action buttons -->
-          <div
-            class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <Button
-              variant="secondary"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openEditNameDialog(
-                  'topic',
-                  topic.name,
-                  selectedGradeLevel.id,
-                  selectedSubject.id,
-                  topic.id,
-                )
-              "
-            >
-              <Pencil class="size-4" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openEditImageDialog(
-                  'topic',
-                  selectedGradeLevel.id,
-                  selectedSubject.id,
-                  topic.name,
-                  getImageUrl(topic.coverImagePath),
-                  !!topic.coverImagePath,
-                  topic.id,
-                )
-              "
-            >
-              <ImagePlus class="size-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openDeleteDialog(
-                  'topic',
-                  topic.name,
-                  selectedGradeLevel.id,
-                  selectedSubject.id,
-                  topic.id,
-                )
-              "
-            >
-              <Trash2 class="size-4" />
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      <div
-        v-if="selectedSubject.topics.length === 0"
-        class="rounded-lg border border-dashed p-12 text-center"
-      >
-        <div class="mx-auto size-12 rounded-full bg-muted flex items-center justify-center">
-          <Plus class="size-6 text-muted-foreground" />
-        </div>
-        <h3 class="mt-4 text-lg font-medium">No topics yet</h3>
-        <p class="mt-2 text-sm text-muted-foreground">Add topics to {{ selectedSubject.name }}.</p>
-        <Button class="mt-4" @click="openAddDialog('topic')">
-          <Plus class="mr-2 size-4" />
-          Add Topic
-        </Button>
-      </div>
-    </div>
+    <CurriculumLevelPanel
+      v-else-if="!selectedTopic"
+      :items="selectedSubject.topics"
+      clickable
+      has-image
+      :get-cover-image-url="(t) => (t.coverImagePath ? getImageUrl(t.coverImagePath) : null)"
+      :get-description="
+        (t) => `${t.subTopics.length} ${t.subTopics.length === 1 ? 'sub-topic' : 'sub-topics'}`
+      "
+      empty-title="No topics yet"
+      :empty-description="`Add topics to ${selectedSubject.name}.`"
+      add-label="Add Topic"
+      @select="(t) => selectTopic(t.id)"
+      @edit-name="
+        (t) =>
+          openEditNameDialog('topic', t.name, selectedGradeLevel!.id, selectedSubject!.id, t.id)
+      "
+      @edit-image="
+        (t) =>
+          openEditImageDialog(
+            'topic',
+            selectedGradeLevel!.id,
+            selectedSubject!.id,
+            t.name,
+            getImageUrl(t.coverImagePath),
+            !!t.coverImagePath,
+            t.id,
+          )
+      "
+      @delete="
+        (t) => openDeleteDialog('topic', t.name, selectedGradeLevel!.id, selectedSubject!.id, t.id)
+      "
+      @add="openAddDialog('topic')"
+    />
 
     <!-- Sub-Topic Selection (Level 4) -->
-    <div v-else>
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          v-for="subTopic in selectedTopic.subTopics"
-          :key="subTopic.id"
-          class="group relative flex h-full flex-col overflow-hidden transition-shadow hover:shadow-lg"
-        >
-          <div v-if="subTopic.coverImagePath" class="aspect-video w-full overflow-hidden">
-            <img
-              :src="getImageUrl(subTopic.coverImagePath)"
-              :alt="subTopic.name"
-              class="size-full object-cover transition-transform group-hover:scale-105"
-            />
-          </div>
-          <CardContent class="mt-auto p-4">
-            <h3 class="text-lg font-semibold">{{ subTopic.name }}</h3>
-            <p class="text-sm text-muted-foreground">Sub-Topic</p>
-          </CardContent>
-          <!-- Action buttons -->
-          <div
-            class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <Button
-              variant="secondary"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openEditNameDialog(
-                  'subtopic',
-                  subTopic.name,
-                  selectedGradeLevel.id,
-                  selectedSubject.id,
-                  selectedTopic.id,
-                  subTopic.id,
-                )
-              "
-            >
-              <Pencil class="size-4" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openEditImageDialog(
-                  'subtopic',
-                  selectedGradeLevel.id,
-                  selectedSubject.id,
-                  subTopic.name,
-                  getImageUrl(subTopic.coverImagePath),
-                  !!subTopic.coverImagePath,
-                  selectedTopic.id,
-                  subTopic.id,
-                )
-              "
-            >
-              <ImagePlus class="size-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              class="size-8"
-              @click.stop="
-                openDeleteDialog(
-                  'subtopic',
-                  subTopic.name,
-                  selectedGradeLevel.id,
-                  selectedSubject.id,
-                  selectedTopic.id,
-                  subTopic.id,
-                )
-              "
-            >
-              <Trash2 class="size-4" />
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      <div
-        v-if="selectedTopic.subTopics.length === 0"
-        class="rounded-lg border border-dashed p-12 text-center"
-      >
-        <div class="mx-auto size-12 rounded-full bg-muted flex items-center justify-center">
-          <Plus class="size-6 text-muted-foreground" />
-        </div>
-        <h3 class="mt-4 text-lg font-medium">No sub-topics yet</h3>
-        <p class="mt-2 text-sm text-muted-foreground">
-          Add sub-topics to {{ selectedTopic.name }}.
-        </p>
-        <Button class="mt-4" @click="openAddDialog('subtopic')">
-          <Plus class="mr-2 size-4" />
-          Add Sub-Topic
-        </Button>
-      </div>
-    </div>
+    <CurriculumLevelPanel
+      v-else
+      :items="selectedTopic.subTopics"
+      has-image
+      :get-cover-image-url="(st) => (st.coverImagePath ? getImageUrl(st.coverImagePath) : null)"
+      :get-description="() => 'Sub-Topic'"
+      empty-title="No sub-topics yet"
+      :empty-description="`Add sub-topics to ${selectedTopic.name}.`"
+      add-label="Add Sub-Topic"
+      @edit-name="
+        (st) =>
+          openEditNameDialog(
+            'subtopic',
+            st.name,
+            selectedGradeLevel!.id,
+            selectedSubject!.id,
+            selectedTopic!.id,
+            st.id,
+          )
+      "
+      @edit-image="
+        (st) =>
+          openEditImageDialog(
+            'subtopic',
+            selectedGradeLevel!.id,
+            selectedSubject!.id,
+            st.name,
+            getImageUrl(st.coverImagePath),
+            !!st.coverImagePath,
+            selectedTopic!.id,
+            st.id,
+          )
+      "
+      @delete="
+        (st) =>
+          openDeleteDialog(
+            'subtopic',
+            st.name,
+            selectedGradeLevel!.id,
+            selectedSubject!.id,
+            selectedTopic!.id,
+            st.id,
+          )
+      "
+      @add="openAddDialog('subtopic')"
+    />
 
     <!-- Dialogs -->
     <CurriculumAddDialog
