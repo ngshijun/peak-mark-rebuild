@@ -139,30 +139,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   }
 
   /**
-   * Fetch practice sessions for all linked children
-   * @deprecated Use fetchChildStatistics for lazy loading instead
-   */
-  async function fetchChildrenStatistics(): Promise<{ error: string | null }> {
-    if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
-    }
-
-    if (childLinkStore.linkedChildren.length === 0) {
-      childrenStatistics.value = []
-      return { error: null }
-    }
-
-    // Fetch all children's statistics in parallel
-    const results = await Promise.all(
-      childLinkStore.linkedChildren.map((child) => fetchChildStatistics(child.id)),
-    )
-
-    // Return first error if any
-    const errorResult = results.find((r) => r.error)
-    return { error: errorResult?.error ?? null }
-  }
-
-  /**
    * Check if subscription status cache is stale for a specific child
    */
   function isSubscriptionCacheStale(childId: string): boolean {
@@ -567,7 +543,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
     // Actions
     fetchChildStatistics,
-    fetchChildrenStatistics,
     getChildStatistics,
     getFilteredSessions,
     getAverageScore,
