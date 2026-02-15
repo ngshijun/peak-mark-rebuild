@@ -19,9 +19,10 @@ import {
   buildQuestionsFromAnswers,
   mapAnswerRows,
   assembleSessionFull,
+  computeScorePercent,
 } from '@/lib/questionHelpers'
 
-export type { DateRangeFilter, QuestionOption, PracticeAnswer, Question }
+export type { DateRangeFilter, QuestionOption, PracticeAnswer, SessionQuestion }
 export type ChildPracticeSession = PracticeSessionSummary
 export type ChildPracticeSessionFull = PracticeSessionFull
 
@@ -197,10 +198,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
           subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
           topicName: subTopic?.topics?.name ?? 'Unknown',
           subTopicName: subTopic?.name ?? 'Unknown',
-          score:
-            isCompleted && totalQuestions > 0
-              ? Math.round((correctAnswers / totalQuestions) * 100)
-              : null,
+          score: isCompleted ? computeScorePercent(correctAnswers, totalQuestions) || null : null,
           totalQuestions,
           correctAnswers,
           durationSeconds,

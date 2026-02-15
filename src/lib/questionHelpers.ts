@@ -1,9 +1,19 @@
 import type { Database } from '@/types/database.types'
 import type { SubTopicHierarchy } from '@/types/supabase-helpers'
-import type { QuestionOption, PracticeAnswer, Question, PracticeSessionFull } from '@/types/session'
+import type {
+  QuestionOption,
+  PracticeAnswer,
+  SessionQuestion,
+  PracticeSessionFull,
+} from '@/types/session'
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
 type AnswerRow = Database['public']['Tables']['practice_answers']['Row']
+
+/** Compute a score as a rounded percentage (0-100). Returns 0 when total is 0. */
+export function computeScorePercent(correct: number, total: number): number {
+  return total > 0 ? Math.round((correct / total) * 100) : 0
+}
 
 /** Extract options from question row columns into a typed array */
 export function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
@@ -55,11 +65,11 @@ export function mapAnswerRows(rows: AnswerRow[]): PracticeAnswer[] {
   }))
 }
 
-/** Build Question[] from answer rows and a questions map, with placeholders for deleted questions */
+/** Build SessionQuestion[] from answer rows and a questions map, with placeholders for deleted questions */
 export function buildQuestionsFromAnswers(
   answersData: Database['public']['Tables']['practice_answers']['Row'][],
   questionsMap: Map<string, QuestionRow>,
-): Question[] {
+): SessionQuestion[] {
   return answersData.map((answer, index) => {
     if (answer.question_id && questionsMap.has(answer.question_id)) {
       const q = questionsMap.get(answer.question_id)!
@@ -96,7 +106,7 @@ export function assembleSessionFull(
     ai_summary: string | null
   },
   subTopic: SubTopicHierarchy | null | undefined,
-  questions: Question[],
+  questions: SessionQuestion[],
   answers: PracticeAnswer[],
   correctAnswers: number,
   durationSeconds: number,
@@ -112,7 +122,7 @@ export function assembleSessionFull(
     topicName: subTopic?.topics?.name ?? 'Unknown',
     subTopicId: subTopic?.id ?? '',
     subTopicName: subTopic?.name ?? 'Unknown',
-    score: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+    score: computeScorePercent(correctAnswers, totalQuestions),
     totalQuestions,
     correctAnswers,
     durationSeconds,

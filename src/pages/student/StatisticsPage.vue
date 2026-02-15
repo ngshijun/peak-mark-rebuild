@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { usePracticeHistoryStore, type DateRangeFilter } from '@/stores/practice-history'
 import { useAuthStore } from '@/stores/auth'
 import { ALL_VALUE, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
+import { computeScorePercent } from '@/lib/questionHelpers'
 import StatisticsFilterBar from '@/components/statistics/StatisticsFilterBar.vue'
 import StatisticsSummaryCards from '@/components/statistics/StatisticsSummaryCards.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -101,8 +102,7 @@ const historyData = computed<HistoryRow[]>(() => {
     const isCompleted = !!session.completedAt
     const correctAnswers = session.correctCount
     const totalQuestions = session.totalQuestions
-    const score =
-      isCompleted && totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : null
+    const score = isCompleted ? computeScorePercent(correctAnswers, totalQuestions) || null : null
     const timeUsedSeconds = isCompleted ? session.totalTimeSeconds : null
 
     return {

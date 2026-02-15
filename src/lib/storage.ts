@@ -34,3 +34,13 @@ export function getStorageImageUrl(
   const { data } = supabase.storage.from(bucket).getPublicUrl(path)
   return data.publicUrl
 }
+
+/**
+ * Get public URL for an avatar from its storage path.
+ * Convenience wrapper around getStorageImageUrl for the 'avatars' bucket.
+ */
+export function getAvatarUrl(path: string | null): string {
+  if (!path) return ''
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+  return data.publicUrl
+}

@@ -3,16 +3,20 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from '@/stores/auth'
 import { handleError } from '@/lib/errors'
 import { mapInvitationRows, type ParentStudentInvitation } from '@/lib/invitations'
+import type { Database } from '@/types/database.types'
 
 export type InvitationRole = 'parent' | 'student'
+
+export type AcceptInvitationResult =
+  Database['public']['Functions']['accept_parent_student_invitation']['Returns'][number]
 
 export interface InvitationHooks {
   /** Return error message to block send, or null to allow */
   canSend?: (targetEmail: string) => string | null
   /** Return error message to block accept, or null to allow */
   canAccept?: () => string | null
-  /** Called after successful accept with RPC result row */
-  onAccepted?: (result: Record<string, unknown>) => void
+  /** Called after successful accept with typed RPC result row */
+  onAccepted?: (result: AcceptInvitationResult) => void
 }
 
 export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
@@ -195,7 +199,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
 
       const result = data?.[0]
       if (result && hooks?.onAccepted) {
-        hooks.onAccepted(result as Record<string, unknown>)
+        hooks.onAccepted(result)
       }
 
       // Remove from invitations

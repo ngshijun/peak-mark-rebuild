@@ -5,6 +5,7 @@ import { useQuestionsStore, type Question } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
+import { computeScorePercent } from '@/lib/questionHelpers'
 import {
   useStudentSubscriptionStore,
   type StudentSubscriptionStatus,
@@ -82,7 +83,7 @@ export const usePracticeStore = defineStore('practice', () => {
       answered: totalAnswered,
       correct: correctAnswers,
       incorrect: totalAnswered - correctAnswers,
-      score: totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0,
+      score: computeScorePercent(correctAnswers, totalAnswered),
     }
   })
 

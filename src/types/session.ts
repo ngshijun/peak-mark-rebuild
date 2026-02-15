@@ -19,7 +19,7 @@ export interface PracticeAnswer {
   timeSpentSeconds: number | null
 }
 
-export interface Question {
+export interface SessionQuestion {
   id: string
   type: 'mcq' | 'mrq' | 'short_answer'
   question: string
@@ -51,7 +51,7 @@ export interface PracticeSessionFull
   subTopicId: string
   topicId: string
   gradeLevelId: string
-  questions: Question[]
+  questions: SessionQuestion[]
   answers: PracticeAnswer[]
   startedAt: string
   aiSummary: string | null

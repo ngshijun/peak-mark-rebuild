@@ -16,25 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar as CalendarPicker } from '@/components/ui/calendar'
-import { Field, FieldLabel } from '@/components/ui/field'
 import { toast } from 'vue-sonner'
 import EditAvatarDialog from '@/components/shared/EditAvatarDialog.vue'
 import EditNameDialog from '@/components/shared/EditNameDialog.vue'
+import EditBirthdayDialog from '@/components/shared/EditBirthdayDialog.vue'
 import {
   Cake,
   Mail,
   Calendar,
-  CalendarIcon,
   GraduationCap,
   Trophy,
   CirclePoundSterling,
@@ -47,8 +36,6 @@ import {
   CreditCard,
   Check,
 } from 'lucide-vue-next'
-import { type DateValue, getLocalTimeZone, today, parseDate } from '@internationalized/date'
-import { createYearRange } from 'reka-ui/date'
 
 const authStore = useAuthStore()
 const practiceStore = usePracticeStore()
@@ -78,7 +65,6 @@ function getTierIcon(tier: string) {
 const showAvatarDialog = ref(false)
 const showEditNameDialog = ref(false)
 const showEditBirthdayDialog = ref(false)
-const editBirthdayValue = ref<DateValue | undefined>(undefined)
 
 const age = computed(() => {
   if (!authStore.user?.dateOfBirth) return null
@@ -148,24 +134,9 @@ async function handleGradeChange(value: unknown) {
   }
 }
 
-function openEditBirthdayDialog() {
-  if (authStore.user?.dateOfBirth) {
-    const dateStr = authStore.user.dateOfBirth.split('T')[0]
-    if (dateStr) {
-      editBirthdayValue.value = parseDate(dateStr)
-    } else {
-      editBirthdayValue.value = undefined
-    }
-  } else {
-    editBirthdayValue.value = undefined
-  }
-  showEditBirthdayDialog.value = true
-}
-
-async function saveBirthday() {
+async function handleBirthdaySave(dateString: string | null) {
   isSaving.value = true
   try {
-    const dateString = editBirthdayValue.value?.toString() ?? null
     const result = await authStore.updateDateOfBirth(dateString)
     if (result.error) {
       toast.error(result.error)
@@ -177,16 +148,6 @@ async function saveBirthday() {
     isSaving.value = false
   }
 }
-
-const maxBirthdayDate = computed(() => today(getLocalTimeZone()))
-
-const birthdayYearRange = computed(() => {
-  const now = today(getLocalTimeZone())
-  return createYearRange({
-    start: now.cycle('year', -25),
-    end: now,
-  }).reverse()
-})
 </script>
 
 <template>
@@ -290,7 +251,12 @@ const birthdayYearRange = computed(() => {
                 <template v-else>Not set</template>
               </p>
             </div>
-            <Button size="icon" variant="ghost" class="size-8" @click="openEditBirthdayDialog">
+            <Button
+              size="icon"
+              variant="ghost"
+              class="size-8"
+              @click="showEditBirthdayDialog = true"
+            >
               <Pencil class="size-4" />
             </Button>
           </div>
@@ -422,65 +388,11 @@ const birthdayYearRange = computed(() => {
       @save="handleNameSave"
     />
 
-    <!-- Edit Birthday Dialog -->
-    <Dialog v-model:open="showEditBirthdayDialog">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Birthday</DialogTitle>
-          <DialogDescription>Select your date of birth.</DialogDescription>
-        </DialogHeader>
-        <div class="space-y-4 py-4">
-          <Field>
-            <FieldLabel>Birthday</FieldLabel>
-            <Popover>
-              <PopoverTrigger as-child>
-                <Button
-                  variant="outline"
-                  class="w-full justify-start text-left font-normal"
-                  :class="{ 'text-muted-foreground': !editBirthdayValue }"
-                  :disabled="isSaving"
-                >
-                  <CalendarIcon class="mr-2 size-4" />
-                  <span v-if="editBirthdayValue">
-                    {{
-                      new Date(editBirthdayValue.toString()).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    }}
-                  </span>
-                  <span v-else>Pick a date</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent class="w-auto p-0" align="start">
-                <CalendarPicker
-                  :model-value="editBirthdayValue as any"
-                  :max-value="maxBirthdayDate"
-                  :year-range="birthdayYearRange"
-                  layout="month-and-year"
-                  initial-focus
-                  @update:model-value="(v: any) => (editBirthdayValue = v)"
-                />
-              </PopoverContent>
-            </Popover>
-          </Field>
-        </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            :disabled="isSaving"
-            @click="showEditBirthdayDialog = false"
-          >
-            Cancel
-          </Button>
-          <Button :disabled="isSaving" @click="saveBirthday">
-            <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <EditBirthdayDialog
+      v-model:open="showEditBirthdayDialog"
+      :current-date-of-birth="authStore.user?.dateOfBirth ?? null"
+      :is-saving="isSaving"
+      @save="handleBirthdaySave"
+    />
   </div>
 </template>

@@ -29,10 +29,10 @@ export const useParentLinkStore = defineStore('parentLink', () => {
     canAccept: () => (hasLinkedParent.value ? 'You can only have one linked parent' : null),
     onAccepted: (result) => {
       linkedParents.value.push({
-        id: result.parent_id as string,
-        name: result.parent_name as string,
-        email: result.parent_email as string,
-        linkedAt: result.linked_at as string,
+        id: result.parent_id,
+        name: result.parent_name,
+        email: result.parent_email,
+        linkedAt: result.linked_at,
       })
     },
   })

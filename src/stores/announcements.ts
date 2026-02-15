@@ -57,8 +57,8 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     search: '',
   })
 
-  // Student AnnouncementsPage pagination state (persisted across navigation)
-  const studentAnnouncementsPagination = ref({
+  // AnnouncementsPage pagination state (persisted across navigation, shared by student/parent)
+  const announcementsPagination = ref({
     pageIndex: 0,
     pageSize: 5,
   })
@@ -433,14 +433,14 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     adminAnnouncementsFilters.value.search = search
   }
 
-  // Student AnnouncementsPage pagination setters
-  function setStudentAnnouncementsPageIndex(index: number) {
-    studentAnnouncementsPagination.value.pageIndex = index
+  // AnnouncementsPage pagination setters
+  function setAnnouncementsPageIndex(index: number) {
+    announcementsPagination.value.pageIndex = index
   }
 
-  function setStudentAnnouncementsPageSize(size: number) {
-    studentAnnouncementsPagination.value.pageSize = size
-    studentAnnouncementsPagination.value.pageIndex = 0 // Reset to first page when page size changes
+  function setAnnouncementsPageSize(size: number) {
+    announcementsPagination.value.pageSize = size
+    announcementsPagination.value.pageIndex = 0 // Reset to first page when page size changes
   }
 
   // Reset store state (call on logout)
@@ -450,7 +450,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     error.value = null
     unreadCount.value = 0
     adminAnnouncementsFilters.value = { search: '' }
-    studentAnnouncementsPagination.value = { pageIndex: 0, pageSize: 5 }
+    announcementsPagination.value = { pageIndex: 0, pageSize: 5 }
   }
 
   return {
@@ -468,10 +468,10 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     adminAnnouncementsFilters,
     setAdminAnnouncementsSearch,
 
-    // Student AnnouncementsPage pagination
-    studentAnnouncementsPagination,
-    setStudentAnnouncementsPageIndex,
-    setStudentAnnouncementsPageSize,
+    // AnnouncementsPage pagination
+    announcementsPagination,
+    setAnnouncementsPageIndex,
+    setAnnouncementsPageSize,
 
     // Actions
     fetchAnnouncements,

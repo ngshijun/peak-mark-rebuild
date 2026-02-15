@@ -207,14 +207,14 @@ const onSubmit = handleSubmit(async (formValues) => {
                 </PopoverTrigger>
                 <PopoverContent class="w-auto p-0" align="start">
                   <Calendar
-                    :model-value="dateOfBirthValue as any"
+                    :model-value="dateOfBirthValue"
                     :max-value="maxBirthdayDate"
                     :year-range="birthdayYearRange"
                     layout="month-and-year"
                     initial-focus
                     @update:model-value="
-                      (v: DateValue | undefined) => {
-                        dateOfBirthValue = v
+                      (v) => {
+                        dateOfBirthValue = v as DateValue | undefined
                         handleChange(v?.toString() ?? '')
                       }
                     "

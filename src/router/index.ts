@@ -272,7 +272,7 @@ const router = createRouter({
         {
           path: 'announcements',
           name: 'student-announcements',
-          component: () => import('@/pages/student/AnnouncementsPage.vue'),
+          component: () => import('@/pages/shared/AnnouncementsPage.vue'),
         },
         {
           path: 'profile',
@@ -311,7 +311,7 @@ const router = createRouter({
         {
           path: 'announcements',
           name: 'parent-announcements',
-          component: () => import('@/pages/parent/AnnouncementsPage.vue'),
+          component: () => import('@/pages/shared/AnnouncementsPage.vue'),
         },
         {
           path: 'subscription',

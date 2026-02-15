@@ -10,6 +10,7 @@ import {
 import { useQuestionsStore } from '@/stores/questions'
 import { formatDateTime } from '@/lib/date'
 import { parseSimpleMarkdown } from '@/lib/utils'
+import { computeScorePercent } from '@/lib/questionHelpers'
 import SessionSummaryCards from '@/components/session/SessionSummaryCards.vue'
 import SessionQuestionCard from '@/components/session/SessionQuestionCard.vue'
 import { Button } from '@/components/ui/button'
@@ -37,7 +38,7 @@ const summary = computed(() => {
   if (!session.value) return null
   const totalQuestions = session.value.questions.length || session.value.totalQuestions
   const correctAnswers = session.value.answers.filter((a) => a.isCorrect).length
-  const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
+  const score = computeScorePercent(correctAnswers, totalQuestions)
 
   const durationSeconds = session.value.durationSeconds ?? 0
 

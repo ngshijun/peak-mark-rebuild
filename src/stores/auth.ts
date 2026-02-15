@@ -5,6 +5,8 @@ import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { resetAllStores } from '@/lib/piniaResetPlugin'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
+import { XP_PER_LEVEL, computeLevel } from '@/lib/xp'
+import { getAvatarUrl } from '@/lib/storage'
 
 type UserType = Database['public']['Enums']['user_type']
 
@@ -29,9 +31,6 @@ export interface AuthUser {
     createdAt: string | null
   }
 }
-
-// XP required for each level (cumulative)
-const XP_PER_LEVEL = 500
 
 /**
  * Fetch the user's profile from the database
@@ -181,7 +180,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const currentLevel = computed(() => {
     if (!studentProfile.value) return 1
-    return Math.floor(studentProfile.value.xp / XP_PER_LEVEL) + 1
+    return computeLevel(studentProfile.value.xp)
   })
 
   const currentLevelXp = computed(() => {
@@ -592,15 +591,6 @@ export const useAuthStore = defineStore('auth', () => {
       const message = handleError(err, 'Failed to upload avatar.')
       return { path: null, error: message }
     }
-  }
-
-  /**
-   * Get public URL for avatar from storage path
-   */
-  function getAvatarUrl(path: string | null): string {
-    if (!path) return ''
-    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-    return data.publicUrl
   }
 
   /**

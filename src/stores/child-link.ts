@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { useSubscriptionStore } from './subscription'
 import { handleError } from '@/lib/errors'
+import { getAvatarUrl } from '@/lib/storage'
 import { useInvitations } from '@/composables/useInvitations'
 
 export type { ParentStudentInvitation } from '@/lib/invitations'
@@ -31,12 +32,12 @@ export const useChildLinkStore = defineStore('childLink', () => {
         : null,
     onAccepted: (result) => {
       linkedChildren.value.push({
-        id: result.student_id as string,
-        name: result.student_name as string,
-        email: result.student_email as string,
-        avatarPath: (result.student_avatar_path as string | null) ?? null,
-        gradeLevelName: (result.student_grade_level_name as string | null) ?? null,
-        linkedAt: result.linked_at as string,
+        id: result.student_id,
+        name: result.student_name,
+        email: result.student_email,
+        avatarPath: result.student_avatar_path,
+        gradeLevelName: result.student_grade_level_name,
+        linkedAt: result.linked_at,
       })
     },
   })
@@ -176,15 +177,6 @@ export const useChildLinkStore = defineStore('childLink', () => {
     } catch (err) {
       return { error: handleError(err, 'Failed to remove child. Please try again.') }
     }
-  }
-
-  /**
-   * Get avatar URL for a child
-   */
-  function getAvatarUrl(avatarPath: string | null): string {
-    if (!avatarPath) return ''
-    const { data } = supabase.storage.from('avatars').getPublicUrl(avatarPath)
-    return data.publicUrl
   }
 
   // Reset store state (call on logout)

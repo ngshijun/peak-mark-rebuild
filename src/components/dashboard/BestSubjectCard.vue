@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { usePracticeHistoryStore } from '@/stores/practice-history'
+import { computeScorePercent } from '@/lib/questionHelpers'
 import { useRouter } from 'vue-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy } from 'lucide-vue-next'
@@ -29,7 +30,7 @@ const topSubjects = computed<SubjectStats[]>(() => {
   >()
 
   completedSessions.forEach((session) => {
-    const score = Math.round((session.correctCount / session.totalQuestions) * 100)
+    const score = computeScorePercent(session.correctCount, session.totalQuestions)
     const key = `${session.gradeLevelName}::${session.subjectName}`
     const existing = subjectMap.get(key)
 

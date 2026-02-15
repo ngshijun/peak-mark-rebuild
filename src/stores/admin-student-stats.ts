@@ -19,12 +19,13 @@ import {
   buildQuestionsFromAnswers,
   mapAnswerRows,
   assembleSessionFull,
+  computeScorePercent,
 } from '@/lib/questionHelpers'
 
 // Cache TTL for student statistics (re-fetch when navigating back after this period)
 const STATISTICS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-export type { DateRangeFilter, QuestionOption, PracticeAnswer, Question }
+export type { DateRangeFilter, QuestionOption, PracticeAnswer, SessionQuestion }
 export type StudentPracticeSession = PracticeSessionSummary
 export type StudentPracticeSessionFull = PracticeSessionFull
 
@@ -163,10 +164,7 @@ export const useAdminStudentStatsStore = defineStore('adminStudentStats', () => 
           subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
           topicName: subTopic?.topics?.name ?? 'Unknown',
           subTopicName: subTopic?.name ?? 'Unknown',
-          score:
-            isCompleted && totalQuestions > 0
-              ? Math.round((correctAnswers / totalQuestions) * 100)
-              : null,
+          score: isCompleted ? computeScorePercent(correctAnswers, totalQuestions) || null : null,
           totalQuestions,
           correctAnswers,
           durationSeconds,
