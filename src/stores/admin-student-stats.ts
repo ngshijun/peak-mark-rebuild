@@ -15,70 +15,23 @@ import {
   getUniqueSubTopics,
 } from '@/lib/sessionFilters'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
+import type {
+  QuestionOption,
+  PracticeAnswer,
+  Question,
+  PracticeSessionSummary,
+  PracticeSessionFull,
+} from '@/types/session'
+import { buildQuestionsFromAnswers } from '@/lib/questionHelpers'
 
 // Cache TTL for student statistics (re-fetch when navigating back after this period)
 const STATISTICS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-export type { DateRangeFilter }
+export type { DateRangeFilter, QuestionOption, PracticeAnswer, Question }
+export type StudentPracticeSession = PracticeSessionSummary
+export type StudentPracticeSessionFull = PracticeSessionFull
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
-
-export interface QuestionOption {
-  id: string // 'a', 'b', 'c', 'd'
-  text: string | null
-  imagePath: string | null
-  isCorrect: boolean
-}
-
-export interface StudentPracticeSession {
-  id: string
-  gradeLevelName: string
-  subjectName: string
-  topicName: string
-  subTopicName: string
-  score: number | null
-  totalQuestions: number
-  correctAnswers: number
-  durationSeconds: number | null
-  createdAt: string
-  completedAt: string | null
-  status: 'completed' | 'in_progress'
-}
-
-export interface PracticeAnswer {
-  questionId: string | null
-  selectedOptions: number[] | null
-  textAnswer: string | null
-  isCorrect: boolean
-  answeredAt: string
-  timeSpentSeconds: number | null
-}
-
-export interface Question {
-  id: string
-  type: 'mcq' | 'mrq' | 'short_answer'
-  question: string
-  explanation: string | null
-  answer: string | null
-  imagePath: string | null
-  options?: QuestionOption[]
-  isDeleted?: boolean
-}
-
-export interface StudentPracticeSessionFull
-  extends Omit<StudentPracticeSession, 'score' | 'durationSeconds' | 'completedAt'> {
-  subjectId: string
-  subTopicId: string
-  topicId: string
-  gradeLevelId: string
-  questions: Question[]
-  answers: PracticeAnswer[]
-  startedAt: string
-  aiSummary: string | null
-  score: number
-  durationSeconds: number
-  completedAt: string
-}
 
 export interface StudentStatistics {
   studentId: string
@@ -335,70 +288,8 @@ export const useAdminStudentStatsStore = defineStore('adminStudentStats', () => 
         questionsMap.set(q.id, q)
       }
 
-      // Helper function to extract options from question columns
-      function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
-        const options: QuestionOption[] = []
-        if (q.option_1_text !== null || q.option_1_image_path !== null) {
-          options.push({
-            id: 'a',
-            text: q.option_1_text,
-            imagePath: q.option_1_image_path,
-            isCorrect: q.option_1_is_correct ?? false,
-          })
-        }
-        if (q.option_2_text !== null || q.option_2_image_path !== null) {
-          options.push({
-            id: 'b',
-            text: q.option_2_text,
-            imagePath: q.option_2_image_path,
-            isCorrect: q.option_2_is_correct ?? false,
-          })
-        }
-        if (q.option_3_text !== null || q.option_3_image_path !== null) {
-          options.push({
-            id: 'c',
-            text: q.option_3_text,
-            imagePath: q.option_3_image_path,
-            isCorrect: q.option_3_is_correct ?? false,
-          })
-        }
-        if (q.option_4_text !== null || q.option_4_image_path !== null) {
-          options.push({
-            id: 'd',
-            text: q.option_4_text,
-            imagePath: q.option_4_image_path,
-            isCorrect: q.option_4_is_correct ?? false,
-          })
-        }
-        return options
-      }
-
       // Build questions array in order of answers
-      const questions: Question[] = (answersData ?? []).map((answer, index) => {
-        if (answer.question_id && questionsMap.has(answer.question_id)) {
-          const q = questionsMap.get(answer.question_id)!
-          return {
-            id: q.id,
-            type: q.type as 'mcq' | 'mrq' | 'short_answer',
-            question: q.question,
-            explanation: q.explanation,
-            answer: q.answer,
-            imagePath: q.image_path,
-            options:
-              q.type === 'mcq' || q.type === 'mrq' ? extractOptionsFromQuestion(q) : undefined,
-          }
-        }
-        // Deleted question placeholder
-        return {
-          id: answer.question_id ?? `deleted-${index}`,
-          type: 'mcq' as const,
-          question: '[Question has been deleted]',
-          explanation: null,
-          answer: null,
-          imagePath: null,
-          isDeleted: true,
-        }
-      })
+      const questions = buildQuestionsFromAnswers(answersData ?? [], questionsMap)
 
       // Build answers array
       const answers: PracticeAnswer[] = (answersData ?? []).map((a) => ({

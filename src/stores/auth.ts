@@ -120,7 +120,6 @@ async function ensureProfileExists(user: SupabaseUser): Promise<{ error: string 
 
     // If there was an error other than "not found", return it
     if (checkError) {
-      console.error('Error checking profile:', checkError)
       return { error: handleError(checkError, 'An unexpected error occurred.') }
     }
 
@@ -140,7 +139,6 @@ async function ensureProfileExists(user: SupabaseUser): Promise<{ error: string 
     })
 
     if (rpcError) {
-      console.error('Error creating profile:', rpcError)
       return { error: handleError(rpcError, 'An unexpected error occurred.') }
     }
 

@@ -15,8 +15,18 @@ import {
   getUniqueSubTopics,
 } from '@/lib/sessionFilters'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
+import type {
+  QuestionOption,
+  PracticeAnswer,
+  Question,
+  PracticeSessionSummary,
+  PracticeSessionFull,
+} from '@/types/session'
+import { buildQuestionsFromAnswers } from '@/lib/questionHelpers'
 
-export type { DateRangeFilter }
+export type { DateRangeFilter, QuestionOption, PracticeAnswer, Question }
+export type ChildPracticeSession = PracticeSessionSummary
+export type ChildPracticeSessionFull = PracticeSessionFull
 
 type QuestionRow = Database['public']['Tables']['questions']['Row']
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
@@ -29,64 +39,6 @@ const STATISTICS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 export interface ChildSubscriptionStatus {
   tier: SubscriptionTier
   canViewDetailedResults: boolean // Pro and Max tiers only
-}
-
-// Options are stored directly in the questions table as columns
-export interface QuestionOption {
-  id: string // 'a', 'b', 'c', 'd'
-  text: string | null
-  imagePath: string | null
-  isCorrect: boolean
-}
-
-export interface ChildPracticeSession {
-  id: string
-  gradeLevelName: string
-  subjectName: string
-  topicName: string
-  subTopicName: string
-  score: number | null
-  totalQuestions: number
-  correctAnswers: number
-  durationSeconds: number | null
-  createdAt: string
-  completedAt: string | null
-  status: 'completed' | 'in_progress'
-}
-
-export interface PracticeAnswer {
-  questionId: string | null
-  selectedOptions: number[] | null
-  textAnswer: string | null
-  isCorrect: boolean
-  answeredAt: string
-  timeSpentSeconds: number | null
-}
-
-export interface Question {
-  id: string
-  type: 'mcq' | 'mrq' | 'short_answer'
-  question: string
-  explanation: string | null
-  answer: string | null
-  imagePath: string | null
-  options?: QuestionOption[]
-  isDeleted?: boolean
-}
-
-export interface ChildPracticeSessionFull
-  extends Omit<ChildPracticeSession, 'score' | 'durationSeconds' | 'completedAt'> {
-  subjectId: string
-  subTopicId: string // topic_id column now references sub_topics
-  topicId: string
-  gradeLevelId: string
-  questions: Question[]
-  answers: PracticeAnswer[]
-  startedAt: string
-  aiSummary: string | null
-  score: number
-  durationSeconds: number
-  completedAt: string
 }
 
 export interface ChildStatistics {
@@ -107,75 +59,6 @@ export interface ChildDailyStatus {
 export interface DailySessionCount {
   date: string // YYYY-MM-DD
   count: number
-}
-
-/** Extract options from question row columns into a typed array */
-function extractOptionsFromQuestion(q: QuestionRow): QuestionOption[] {
-  const options: QuestionOption[] = []
-  if (q.option_1_text !== null || q.option_1_image_path !== null) {
-    options.push({
-      id: 'a',
-      text: q.option_1_text,
-      imagePath: q.option_1_image_path,
-      isCorrect: q.option_1_is_correct ?? false,
-    })
-  }
-  if (q.option_2_text !== null || q.option_2_image_path !== null) {
-    options.push({
-      id: 'b',
-      text: q.option_2_text,
-      imagePath: q.option_2_image_path,
-      isCorrect: q.option_2_is_correct ?? false,
-    })
-  }
-  if (q.option_3_text !== null || q.option_3_image_path !== null) {
-    options.push({
-      id: 'c',
-      text: q.option_3_text,
-      imagePath: q.option_3_image_path,
-      isCorrect: q.option_3_is_correct ?? false,
-    })
-  }
-  if (q.option_4_text !== null || q.option_4_image_path !== null) {
-    options.push({
-      id: 'd',
-      text: q.option_4_text,
-      imagePath: q.option_4_image_path,
-      isCorrect: q.option_4_is_correct ?? false,
-    })
-  }
-  return options
-}
-
-/** Build Question[] from answer rows and a questions map, with placeholders for deleted questions */
-function buildQuestionsFromAnswers(
-  answersData: Database['public']['Tables']['practice_answers']['Row'][],
-  questionsMap: Map<string, QuestionRow>,
-): Question[] {
-  return answersData.map((answer, index) => {
-    if (answer.question_id && questionsMap.has(answer.question_id)) {
-      const q = questionsMap.get(answer.question_id)!
-      return {
-        id: q.id,
-        type: q.type as 'mcq' | 'short_answer',
-        question: q.question,
-        explanation: q.explanation,
-        answer: q.answer,
-        imagePath: q.image_path,
-        options: q.type === 'mcq' ? extractOptionsFromQuestion(q) : undefined,
-      }
-    }
-    // Deleted question placeholder
-    return {
-      id: answer.question_id ?? `deleted-${index}`,
-      type: 'mcq' as const,
-      question: '[Question has been deleted]',
-      explanation: null,
-      answer: null,
-      imagePath: null,
-      isDeleted: true,
-    }
-  })
 }
 
 export const useChildStatisticsStore = defineStore('childStatistics', () => {
@@ -552,12 +435,11 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       // Use DB row fields for summary (works even when answers aren't loaded)
       const correctAnswers = canViewDetails
         ? answers.filter((a) => a.isCorrect).length
-        : ((sessionData as unknown as { correct_count: number | null }).correct_count ?? 0)
+        : (sessionData.correct_count ?? 0)
       const totalQuestions = sessionData.total_questions ?? answers.length
       const durationSeconds = canViewDetails
         ? answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)
-        : ((sessionData as unknown as { total_time_seconds: number | null }).total_time_seconds ??
-          0)
+        : (sessionData.total_time_seconds ?? 0)
 
       const session: ChildPracticeSessionFull = {
         id: sessionData.id,
