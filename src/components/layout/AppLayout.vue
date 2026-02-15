@@ -84,7 +84,12 @@ const greeting = computed(() => {
 </script>
 
 <template>
-  <SidebarProvider>
+  <!-- Loading guard: prevent rendering layout with null user during auth transitions -->
+  <div v-if="!authStore.user" class="flex h-dvh items-center justify-center">
+    <Loader2 class="size-8 animate-spin text-muted-foreground" />
+  </div>
+
+  <SidebarProvider v-else>
     <AppSidebar />
     <SidebarInset>
       <header class="flex h-12 shrink-0 items-center justify-between gap-2 border-b px-4">
