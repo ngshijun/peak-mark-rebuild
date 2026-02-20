@@ -31,6 +31,11 @@ const tierConfig: Record<string, { label: string; color: string; bgColor: string
     color: 'text-gray-700 dark:text-gray-300',
     bgColor: 'bg-gray-100 dark:bg-gray-800',
   },
+  plus: {
+    label: 'Plus',
+    color: 'text-green-700 dark:text-green-300',
+    bgColor: 'bg-green-100 dark:bg-green-900/50',
+  },
   pro: {
     label: 'Pro',
     color: 'text-blue-700 dark:text-blue-300',
