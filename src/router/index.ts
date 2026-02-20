@@ -196,6 +196,11 @@ const router = createRouter({
           component: () => import('@/pages/admin/StudentsPage.vue'),
         },
         {
+          path: 'payment-history',
+          name: 'admin-payment-history',
+          component: () => import('@/pages/admin/PaymentHistoryPage.vue'),
+        },
+        {
           path: 'students/:studentId/statistics',
           name: 'admin-student-statistics',
           component: () => import('@/pages/admin/StudentStatisticsPage.vue'),

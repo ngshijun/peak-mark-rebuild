@@ -25,6 +25,7 @@ export const sidebarNavConfig: SidebarNavConfig = {
     { title: 'Question Statistics', path: '/admin/question-statistics', icon: BarChart3 },
     { title: 'Question Feedback', path: '/admin/question-feedback', icon: MessageSquare },
     { title: 'Students', path: '/admin/students', icon: Users },
+    { title: 'Payment History', path: '/admin/payment-history', icon: CreditCard },
     { title: 'Leaderboard', path: '/admin/leaderboard', icon: Trophy },
     { title: 'Pets', path: '/admin/pets', icon: PawPrint },
   ],
