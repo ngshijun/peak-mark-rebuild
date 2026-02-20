@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import {
   useLeaderboardStore,
   type LeaderboardStudent,
@@ -18,7 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Trophy, Loader2, CirclePoundSterling, CalendarClock } from 'lucide-vue-next'
+import {
+  Trophy,
+  Loader2,
+  CirclePoundSterling,
+  CalendarClock,
+  Swords,
+  CalendarSync,
+  X,
+} from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import fireGif from '@/assets/icons/fire.gif'
 import { useCountdownTimer } from '@/composables/useCountdownTimer'
@@ -32,6 +41,9 @@ const curriculumStore = useCurriculumStore()
 const ALL_VALUE = '__all__'
 const selectedGradeLevel = ref<string>(ALL_VALUE)
 const activeTab = ref<'all-time' | 'weekly'>('all-time')
+
+// Weekly competition info banner (permanently dismissible)
+const weeklyBannerDismissed = useLocalStorage('weekly_competition_banner_dismissed', false)
 
 // Coin rewards for weekly leaderboard top 10
 const WEEKLY_COIN_REWARDS = [500, 400, 300, 250, 200, 150, 125, 100, 75, 50] as const
@@ -193,7 +205,7 @@ onMounted(async () => {
     <Tabs v-model="activeTab" class="w-full">
       <TabsList class="grid w-full grid-cols-2">
         <TabsTrigger value="all-time">All-Time</TabsTrigger>
-        <TabsTrigger value="weekly"> Weekly </TabsTrigger>
+        <TabsTrigger value="weekly"> Weekly Competition </TabsTrigger>
       </TabsList>
 
       <!-- All-Time Tab -->
@@ -280,7 +292,35 @@ onMounted(async () => {
       </TabsContent>
 
       <!-- Weekly Tab -->
-      <TabsContent value="weekly">
+      <TabsContent value="weekly" class="space-y-4">
+        <div
+          v-if="!weeklyBannerDismissed"
+          class="relative overflow-hidden rounded-lg bg-gradient-to-r from-purple-500/10 via-amber-500/10 to-purple-500/10 border border-purple-500/20 p-4"
+        >
+          <button
+            class="absolute top-2 right-2 rounded-full p-1 opacity-50 transition-opacity hover:opacity-100"
+            @click="weeklyBannerDismissed = true"
+          >
+            <X class="size-4" />
+            <span class="sr-only">Dismiss</span>
+          </button>
+          <h3 class="mb-3 pr-6 font-bold">How It Works</h3>
+          <div class="grid gap-2 text-sm sm:grid-cols-3">
+            <div class="flex items-center gap-2">
+              <Swords class="size-4 shrink-0 text-purple-500" />
+              <span>Earn XP to climb the ranks</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CirclePoundSterling class="size-4 shrink-0 text-amber-500" />
+              <span>Top 10 win coin rewards</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CalendarSync class="size-4 shrink-0 text-blue-500" />
+              <span>Resets every Monday</span>
+            </div>
+          </div>
+        </div>
+
         <div v-if="leaderboardStore.isWeeklyLoading" class="flex items-center justify-center py-12">
           <Loader2 class="size-8 animate-spin text-muted-foreground" />
         </div>
