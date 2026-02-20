@@ -1,11 +1,6 @@
 <script setup lang="ts">
-import { watch } from 'vue'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { watch, computed } from 'vue'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useLeaderboardStore } from '@/stores/leaderboard'
@@ -50,6 +45,21 @@ function getScoreTextColor(score: number): string {
 }
 
 const medals = ['🥇', '🥈', '🥉']
+
+// Computed helpers to avoid `as Record<string, unknown>` casts in template
+// (prettier's HTML parser chokes on angle brackets in type assertions)
+const studentRecord = computed(() => props.student as Record<string, unknown> | null)
+
+const studentLevel = computed(() => (studentRecord.value?.level as number) ?? '-')
+
+const studentXpDisplay = computed(() => {
+  if (props.activeTab === 'weekly') {
+    return (studentRecord.value?.weeklyXp as number)?.toLocaleString() ?? '-'
+  }
+  return (studentRecord.value?.xp as number)?.toLocaleString() ?? '-'
+})
+
+const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak as number) ?? 0)
 </script>
 
 <template>
@@ -88,21 +98,13 @@ const medals = ['🥇', '🥈', '🥉']
           <div class="grid grid-cols-3 gap-3">
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">Level</p>
-              <p class="text-xl font-bold">
-                {{ (student as Record<string, unknown>).level ?? '-' }}
-              </p>
+              <p class="text-xl font-bold">{{ studentLevel }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">
                 {{ activeTab === 'weekly' ? 'Weekly XP' : 'XP' }}
               </p>
-              <p class="text-xl font-bold">
-                {{
-                  activeTab === 'weekly'
-                    ? ((student as Record<string, unknown>).weeklyXp as number)?.toLocaleString() ?? '-'
-                    : ((student as Record<string, unknown>).xp as number)?.toLocaleString() ?? '-'
-                }}
-              </p>
+              <p class="text-xl font-bold">{{ studentXpDisplay }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">Coins</p>
@@ -147,7 +149,11 @@ const medals = ['🥇', '🥈', '🥉']
                 <div>
                   <p class="text-sm font-semibold">{{ pet.name }}</p>
                   <div class="flex items-center gap-1.5">
-                    <Badge variant="outline" :class="rarityConfig[pet.rarity].color" class="text-xs">
+                    <Badge
+                      variant="outline"
+                      :class="rarityConfig[pet.rarity].color"
+                      class="text-xs"
+                    >
                       {{ rarityConfig[pet.rarity].label }}
                     </Badge>
                     <Badge variant="secondary" class="text-xs">
@@ -171,7 +177,9 @@ const medals = ['🥇', '🥈', '🥉']
             </div>
 
             <!-- Best Subjects (top right, spans 2 cols) -->
-            <div class="col-span-2 rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30">
+            <div
+              class="col-span-2 rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
+            >
               <p class="mb-2 text-xs font-medium text-muted-foreground">Top Subjects</p>
               <div class="space-y-2">
                 <div v-for="index in 3" :key="index" class="flex items-center gap-2">
@@ -190,7 +198,9 @@ const medals = ['🥇', '🥈', '🥉']
                           {{ bestSubjects[index - 1]!.averageScore }}%
                         </span>
                       </div>
-                      <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30">
+                      <div
+                        class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
+                      >
                         <div
                           class="h-full rounded-full transition-all"
                           :class="getScoreBarColor(bestSubjects[index - 1]!.averageScore)"
@@ -202,7 +212,9 @@ const medals = ['🥇', '🥈', '🥉']
                   <template v-else>
                     <div class="min-w-0 flex-1">
                       <p class="text-sm text-muted-foreground/60">Not yet unlocked</p>
-                      <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30" />
+                      <div
+                        class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
+                      />
                     </div>
                   </template>
                 </div>
@@ -216,17 +228,12 @@ const medals = ['🥇', '🥈', '🥉']
               <p class="mb-2 text-xs font-medium text-muted-foreground">Practice Streak</p>
               <div class="flex items-center gap-3">
                 <div class="flex size-14 items-center justify-center">
-                  <img
-                    v-if="((student as Record<string, unknown>).currentStreak as number) > 0"
-                    :src="fireGif"
-                    alt="fire"
-                    class="size-10"
-                  />
+                  <img v-if="studentCurrentStreak > 0" :src="fireGif" alt="fire" class="size-10" />
                   <span v-else class="text-4xl">&#x1F4A4;</span>
                 </div>
                 <div>
                   <p class="text-2xl font-bold">
-                    {{ (student as Record<string, unknown>).currentStreak ?? 0 }}
+                    {{ studentCurrentStreak }}
                     <span class="text-sm font-normal text-muted-foreground">days</span>
                   </p>
                 </div>
