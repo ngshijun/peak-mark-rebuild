@@ -1361,6 +1361,7 @@ export type Database = {
       weekly_leaderboard: {
         Row: {
           avatar_path: string | null
+          current_streak: number | null
           grade_level_name: string | null
           id: string | null
           name: string | null
@@ -1376,6 +1377,7 @@ export type Database = {
         Args: never
         Returns: {
           avatar_path: string
+          current_streak: number
           grade_level_name: string
           id: string
           name: string
@@ -1464,6 +1466,10 @@ export type Database = {
           correctness_rate: number
           question_id: string
         }[]
+      }
+      get_student_profile_for_dialog: {
+        Args: { p_student_id: string }
+        Returns: Json
       }
       get_student_streak: { Args: { p_student_id: string }; Returns: number }
       get_tier_from_stripe_price: {

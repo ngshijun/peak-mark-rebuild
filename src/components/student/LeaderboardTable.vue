@@ -20,6 +20,10 @@ defineProps<{
   emptyMessage?: string
 }>()
 
+const emit = defineEmits<{
+  'row-click': [entry: LeaderboardEntry]
+}>()
+
 defineSlots<{
   stats(props: { entry: LeaderboardEntry }): unknown
   'current-student-stats'(props: { entry: LeaderboardEntry }): unknown
@@ -52,8 +56,9 @@ function getRankColor(rank: number): string {
     <div
       v-for="entry in entries"
       :key="entry.id"
-      class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
+      class="flex cursor-pointer items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
       :class="{ 'bg-primary/5': authStore.user?.id === entry.id }"
+      @click="emit('row-click', entry)"
     >
       <!-- Rank -->
       <div class="flex w-12 items-center justify-center">
@@ -92,7 +97,10 @@ function getRankColor(rank: number): string {
     <!-- Current student row if not in top 20 -->
     <template v-if="currentStudentEntry">
       <div class="border-t-2 border-dashed" />
-      <div class="flex items-center gap-4 bg-primary/5 px-6 py-4">
+      <div
+        class="flex cursor-pointer items-center gap-4 bg-primary/5 px-6 py-4 transition-colors hover:bg-primary/10"
+        @click="currentStudentEntry && emit('row-click', currentStudentEntry)"
+      >
         <!-- Rank -->
         <div class="flex w-12 items-center justify-center">
           <span class="text-lg font-semibold text-muted-foreground">

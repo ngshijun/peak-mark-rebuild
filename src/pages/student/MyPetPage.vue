@@ -161,10 +161,7 @@ function getTierLabel(tier: number): string {
     </div>
 
     <!-- No Pet Selected -->
-    <Card
-      v-if="!selectedPet"
-      class="border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 text-center dark:border-purple-900 dark:bg-card dark:from-purple-950/30 dark:to-fuchsia-950/30"
-    >
+    <Card v-if="!selectedPet" class="text-center">
       <CardContent class="py-12">
         <div
           class="mx-auto mb-4 flex size-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50"
@@ -188,9 +185,7 @@ function getTierLabel(tier: number): string {
     <template v-else>
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Pet Card -->
-        <Card
-          class="border-purple-200 bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:border-purple-900 dark:bg-card dark:from-purple-950/20 dark:to-fuchsia-950/20 lg:col-span-2"
-        >
+        <Card class="lg:col-span-2">
           <CardHeader>
             <div class="flex items-center justify-between">
               <div>

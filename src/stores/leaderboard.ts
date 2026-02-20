@@ -33,6 +33,7 @@ export interface WeeklyLeaderboardStudent {
   level: number
   rank: number
   avatarPath: string | null
+  currentStreak: number
 }
 
 export interface WeeklyReward {
@@ -167,6 +168,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
       level: computeLevel(totalXp),
       rank: row.rank ?? 0,
       avatarPath: row.avatar_path,
+      currentStreak: row.current_streak ?? 0,
     }
   }
 

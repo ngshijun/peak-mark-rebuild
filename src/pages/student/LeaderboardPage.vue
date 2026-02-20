@@ -22,8 +22,9 @@ import { Trophy, Loader2, CirclePoundSterling, CalendarClock } from 'lucide-vue-
 import { toast } from 'vue-sonner'
 import fireGif from '@/assets/icons/fire.gif'
 import { useCountdownTimer } from '@/composables/useCountdownTimer'
-import LeaderboardTable from '@/components/student/LeaderboardTable.vue'
+import LeaderboardTable, { type LeaderboardEntry } from '@/components/student/LeaderboardTable.vue'
 import WeeklyRewardDialog from '@/components/student/WeeklyRewardDialog.vue'
+import StudentProfileDialog from '@/components/student/StudentProfileDialog.vue'
 
 const leaderboardStore = useLeaderboardStore()
 const authStore = useAuthStore()
@@ -63,6 +64,15 @@ function dismissRewardDialog() {
   if (lastWeekReward.value) {
     leaderboardStore.markRewardSeen(lastWeekReward.value.weekStart)
   }
+}
+
+// Student profile dialog
+const showProfileDialog = ref(false)
+const selectedStudent = ref<(LeaderboardEntry & Record<string, unknown>) | null>(null)
+
+function handleRowClick(entry: LeaderboardEntry) {
+  selectedStudent.value = entry as LeaderboardEntry & Record<string, unknown>
+  showProfileDialog.value = true
 }
 
 // Computed for the filtered all-time leaderboard
@@ -219,6 +229,7 @@ onMounted(async () => {
               :entries="displayedStudents"
               :current-student-entry="currentStudentInfo"
               empty-message="No students found for this grade level."
+              @row-click="handleRowClick"
             >
               <template #stats="{ entry }">
                 <div class="flex items-center gap-6">
@@ -306,6 +317,7 @@ onMounted(async () => {
               :entries="displayedWeeklyStudents"
               :current-student-entry="currentWeeklyStudentInfo"
               empty-message="No students have earned XP this week yet."
+              @row-click="handleRowClick"
             >
               <template #stats="{ entry }">
                 <div class="flex items-center gap-6">
@@ -372,6 +384,13 @@ onMounted(async () => {
       :open="showRewardDialog"
       :reward="lastWeekReward"
       @dismiss="dismissRewardDialog"
+    />
+
+    <!-- Student Profile Dialog -->
+    <StudentProfileDialog
+      v-model:open="showProfileDialog"
+      :student="selectedStudent"
+      :active-tab="activeTab"
     />
   </div>
 </template>
