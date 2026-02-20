@@ -23,6 +23,7 @@ const showCombineResultDialog = ref(false)
 const combineResults = ref<
   Array<{
     upgraded: boolean
+    isNew: boolean
     resultPet: Pet | null
     resultRarity: PetRarity | null
   }>
@@ -54,6 +55,7 @@ function openPetDialog(pet: Pet) {
 function handleCombined(
   results: Array<{
     upgraded: boolean
+    isNew: boolean
     resultPet: Pet | null
     resultRarity: PetRarity | null
   }>,

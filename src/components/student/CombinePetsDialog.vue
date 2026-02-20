@@ -31,6 +31,7 @@ const emit = defineEmits<{
   combined: [
     results: Array<{
       upgraded: boolean
+      isNew: boolean
       resultPet: Pet | null
       resultRarity: PetRarity | null
     }>,
@@ -159,11 +160,16 @@ function getCombineCountForRarity(rarity: CombineRarity): number {
   return Math.floor(totalAvailable / 4)
 }
 
+function getOwnedPetIdSet(): Set<string> {
+  return new Set(petsStore.ownedPets.map((op) => op.petId))
+}
+
 async function handleCombine() {
   if (totalSelectedCount.value !== 4) return
 
   isCombining.value = true
   const ownedPetIds = buildCombineIds()
+  const preCombineOwned = getOwnedPetIdSet()
 
   try {
     const result = await petsStore.combinePets(ownedPetIds)
@@ -177,6 +183,7 @@ async function handleCombine() {
     emit('combined', [
       {
         upgraded: result.upgraded,
+        isNew: result.resultPetId ? !preCombineOwned.has(result.resultPetId) : false,
         resultPet: resultPet ?? null,
         resultRarity: result.resultRarity,
       },
@@ -196,6 +203,7 @@ async function handleQuickCombine() {
   isCombining.value = true
   const results: Array<{
     upgraded: boolean
+    isNew: boolean
     resultPet: Pet | null
     resultRarity: PetRarity | null
   }> = []
@@ -209,6 +217,9 @@ async function handleQuickCombine() {
       }
     }
 
+    const preCombineOwned = getOwnedPetIdSet()
+    const seenInThisBatch = new Set<string>()
+
     const combineCount = Math.floor(petPool.length / 4)
     for (let i = 0; i < combineCount; i++) {
       const idsToUse = petPool.slice(i * 4, (i + 1) * 4)
@@ -216,8 +227,14 @@ async function handleQuickCombine() {
 
       if (result.error === null) {
         const resultPet = result.resultPetId ? petsStore.getPetById(result.resultPetId) : null
+        const isNew =
+          result.resultPetId !== undefined &&
+          !preCombineOwned.has(result.resultPetId) &&
+          !seenInThisBatch.has(result.resultPetId)
+        if (result.resultPetId) seenInThisBatch.add(result.resultPetId)
         results.push({
           upgraded: result.upgraded,
+          isNew,
           resultPet: resultPet ?? null,
           resultRarity: result.resultRarity,
         })

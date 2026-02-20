@@ -16,6 +16,7 @@ const props = defineProps<{
   open: boolean
   results: Array<{
     upgraded: boolean
+    isNew: boolean
     resultPet: Pet | null
     resultRarity: PetRarity | null
   }>
@@ -56,13 +57,16 @@ function close() {
         v-if="props.results.length === 1 && props.results[0]?.resultPet"
         class="flex flex-col items-center py-6"
       >
-        <Badge
-          v-if="props.results[0].upgraded"
-          class="mb-4 animate-pulse bg-gradient-to-r from-yellow-400 to-amber-500 text-white"
-        >
-          <Sparkles class="mr-1 size-3" />
-          UPGRADED!
-        </Badge>
+        <div class="mb-4 flex gap-2">
+          <Badge
+            v-if="props.results[0].upgraded"
+            class="animate-pulse bg-gradient-to-r from-yellow-400 to-amber-500 text-white"
+          >
+            <Sparkles class="mr-1 size-3" />
+            UPGRADED!
+          </Badge>
+          <Badge v-if="props.results[0].isNew" class="bg-green-500 text-white"> NEW! </Badge>
+        </div>
 
         <div
           class="flex flex-col items-center rounded-xl border-2 p-6"
@@ -130,12 +134,10 @@ function close() {
                 : '',
             ]"
           >
-            <Badge
-              v-if="result.upgraded"
-              class="absolute -right-1 -top-1 bg-green-500 px-1 text-[9px]"
-            >
-              UP!
-            </Badge>
+            <div class="absolute -right-1 -top-1 flex flex-col gap-0.5">
+              <Badge v-if="result.upgraded" class="bg-green-500 px-1 text-[9px]"> UP! </Badge>
+              <Badge v-if="result.isNew" class="bg-green-500 px-1 text-[9px]"> NEW! </Badge>
+            </div>
             <img
               v-if="result.resultPet"
               :src="
