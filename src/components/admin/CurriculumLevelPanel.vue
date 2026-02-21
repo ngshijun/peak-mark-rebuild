@@ -43,7 +43,7 @@ const emit = defineEmits<{
             class="size-full object-cover transition-transform group-hover:scale-105"
           />
         </div>
-        <CardContent :class="hasImage ? 'mt-auto p-4' : 'p-4'">
+        <CardContent :class="hasImage ? 'mt-auto px-4 pb-4 pt-2' : 'p-4'">
           <h3 class="text-lg font-semibold">{{ item.name }}</h3>
           <p class="text-sm text-muted-foreground">{{ getDescription(item) }}</p>
         </CardContent>

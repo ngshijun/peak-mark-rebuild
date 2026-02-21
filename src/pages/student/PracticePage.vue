@@ -303,7 +303,7 @@ async function confirmStartSession() {
                 class="size-full object-cover"
               />
             </div>
-            <CardContent class="mt-auto p-4">
+            <CardContent class="mt-auto px-4 pb-4 pt-2">
               <div class="flex items-center gap-2">
                 <h3 class="text-lg font-semibold">{{ subject.name }}</h3>
                 <CircleCheck
