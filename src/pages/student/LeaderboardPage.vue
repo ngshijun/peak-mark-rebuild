@@ -337,7 +337,7 @@ onMounted(async () => {
               </Badge>
               <Badge variant="outline" class="ml-auto gap-1">
                 <CalendarClock class="size-3" />
-                Ends in {{ countdown }}
+                {{ countdown === 'Ending...' ? countdown : `Ends in ${countdown}` }}
               </Badge>
             </CardTitle>
           </CardHeader>

@@ -36,18 +36,22 @@ export function useCountdownTimer() {
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
 
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
     if (days > 0) {
-      countdown.value = `${days}d ${hours}h`
+      countdown.value = `${days}d ${hours}h ${minutes}m ${seconds}s`
     } else if (hours > 0) {
-      countdown.value = `${hours}h ${minutes}m`
+      countdown.value = `${hours}h ${minutes}m ${seconds}s`
+    } else if (minutes > 0) {
+      countdown.value = `${minutes}m ${seconds}s`
     } else {
-      countdown.value = `${minutes}m`
+      countdown.value = `${seconds}s`
     }
   }
 
   onMounted(() => {
     update()
-    interval = setInterval(update, 60_000)
+    interval = setInterval(update, 1_000)
   })
 
   onUnmounted(() => {
