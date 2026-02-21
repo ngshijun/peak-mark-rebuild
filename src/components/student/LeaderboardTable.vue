@@ -47,9 +47,9 @@ function getRankColor(rank: number): string {
 }
 
 function getRankBg(rank: number): string {
-  if (rank === 1) return 'bg-yellow-500/10'
-  if (rank === 2) return 'bg-gray-400/10'
-  if (rank === 3) return 'bg-amber-600/10'
+  if (rank === 1) return 'bg-yellow-500/15'
+  if (rank === 2) return 'bg-gray-400/15'
+  if (rank === 3) return 'bg-amber-600/15'
   return ''
 }
 </script>
