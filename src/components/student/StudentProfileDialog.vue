@@ -180,7 +180,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
             <div
               class="col-span-2 rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
             >
-              <div class="mb-4 flex items-center justify-between">
+              <div class="mb-5 flex items-center justify-between">
                 <p class="text-xs font-medium text-muted-foreground">Top Subjects</p>
                 <Trophy class="size-4 text-muted-foreground" />
               </div>
@@ -228,7 +228,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
             <div
               class="col-span-2 rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 dark:border-orange-900/50 dark:from-orange-950/30 dark:to-amber-950/30"
             >
-              <div class="mb-2 flex items-center justify-between">
+              <div class="mb-5 flex items-center justify-between">
                 <p class="text-xs font-medium text-muted-foreground">Practice Streak</p>
                 <Flame class="size-4 text-muted-foreground" />
               </div>
