@@ -57,7 +57,7 @@ watch(
   >
     <DialogContent class="sm:max-w-md text-center">
       <DialogHeader>
-        <DialogTitle class="text-center text-xl">Weekly Leaderboard Results</DialogTitle>
+        <DialogTitle class="text-center text-xl">Weekly Competition Results</DialogTitle>
         <DialogDescription class="text-center">
           Last week's competition has ended!
         </DialogDescription>

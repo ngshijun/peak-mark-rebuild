@@ -45,6 +45,13 @@ function getRankColor(rank: number): string {
   if (rank === 3) return 'text-amber-600'
   return 'text-muted-foreground'
 }
+
+function getRankBg(rank: number): string {
+  if (rank === 1) return 'bg-yellow-500/10'
+  if (rank === 2) return 'bg-gray-400/10'
+  if (rank === 3) return 'bg-amber-600/10'
+  return ''
+}
 </script>
 
 <template>
@@ -52,12 +59,15 @@ function getRankColor(rank: number): string {
     <p class="text-muted-foreground">{{ emptyMessage ?? 'No students found.' }}</p>
   </div>
 
-  <div v-else class="divide-y">
+  <div v-else class="divide-y border-t">
     <div
       v-for="entry in entries"
       :key="entry.id"
       class="flex cursor-pointer items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
-      :class="{ 'bg-primary/5': authStore.user?.id === entry.id }"
+      :class="[
+        getRankBg(entry.rank),
+        authStore.user?.id === entry.id && 'border-l-3 border-l-primary',
+      ]"
       @click="emit('row-click', entry)"
     >
       <!-- Rank -->
@@ -98,7 +108,7 @@ function getRankColor(rank: number): string {
     <template v-if="currentStudentEntry">
       <div class="border-t-2 border-dashed" />
       <div
-        class="flex cursor-pointer items-center gap-4 bg-primary/5 px-6 py-4 transition-colors hover:bg-primary/10"
+        class="flex cursor-pointer items-center gap-4 border-l-3 border-l-primary px-6 py-4 transition-colors hover:bg-muted/50"
         @click="currentStudentEntry && emit('row-click', currentStudentEntry)"
       >
         <!-- Rank -->
