@@ -10,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Trophy, CirclePoundSterling } from 'lucide-vue-next'
+import { Trophy, CirclePoundSterling, Share2 } from 'lucide-vue-next'
+import { useShare } from '@/composables/useShare'
 
 const props = defineProps<{
   open: boolean
@@ -20,6 +21,18 @@ const props = defineProps<{
 const emit = defineEmits<{
   dismiss: []
 }>()
+
+const { share } = useShare()
+
+function shareReward() {
+  if (!props.reward) return
+  const rank = props.reward.rank
+  const suffix = getOrdinalSuffix(rank)
+  share({
+    title: 'Clavis Weekly Competition',
+    text: `I placed ${rank}${suffix} in this week's competition on Clavis! 🏆 Join me: https://clavis.com.my`,
+  })
+}
 
 function getOrdinalSuffix(rank: number): string {
   if (rank === 1) return 'st'
@@ -83,7 +96,13 @@ watch(
           </span>
         </div>
 
-        <Button class="w-full" @click="emit('dismiss')"> Awesome! </Button>
+        <div class="grid grid-cols-2 gap-2">
+          <Button variant="outline" @click="shareReward">
+            <Share2 />
+            Share
+          </Button>
+          <Button @click="emit('dismiss')"> Awesome! </Button>
+        </div>
       </div>
     </DialogContent>
   </Dialog>

@@ -10,9 +10,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Star } from 'lucide-vue-next'
+import { Star, Share2 } from 'lucide-vue-next'
+import { useShare } from '@/composables/useShare'
 
 const authStore = useAuthStore()
+const { share } = useShare()
+
+function shareLevel() {
+  if (!authStore.levelUpInfo) return
+  share({
+    title: 'Clavis Level Up!',
+    text: `I just reached Level ${authStore.levelUpInfo.newLevel} on Clavis! 🎉 Join me: https://clavis.com.my`,
+  })
+}
 
 // Fire confetti when level-up is detected
 watch(
@@ -58,7 +68,13 @@ function dismiss() {
           <p class="text-sm text-muted-foreground">Keep practicing to reach the next level!</p>
         </div>
 
-        <Button class="w-full" @click="dismiss"> Awesome! </Button>
+        <div class="grid grid-cols-2 gap-2">
+          <Button variant="outline" @click="shareLevel">
+            <Share2 />
+            Share
+          </Button>
+          <Button @click="dismiss"> Awesome! </Button>
+        </div>
       </div>
     </DialogContent>
   </Dialog>
