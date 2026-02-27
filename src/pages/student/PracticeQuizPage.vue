@@ -65,15 +65,15 @@ onMounted(async () => {
       isResuming.value = false
 
       if (result.error || !result.session) {
-        // Failed to resume - redirect to practice page
+        // Failed to resume - replace so back button doesn't loop to this dead URL
         toast.error('Failed to resume session')
-        router.push('/student/practice')
+        router.replace('/student/practice')
         return
       }
     }
   } else if (!practiceStore.isSessionActive) {
-    // No session ID and no active session - redirect
-    router.push('/student/practice')
+    // No session ID and no active session - replace so back button doesn't loop
+    router.replace('/student/practice')
   }
 
   // Initialize question start time
@@ -171,7 +171,7 @@ async function finishQuiz() {
   const result = await practiceStore.completeSession()
   if (result.session) {
     toast.success('Quiz completed!')
-    router.push(`/student/session/${result.session.id}`)
+    router.replace(`/student/session/${result.session.id}`)
   } else if (result.error) {
     toast.error('Failed to complete quiz')
   }

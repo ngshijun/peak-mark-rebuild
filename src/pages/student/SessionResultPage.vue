@@ -77,7 +77,7 @@ onMounted(async () => {
       generateAiSummary()
     }
   } else {
-    router.push('/student/statistics')
+    router.replace('/student/statistics')
   }
   isLoading.value = false
 })

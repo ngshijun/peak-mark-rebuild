@@ -59,7 +59,7 @@ onMounted(async () => {
   subscriptionRequired.value = result.subscriptionRequired ?? false
   if (!result.session && !result.subscriptionRequired) {
     error.value = result.error
-    router.push('/parent/statistics')
+    router.replace('/parent/statistics')
   }
   isLoading.value = false
 })
