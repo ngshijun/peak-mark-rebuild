@@ -24,5 +24,14 @@ export function useShare() {
     }
   }
 
-  return { share }
+  async function copyLink(text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('Link copied!')
+    } catch {
+      toast.error('Failed to copy link')
+    }
+  }
+
+  return { share, copyLink }
 }

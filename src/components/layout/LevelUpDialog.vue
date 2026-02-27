@@ -10,18 +10,25 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Star, Share2 } from 'lucide-vue-next'
+import { Star, Share2, Link } from 'lucide-vue-next'
 import { useShare } from '@/composables/useShare'
 
 const authStore = useAuthStore()
-const { share } = useShare()
+const { share, copyLink } = useShare()
+
+function getShareText() {
+  if (!authStore.levelUpInfo) return ''
+  return `I just reached Level ${authStore.levelUpInfo.newLevel} on Clavis! 🎉 Join me: https://clavis.com.my`
+}
 
 function shareLevel() {
   if (!authStore.levelUpInfo) return
-  share({
-    title: 'Clavis Level Up!',
-    text: `I just reached Level ${authStore.levelUpInfo.newLevel} on Clavis! 🎉 Join me: https://clavis.com.my`,
-  })
+  share({ title: 'Clavis Level Up!', text: getShareText() })
+}
+
+function copyLevelLink() {
+  if (!authStore.levelUpInfo) return
+  copyLink(getShareText())
 }
 
 // Fire confetti when level-up is detected
@@ -56,7 +63,7 @@ function dismiss() {
     "
   >
     <DialogContent class="sm:max-w-md text-center">
-      <DialogHeader>
+      <DialogHeader class="pr-0">
         <DialogTitle class="text-center text-xl">Level Up!</DialogTitle>
         <DialogDescription class="text-center"> You reached a new level! </DialogDescription>
       </DialogHeader>
@@ -68,12 +75,14 @@ function dismiss() {
           <p class="text-sm text-muted-foreground">Keep practicing to reach the next level!</p>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <Button variant="outline" @click="shareLevel">
-            <Share2 />
-            Share
+        <div class="flex items-center gap-2">
+          <Button class="flex-1" @click="dismiss"> Awesome! </Button>
+          <Button variant="outline" size="icon" @click="copyLevelLink">
+            <Link class="size-4" />
           </Button>
-          <Button @click="dismiss"> Awesome! </Button>
+          <Button variant="outline" size="icon" @click="shareLevel">
+            <Share2 class="size-4" />
+          </Button>
         </div>
       </div>
     </DialogContent>

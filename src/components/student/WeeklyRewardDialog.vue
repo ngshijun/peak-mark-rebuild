@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Trophy, CirclePoundSterling, Share2 } from 'lucide-vue-next'
+import { Trophy, CirclePoundSterling, Share2, Link } from 'lucide-vue-next'
 import { useShare } from '@/composables/useShare'
 
 const props = defineProps<{
@@ -22,16 +22,23 @@ const emit = defineEmits<{
   dismiss: []
 }>()
 
-const { share } = useShare()
+const { share, copyLink } = useShare()
+
+function getShareText() {
+  if (!props.reward) return ''
+  const rank = props.reward.rank
+  const suffix = getOrdinalSuffix(rank)
+  return `I placed ${rank}${suffix} in this week's competition on Clavis! 🏆 Join me: https://clavis.com.my`
+}
 
 function shareReward() {
   if (!props.reward) return
-  const rank = props.reward.rank
-  const suffix = getOrdinalSuffix(rank)
-  share({
-    title: 'Clavis Weekly Competition',
-    text: `I placed ${rank}${suffix} in this week's competition on Clavis! 🏆 Join me: https://clavis.com.my`,
-  })
+  share({ title: 'Clavis Weekly Competition', text: getShareText() })
+}
+
+function copyRewardLink() {
+  if (!props.reward) return
+  copyLink(getShareText())
 }
 
 function getOrdinalSuffix(rank: number): string {
@@ -69,7 +76,7 @@ watch(
     "
   >
     <DialogContent class="sm:max-w-md text-center">
-      <DialogHeader>
+      <DialogHeader class="pr-0">
         <DialogTitle class="text-center text-xl">Weekly Competition Results</DialogTitle>
         <DialogDescription class="text-center">
           Last week's competition has ended!
@@ -96,12 +103,14 @@ watch(
           </span>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <Button variant="outline" @click="shareReward">
-            <Share2 />
-            Share
+        <div class="flex items-center gap-2">
+          <Button class="flex-1" @click="emit('dismiss')"> Awesome! </Button>
+          <Button variant="outline" size="icon" @click="copyRewardLink">
+            <Link class="size-4" />
           </Button>
-          <Button @click="emit('dismiss')"> Awesome! </Button>
+          <Button variant="outline" size="icon" @click="shareReward">
+            <Share2 class="size-4" />
+          </Button>
         </div>
       </div>
     </DialogContent>
