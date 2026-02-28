@@ -33,7 +33,7 @@ const birthdayYearRange = computed(() => {
   }).reverse()
 })
 
-const { handleSubmit, values, setFieldValue } = useForm({
+const { handleSubmit, values, setFieldValue, submitCount } = useForm({
   validationSchema: signupFormSchema,
   initialValues: {
     name: '',
@@ -86,7 +86,14 @@ const onSubmit = handleSubmit(async (formValues) => {
       </CardHeader>
       <CardContent>
         <form class="space-y-4" @submit="onSubmit">
-          <VeeField v-slot="{ field, errors }" name="name">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="name"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="name">Name <span class="text-destructive">*</span></FieldLabel>
               <Input
@@ -101,7 +108,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ field, errors }" name="email">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="email"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="email">Email <span class="text-destructive">*</span></FieldLabel>
               <Input
@@ -116,7 +130,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ field, errors }" name="password">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="password"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="password">
                 Password <span class="text-destructive">*</span>
@@ -132,7 +153,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ field, errors }" name="confirmPassword">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="confirmPassword"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="confirmPassword">
                 Confirm Password <span class="text-destructive">*</span>
@@ -148,7 +176,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ errors }" name="userType">
+          <VeeField
+            v-slot="{ errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="userType"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel>Account Type <span class="text-destructive">*</span></FieldLabel>
               <div class="flex gap-2">
@@ -177,7 +212,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ handleChange }" name="dateOfBirth">
+          <VeeField
+            v-slot="{ handleChange }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="dateOfBirth"
+          >
             <Field>
               <FieldLabel>Date of Birth</FieldLabel>
               <Popover>

@@ -17,7 +17,7 @@ const authStore = useAuthStore()
 const isSubmitting = ref(false)
 const passwordRef = ref<InstanceType<typeof PasswordInput> | null>(null)
 
-const { handleSubmit } = useForm({
+const { handleSubmit, submitCount } = useForm({
   validationSchema: loginFormSchema,
   initialValues: {
     email: '',
@@ -72,7 +72,14 @@ const onSubmit = handleSubmit(async (values) => {
       </CardHeader>
       <CardContent>
         <form class="space-y-4" @submit="onSubmit">
-          <VeeField v-slot="{ field, errors }" name="email">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="email"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="email">Email</FieldLabel>
               <Input
@@ -87,7 +94,14 @@ const onSubmit = handleSubmit(async (values) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ field, errors }" name="password">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="password"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="password">Password</FieldLabel>
               <PasswordInput

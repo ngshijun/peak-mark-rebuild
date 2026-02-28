@@ -17,7 +17,7 @@ const { t } = storeToRefs(useLanguageStore())
 const isSubmitting = ref(false)
 const honeypot = ref('')
 
-const { handleSubmit, resetForm } = useForm({
+const { handleSubmit, resetForm, submitCount } = useForm({
   validationSchema: contactFormSchema,
   initialValues: { name: '', email: '', subject: '', message: '' },
 })
@@ -60,7 +60,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             <input name="website" type="text" tabindex="-1" autocomplete="off" v-model="honeypot" />
           </div>
 
-          <VeeField v-slot="{ field, errors }" name="name">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="name"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-name">
                 {{ t.contact.name }} <span class="text-destructive">*</span>
@@ -77,7 +84,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ field, errors }" name="email">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="email"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-email">
                 {{ t.contact.email }} <span class="text-destructive">*</span>
@@ -94,7 +108,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ field, errors }" name="subject">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="subject"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-subject">
                 {{ t.contact.subject }} <span class="text-destructive">*</span>
@@ -111,7 +132,14 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <VeeField v-slot="{ field, errors }" name="message">
+          <VeeField
+            v-slot="{ field, errors }"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-input="false"
+            :validate-on-model-update="submitCount > 0"
+            name="message"
+          >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-message">
                 {{ t.contact.message }} <span class="text-destructive">*</span>
