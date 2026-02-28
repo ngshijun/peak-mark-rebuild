@@ -4,7 +4,7 @@ export default {
     signup: '注册',
   },
   hero: {
-    badge: '符合华小 & KSSR 课程纲要',
+    badge: '符合华小 KSSR（修订版 2017）课程纲要',
     titleBefore: '让学习变得像',
     titleHighlight: '游戏',
     description:
@@ -15,7 +15,7 @@ export default {
       questionsValue: '1,000+',
       questionsLabel: '练习题目',
       levelsValue: '一至六年级',
-      levelsLabel: '华小课程',
+      levelsLabel: '华小 KSSR（修订版 2017）',
       petsValue: '50+',
       petsLabel: '可收集宠物',
     },
@@ -26,7 +26,7 @@ export default {
     items: [
       {
         title: '专为华小学生打造',
-        description: '每道题目都紧跟 KSSR 课程纲要——练习内容与学校教学完全一致。',
+        description: '每道题目都紧跟 KSSR（修订版 2017）课程纲要——练习内容与学校教学完全一致。',
       },
       {
         title: '只需5至10分钟',

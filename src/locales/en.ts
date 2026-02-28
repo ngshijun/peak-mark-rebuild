@@ -4,7 +4,7 @@ export default {
     signup: 'Sign Up',
   },
   hero: {
-    badge: 'Aligned with SJKC & KSSR curriculum',
+    badge: 'Aligned with SJK(C) KSSR (Semakan 2017) curriculum',
     titleBefore: 'Where Learning Feels Like',
     titleHighlight: 'Play',
     description:
@@ -15,7 +15,7 @@ export default {
       questionsValue: '1,000+',
       questionsLabel: 'Practice Questions',
       levelsValue: 'Standard 1-6',
-      levelsLabel: 'SJKC Curriculum',
+      levelsLabel: 'SJK(C) KSSR (Semakan 2017)',
       petsValue: '50+',
       petsLabel: 'Collectible Pets',
     },
@@ -26,9 +26,9 @@ export default {
       'A comprehensive learning platform designed to make studying effective and enjoyable.',
     items: [
       {
-        title: 'Built for SJKC Students',
+        title: 'Built for SJK(C) Students',
         description:
-          "Every question follows the KSSR curriculum — so practice always matches what's taught in school.",
+          "Every question follows the KSSR (Semakan 2017) curriculum — so practice always matches what's taught in school.",
       },
       {
         title: 'Practice in Just 5-10 Minutes',
@@ -99,7 +99,7 @@ export default {
         quote:
           "I have two kids in Standard 2 and Standard 4. Being able to see exactly which topics they're struggling with saves me so much time — I know exactly what to help them revise.",
         name: 'Michelle T.',
-        role: 'Parent of 2 SJKC students',
+        role: 'Parent of 2 SJK(C) students',
         initials: 'MT',
       },
       {
