@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check, Sparkles, Zap, Crown, CreditCard, Loader2 } from 'lucide-vue-next'
+import { Check, Sparkles, Zap, CreditCard, Loader2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   plan: SubscriptionPlan
@@ -29,8 +29,6 @@ function getTierIcon(tier: SubscriptionTier) {
       return Zap
     case 'pro':
       return Sparkles
-    case 'max':
-      return Crown
     default:
       return CreditCard
   }
@@ -43,7 +41,7 @@ function getButtonText() {
 
   if (props.plan.id === 'core') return 'Downgrade'
 
-  const tierOrder: SubscriptionTier[] = ['core', 'plus', 'pro', 'max']
+  const tierOrder: SubscriptionTier[] = ['core', 'plus', 'pro']
   const planIndex = tierOrder.indexOf(props.plan.id)
   const currentIndex = tierOrder.indexOf(props.currentTier)
 

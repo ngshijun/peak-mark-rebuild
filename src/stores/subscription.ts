@@ -519,9 +519,13 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     paymentError.value = null
   }
 
+  /** Plans visible to users (excludes deprecated Max tier) */
+  const visiblePlans = computed(() => plans.value.filter((p) => p.id !== 'max'))
+
   return {
     // State
     plans,
+    visiblePlans,
     childSubscriptions,
     isLoading,
     error,

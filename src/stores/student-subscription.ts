@@ -18,7 +18,7 @@ export interface StudentSubscriptionStatus {
   isLinkedToParent: boolean
   tier: SubscriptionTier
   sessionsPerDay: number
-  canViewDetailedResults: boolean // Pro and Max tiers only
+  canViewDetailedResults: boolean // Plus tier and above
 }
 
 export interface SessionLimitStatus {
@@ -131,7 +131,7 @@ export const useStudentSubscriptionStore = defineStore('studentSubscription', ()
       const tier = (profileResult.data?.subscription_tier as SubscriptionTier) ?? 'core'
       const isLinkedToParent = (linksResult.data?.length ?? 0) > 0
       const sessionsPerDay = getSessionsPerDayForTier(tier)
-      const canViewDetailedResults = tier === 'pro' || tier === 'max'
+      const canViewDetailedResults = tier === 'plus' || tier === 'pro' || tier === 'max'
 
       const status: StudentSubscriptionStatus = {
         isLinkedToParent,

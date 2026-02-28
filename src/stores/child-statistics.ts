@@ -176,7 +176,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         .maybeSingle()
 
       const tier = (profileData?.subscription_tier as SubscriptionTier) ?? 'core'
-      const canViewDetailedResults = tier === 'pro' || tier === 'max'
+      const canViewDetailedResults = tier === 'plus' || tier === 'pro' || tier === 'max'
 
       const status: ChildSubscriptionStatus = { tier, canViewDetailedResults }
       subscriptionStatusCache.value.set(childId, { status, lastFetched: Date.now() })

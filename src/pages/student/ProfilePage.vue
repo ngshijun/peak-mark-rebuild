@@ -317,9 +317,9 @@ async function handleBirthdaySave(dateString: string | null) {
         >
           <Loader2 class="size-6 animate-spin text-muted-foreground" />
         </div>
-        <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div v-else class="grid gap-4 md:grid-cols-3">
           <div
-            v-for="plan in subscriptionStore.plans"
+            v-for="plan in subscriptionStore.visiblePlans"
             :key="plan.id"
             class="relative flex flex-col rounded-lg border p-4"
             :class="[
@@ -361,8 +361,8 @@ async function handleBirthdaySave(dateString: string | null) {
             <p
               v-if="
                 subscriptionStatus.tier !== plan.id &&
-                ['core', 'plus', 'pro', 'max'].indexOf(plan.id) >
-                  ['core', 'plus', 'pro', 'max'].indexOf(subscriptionStatus.tier)
+                ['core', 'plus', 'pro'].indexOf(plan.id) >
+                  ['core', 'plus', 'pro'].indexOf(subscriptionStatus.tier)
               "
               class="mt-3 text-center text-xs text-muted-foreground"
             >

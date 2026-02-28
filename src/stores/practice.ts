@@ -106,10 +106,10 @@ export const usePracticeStore = defineStore('practice', () => {
       const limitStatus = await subscription.checkSessionLimit()
       if (!limitStatus.canStartSession) {
         const subStatus = await subscription.getStudentSubscriptionStatus()
-        const isMaxTier = subStatus.tier === 'max'
+        const isTopTier = subStatus.tier === 'pro' || subStatus.tier === 'max'
         return {
           session: null,
-          error: isMaxTier
+          error: isTopTier
             ? `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Come back tomorrow!`
             : `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Upgrade your plan for more sessions!`,
           limitReached: true,
@@ -444,7 +444,7 @@ export const usePracticeStore = defineStore('practice', () => {
       // Invalidate session limit cache (session count changed)
       subscription.invalidateSessionLimitCache()
 
-      // Generate AI summary for Max tier subscribers (non-blocking)
+      // Generate AI summary for Pro tier and above (non-blocking)
       generateAiSummary(currentSession.value.id)
 
       return { session: currentSession.value, error: null }
@@ -455,15 +455,15 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
-   * Generate AI summary for a session (Max tier only)
+   * Generate AI summary for a session (Pro tier and above)
    * This is called non-blocking after session completion
    */
   async function generateAiSummary(sessionId: string): Promise<void> {
     try {
       // Check subscription status
       const subscriptionStatus = await subscription.getStudentSubscriptionStatus()
-      if (subscriptionStatus.tier !== 'max') {
-        return // Only Max tier gets AI summaries
+      if (subscriptionStatus.tier !== 'pro' && subscriptionStatus.tier !== 'max') {
+        return // Only Pro tier and above gets AI summaries
       }
 
       aiSummaryStatus.value = 'generating'

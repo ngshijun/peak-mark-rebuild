@@ -32,7 +32,7 @@ const emit = defineEmits<{
 }>()
 
 function getActionLabel() {
-  const tierOrder: SubscriptionTier[] = ['core', 'plus', 'pro', 'max']
+  const tierOrder: SubscriptionTier[] = ['core', 'plus', 'pro']
   const planIndex = props.pendingTier ? tierOrder.indexOf(props.pendingTier) : -1
   const currentIndex = tierOrder.indexOf(props.currentTier)
 

@@ -113,12 +113,12 @@ function goBack() {
             </CardHeader>
             <CardContent>
               <div
-                v-if="childSubscription?.tier !== 'max'"
+                v-if="childSubscription?.tier !== 'pro' && childSubscription?.tier !== 'max'"
                 class="flex items-center gap-3 text-sm text-muted-foreground"
               >
                 <Crown class="size-5 text-amber-500" />
                 <span
-                  >Upgrade to <strong>Max</strong> to unlock AI-powered feedback for each
+                  >Upgrade to <strong>Pro</strong> to unlock AI-powered feedback for each
                   session.</span
                 >
               </div>
@@ -136,8 +136,8 @@ function goBack() {
 
         <template #locked-message>
           <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            Detailed session results require a Pro or Max subscription. Upgrade to view individual
-            questions and answers.
+            Detailed session results require a Plus or higher subscription. Upgrade to view
+            individual questions and answers.
           </p>
           <Button class="mt-4" @click="router.push('/parent/subscription')">
             <Sparkles class="mr-2 size-4" />

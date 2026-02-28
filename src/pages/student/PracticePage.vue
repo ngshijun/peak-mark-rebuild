@@ -133,7 +133,7 @@ function selectSubTopic(subTopicId: string) {
   // Check limit before showing dialog
   if (sessionLimitStatus.value && !sessionLimitStatus.value.canStartSession) {
     toast.warning(
-      subscriptionStatus.value?.tier === 'max'
+      subscriptionStatus.value?.tier === 'pro' || subscriptionStatus.value?.tier === 'max'
         ? `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Come back tomorrow!`
         : `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Upgrade your plan for more sessions!`,
     )
@@ -275,7 +275,9 @@ async function confirmStartSession() {
           <h3 class="text-lg font-semibold">Daily Limit Reached</h3>
           <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             You have used all {{ sessionLimitStatus.sessionLimit }} sessions for today. Come back
-            tomorrow<template v-if="subscriptionStatus?.tier !== 'max'">
+            tomorrow<template
+              v-if="subscriptionStatus?.tier !== 'pro' && subscriptionStatus?.tier !== 'max'"
+            >
               or ask your parent to upgrade your subscription for more sessions</template
             >.
           </p>

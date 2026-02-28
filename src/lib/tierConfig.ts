@@ -14,6 +14,7 @@ export const tierConfig: Record<string, { label: string; color: string; bgColor:
     color: 'text-blue-700 dark:text-blue-300',
     bgColor: 'bg-blue-100 dark:bg-blue-900/50',
   },
+  // Deprecated but kept for existing subscribers
   max: {
     label: 'Max',
     color: 'text-purple-700 dark:text-purple-300',

@@ -73,7 +73,7 @@ onMounted(async () => {
 
     if (result.session.aiSummary) {
       aiSummaryStatus.value = 'success'
-    } else if (subStatus.tier === 'max' && isCurrentSession.value) {
+    } else if ((subStatus.tier === 'pro' || subStatus.tier === 'max') && isCurrentSession.value) {
       generateAiSummary()
     }
   } else {
@@ -163,7 +163,7 @@ async function generateAiSummary() {
                 </div>
                 <Button
                   v-if="
-                    subscriptionStatus?.tier === 'max' &&
+                    (subscriptionStatus?.tier === 'pro' || subscriptionStatus?.tier === 'max') &&
                     !session.aiSummary &&
                     aiSummaryStatus !== 'loading'
                   "
@@ -179,12 +179,12 @@ async function generateAiSummary() {
             </CardHeader>
             <CardContent>
               <div
-                v-if="subscriptionStatus?.tier !== 'max'"
+                v-if="subscriptionStatus?.tier !== 'pro' && subscriptionStatus?.tier !== 'max'"
                 class="flex items-center gap-3 text-sm text-muted-foreground"
               >
                 <Crown class="size-5 text-amber-500" />
                 <span
-                  >Upgrade to <strong>Max</strong> to unlock AI-powered feedback for each
+                  >Upgrade to <strong>Pro</strong> to unlock AI-powered feedback for each
                   session.</span
                 >
               </div>
@@ -221,8 +221,8 @@ async function generateAiSummary() {
               send you an invitation.
             </template>
             <template v-else>
-              Detailed session results require a Pro or Max subscription. Ask your parent to upgrade
-              your plan.
+              Detailed session results require a Plus or higher subscription. Ask your parent to
+              upgrade your plan.
             </template>
           </p>
           <Button

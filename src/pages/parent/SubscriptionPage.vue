@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Sparkles, Zap, Crown, CreditCard, Users, Loader2, ExternalLink } from 'lucide-vue-next'
+import { Sparkles, Zap, CreditCard, Users, Loader2, ExternalLink } from 'lucide-vue-next'
 import PlanCard from '@/components/parent/PlanCard.vue'
 import UpgradePreviewDialog from '@/components/parent/UpgradePreviewDialog.vue'
 
@@ -430,9 +430,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
       <!-- Subscription Tiers -->
       <div v-if="currentSubscription">
         <h2 class="mb-4 text-xl font-semibold">Available Plans</h2>
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div class="grid gap-4 md:grid-cols-3">
           <PlanCard
-            v-for="plan in subscriptionStore.plans"
+            v-for="plan in subscriptionStore.visiblePlans"
             :key="plan.id"
             :plan="plan"
             :current-tier="currentSubscription.tier"
@@ -466,15 +466,15 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
           <CardTitle class="text-lg">Plan Features Comparison</CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="grid gap-4 md:grid-cols-3">
+          <div class="grid gap-4 md:grid-cols-2">
             <div class="rounded-lg border p-4">
               <div class="flex items-center gap-2">
                 <Zap class="size-5 text-blue-500" />
                 <h3 class="font-semibold">Plus</h3>
               </div>
               <p class="mt-2 text-sm text-muted-foreground">
-                More practice sessions per day. Perfect for students who want regular practice
-                without limits.
+                More practice sessions per day and detailed session history including individual
+                questions and answers. Great for identifying specific areas to improve.
               </p>
             </div>
             <div class="rounded-lg border p-4">
@@ -483,18 +483,8 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                 <h3 class="font-semibold">Pro</h3>
               </div>
               <p class="mt-2 text-sm text-muted-foreground">
-                View detailed session history including individual questions and answers. Great for
-                identifying specific areas to improve.
-              </p>
-            </div>
-            <div class="rounded-lg border p-4">
-              <div class="flex items-center gap-2">
-                <Crown class="size-5 text-yellow-500" />
-                <h3 class="font-semibold">Max</h3>
-              </div>
-              <p class="mt-2 text-sm text-muted-foreground">
-                AI-powered feedback after each session with personalized weakness analysis and
-                learning recommendations.
+                All Plus features plus AI-powered feedback after each session with personalized
+                weakness analysis and learning recommendations.
               </p>
             </div>
           </div>
