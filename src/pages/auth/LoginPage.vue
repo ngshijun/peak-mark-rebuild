@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { loginFormSchema } from '@/lib/validations'
-import { KeyRound, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, KeyRound, Loader2 } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, PasswordInput } from '@/components/ui/input'
@@ -61,7 +61,13 @@ const onSubmit = handleSubmit(async (values) => {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-background p-4">
+  <div class="relative flex min-h-screen items-center justify-center bg-background p-4">
+    <Button as-child variant="ghost" size="sm" class="absolute left-4 top-4">
+      <RouterLink to="/">
+        <ArrowLeft class="mr-2 size-4" />
+        Back to Home
+      </RouterLink>
+    </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
         <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-primary">

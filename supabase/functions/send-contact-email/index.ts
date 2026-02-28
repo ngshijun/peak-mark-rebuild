@@ -37,6 +37,8 @@ interface ContactBody {
   email: string
   subject: string
   message: string
+  source?: 'landing' | 'app'
+  priority?: boolean
 }
 
 function validateBody(
@@ -58,6 +60,8 @@ function validateBody(
   if (typeof message !== 'string' || message.trim().length === 0 || message.length > 5000)
     return { valid: false, error: 'Invalid message' }
 
+  const { source, priority } = body as Record<string, unknown>
+
   return {
     valid: true,
     data: {
@@ -65,6 +69,8 @@ function validateBody(
       email: email.trim(),
       subject: subject.trim(),
       message: message.trim(),
+      source: source === 'app' ? 'app' : 'landing',
+      priority: priority === true,
     },
   }
 }
@@ -81,7 +87,20 @@ function escapeHtml(str: string): string {
 const FONT_STACK =
   "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
-function buildAdminEmail(name: string, email: string, subject: string, message: string): string {
+function buildAdminEmail(
+  name: string,
+  email: string,
+  subject: string,
+  message: string,
+  source: 'landing' | 'app',
+  priority: boolean,
+): string {
+  const sourceLabel = source === 'app' ? 'In-App' : 'Landing Page'
+  const sourceBadge = `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background-color:${source === 'app' ? '#dbeafe' : '#e5e7eb'};color:${source === 'app' ? '#1e40af' : '#374151'};">${sourceLabel}</span>`
+  const priorityBadge = priority
+    ? ' <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background-color:#fef3c7;color:#92400e;">Priority</span>'
+    : ''
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -107,7 +126,7 @@ function buildAdminEmail(name: string, email: string, subject: string, message: 
                     Clavis
                   </td>
                   <td align="right" style="font-family:${FONT_STACK};font-size:12px;color:#e9d5ff;">
-                    Contact Form
+                    ${sourceBadge}${priorityBadge}
                   </td>
                 </tr>
               </table>
@@ -365,7 +384,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { name, email, subject, message } = validation.data
+    const { name, email, subject, message, source, priority } = validation.data
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -378,7 +397,7 @@ Deno.serve(async (req: Request) => {
         to: [TO_EMAIL],
         reply_to: email,
         subject: `[Contact Form] ${subject}`,
-        html: buildAdminEmail(name, email, subject, message),
+        html: buildAdminEmail(name, email, subject, message, source, priority),
       }),
     })
 

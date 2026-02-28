@@ -28,7 +28,7 @@ const onSubmit = handleSubmit(async (formValues) => {
   isSubmitting.value = true
   try {
     const { error } = await supabase.functions.invoke('send-contact-email', {
-      body: formValues,
+      body: { ...formValues, source: 'landing' },
     })
     if (error) throw error
     toast.success(t.value.contact.successMessage)

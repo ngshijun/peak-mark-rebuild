@@ -13,6 +13,7 @@ import {
   CreditCard,
   PawPrint,
   Megaphone,
+  Mail,
 } from 'lucide-vue-next'
 import type { SidebarNavConfig } from '@/types'
 
@@ -44,5 +45,6 @@ export const sidebarNavConfig: SidebarNavConfig = {
     { title: 'Children', path: '/parent/children', icon: Baby },
     { title: 'Statistics', path: '/parent/statistics', icon: PieChart },
     { title: 'Subscription', path: '/parent/subscription', icon: CreditCard },
+    { title: 'Contact Us', path: '/parent/contact', icon: Mail },
   ],
 }

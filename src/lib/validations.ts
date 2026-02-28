@@ -119,3 +119,8 @@ const contactFormZod = z.object({
 })
 export const contactFormSchema = toTypedSchema(contactFormZod)
 export type ContactFormValues = z.infer<typeof contactFormZod>
+
+// Contact form (in-app, authenticated — name/email from user profile)
+const contactMessageZod = contactFormZod.pick({ subject: true, message: true })
+export const contactMessageSchema = toTypedSchema(contactMessageZod)
+export type ContactMessageValues = z.infer<typeof contactMessageZod>

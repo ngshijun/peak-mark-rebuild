@@ -328,6 +328,11 @@ const router = createRouter({
           name: 'parent-profile',
           component: () => import('@/pages/parent/ProfilePage.vue'),
         },
+        {
+          path: 'contact',
+          name: 'parent-contact',
+          component: () => import('@/pages/parent/ContactPage.vue'),
+        },
       ],
     },
     // Catch-all route for 404
