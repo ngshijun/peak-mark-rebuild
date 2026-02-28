@@ -5,6 +5,7 @@ import FeaturesSection from '@/components/landing/FeaturesSection.vue'
 import HowItWorksSection from '@/components/landing/HowItWorksSection.vue'
 import TestimonialsSection from '@/components/landing/TestimonialsSection.vue'
 import PricingSection from '@/components/landing/PricingSection.vue'
+import ContactSection from '@/components/landing/ContactSection.vue'
 import CtaSection from '@/components/landing/CtaSection.vue'
 import FooterSection from '@/components/landing/FooterSection.vue'
 </script>
@@ -18,6 +19,7 @@ import FooterSection from '@/components/landing/FooterSection.vue'
       <HowItWorksSection />
       <TestimonialsSection />
       <PricingSection />
+      <ContactSection />
       <CtaSection />
     </main>
     <FooterSection />

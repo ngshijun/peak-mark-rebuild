@@ -105,3 +105,17 @@ const announcementFormZod = z.object({
 })
 export const announcementFormSchema = toTypedSchema(announcementFormZod)
 export type AnnouncementFormValues = z.infer<typeof announcementFormZod>
+
+// Contact form
+const contactFormZod = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  subject: requiredStringSchema('Subject').max(200, 'Subject must be 200 characters or less'),
+  message: z
+    .string()
+    .min(1, 'Message is required')
+    .max(5000, 'Message must be 5000 characters or less')
+    .trim(),
+})
+export const contactFormSchema = toTypedSchema(contactFormZod)
+export type ContactFormValues = z.infer<typeof contactFormZod>
