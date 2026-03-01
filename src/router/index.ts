@@ -132,6 +132,12 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: '/signup/confirm',
+      name: 'signup-confirm',
+      component: () => import('@/pages/auth/SignupConfirmPage.vue'),
+      meta: { requiresGuest: true },
+    },
+    {
       path: '/forgot-password',
       name: 'forgot-password',
       component: () => import('@/pages/auth/ForgotPasswordPage.vue'),

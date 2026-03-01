@@ -43,7 +43,7 @@ const onSubmit = handleSubmit(async (formValues) => {
       },
     })
     if (error) throw error
-    toast.success("Message sent successfully! We'll get back to you soon.")
+    toast.success("Message sent successfully! We'll get back to you as soon as possible.")
     resetForm()
   } catch {
     toast.error('Failed to send message. Please try again later.')
@@ -63,7 +63,7 @@ const onSubmit = handleSubmit(async (formValues) => {
     <Card>
       <CardHeader>
         <CardTitle>Send us a message</CardTitle>
-        <CardDescription>We typically respond within 24 hours.</CardDescription>
+        <CardDescription>We'll get back to you as soon as possible.</CardDescription>
       </CardHeader>
       <CardContent>
         <form class="space-y-4" @submit="onSubmit">

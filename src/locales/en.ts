@@ -188,7 +188,7 @@ export default {
     messagePlaceholder: "Tell us what's on your mind...",
     submit: 'Send Message',
     submitting: 'Sending...',
-    successMessage: "Message sent successfully! We'll get back to you soon.",
+    successMessage: "Message sent successfully! We'll get back to you as soon as possible.",
     errorMessage: 'Failed to send message. Please try again later.',
   },
   cta: {

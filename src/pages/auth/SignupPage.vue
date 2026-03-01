@@ -63,8 +63,7 @@ const onSubmit = handleSubmit(async (formValues) => {
     }
 
     if (result.user) {
-      toast.success('Account created successfully! Please check your email to verify your account.')
-      router.push('/login')
+      router.push({ path: '/signup/confirm', query: { email: formValues.email } })
     }
   } catch (err) {
     toast.error('An unexpected error occurred')

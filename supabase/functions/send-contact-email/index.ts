@@ -96,10 +96,6 @@ function buildAdminEmail(
   priority: boolean,
 ): string {
   const sourceLabel = source === 'app' ? 'In-App' : 'Landing Page'
-  const sourceBadge = `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background-color:${source === 'app' ? '#dbeafe' : '#e5e7eb'};color:${source === 'app' ? '#1e40af' : '#374151'};">${sourceLabel}</span>`
-  const priorityBadge = priority
-    ? ' <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background-color:#fef3c7;color:#92400e;">Priority</span>'
-    : ''
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -111,7 +107,7 @@ function buildAdminEmail(
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;">
   <div style="display:none;font-size:1px;color:#f3f4f6;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-    New message from ${escapeHtml(name)} — ${escapeHtml(subject)}
+    ${priority ? 'Priority: Yes | ' : ''}Source: ${sourceLabel} |
   </div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;">
     <tr>
@@ -124,9 +120,6 @@ function buildAdminEmail(
                 <tr>
                   <td style="font-family:${FONT_STACK};font-size:20px;font-weight:700;color:#ffffff;">
                     Clavis
-                  </td>
-                  <td align="right" style="font-family:${FONT_STACK};font-size:12px;color:#e9d5ff;">
-                    ${sourceBadge}${priorityBadge}
                   </td>
                 </tr>
               </table>
@@ -205,7 +198,7 @@ function buildAdminEmail(
                   <td style="padding-bottom:8px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="font-family:${FONT_STACK};font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:8px;">
+                        <td style="font-family:${FONT_STACK};font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:4px;">
                           Message
                         </td>
                       </tr>
@@ -225,8 +218,13 @@ function buildAdminEmail(
             <td style="background-color:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="font-family:${FONT_STACK};font-size:13px;color:#9ca3af;">
+                  <td style="font-family:${FONT_STACK};font-size:13px;color:#9ca3af;padding-bottom:4px;">
                     You can reply directly to this email to respond to ${escapeHtml(name)}.
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-family:${FONT_STACK};font-size:12px;color:#d1d5db;">
+                    Clavis &mdash; Where Learning Feels Like Play
                   </td>
                 </tr>
               </table>
@@ -251,11 +249,11 @@ function buildConfirmationEmail(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>We received your message</title>
+  <title>We've received your message</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;">
   <div style="display:none;font-size:1px;color:#f3f4f6;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-    Thanks for reaching out! We'll get back to you soon.
+    Thanks for reaching out! We'll get back to you as soon as possible.
   </div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;">
     <tr>
@@ -288,13 +286,8 @@ function buildConfirmationEmail(
                   </td>
                 </tr>
                 <tr>
-                  <td style="font-family:${FONT_STACK};font-size:16px;color:#374151;line-height:1.6;padding-bottom:8px;">
+                  <td style="font-family:${FONT_STACK};font-size:16px;color:#374151;line-height:1.6;padding-bottom:16px;">
                     Thank you for reaching out to us! We've received your message and will get back to you as soon as possible.
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-family:${FONT_STACK};font-size:16px;color:#374151;line-height:1.6;padding-bottom:24px;">
-                    We typically respond within 24 hours.
                   </td>
                 </tr>
                 <!-- Divider -->
@@ -305,29 +298,43 @@ function buildConfirmationEmail(
                     </table>
                   </td>
                 </tr>
-                <!-- Copy of message -->
+                <!-- Subject -->
                 <tr>
-                  <td style="font-family:${FONT_STACK};font-size:14px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:16px;">
-                    Your Message
+                  <td style="padding-bottom:16px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-family:${FONT_STACK};font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:4px;">
+                          Subject
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="font-family:${FONT_STACK};font-size:16px;color:#1f2937;">
+                          ${escapeHtml(subject)}
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
+                <!-- Divider -->
+                <tr>
+                  <td style="padding:8px 0 24px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr><td style="border-top:1px solid #e5e7eb;font-size:0;line-height:0;">&nbsp;</td></tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Message -->
                 <tr>
                   <td style="padding-bottom:24px;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border-radius:6px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="padding:20px;">
-                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                            <tr>
-                              <td style="font-family:${FONT_STACK};font-size:14px;font-weight:600;color:#7c3aed;padding-bottom:8px;">
-                                ${escapeHtml(subject)}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td style="font-family:${FONT_STACK};font-size:14px;color:#4b5563;line-height:1.6;">
-                                ${escapeHtml(message).replace(/\n/g, '<br>')}
-                              </td>
-                            </tr>
-                          </table>
+                        <td style="font-family:${FONT_STACK};font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:4px;">
+                          Message
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="font-family:${FONT_STACK};font-size:16px;color:#1f2937;line-height:1.6;">
+                          ${escapeHtml(message).replace(/\n/g, '<br>')}
                         </td>
                       </tr>
                     </table>
@@ -396,7 +403,7 @@ Deno.serve(async (req: Request) => {
         from: FROM_EMAIL,
         to: [TO_EMAIL],
         reply_to: email,
-        subject: `[Contact Form] ${subject}`,
+        subject: `[${name}] ${subject}`,
         html: buildAdminEmail(name, email, subject, message, source, priority),
       }),
     })
@@ -422,7 +429,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [email],
-        subject: `We received your message — ${subject}`,
+        subject: `We've received your message — ${subject}`,
         html: buildConfirmationEmail(name, subject, message),
       }),
     }).catch((err) => console.error('Confirmation email error:', err))

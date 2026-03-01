@@ -425,6 +425,26 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Resend signup confirmation email
+   */
+  async function resendConfirmationEmail(email: string): Promise<{ error: string | null }> {
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
+
+      if (resendError) {
+        return { error: handleError(resendError, 'An unexpected error occurred.') }
+      }
+
+      return { error: null }
+    } catch (err) {
+      return { error: handleError(err, 'An unexpected error occurred.') }
+    }
+  }
+
+  /**
    * Update user password
    */
   async function updatePassword(newPassword: string): Promise<{ error: string | null }> {
@@ -664,6 +684,7 @@ export const useAuthStore = defineStore('auth', () => {
     signOut,
     getSession,
     resetPassword,
+    resendConfirmationEmail,
     updatePassword,
     refreshProfile,
     updateName,
