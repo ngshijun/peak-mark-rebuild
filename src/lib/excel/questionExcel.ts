@@ -1,5 +1,4 @@
-import ExcelJS from 'exceljs'
-import { saveAs } from 'file-saver'
+import type ExcelJS from 'exceljs'
 import type { Question } from '@/stores/questions'
 import type { GradeLevel } from '@/stores/curriculum'
 
@@ -71,6 +70,8 @@ const COLUMNS = {
 // ============================================
 
 export async function generateQuestionTemplate(gradeLevels: GradeLevel[]): Promise<void> {
+  const ExcelJS = (await import('exceljs')).default
+  const { saveAs } = await import('file-saver')
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Clavis'
   workbook.created = new Date()
@@ -544,6 +545,8 @@ export async function exportQuestionsToExcel(
   questions: Question[],
   getImageAsBase64: (path: string) => Promise<string | null>,
 ): Promise<void> {
+  const ExcelJS = (await import('exceljs')).default
+  const { saveAs } = await import('file-saver')
   // Step 1: Collect all unique image paths
   const imagePaths = new Set<string>()
   for (const q of questions) {
@@ -715,6 +718,7 @@ function getExtensionFromPath(path: string): string {
 // ============================================
 
 export async function parseQuestionExcel(file: File): Promise<ParseResult> {
+  const ExcelJS = (await import('exceljs')).default
   const arrayBuffer = await file.arrayBuffer()
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(arrayBuffer)

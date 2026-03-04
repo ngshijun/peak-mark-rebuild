@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, defineAsyncComponent } from 'vue'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -24,7 +24,7 @@ import { toast } from 'vue-sonner'
 import { Loader2, CirclePoundSterling, Apple } from 'lucide-vue-next'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import LevelUpDialog from './LevelUpDialog.vue'
+const LevelUpDialog = defineAsyncComponent(() => import('./LevelUpDialog.vue'))
 
 const isDev = import.meta.env.DEV
 const authStore = useAuthStore()

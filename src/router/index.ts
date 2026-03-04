@@ -15,98 +15,80 @@ import { useLeaderboardStore } from '@/stores/leaderboard'
  * These ensure required store data is loaded before entering routes
  */
 
-// Parent routes require linked children data, announcements, and subscription plans
-async function parentRouteGuard() {
+// Parent routes: fire-and-forget data preloading (non-blocking)
+function parentRouteGuard() {
   const childLinkStore = useChildLinkStore()
   const announcementsStore = useAnnouncementsStore()
   const subscriptionStore = useSubscriptionStore()
 
-  const promises: Promise<unknown>[] = []
-
   if (childLinkStore.linkedChildren.length === 0 && !childLinkStore.isLoading) {
-    promises.push(childLinkStore.fetchLinkedChildren())
+    // Chain: once children load, preload their subscriptions
+    childLinkStore.fetchLinkedChildren().then(() => {
+      if (childLinkStore.linkedChildren.length > 0) {
+        const childIds = childLinkStore.linkedChildren.map((c) => c.id)
+        subscriptionStore.fetchChildrenSubscriptions(childIds)
+      }
+    })
+  } else if (childLinkStore.linkedChildren.length > 0) {
+    subscriptionStore.fetchChildrenSubscriptions(childLinkStore.linkedChildren.map((c) => c.id))
   }
 
   if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
-    promises.push(announcementsStore.fetchAnnouncements())
+    announcementsStore.fetchAnnouncements()
   }
 
-  // Preload subscription plans (static data, cached with TTL)
-  promises.push(subscriptionStore.fetchPlans())
-
-  if (promises.length > 0) {
-    await Promise.all(promises)
-  }
-
-  // After children are loaded, preload their subscriptions
-  if (childLinkStore.linkedChildren.length > 0) {
-    const childIds = childLinkStore.linkedChildren.map((c) => c.id)
-    await subscriptionStore.fetchChildrenSubscriptions(childIds)
-  }
+  subscriptionStore.fetchPlans()
 }
 
-// Student routes require curriculum, pets, and announcements data
-async function studentRouteGuard() {
+// Student routes: fire-and-forget data preloading (non-blocking)
+function studentRouteGuard() {
   const curriculumStore = useCurriculumStore()
   const petsStore = usePetsStore()
   const parentLinkStore = useParentLinkStore()
   const announcementsStore = useAnnouncementsStore()
   const leaderboardStore = useLeaderboardStore()
 
-  const promises: Promise<unknown>[] = []
-
   if (curriculumStore.gradeLevels.length === 0 && !curriculumStore.isLoading) {
-    promises.push(curriculumStore.fetchCurriculum())
+    curriculumStore.fetchCurriculum()
   }
 
   if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
-    promises.push(petsStore.fetchAllPets())
-    promises.push(petsStore.fetchOwnedPets())
+    petsStore.fetchAllPets()
+    petsStore.fetchOwnedPets()
   }
 
   if (parentLinkStore.linkedParents.length === 0 && !parentLinkStore.isLoading) {
-    promises.push(parentLinkStore.fetchLinkedParents())
+    parentLinkStore.fetchLinkedParents()
   }
 
   if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
-    promises.push(announcementsStore.fetchAnnouncements())
+    announcementsStore.fetchAnnouncements()
   }
 
-  // Check for unseen weekly leaderboard rewards (non-blocking)
-  promises.push(leaderboardStore.checkUnseenReward())
-
-  if (promises.length > 0) {
-    await Promise.all(promises)
-  }
+  leaderboardStore.checkUnseenReward()
 }
 
-// Admin routes require curriculum, questions, and announcements data
-async function adminRouteGuard() {
+// Admin routes: fire-and-forget data preloading (non-blocking)
+function adminRouteGuard() {
   const curriculumStore = useCurriculumStore()
   const questionsStore = useQuestionsStore()
   const petsStore = usePetsStore()
   const announcementsStore = useAnnouncementsStore()
 
-  const promises: Promise<unknown>[] = []
-
   if (curriculumStore.gradeLevels.length === 0 && !curriculumStore.isLoading) {
-    promises.push(curriculumStore.fetchCurriculum())
+    curriculumStore.fetchCurriculum()
   }
 
   if (questionsStore.questions.length === 0 && !questionsStore.isLoading) {
-    promises.push(questionsStore.fetchQuestions())
+    questionsStore.fetchQuestions()
   }
 
   if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
-    promises.push(petsStore.fetchAllPets())
+    petsStore.fetchAllPets()
   }
 
   if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
-    promises.push(announcementsStore.fetchAnnouncements())
-  }
-
-  if (promises.length > 0) {
-    await Promise.all(promises)
+    announcementsStore.fetchAnnouncements()
   }
 }
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import confetti from 'canvas-confetti'
 import type { WeeklyReward } from '@/stores/leaderboard'
 import { Button } from '@/components/ui/button'
 import {
@@ -51,8 +50,9 @@ function getOrdinalSuffix(rank: number): string {
 // Fire confetti when dialog opens
 watch(
   () => props.open,
-  (open) => {
+  async (open) => {
     if (open) {
+      const { default: confetti } = await import('canvas-confetti')
       const duration = 1500
       const end = Date.now() + duration
       const frame = () => {

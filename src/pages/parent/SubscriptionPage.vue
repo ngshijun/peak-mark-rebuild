@@ -56,9 +56,13 @@ const pendingPlan = computed(() =>
 )
 
 // Handle checkout redirect on mount
-// Note: Plans and subscriptions are preloaded by the route guard for faster initial render
 onMounted(async () => {
-  // Set default selected child (linkedChildren already loaded by route guard)
+  // Ensure children are loaded (guard is non-blocking)
+  if (childLinkStore.linkedChildren.length === 0 && !childLinkStore.isLoading) {
+    await childLinkStore.fetchLinkedChildren()
+  }
+
+  // Set default selected child
   if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
     selectedChildId.value = childLinkStore.linkedChildren[0]?.id ?? ''
   }
@@ -279,7 +283,11 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
 
     <!-- Loading State -->
     <div
-      v-if="subscriptionStore.isLoading || subscriptionStore.isProcessingPayment"
+      v-if="
+        subscriptionStore.isLoading ||
+        subscriptionStore.isProcessingPayment ||
+        childLinkStore.isLoading
+      "
       class="flex items-center justify-center py-16"
     >
       <Loader2 class="size-8 animate-spin text-muted-foreground" />

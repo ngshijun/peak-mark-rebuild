@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import confetti from 'canvas-confetti'
 import { useAuthStore } from '@/stores/auth'
 import {
   Dialog,
@@ -34,8 +33,9 @@ function copyLevelLink() {
 // Fire confetti when level-up is detected
 watch(
   () => authStore.levelUpInfo,
-  (info) => {
+  async (info) => {
     if (info) {
+      const { default: confetti } = await import('canvas-confetti')
       const duration = 1500
       const end = Date.now() + duration
       const frame = () => {

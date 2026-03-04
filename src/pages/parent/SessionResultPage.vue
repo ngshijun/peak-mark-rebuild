@@ -48,6 +48,11 @@ const summary = computed(() => {
 })
 
 onMounted(async () => {
+  // Ensure children are loaded for name display (guard is non-blocking)
+  if (childLinkStore.linkedChildren.length === 0 && !childLinkStore.isLoading) {
+    childLinkStore.fetchLinkedChildren()
+  }
+
   const [result, subStatus] = await Promise.all([
     childStatisticsStore.getSessionById(childId.value, sessionId.value),
     childStatisticsStore.getChildSubscriptionStatus(childId.value),

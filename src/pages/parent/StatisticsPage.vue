@@ -40,6 +40,11 @@ const selectedChildId = ref<string>(getInitialChildId())
 // Fetch data on mount
 onMounted(async () => {
   try {
+    // Ensure children are loaded (guard is non-blocking)
+    if (childLinkStore.linkedChildren.length === 0 && !childLinkStore.isLoading) {
+      await childLinkStore.fetchLinkedChildren()
+    }
+
     if (childLinkStore.linkedChildren.length > 0 && !selectedChildId.value) {
       selectedChildId.value = getInitialChildId()
     }
@@ -157,7 +162,10 @@ function handleRowClick(row: ChildPracticeSession) {
     </div>
 
     <!-- Loading State -->
-    <div v-if="childStatisticsStore.isLoading" class="flex items-center justify-center py-16">
+    <div
+      v-if="childStatisticsStore.isLoading || childLinkStore.isLoading"
+      class="flex items-center justify-center py-16"
+    >
       <Loader2 class="size-8 animate-spin text-muted-foreground" />
     </div>
 

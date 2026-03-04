@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { useSubscriptionStore } from '@/stores/subscription'
+import { useChildLinkStore } from '@/stores/child-link'
 import { supabase } from '@/lib/supabaseClient'
 import { contactMessageSchema } from '@/lib/validations'
 import { Loader2, Send } from 'lucide-vue-next'
@@ -15,8 +16,24 @@ import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
 const subscriptionStore = useSubscriptionStore()
+const childLinkStore = useChildLinkStore()
 
 const isSubmitting = ref(false)
+
+// Ensure subscription data is loaded for priority flag (guard is non-blocking)
+onMounted(async () => {
+  if (childLinkStore.linkedChildren.length === 0 && !childLinkStore.isLoading) {
+    await childLinkStore.fetchLinkedChildren()
+  }
+  if (
+    childLinkStore.linkedChildren.length > 0 &&
+    subscriptionStore.childSubscriptions.length === 0 &&
+    !subscriptionStore.isLoading
+  ) {
+    const childIds = childLinkStore.linkedChildren.map((c) => c.id)
+    subscriptionStore.fetchChildrenSubscriptions(childIds)
+  }
+})
 
 const isPriority = computed(() =>
   subscriptionStore.childSubscriptions.some((sub) => sub.tier !== 'core'),
