@@ -1,49 +1,44 @@
 # Clavis
 
-This template should help get you started developing with Vue 3 in Vite.
+An adaptive learning platform for students with gamified practice sessions, parental monitoring, and admin curriculum management.
 
-## Recommended IDE Setup
+## Features
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+**Students**
+- Practice questions across a structured curriculum (grade level > subject > topic > sub-topic)
+- Track progress and review past sessions
+- Earn rewards through gamification: virtual pets, gacha, collections, and leaderboard rankings
 
-## Recommended Browser Setup
+**Parents**
+- Link to children and monitor their learning progress
+- View detailed practice session results and statistics
+- Manage subscriptions
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+**Admins**
+- Manage curriculum hierarchy, question banks, and bulk uploads
+- View analytics on question performance and student progress
+- Administer pets, announcements, leaderboard, and subscriptions
 
-## Type Support for `.vue` Imports in TS
+## Tech Stack
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+- **Frontend:** Vue 3 (Composition API), TypeScript, TailwindCSS 4
+- **UI Components:** shadcn-vue
+- **Backend & Auth:** Supabase (PostgreSQL, Row Level Security, Edge Functions)
+- **Payments:** Stripe
 
-## Customize configuration
+## Getting Started
 
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
+# Install dependencies
 npm install
-```
 
-### Compile and Hot-Reload for Development
-
-```sh
+# Start development server
 npm run dev
-```
 
-### Type-Check, Compile and Minify for Production
-
-```sh
+# Type-check and build for production
 npm run build
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+## License
 
-```sh
-npm run lint
-```
-# Clavis
+All rights reserved.
