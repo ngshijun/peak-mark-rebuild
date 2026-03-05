@@ -204,6 +204,26 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]
     }
   }
 
+  // Set text format (@) on content columns to prevent Excel from auto-converting
+  // values like fractions (2/5) into dates
+  const textColumns = [
+    COLUMNS.TYPE,
+    COLUMNS.GRADE_LEVEL,
+    COLUMNS.SUBJECT,
+    COLUMNS.TOPIC,
+    COLUMNS.SUB_TOPIC,
+    COLUMNS.QUESTION_TEXT,
+    COLUMNS.OPTION_A,
+    COLUMNS.OPTION_B,
+    COLUMNS.OPTION_C,
+    COLUMNS.OPTION_D,
+    COLUMNS.CORRECT_ANSWER,
+    COLUMNS.EXPLANATION,
+  ]
+  for (const col of textColumns) {
+    sheet.getColumn(col).numFmt = '@'
+  }
+
   // Hide helper columns (R, S, T)
   sheet.getColumn(HELPER_CONFIG.COLUMNS.SUBJECTS).hidden = true
   sheet.getColumn(HELPER_CONFIG.COLUMNS.TOPICS).hidden = true
@@ -766,6 +786,32 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
     // Skip empty rows
     if (!type && !gradeLevel && !subject && !topic && !subTopic && !questionText) return
 
+    // Detect cells where Excel auto-converted text to dates (e.g. "2/5" -> Date)
+    const dateCheckColumns = [
+      { col: COLUMNS.QUESTION_TEXT, label: 'F' },
+      { col: COLUMNS.OPTION_A, label: 'H' },
+      { col: COLUMNS.OPTION_B, label: 'J' },
+      { col: COLUMNS.OPTION_C, label: 'L' },
+      { col: COLUMNS.OPTION_D, label: 'N' },
+      { col: COLUMNS.CORRECT_ANSWER, label: 'P' },
+      { col: COLUMNS.EXPLANATION, label: 'Q' },
+    ]
+    const dateErrors: ParseError[] = []
+    for (const { col, label } of dateCheckColumns) {
+      if (isCellDate(row.getCell(col))) {
+        dateErrors.push({
+          row: rowNumber,
+          column: label,
+          message:
+            'Cell contains a date value. If you intended to enter a fraction (e.g. 2/5), format the column as Text in Excel before entering the value.',
+        })
+      }
+    }
+    if (dateErrors.length > 0) {
+      errors.push(...dateErrors)
+      return // Skip this row entirely — data is corrupted by auto-conversion
+    }
+
     // Validate required fields
     const rowErrors: ParseError[] = []
 
@@ -943,9 +989,16 @@ export async function parseQuestionExcel(file: File): Promise<ParseResult> {
   return { questions, errors }
 }
 
+function isCellDate(cell: ExcelJS.Cell): boolean {
+  return cell.value instanceof Date
+}
+
 function getCellValue(cell: ExcelJS.Cell): string {
   const value = cell.value
   if (value === null || value === undefined) return ''
+  // Date values indicate Excel auto-converted text (e.g. "2/5" -> Date)
+  // Return empty string so validation catches the missing value
+  if (value instanceof Date) return ''
   if (typeof value === 'object' && 'text' in value) {
     // Rich text
     return String(value.text || '').trim()
