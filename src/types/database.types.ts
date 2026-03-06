@@ -779,6 +779,7 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           email: string
+          has_completed_tour: boolean
           id: string
           name: string
           updated_at: string | null
@@ -789,6 +790,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           email: string
+          has_completed_tour?: boolean
           id: string
           name: string
           updated_at?: string | null
@@ -799,6 +801,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           email?: string
+          has_completed_tour?: boolean
           id?: string
           name?: string
           updated_at?: string | null
