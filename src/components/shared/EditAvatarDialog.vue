@@ -11,6 +11,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Loader2, ImagePlus, Dices } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
+
+const MAX_FILE_SIZE_MB = 1
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 defineProps<{
   currentAvatarUrl: string
@@ -38,14 +42,20 @@ watch(open, (isOpen) => {
 function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  if (file) {
-    avatarFile.value = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      avatarPreviewUrl.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
+  if (!file) return
+
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    toast.error(`File size must be under ${MAX_FILE_SIZE_MB}MB.`)
+    target.value = ''
+    return
   }
+
+  avatarFile.value = file
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    avatarPreviewUrl.value = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
 }
 
 function generateRandom() {
