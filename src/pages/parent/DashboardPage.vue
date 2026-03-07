@@ -90,12 +90,8 @@ watch(selectedChildId, async (newId) => {
         <p class="text-muted-foreground">Monitor your child's learning progress</p>
       </div>
       <!-- Child Selector -->
-      <Select
-        v-if="linkedChildren.length > 1"
-        v-model="selectedChildId"
-        data-tour="parent-child-selector"
-      >
-        <SelectTrigger class="w-[180px]">
+      <Select v-if="linkedChildren.length > 1" v-model="selectedChildId">
+        <SelectTrigger data-tour="parent-child-selector" class="w-[180px]">
           <SelectValue placeholder="Select child" />
         </SelectTrigger>
         <SelectContent>
