@@ -28,6 +28,9 @@ const dailyStatusButtonRef = ref<InstanceType<typeof DailyStatus> | null>(null)
 const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
 
 function shouldShowMoodReminder(): boolean {
+  // Don't show mood reminder if tour hasn't been completed (tour takes priority)
+  if (!authStore.user?.hasCompletedTour) return false
+
   // Don't show mood reminder if grade level is not set (grade dialog takes priority)
   if (!authStore.studentProfile?.gradeLevelId) return false
 
