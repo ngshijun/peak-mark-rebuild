@@ -52,6 +52,16 @@ export function getStudentTourSteps(): DriveStep[] {
       },
     },
     {
+      element: '[data-tour="dashboard-daily"]',
+      popover: {
+        title: 'Daily Spin & Mood',
+        description:
+          'Spin the wheel for daily rewards and set your mood to let your teacher know how you feel!',
+        side: 'bottom',
+        align: 'end',
+      },
+    },
+    {
       element: 'a[href="/student/practice"]',
       popover: {
         title: 'Practice',
@@ -66,6 +76,16 @@ export function getStudentTourSteps(): DriveStep[] {
       popover: {
         title: 'Statistics',
         description: 'View your learning progress, accuracy rates, and session history.',
+        side: 'right',
+        align: 'center',
+      },
+    },
+    {
+      element: 'a[href="/student/leaderboard"]',
+      popover: {
+        title: 'Leaderboard',
+        description:
+          'Compete with other students! Climb the leaderboard by earning XP through practice.',
         side: 'right',
         align: 'center',
       },

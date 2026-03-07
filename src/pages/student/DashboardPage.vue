@@ -93,7 +93,7 @@ watch(isLoading, async (loading) => {
         <h1 class="text-2xl font-bold">Dashboard</h1>
         <p class="text-muted-foreground">Here's your daily overview</p>
       </div>
-      <div v-if="!isLoading" class="flex items-center gap-2">
+      <div v-if="!isLoading" data-tour="dashboard-daily" class="flex items-center gap-2">
         <SpinWheelCard />
         <DailyStatus ref="dailyStatusButtonRef" />
       </div>
