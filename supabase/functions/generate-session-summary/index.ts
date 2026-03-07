@@ -296,6 +296,7 @@ Structure:
    - Use the ORIGINAL question number (e.g., "Question 3" not "1st wrong question")
    - Mention the actual content: "For Question 3 about 'menaiki tangga' (climbing stairs), you picked the picture of someone going down instead of up"
    - Explain the correct answer simply: "The right answer was B because..."
+   - For short answer questions, compare the student's answer to the correct answer: note spelling mistakes if close, or explain the correct answer if completely wrong
    - If there are many wrong questions, group similar mistakes together
 3. Summarize the main area to focus on (1 sentence)
 4. End with warm encouragement (1 sentence)
