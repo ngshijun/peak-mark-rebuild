@@ -110,11 +110,14 @@ watch(isLoading, async (loading) => {
         <!-- Pet (spans 2 rows on desktop) -->
         <CurrentPetCard data-tour="dashboard-pet" class="sm:row-span-2 sm:min-h-[28rem]" />
 
-        <!-- Best Subject (spans 2 cols on desktop) -->
-        <BestSubjectCard class="lg:col-span-2" />
-
-        <!-- Practice Streak (spans 2 cols on desktop) -->
-        <StreakCard data-tour="dashboard-streak" class="lg:col-span-2" />
+        <!-- Best Subject + Streak -->
+        <div
+          data-tour="dashboard-stats"
+          class="flex flex-col gap-4 sm:row-span-2 lg:col-span-2 lg:row-span-2"
+        >
+          <BestSubjectCard class="flex-1" />
+          <StreakCard class="flex-1" />
+        </div>
       </div>
 
       <!-- In-Progress Sessions -->

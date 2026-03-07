@@ -99,11 +99,11 @@ export function getStudentTourSteps(): DriveStep[] {
       },
     },
     {
-      element: '[data-tour="dashboard-streak"]',
+      element: '[data-tour="dashboard-stats"]',
       popover: {
-        title: 'Practice Streak',
+        title: 'Your Progress',
         description:
-          'Track your daily practice streak here. Practice every day to keep your streak going!',
+          'See your top subject and daily practice streak here. Practice every day to keep your streak going!',
         side: 'left',
         align: 'center',
       },
