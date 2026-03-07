@@ -202,7 +202,7 @@ function handleRowClick(row: ChildPracticeSession) {
         <template #before>
           <!-- Child Selector -->
           <Select v-model="selectedChildId">
-            <SelectTrigger class="w-[150px]">
+            <SelectTrigger class="w-[220px]">
               <SelectValue placeholder="Select child" />
             </SelectTrigger>
             <SelectContent>

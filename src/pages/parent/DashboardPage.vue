@@ -91,7 +91,7 @@ watch(selectedChildId, async (newId) => {
       </div>
       <!-- Child Selector -->
       <Select v-if="linkedChildren.length > 1" v-model="selectedChildId">
-        <SelectTrigger data-tour="parent-child-selector" class="w-[180px]">
+        <SelectTrigger data-tour="parent-child-selector" class="w-[220px]">
           <SelectValue placeholder="Select child" />
         </SelectTrigger>
         <SelectContent>
