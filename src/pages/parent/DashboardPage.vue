@@ -90,7 +90,11 @@ watch(selectedChildId, async (newId) => {
         <p class="text-muted-foreground">Monitor your child's learning progress</p>
       </div>
       <!-- Child Selector -->
-      <Select v-if="linkedChildren.length > 1" v-model="selectedChildId">
+      <Select
+        v-if="linkedChildren.length > 1"
+        v-model="selectedChildId"
+        data-tour="parent-child-selector"
+      >
         <SelectTrigger class="w-[180px]">
           <SelectValue placeholder="Select child" />
         </SelectTrigger>
@@ -115,7 +119,7 @@ watch(selectedChildId, async (newId) => {
 
     <!-- Dashboard Content -->
     <div v-else-if="selectedChild" class="space-y-6">
-      <div class="grid gap-6 lg:grid-cols-2">
+      <div data-tour="parent-dashboard-overview" class="grid gap-6 lg:grid-cols-2">
         <ChildMoodCalendar :child-id="selectedChild.id" :child-name="selectedChild.name" />
         <ChildSessionChart :child-id="selectedChild.id" />
       </div>

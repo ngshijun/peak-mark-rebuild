@@ -60,6 +60,25 @@ export function getParentTourSteps(): DriveStep[] {
       },
     },
     {
+      element: '[data-tour="parent-child-selector"]',
+      popover: {
+        title: 'Switch Children',
+        description:
+          'If you have multiple children linked, use this dropdown to switch between them.',
+        side: 'bottom',
+        align: 'end',
+      },
+    },
+    {
+      element: '[data-tour="parent-dashboard-overview"]',
+      popover: {
+        title: 'Daily Status & Sessions',
+        description: "See your child's daily mood and practice session history at a glance.",
+        side: 'top',
+        align: 'center',
+      },
+    },
+    {
       element: '[data-tour="sidebar-profile"]',
       popover: {
         title: 'Your Profile',
