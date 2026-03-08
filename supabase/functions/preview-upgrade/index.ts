@@ -1,7 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
+import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -9,54 +9,26 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const user = await getAuthenticatedUser(req)
 
     const { studentId, newPriceId } = await req.json()
 
     if (!studentId || !newPriceId) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('Missing required fields', 400)
     }
 
-    // Verify parent-student link
-    const { data: link } = await supabaseAdmin
-      .from('parent_student_links')
+    // Validate newPriceId against subscription_plans
+    const { data: validPlan } = await supabaseAdmin
+      .from('subscription_plans')
       .select('id')
-      .eq('parent_id', user.id)
-      .eq('student_id', studentId)
+      .eq('stripe_price_id', newPriceId)
       .single()
 
-    if (!link) {
-      return new Response(JSON.stringify({ error: 'Student not linked to parent' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    if (!validPlan) {
+      return errorResponse('Invalid price ID', 400)
     }
+
+    await verifyParentStudentLink(user.id, studentId)
 
     // Get current subscription
     const { data: subscription } = await supabaseAdmin
@@ -67,10 +39,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (!subscription?.stripe_subscription_id) {
-      return new Response(JSON.stringify({ error: 'No active subscription found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('No active subscription found', 404)
     }
 
     // Retrieve the current subscription from Stripe
@@ -81,10 +50,7 @@ Deno.serve(async (req: Request) => {
 
     const currentPriceId = stripeSubscription.items.data[0]?.price.id
     if (currentPriceId === newPriceId) {
-      return new Response(JSON.stringify({ error: 'Already on this plan' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('Already on this plan', 400)
     }
 
     // Get price amounts to determine upgrade vs downgrade
@@ -127,8 +93,6 @@ Deno.serve(async (req: Request) => {
         ? stripeSubscription.customer
         : stripeSubscription.customer.id
 
-    // Preview what the invoice would look like with the upgrade
-    // Using billing_cycle_anchor: 'now' simulation
     const prorationDate = Math.floor(Date.now() / 1000)
 
     const previewInvoice = await stripe.invoices.createPreview({
@@ -146,12 +110,6 @@ Deno.serve(async (req: Request) => {
         proration_behavior: 'create_prorations',
       },
     })
-
-    // Calculate the amounts
-    // The preview invoice will show:
-    // - Credit for unused time on current plan (negative amount)
-    // - Charge for new plan (positive amount)
-    // - Net amount is what the user pays today
 
     const lineItems = previewInvoice.lines.data.map((line) => ({
       description: line.description,
@@ -192,13 +150,16 @@ Deno.serve(async (req: Request) => {
         },
         message: `You'll be charged ${(previewInvoice.amount_due / 100).toFixed(2)} ${previewInvoice.currency.toUpperCase()} today. Your new billing cycle starts immediately.`,
         newBillingCycleStart: new Date().toISOString(),
-        newBillingCycleEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Approx 1 month
+        newBillingCycleEnd: previewInvoice.lines.data[0]?.period?.end
+          ? new Date(previewInvoice.lines.data[0].period.end * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   } catch (error) {
+    if (error instanceof Response) return error
     return errorResponse('Failed to preview upgrade', 500, error)
   }
 })

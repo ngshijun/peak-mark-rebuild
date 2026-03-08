@@ -16,6 +16,7 @@ const props = defineProps<{
   plan: SubscriptionPlan
   currentTier: SubscriptionTier
   isProcessingPayment: boolean
+  processingTier?: SubscriptionTier | null
   scheduledChange?: ScheduledChange | null
 }>()
 
@@ -103,7 +104,10 @@ function getButtonVariant() {
         :disabled="isProcessingPayment || scheduledChange?.scheduledTier === plan.id"
         @click="emit('change', plan.id)"
       >
-        <Loader2 v-if="isProcessingPayment" class="mr-2 size-4 animate-spin" />
+        <Loader2
+          v-if="isProcessingPayment && (!processingTier || processingTier === plan.id)"
+          class="mr-2 size-4 animate-spin"
+        />
         {{ getButtonText() }}
       </Button>
       <Button v-else class="w-full" variant="outline" disabled> Current Plan </Button>

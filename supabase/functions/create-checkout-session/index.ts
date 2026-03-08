@@ -1,7 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
+import { getAuthenticatedUser, verifyParent, verifyParentStudentLink } from '../_shared/auth.ts'
 
 interface RequestBody {
   priceId: string
@@ -14,75 +14,35 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Verify user authentication
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Verify user is a parent
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('user_type')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.user_type !== 'parent') {
-      return new Response(JSON.stringify({ error: 'Only parents can create subscriptions' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const user = await getAuthenticatedUser(req)
+    await verifyParent(user.id)
 
     const { priceId, studentId }: RequestBody = await req.json()
 
     if (!priceId || !studentId) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('Missing required fields', 400)
+    }
+
+    // Validate priceId against subscription_plans to prevent arbitrary price injection
+    const { data: validPlan } = await supabaseAdmin
+      .from('subscription_plans')
+      .select('id, stripe_price_id')
+      .eq('stripe_price_id', priceId)
+      .single()
+
+    if (!validPlan) {
+      return errorResponse('Invalid price ID', 400)
     }
 
     // Construct redirect URLs server-side to prevent open redirect attacks
-    // TODO: Set APP_URL as a Supabase secret once the final production domain is decided
-    const appUrl = Deno.env.get('APP_URL') || req.headers.get('origin') || 'http://localhost:5173'
+    const appUrl = Deno.env.get('APP_URL')
+    if (!appUrl) {
+      return errorResponse('Server misconfiguration: APP_URL not set', 500)
+    }
     const successUrl = `${appUrl}/parent/subscription?success=true`
     const cancelUrl = `${appUrl}/parent/subscription?canceled=true`
 
-    // Verify parent-student link exists
-    const { data: link } = await supabaseAdmin
-      .from('parent_student_links')
-      .select('id')
-      .eq('parent_id', user.id)
-      .eq('student_id', studentId)
-      .single()
-
-    if (!link) {
-      return new Response(JSON.stringify({ error: 'Student not linked to parent' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    await verifyParentStudentLink(user.id, studentId)
 
     // Get or create Stripe customer
     const { data: parentProfile } = await supabaseAdmin
@@ -127,17 +87,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (existingSubscription?.stripe_subscription_id) {
-      // Student already has active Stripe subscription - use modify instead
-      return new Response(
-        JSON.stringify({
-          error: 'Student already has an active subscription. Use modify subscription instead.',
-          hasActiveSubscription: true,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return errorResponse('Student already has an active subscription. Use modify subscription instead.', 400)
     }
 
     // Get student name for description
@@ -176,6 +126,7 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
+    if (error instanceof Response) return error
     return errorResponse('Failed to create checkout session', 500, error)
   }
 })

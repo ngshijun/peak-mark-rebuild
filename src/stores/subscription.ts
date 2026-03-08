@@ -83,6 +83,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const isProcessingPayment = ref(false)
+  const processingTier = ref<SubscriptionTier | null>(null)
   const paymentError = ref<string | null>(null)
 
   // Cache timestamps for staleness tracking
@@ -285,6 +286,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }
 
     isProcessingPayment.value = true
+    processingTier.value = tier
     paymentError.value = null
 
     try {
@@ -308,6 +310,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { url: null, error: message }
     } finally {
       isProcessingPayment.value = false
+      processingTier.value = null
     }
   }
 
@@ -425,6 +428,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }
 
     isProcessingPayment.value = true
+    processingTier.value = newTier
     paymentError.value = null
 
     try {
@@ -460,6 +464,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { error: message }
     } finally {
       isProcessingPayment.value = false
+      processingTier.value = null
     }
   }
 
@@ -471,6 +476,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     immediately: boolean = false,
   ): Promise<{ error: string | null }> {
     isProcessingPayment.value = true
+    processingTier.value = 'core'
     paymentError.value = null
 
     try {
@@ -493,6 +499,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { error: message }
     } finally {
       isProcessingPayment.value = false
+      processingTier.value = null
     }
   }
 
@@ -516,6 +523,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     isLoading.value = false
     error.value = null
     isProcessingPayment.value = false
+    processingTier.value = null
     paymentError.value = null
   }
 
@@ -530,6 +538,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     isLoading,
     error,
     isProcessingPayment,
+    processingTier,
     paymentError,
 
     // Computed

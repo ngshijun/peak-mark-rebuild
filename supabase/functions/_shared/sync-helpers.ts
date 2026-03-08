@@ -1,4 +1,4 @@
-import type Stripe from 'https://esm.sh/stripe@17.4.0?target=deno'
+import type Stripe from 'https://esm.sh/stripe@20.4.0?target=deno'
 import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 
 /**
@@ -54,6 +54,9 @@ async function syncWithIds(
     .single()
 
   const tier = plan?.id || 'core'
+  if (!plan) {
+    console.warn(`No plan found for price ${priceId} — defaulting to 'core'. Check subscription_plans table.`)
+  }
   // Keep access during 'past_due' as a grace period while Stripe retries payment
   const isActive = ['active', 'trialing', 'past_due'].includes(subscription.status)
 

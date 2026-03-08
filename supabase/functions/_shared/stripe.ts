@@ -1,13 +1,13 @@
-import Stripe from 'https://esm.sh/stripe@17.4.0?target=deno'
+import Stripe from 'https://esm.sh/stripe@20.4.0?target=deno'
 
 export const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-12-15.clover',
   httpClient: Stripe.createFetchHttpClient(),
 })
 
 export const WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
 
-const allowedOrigin = Deno.env.get('APP_URL') || '*'
+const allowedOrigin = Deno.env.get('APP_URL') ?? ''
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': allowedOrigin,

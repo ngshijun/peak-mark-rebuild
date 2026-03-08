@@ -1,8 +1,8 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import { syncSubscriptionToDatabase } from '../_shared/sync-helpers.ts'
+import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
 
 /**
  * Sync Subscription Edge Function
@@ -19,55 +19,15 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Verify user authentication
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const user = await getAuthenticatedUser(req)
 
     const { studentId, sessionId } = await req.json()
 
     if (!studentId) {
-      return new Response(JSON.stringify({ error: 'Missing studentId' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('Missing studentId', 400)
     }
 
-    // Verify parent-student link
-    const { data: link } = await supabaseAdmin
-      .from('parent_student_links')
-      .select('id')
-      .eq('parent_id', user.id)
-      .eq('student_id', studentId)
-      .single()
-
-    if (!link) {
-      return new Response(JSON.stringify({ error: 'Student not linked to parent' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    await verifyParentStudentLink(user.id, studentId)
 
     let stripeSubscriptionId: string | null = null
 
@@ -78,16 +38,7 @@ Deno.serve(async (req: Request) => {
       })
 
       if (session.payment_status !== 'paid') {
-        return new Response(
-          JSON.stringify({
-            error: 'Payment not completed',
-            paymentStatus: session.payment_status,
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
+        return errorResponse('Payment not completed', 400)
       }
 
       if (session.subscription) {
@@ -109,16 +60,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!stripeSubscriptionId) {
-      return new Response(
-        JSON.stringify({
-          error: 'No subscription found for this student',
-          synced: false,
-        }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return errorResponse('No subscription found for this student', 404)
     }
 
     // Fetch current subscription from Stripe
@@ -142,16 +84,7 @@ Deno.serve(async (req: Request) => {
     const syncResult = await syncSubscriptionToDatabase(subscription, supabaseAdmin)
 
     if (!syncResult.success) {
-      return new Response(
-        JSON.stringify({
-          error: syncResult.error,
-          synced: false,
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return errorResponse(syncResult.error || 'Sync failed', 500)
     }
 
     // Return synced subscription data
@@ -171,10 +104,7 @@ Deno.serve(async (req: Request) => {
       }
     )
   } catch (error) {
-    console.error('Error syncing subscription:', error)
-    return new Response(JSON.stringify({ error: 'Failed to sync subscription', synced: false }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    if (error instanceof Response) return error
+    return errorResponse('Failed to sync subscription', 500, error)
   }
 })

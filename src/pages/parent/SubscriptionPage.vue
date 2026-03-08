@@ -458,6 +458,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
             :plan="plan"
             :current-tier="currentSubscription.tier"
             :is-processing-payment="subscriptionStore.isProcessingPayment"
+            :processing-tier="subscriptionStore.processingTier"
             :scheduled-change="currentSubscription.scheduledChange"
             @change="handlePlanChange"
           />

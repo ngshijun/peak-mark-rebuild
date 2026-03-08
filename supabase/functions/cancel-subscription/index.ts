@@ -1,11 +1,11 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import {
   syncSubscriptionToDatabase,
   syncSubscriptionDeletion,
 } from '../_shared/sync-helpers.ts'
+import { getAuthenticatedUser, verifyParent, verifyParentStudentLink } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -13,54 +13,16 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const user = await getAuthenticatedUser(req)
+    await verifyParent(user.id)
 
     const { studentId, cancelImmediately = false } = await req.json()
 
     if (!studentId) {
-      return new Response(JSON.stringify({ error: 'Missing studentId' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('Missing studentId', 400)
     }
 
-    // Verify parent-student link
-    const { data: link } = await supabaseAdmin
-      .from('parent_student_links')
-      .select('id')
-      .eq('parent_id', user.id)
-      .eq('student_id', studentId)
-      .single()
-
-    if (!link) {
-      return new Response(JSON.stringify({ error: 'Student not linked to parent' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    await verifyParentStudentLink(user.id, studentId)
 
     // Get current subscription
     const { data: subscription } = await supabaseAdmin
@@ -71,10 +33,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (!subscription?.stripe_subscription_id) {
-      return new Response(JSON.stringify({ error: 'No active subscription found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('No active subscription found', 404)
     }
 
     if (cancelImmediately) {
@@ -98,6 +57,7 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
+    if (error instanceof Response) return error
     return errorResponse('Failed to cancel subscription', 500, error)
   }
 })

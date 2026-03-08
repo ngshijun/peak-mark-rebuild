@@ -1,7 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
+import { getAuthenticatedUser } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -9,34 +9,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const user = await getAuthenticatedUser(req)
 
     // Construct return URL server-side to prevent open redirect attacks
-    // TODO: Set APP_URL as a Supabase secret once the final production domain is decided
-    const appUrl = Deno.env.get('APP_URL') || req.headers.get('origin') || 'http://localhost:5173'
+    const appUrl = Deno.env.get('APP_URL')
+    if (!appUrl) {
+      return errorResponse('Server misconfiguration: APP_URL not set', 500)
+    }
     const returnUrl = `${appUrl}/parent/subscription`
 
     // Get Stripe customer ID
@@ -47,10 +26,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (!parentProfile?.stripe_customer_id) {
-      return new Response(JSON.stringify({ error: 'No billing account found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return errorResponse('No billing account found', 404)
     }
 
     const session = await stripe.billingPortal.sessions.create({
@@ -62,6 +38,7 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
+    if (error instanceof Response) return error
     return errorResponse('Failed to open billing portal', 500, error)
   }
 })
