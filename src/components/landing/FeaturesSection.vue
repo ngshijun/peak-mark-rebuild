@@ -14,6 +14,15 @@ import { useLanguageStore } from '@/stores/language'
 const { t } = storeToRefs(useLanguageStore())
 
 const featureIcons = [GraduationCap, BookOpen, MessageSquareText, BarChart3, Trophy, Users]
+
+const featureScreenshots = [
+  '/screenshots/student-quiz.png',
+  '/screenshots/student-practice.png',
+  '/screenshots/student-quiz-explanation.png',
+  '/screenshots/student-session-result.png',
+  '/screenshots/student-collections.png',
+  '/screenshots/parent-dashboard.png',
+]
 </script>
 
 <template>
@@ -39,12 +48,8 @@ const featureIcons = [GraduationCap, BookOpen, MessageSquareText, BarChart3, Tro
             <CardTitle class="text-xl">{{ feature.title }}</CardTitle>
             <CardDescription class="text-base">{{ feature.description }}</CardDescription>
           </CardHeader>
-          <div class="px-6 pb-6">
-            <div
-              class="flex aspect-[4/3] items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/50"
-            >
-              <p class="text-xs text-muted-foreground">Screenshot</p>
-            </div>
+          <div class="px-6 pb-2">
+            <img :src="featureScreenshots[index]" :alt="feature.title" />
           </div>
         </Card>
       </div>
