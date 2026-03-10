@@ -19,11 +19,15 @@ const { t } = storeToRefs(useLanguageStore())
       </div>
 
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card v-for="(testimonial, index) in t.testimonials.items" :key="index" class="relative">
-          <CardContent class="pt-6">
+        <Card
+          v-for="(testimonial, index) in t.testimonials.items"
+          :key="index"
+          class="relative flex flex-col"
+        >
+          <CardContent class="flex flex-1 flex-col pt-6">
             <Quote class="absolute right-4 top-4 size-8 text-muted-foreground/20" />
             <p class="mb-6 text-muted-foreground">{{ testimonial.quote }}</p>
-            <div class="flex items-center gap-3">
+            <div class="mt-auto flex items-center gap-3">
               <Avatar>
                 <AvatarFallback>{{ testimonial.initials }}</AvatarFallback>
               </Avatar>

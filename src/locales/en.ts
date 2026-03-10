@@ -83,46 +83,68 @@ export default {
     items: [
       {
         quote:
-          'My son used to dread his Math homework. After 3 weeks on Clavis, he went from 65 to 82 on his monthly test — and he actually asks to practice now because he wants to evolve his pets!',
-        name: 'Sarah L.',
-        role: 'Parent of Standard 3 student',
-        initials: 'SL',
+          "As working parents, we don't always have time to guide my daughter every day. Clavis helps my daughter practise a little daily. The report shows clearly which topics she is weak in, so revision before exams becomes much easier.",
+        name: 'Mdm Chuah T. T.',
+        role: 'Parent',
+        initials: 'CT',
       },
       {
         quote:
-          'I like that the questions are the same style as my school exams. I do 2-3 sessions every day after school and it only takes 10 minutes. My Science marks improved a lot this term!',
-        name: 'Ahmad K.',
-        role: 'Standard 5 student',
-        initials: 'AK',
+          'The progress report is very helpful for parents. I can clearly see which topics my son needs more practice in, so it makes exam revision much easier and saves us a lot of time. Considering the features and daily practice, Clavis also offers very good value for money.',
+        name: 'Mr. Lim C. E.',
+        role: 'Parent',
+        initials: 'LC',
       },
       {
         quote:
-          "I have two kids in Standard 2 and Standard 4. Being able to see exactly which topics they're struggling with saves me so much time — I know exactly what to help them revise.",
-        name: 'Michelle T.',
-        role: 'Parent of 2 SJK(C) students',
-        initials: 'MT',
+          "My son is quite competitive, so he enjoys collecting the pets and rewards. Surprisingly, this motivates him to practise in Clavis almost every day without us reminding him. It's a very good balance between learning and fun.",
+        name: 'Mrs. Wong M. L.',
+        role: 'Parent',
+        initials: 'WM',
       },
-      {
-        quote:
-          'I love collecting the pets! Every time I get a new one I show my friends. My mum says I do my practice without her even asking now.',
-        name: 'Wei Ling C.',
-        role: 'Standard 2 student',
-        initials: 'WC',
-      },
-      {
-        quote:
-          'We tried tuition but it was expensive and my daughter was always tired after. Clavis fits into her routine naturally — 10 minutes a day and her confidence has grown so much.',
-        name: 'David O.',
-        role: 'Parent of Standard 4 student',
-        initials: 'DO',
-      },
-      {
-        quote:
-          'The explanations after each question really help. I used to just memorize answers, but now I actually understand why I got it wrong. My BM comprehension has improved a lot.',
-        name: 'Jun Wei T.',
-        role: 'Standard 6 student',
-        initials: 'JT',
-      },
+      // Old testimonials (placeholder, pre-launch)
+      // {
+      //   quote:
+      //     'My son used to dread his Math homework. After 3 weeks on Clavis, he went from 65 to 82 on his monthly test — and he actually asks to practice now because he wants to evolve his pets!',
+      //   name: 'Sarah L.',
+      //   role: 'Parent of Standard 3 student',
+      //   initials: 'SL',
+      // },
+      // {
+      //   quote:
+      //     'I like that the questions are the same style as my school exams. I do 2-3 sessions every day after school and it only takes 10 minutes. My Science marks improved a lot this term!',
+      //   name: 'Ahmad K.',
+      //   role: 'Standard 5 student',
+      //   initials: 'AK',
+      // },
+      // {
+      //   quote:
+      //     "I have two kids in Standard 2 and Standard 4. Being able to see exactly which topics they're struggling with saves me so much time — I know exactly what to help them revise.",
+      //   name: 'Michelle T.',
+      //   role: 'Parent of 2 SJK(C) students',
+      //   initials: 'MT',
+      // },
+      // {
+      //   quote:
+      //     'I love collecting the pets! Every time I get a new one I show my friends. My mum says I do my practice without her even asking now.',
+      //   name: 'Wei Ling C.',
+      //   role: 'Standard 2 student',
+      //   initials: 'WC',
+      // },
+      // {
+      //   quote:
+      //     'We tried tuition but it was expensive and my daughter was always tired after. Clavis fits into her routine naturally — 10 minutes a day and her confidence has grown so much.',
+      //   name: 'David O.',
+      //   role: 'Parent of Standard 4 student',
+      //   initials: 'DO',
+      // },
+      // {
+      //   quote:
+      //     'The explanations after each question really help. I used to just memorize answers, but now I actually understand why I got it wrong. My BM comprehension has improved a lot.',
+      //   name: 'Jun Wei T.',
+      //   role: 'Standard 6 student',
+      //   initials: 'JT',
+      // },
     ],
   },
   pricing: {
