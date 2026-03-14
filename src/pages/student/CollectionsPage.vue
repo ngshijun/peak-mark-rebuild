@@ -128,6 +128,7 @@ function closeCombineResult() {
               <div
                 v-for="pet in petsStore.petsByRarity[rarity]"
                 :key="pet.id"
+                :data-tour="pet.name === 'Cloud Bunny' ? 'first-pet-card' : undefined"
                 class="relative flex flex-col items-center rounded-lg border px-2 pb-2 pt-3 transition-all"
                 :class="[
                   petsStore.isPetOwned(pet.id)
