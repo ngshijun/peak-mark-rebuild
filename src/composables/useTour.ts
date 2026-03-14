@@ -72,6 +72,7 @@ export function useTour() {
       stagePadding: 8,
       stageRadius: 8,
       disableActiveInteraction: true,
+      overlayClickBehavior: 'nextStep',
       popoverClass: 'clavis-tour-popover',
       steps,
       onDestroyed: () => {
