@@ -352,11 +352,6 @@ router.beforeEach(
     _from: RouteLocationNormalized,
     next: NavigationGuardNext,
   ) => {
-    // Skip auth during prerendering — let all routes render as-is
-    if (window.__PRERENDER_INJECTED) {
-      return next()
-    }
-
     const authStore = useAuthStore()
 
     // Initialize auth if not already done
