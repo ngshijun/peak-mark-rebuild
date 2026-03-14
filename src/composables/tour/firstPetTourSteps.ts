@@ -65,8 +65,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
       popover: {
         title: 'Congratulations!',
         description: 'You got your first pet — Cloud Bunny! Tap "Close" to continue.',
-        side: 'top',
-        align: 'end',
+        side: 'right',
+        align: 'center',
         showButtons: [],
       },
     },
