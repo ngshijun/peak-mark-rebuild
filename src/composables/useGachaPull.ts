@@ -85,6 +85,38 @@ export function useGachaPull() {
     }, 1500)
   }
 
+  async function freePull() {
+    isRolling.value = true
+    lastPullType.value = 'single'
+    capsuleColor.value = '#A855F7'
+
+    const { petId, error } = await petsStore.initialPetDraw()
+
+    if (error || !petId) {
+      isRolling.value = false
+      toast.error(error ?? 'Pull failed')
+      return
+    }
+
+    const pet = getPetById(petId)
+    if (!pet) {
+      isRolling.value = false
+      await authStore.refreshProfile()
+      await petsStore.fetchOwnedPets()
+      return
+    }
+
+    capsuleColor.value = rarityColors[pet.rarity]
+    newPetIds.value = new Set([pet.id])
+
+    safeTimeout(async () => {
+      pullResults.value = [pet]
+      await Promise.all([authStore.refreshProfile(), petsStore.fetchOwnedPets()])
+      isRolling.value = false
+      showResultDialog.value = true
+    }, 1500)
+  }
+
   async function multiPull() {
     if ((authStore.studentProfile?.coins ?? 0) < MULTI_PULL_COST) return
 
@@ -134,6 +166,7 @@ export function useGachaPull() {
     capsuleColor,
     lastPullType,
     singlePull,
+    freePull,
     multiPull,
     closeResults,
   }
