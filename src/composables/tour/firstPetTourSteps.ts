@@ -93,7 +93,7 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
       popover: {
         title: 'Your Cloud Bunny!',
         description: 'Tap Cloud Bunny to view its details and set it as your companion!',
-        side: 'top',
+        side: 'right',
         align: 'center',
         showButtons: [],
       },
