@@ -129,7 +129,7 @@ export function useFirstPetTour() {
           waitForDialogClose()
         },
 
-        // Step 4: User clicks Collections sidebar link → back to Collections page
+        // Step 5: User clicks Collections sidebar link → back to Collections page
         onBackToCollectionsStepReady: () => {
           ensureSidebarOpen()
           const removeGuard = router.afterEach(async (to) => {
@@ -141,15 +141,28 @@ export function useFirstPetTour() {
           })
         },
 
-        // Step 5: "Done" button → select Cloud Bunny and go to dashboard
-        onSelectPet: async () => {
-          const cloudBunny = petsStore.allPets.find((p) => p.name === 'Cloud Bunny')
-          if (cloudBunny) {
-            await petsStore.selectPet(cloudBunny.id)
+        // Step 6: User clicks Cloud Bunny card → PetDetailDialog opens
+        onPetCardStepReady: () => {
+          const waitForDialog = async () => {
+            await waitForElement('[data-tour="select-as-companion"]')
+            tourInstance?.moveNext()
           }
-          tourInstance?.destroy()
-          tourInstance = null
-          router.push('/student/dashboard')
+          waitForDialog()
+        },
+
+        // Step 7: User clicks "Select as My Pet" → pet selected → go to dashboard
+        onSelectCompanionStepReady: () => {
+          const unwatch = watch(
+            () => authStore.studentProfile?.selectedPetId,
+            (petId) => {
+              if (petId) {
+                unwatch()
+                tourInstance?.destroy()
+                tourInstance = null
+                router.push('/student/dashboard')
+              }
+            },
+          )
         },
       }),
     })

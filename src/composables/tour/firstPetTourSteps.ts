@@ -11,8 +11,10 @@ export interface FirstPetTourCallbacks {
   onCloseResultStepReady: () => void
   /** Step 5: User clicks Collections sidebar link to go back */
   onBackToCollectionsStepReady: () => void
-  /** Step 6: User clicks Done to select Cloud Bunny */
-  onSelectPet: () => void
+  /** Step 6: User clicks Cloud Bunny card to open detail dialog */
+  onPetCardStepReady: () => void
+  /** Step 7: User clicks "Select as My Pet" in the detail dialog */
+  onSelectCompanionStepReady: () => void
 }
 
 export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveStep[] {
@@ -85,16 +87,28 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
     },
     {
       element: '[data-tour="first-pet-card"]',
+      onHighlightStarted: () => {
+        callbacks.onPetCardStepReady()
+      },
       popover: {
-        title: 'Select Your Companion!',
-        description: 'Here\'s your Cloud Bunny! Tap "Done" to set it as your pet companion!',
+        title: 'Your Cloud Bunny!',
+        description: 'Tap Cloud Bunny to view its details and set it as your companion!',
         side: 'top',
         align: 'center',
-        showButtons: ['next'],
-        nextBtnText: 'Done!',
-        onNextClick: () => {
-          callbacks.onSelectPet()
-        },
+        showButtons: [],
+      },
+    },
+    {
+      element: '[data-tour="select-as-companion"]',
+      onHighlightStarted: () => {
+        callbacks.onSelectCompanionStepReady()
+      },
+      popover: {
+        title: 'Select Your Companion!',
+        description: 'Tap "Select as My Pet" to set Cloud Bunny as your companion!',
+        side: 'top',
+        align: 'center',
+        showButtons: [],
       },
     },
   ]
