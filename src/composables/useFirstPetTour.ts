@@ -5,8 +5,8 @@ import { usePetsStore } from '@/stores/pets'
 import { useTour } from './useTour'
 import { loadDriver } from './tour/loadDriver'
 
-/** Wait for a DOM element to appear (MutationObserver-based, not setTimeout) */
-function waitForElement(selector: string, timeout = 5000): Promise<Element | null> {
+/** Wait for a DOM element to appear (MutationObserver-based, no timeout — waits indefinitely) */
+function waitForElement(selector: string): Promise<Element> {
   return new Promise((resolve) => {
     const el = document.querySelector(selector)
     if (el) return resolve(el)
@@ -19,15 +19,11 @@ function waitForElement(selector: string, timeout = 5000): Promise<Element | nul
       }
     })
     observer.observe(document.body, { childList: true, subtree: true })
-    setTimeout(() => {
-      observer.disconnect()
-      resolve(null)
-    }, timeout)
   })
 }
 
-/** Wait for a DOM element to disappear */
-function waitForElementGone(selector: string, timeout = 60000): Promise<void> {
+/** Wait for a DOM element to disappear (MutationObserver-based, no timeout) */
+function waitForElementGone(selector: string): Promise<void> {
   return new Promise((resolve) => {
     if (!document.querySelector(selector)) return resolve()
 
@@ -38,10 +34,6 @@ function waitForElementGone(selector: string, timeout = 60000): Promise<void> {
       }
     })
     observer.observe(document.body, { childList: true, subtree: true })
-    setTimeout(() => {
-      observer.disconnect()
-      resolve()
-    }, timeout)
   })
 }
 
@@ -112,19 +104,22 @@ export function useFirstPetTour() {
 
         // Step 3: User clicks the pull button → animation → result dialog → close
         onPullStepReady: () => {
-          const waitForPullComplete = async () => {
-            // Wait for the result dialog to appear (shadcn-vue dialog-content)
-            await waitForElement('[data-slot="dialog-content"]')
-            // Wait for user to close it
-            await waitForElementGone('[data-slot="dialog-content"]')
-
-            // Small delay for DOM to settle, then advance
-            await new Promise((r) => setTimeout(r, 300))
-            ensureSidebarOpen()
-            await waitForElement('a[href="/student/collections"]')
-            tourInstance?.moveNext()
-          }
-          waitForPullComplete()
+          // Watch ownedPets reactively — when it goes from 0 to > 0, the pull succeeded.
+          // This is event-driven (no timeout), so it waits indefinitely for the user to click.
+          const unwatch = watch(
+            () => petsStore.ownedPets.length,
+            async (newLen) => {
+              if (newLen > 0) {
+                unwatch()
+                // Pet drawn — dialog is about to open. Wait for it to appear, then close.
+                await waitForElement('[data-slot="dialog-content"]')
+                await waitForElementGone('[data-slot="dialog-content"]')
+                ensureSidebarOpen()
+                await waitForElement('a[href="/student/collections"]')
+                tourInstance?.moveNext()
+              }
+            },
+          )
         },
 
         // Step 4: User clicks Collections sidebar link → back to Collections page
