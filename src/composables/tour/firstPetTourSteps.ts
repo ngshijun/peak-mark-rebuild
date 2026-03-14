@@ -66,7 +66,7 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
       },
     },
     {
-      element: '[data-tour="gacha-close-results"]',
+      element: '[data-slot="dialog-content"]',
       onHighlightStarted: () => {
         callbacks.onCloseResultStepReady()
       },

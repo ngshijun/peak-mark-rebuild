@@ -111,8 +111,8 @@ export function useFirstPetTour() {
             async (newLen) => {
               if (newLen > 0) {
                 unwatch()
-                // Pet drawn — wait for the Close button to appear, then highlight it
-                await waitForElement('[data-tour="gacha-close-results"]')
+                // Pet drawn — wait for the result dialog to appear, then highlight it
+                await waitForElement('[data-slot="dialog-content"]')
                 tourInstance?.moveNext()
               }
             },
