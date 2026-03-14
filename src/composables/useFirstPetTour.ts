@@ -75,7 +75,7 @@ export function useFirstPetTour() {
       showProgress: true,
       animate: true,
       smoothScroll: true,
-      stagePadding: 8,
+      stagePadding: 4,
       stageRadius: 8,
       popoverClass: 'clavis-first-pet-popover',
       steps: getFirstPetTourSteps({
@@ -135,7 +135,11 @@ export function useFirstPetTour() {
           const removeGuard = router.afterEach(async (to) => {
             if (to.path === '/student/collections') {
               removeGuard()
-              await waitForElement('[data-tour="first-pet-card"]')
+              const card = await waitForElement('[data-tour="first-pet-card"]')
+              // Scroll card into view and wait for layout to stabilize
+              // so driver.js calculates the correct highlight bounds
+              card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              await new Promise<void>((r) => requestAnimationFrame(() => r()))
               tourInstance?.moveNext()
             }
           })
