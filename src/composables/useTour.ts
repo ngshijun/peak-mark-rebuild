@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { loadDriver } from './tour/loadDriver'
 
 const TOUR_CACHE_PREFIX = 'tour_completed_'
 
@@ -20,20 +21,6 @@ function setCacheCompleted(userId: string, completed: boolean) {
   } else {
     localStorage.removeItem(getCacheKey(userId))
   }
-}
-
-/** Lazily load driver.js and its CSS */
-let driverCssLoaded = false
-async function loadDriver() {
-  const { driver } = await import('driver.js')
-
-  // Inject CSS once
-  if (!driverCssLoaded) {
-    await import('driver.js/dist/driver.css')
-    driverCssLoaded = true
-  }
-
-  return driver
 }
 
 const showWelcomeDialog = ref(false)
