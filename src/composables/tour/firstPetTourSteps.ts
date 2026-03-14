@@ -112,7 +112,7 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
       popover: {
         title: 'Select Your Companion!',
         description: 'Tap "Select as My Pet" to set Cloud Bunny as your companion!',
-        side: 'top',
+        side: 'right',
         align: 'center',
         showButtons: [],
       },
