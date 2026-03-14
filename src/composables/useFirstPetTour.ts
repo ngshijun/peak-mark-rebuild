@@ -136,12 +136,12 @@ export function useFirstPetTour() {
             if (to.path === '/student/collections') {
               removeGuard()
               const card = (await waitForElement('[data-tour="first-pet-card"]')) as HTMLElement
-              // Grid items stretch to fill the row height by default, which makes
-              // the element's bounding box taller than its visual content.
-              // Force content-height so driver.js highlights just the card.
+              // Disable transition so layout changes are instant (transition-all
+              // would animate align-self change, causing driver.js to read the
+              // bounding box mid-animation).
+              card.style.transition = 'none'
               card.style.alignSelf = 'start'
-              // Wait for the pet image inside the card to load so the layout is final
-              // before driver.js calculates the highlight bounds.
+              // Wait for the pet image to load so aspect-square has final dimensions
               const img = card.querySelector('img')
               if (img && !img.complete) {
                 await new Promise<void>((r) => {
@@ -149,8 +149,12 @@ export function useFirstPetTour() {
                   img.addEventListener('error', () => r(), { once: true })
                 })
               }
-              card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              await new Promise<void>((r) => requestAnimationFrame(() => r()))
+              // Force layout recalculation, then wait two frames for it to settle
+              card.getBoundingClientRect()
+              await new Promise<void>((r) =>
+                requestAnimationFrame(() => requestAnimationFrame(() => r())),
+              )
+              card.scrollIntoView({ block: 'center' })
               tourInstance?.moveNext()
             }
           })
