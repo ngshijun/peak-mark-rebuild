@@ -6,7 +6,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { KeyRound } from 'lucide-vue-next'
+import logoSvg from '@/assets/logo.svg'
 </script>
 
 <template>
@@ -15,11 +15,7 @@ import { KeyRound } from 'lucide-vue-next'
       <SidebarMenuItem>
         <SidebarMenuButton size="lg" as-child>
           <a href="#">
-            <div
-              class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg"
-            >
-              <KeyRound class="size-4" />
-            </div>
+            <img :src="logoSvg" alt="Clavis logo" class="size-10" />
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="truncate font-medium">Clavis</span>
               <span class="truncate text-xs text-muted-foreground">Learning Platform</span>

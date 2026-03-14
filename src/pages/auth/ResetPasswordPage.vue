@@ -6,7 +6,8 @@ import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
-import { KeyRound, Loader2, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
+import logoSvg from '@/assets/logo.svg'
+import { Loader2, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PasswordInput } from '@/components/ui/input'
@@ -125,9 +126,7 @@ function goToLogin() {
   <div class="flex min-h-screen items-center justify-center bg-background p-4">
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-primary">
-          <KeyRound class="size-6 text-primary-foreground" />
-        </div>
+        <img :src="logoSvg" alt="Clavis logo" class="mx-auto mb-4 size-16" />
         <CardTitle class="text-2xl">
           {{ passwordUpdated ? 'Password Updated' : 'Set New Password' }}
         </CardTitle>

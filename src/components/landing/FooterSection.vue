@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { KeyRound } from 'lucide-vue-next'
+import logoSvg from '@/assets/logo.svg'
 import { storeToRefs } from 'pinia'
 import { useLanguageStore } from '@/stores/language'
 
@@ -12,9 +12,7 @@ const { t } = storeToRefs(useLanguageStore())
       <div class="flex flex-col items-center justify-between gap-6 md:flex-row">
         <div>
           <div class="flex items-center gap-2">
-            <div class="flex size-8 items-center justify-center rounded-lg bg-primary">
-              <KeyRound class="size-4 text-primary-foreground" />
-            </div>
+            <img :src="logoSvg" alt="Clavis logo" class="size-10" />
             <span class="text-xl font-bold">Clavis</span>
           </div>
           <p class="mt-1 text-xs italic text-muted-foreground">

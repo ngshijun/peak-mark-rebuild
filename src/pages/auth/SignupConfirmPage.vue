@@ -3,7 +3,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSeoMeta } from '@unhead/vue'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowLeft, KeyRound, Loader2, CheckCircle, Mail } from 'lucide-vue-next'
+import logoSvg from '@/assets/logo.svg'
+import { ArrowLeft, Loader2, CheckCircle, Mail } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
@@ -80,9 +81,7 @@ async function handleResend() {
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-primary">
-          <KeyRound class="size-6 text-primary-foreground" />
-        </div>
+        <img :src="logoSvg" alt="Clavis logo" class="mx-auto mb-4 size-16" />
         <CardTitle class="text-2xl">Clavis</CardTitle>
         <CardDescription>Check your email</CardDescription>
       </CardHeader>

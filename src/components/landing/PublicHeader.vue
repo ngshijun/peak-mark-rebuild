@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { KeyRound } from 'lucide-vue-next'
+import logoSvg from '@/assets/logo.svg'
 import { Button } from '@/components/ui/button'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 import LanguageToggle from '@/components/layout/LanguageToggle.vue'
@@ -15,9 +15,7 @@ const { t } = storeToRefs(useLanguageStore())
   >
     <div class="container mx-auto flex h-16 items-center justify-between px-4">
       <RouterLink to="/" class="flex items-center gap-2">
-        <div class="flex size-8 items-center justify-center rounded-lg bg-primary">
-          <KeyRound class="size-4 text-primary-foreground" />
-        </div>
+        <img :src="logoSvg" alt="Clavis logo" class="size-10" />
         <span class="text-xl font-bold">Clavis</span>
       </RouterLink>
 

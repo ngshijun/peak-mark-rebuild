@@ -5,7 +5,8 @@ import { useSeoMeta } from '@unhead/vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { signupFormSchema } from '@/lib/validations'
-import { ArrowLeft, KeyRound, Loader2, CalendarIcon } from 'lucide-vue-next'
+import logoSvg from '@/assets/logo.svg'
+import { ArrowLeft, Loader2, CalendarIcon } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, PasswordInput } from '@/components/ui/input'
@@ -90,9 +91,7 @@ const onSubmit = handleSubmit(async (formValues) => {
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-primary">
-          <KeyRound class="size-6 text-primary-foreground" />
-        </div>
+        <img :src="logoSvg" alt="Clavis logo" class="mx-auto mb-4 size-16" />
         <CardTitle class="text-2xl">Clavis</CardTitle>
         <CardDescription>Create a new account</CardDescription>
       </CardHeader>
