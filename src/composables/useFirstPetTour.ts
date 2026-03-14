@@ -169,19 +169,48 @@ export function useFirstPetTour() {
           waitForDialog()
         },
 
-        // Step 7: User clicks "Select as My Pet" → pet selected → go to dashboard
+        // Step 7: User clicks "Select as My Pet" → pet selected
         onSelectCompanionStepReady: () => {
           const unwatch = watch(
             () => authStore.studentProfile?.selectedPetId,
-            (petId) => {
+            async (petId) => {
               if (petId) {
                 unwatch()
-                tourInstance?.destroy()
-                tourInstance = null
-                router.push('/student/dashboard')
+                // Pet selected — advance to X close button step
+                await waitForElement('[data-slot="dialog-close"]')
+                tourInstance?.moveNext()
               }
             },
           )
+        },
+
+        // Step 8: User clicks X to close the detail dialog
+        onCloseDetailStepReady: () => {
+          const waitForClose = async () => {
+            await waitForElementGone('[data-slot="dialog-content"]')
+            ensureSidebarOpen()
+            await waitForElement('a[href="/student/dashboard"]')
+            tourInstance?.moveNext()
+          }
+          waitForClose()
+        },
+
+        // Step 9: User clicks Dashboard sidebar link
+        onDashboardStepReady: () => {
+          ensureSidebarOpen()
+          const removeGuard = router.afterEach(async (to) => {
+            if (to.path === '/student/dashboard') {
+              removeGuard()
+              await waitForElement('[data-tour="dashboard-pet"]')
+              tourInstance?.moveNext()
+            }
+          })
+        },
+
+        // Step 10: "Got it!" button — destroy the tour
+        onFinalStepReady: () => {
+          tourInstance?.destroy()
+          tourInstance = null
         },
       }),
     })

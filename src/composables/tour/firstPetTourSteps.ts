@@ -15,6 +15,12 @@ export interface FirstPetTourCallbacks {
   onPetCardStepReady: () => void
   /** Step 7: User clicks "Select as My Pet" in the detail dialog */
   onSelectCompanionStepReady: () => void
+  /** Step 8: User clicks X to close the detail dialog */
+  onCloseDetailStepReady: () => void
+  /** Step 9: User clicks Dashboard sidebar link */
+  onDashboardStepReady: () => void
+  /** Step 10: Final — highlight pet card on dashboard */
+  onFinalStepReady: () => void
 }
 
 export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveStep[] {
@@ -109,6 +115,50 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         side: 'top',
         align: 'center',
         showButtons: [],
+      },
+    },
+    {
+      element: '[data-slot="dialog-close"]',
+      onHighlightStarted: () => {
+        callbacks.onCloseDetailStepReady()
+      },
+      popover: {
+        title: 'Well Done!',
+        description: 'Cloud Bunny is now your companion! Tap the X to close.',
+        side: 'left',
+        align: 'center',
+        showButtons: [],
+      },
+    },
+    {
+      element: 'a[href="/student/dashboard"]',
+      onHighlightStarted: () => {
+        callbacks.onDashboardStepReady()
+      },
+      popover: {
+        title: 'Head Home!',
+        description: 'Tap "Dashboard" to see your pet on the home page!',
+        side: 'right',
+        align: 'center',
+        showButtons: [],
+      },
+    },
+    {
+      element: '[data-tour="dashboard-pet"]',
+      onHighlightStarted: () => {
+        callbacks.onFinalStepReady()
+      },
+      popover: {
+        title: 'Your Pet is Here!',
+        description:
+          'Cloud Bunny is now your companion! Earn coins through practice to collect more pets. Enjoy your journey!',
+        side: 'right',
+        align: 'center',
+        showButtons: ['next'],
+        nextBtnText: 'Got it!',
+        onNextClick: () => {
+          callbacks.onFinalStepReady()
+        },
       },
     },
   ]
