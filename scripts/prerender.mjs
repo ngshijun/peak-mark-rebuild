@@ -103,6 +103,8 @@ async function prerender() {
 }
 
 prerender().catch((err) => {
-  console.error('Prerender failed:', err)
-  process.exit(1)
+  // Gracefully skip prerendering when Puppeteer can't launch (e.g. Vercel CI
+  // doesn't have the system libraries Chromium needs). The SPA still works
+  // fine without prerendered HTML — it just won't have static HTML for crawlers.
+  console.warn('Prerender skipped:', err.message)
 })
