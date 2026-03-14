@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "run-p type-check \"build-only {@}\" -- && node scripts/prerender.mjs",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
@@ -61,6 +61,7 @@
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1",
+    "puppeteer": "^24.39.1",
     "shadcn-vue": "^2.3.3",
     "supabase": "^2.76.3",
     "tsx": "^4.21.0",

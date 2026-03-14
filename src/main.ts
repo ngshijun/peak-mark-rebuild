@@ -22,4 +22,7 @@ app.config.errorHandler = (err) => {
   console.error('[Uncaught Error]', err)
 }
 
-app.mount('#app')
+router.isReady().then(() => {
+  app.mount('#app')
+  document.dispatchEvent(new Event('app-rendered'))
+})
