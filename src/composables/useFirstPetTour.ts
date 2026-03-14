@@ -135,9 +135,11 @@ export function useFirstPetTour() {
           const removeGuard = router.afterEach(async (to) => {
             if (to.path === '/student/collections') {
               removeGuard()
-              const card = await waitForElement('[data-tour="first-pet-card"]')
-              // Scroll card into view and wait for layout to stabilize
-              // so driver.js calculates the correct highlight bounds
+              const card = (await waitForElement('[data-tour="first-pet-card"]')) as HTMLElement
+              // Grid items stretch to fill the row height by default, which makes
+              // the element's bounding box taller than its visual content.
+              // Force content-height so driver.js highlights just the card.
+              card.style.alignSelf = 'start'
               card.scrollIntoView({ behavior: 'smooth', block: 'center' })
               await new Promise<void>((r) => requestAnimationFrame(() => r()))
               tourInstance?.moveNext()
