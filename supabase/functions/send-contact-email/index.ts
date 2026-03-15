@@ -278,7 +278,7 @@ function buildConfirmationEmail(
                 </tr>
                 <tr>
                   <td align="center" style="font-family:${FONT_STACK};font-size:14px;color:#e9d5ff;">
-                    Unlocking every student's potential
+                    Where Learning Feels Like Play
                   </td>
                 </tr>
               </table>
