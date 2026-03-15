@@ -21,7 +21,7 @@ const authStore = useAuthStore()
 useSeoMeta({
   title: 'Reset Password',
   description: 'Set a new password for your Clavis account.',
-  robots: 'noindex',
+  robots: 'noindex, follow',
 })
 
 const isSubmitting = ref(false)

@@ -18,6 +18,7 @@ const authStore = useAuthStore()
 useSeoMeta({
   title: 'Forgot Password',
   description: 'Reset your Clavis password. Enter your email to receive a password reset link.',
+  robots: 'noindex, follow',
 })
 
 const isSubmitting = ref(false)

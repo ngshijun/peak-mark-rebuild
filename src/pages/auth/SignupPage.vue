@@ -24,6 +24,7 @@ useSeoMeta({
   title: 'Sign Up',
   description:
     'Create a free Clavis account. Gamified practice sessions, collectible pets, and progress tracking for primary school students.',
+  robots: 'noindex, follow',
 })
 
 const isSubmitting = ref(false)

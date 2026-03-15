@@ -19,6 +19,7 @@ const authStore = useAuthStore()
 useSeoMeta({
   title: 'Log In',
   description: 'Log in to Clavis to start your gamified learning journey.',
+  robots: 'noindex, follow',
 })
 
 const isSubmitting = ref(false)

@@ -16,7 +16,7 @@ const authStore = useAuthStore()
 useSeoMeta({
   title: 'Check Your Email',
   description: 'Verify your email address to complete your Clavis account setup.',
-  robots: 'noindex',
+  robots: 'noindex, follow',
 })
 
 const email = ref('')
