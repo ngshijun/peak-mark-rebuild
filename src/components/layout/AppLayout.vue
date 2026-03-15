@@ -51,13 +51,17 @@ function startOnboarding() {
 function startFirstPetTourWatcher() {
   if (!authStore.isStudent) return
 
-  if (petsStore.allPets.length > 0) {
+  // Wait for both allPets (catalog) and ownedPets (user data) to be loaded
+  // before deciding whether to show the first pet tour. Without this,
+  // ownedPets may still be [] from its initial state, causing the tour
+  // to incorrectly trigger for students who already own pets.
+  if (petsStore.allPets.length > 0 && petsStore.ownedPetsLoaded) {
     watchAndStartFirstPetTour()
   } else {
     const unwatchPets = watch(
-      () => petsStore.allPets.length,
-      (len) => {
-        if (len > 0) {
+      [() => petsStore.allPets.length, () => petsStore.ownedPetsLoaded],
+      ([len, loaded]) => {
+        if (len > 0 && loaded) {
           unwatchPets()
           watchAndStartFirstPetTour()
         }

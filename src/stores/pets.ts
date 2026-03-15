@@ -93,6 +93,7 @@ export const usePetsStore = defineStore('pets', () => {
   // State
   const allPets = ref<Pet[]>([])
   const ownedPets = ref<OwnedPet[]>([])
+  const ownedPetsLoaded = ref(false)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -183,6 +184,8 @@ export const usePetsStore = defineStore('pets', () => {
     } catch (err) {
       const message = handleError(err, 'Failed to fetch owned pets.')
       return { error: message }
+    } finally {
+      ownedPetsLoaded.value = true
     }
   }
 
@@ -642,6 +645,7 @@ export const usePetsStore = defineStore('pets', () => {
   // Note: allPets is shared data and doesn't need reset
   function $reset() {
     ownedPets.value = []
+    ownedPetsLoaded.value = false
     isLoading.value = false
     error.value = null
   }
@@ -650,6 +654,7 @@ export const usePetsStore = defineStore('pets', () => {
     // State
     allPets,
     ownedPets,
+    ownedPetsLoaded,
     isLoading,
     error,
 
