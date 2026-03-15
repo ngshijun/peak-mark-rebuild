@@ -1,4 +1,4 @@
-import { watch, onScopeDispose } from 'vue'
+import { ref, watch, onScopeDispose } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore } from '@/stores/pets'
@@ -63,11 +63,15 @@ function ensureSidebarOpen() {
 
 let tourInstance: ReturnType<typeof import('driver.js').driver> | null = null
 
+/** Whether the first-pet tour is currently running (module-level so any consumer can check) */
+export const isFirstPetTourActive = ref(false)
+
 function destroyTour() {
   if (tourInstance) {
     tourInstance.destroy()
     tourInstance = null
   }
+  isFirstPetTourActive.value = false
 }
 
 export function useFirstPetTour() {
@@ -99,6 +103,7 @@ export function useFirstPetTour() {
   }
 
   async function startFirstPetTour() {
+    isFirstPetTourActive.value = true
     const [driver, { getFirstPetTourSteps }] = await Promise.all([
       loadDriver(),
       import('./tour/firstPetTourSteps'),
