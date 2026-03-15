@@ -5,6 +5,7 @@ import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { usePetsStore } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
+import { isFirstPetTourActive } from '@/composables/useFirstPetTour'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DailyStatus from '@/components/dashboard/DailyStatus.vue'
@@ -37,6 +38,9 @@ const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
 function shouldShowMoodReminder(): boolean {
   // Don't show mood reminder if tour hasn't been completed (tour takes priority)
   if (!authStore.user?.hasCompletedTour) return false
+
+  // Don't show mood reminder if first pet tour is in progress
+  if (isFirstPetTourActive.value) return false
 
   // Don't show mood reminder if student has no pets (first pet tour takes priority)
   if (petsStore.ownedPets.length === 0) return false
