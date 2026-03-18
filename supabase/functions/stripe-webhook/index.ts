@@ -1,11 +1,11 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import '@supabase/functions-js/edge-runtime.d.ts'
 import { stripe, WEBHOOK_SECRET } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import {
   syncSubscriptionToDatabase,
   syncSubscriptionDeletion,
 } from '../_shared/sync-helpers.ts'
-import type Stripe from 'https://esm.sh/stripe@20.4.0?target=deno'
+import type Stripe from 'stripe'
 
 /**
  * Atomically claim a webhook event for processing (INSERT-first idempotency).

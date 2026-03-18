@@ -1,5 +1,5 @@
-import type Stripe from 'https://esm.sh/stripe@20.4.0?target=deno'
-import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2'
+import type Stripe from 'stripe'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Syncs a Stripe subscription object to the child_subscriptions table.

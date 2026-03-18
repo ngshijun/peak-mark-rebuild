@@ -1,4 +1,4 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import '@supabase/functions-js/edge-runtime.d.ts'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import { syncSubscriptionToDatabase } from '../_shared/sync-helpers.ts'

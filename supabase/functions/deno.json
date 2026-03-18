@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2",
+    "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js/edge-runtime.d.ts",
+    "stripe": "https://esm.sh/stripe@20.4.1?target=deno"
+  }
+}

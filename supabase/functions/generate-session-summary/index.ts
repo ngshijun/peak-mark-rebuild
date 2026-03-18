@@ -1,4 +1,4 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import '@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import { getAuthenticatedUser } from '../_shared/auth.ts'
@@ -233,7 +233,7 @@ Deno.serve(async (req: Request) => {
     }, preferredLanguage)
 
     // Call OpenAI API directly using fetch
-    // Note: gpt-5-nano uses max_completion_tokens (not max_tokens)
+    // Note: newer models (e.g. gpt-4o) use max_completion_tokens; gpt-4o-mini still uses max_tokens
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

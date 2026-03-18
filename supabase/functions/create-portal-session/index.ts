@@ -1,7 +1,7 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import '@supabase/functions-js/edge-runtime.d.ts'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
-import { getAuthenticatedUser } from '../_shared/auth.ts'
+import { getAuthenticatedUser, verifyParent } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -10,6 +10,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const user = await getAuthenticatedUser(req)
+    await verifyParent(user.id)
 
     // Construct return URL server-side to prevent open redirect attacks
     const appUrl = Deno.env.get('APP_URL')

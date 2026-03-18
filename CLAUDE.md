@@ -84,6 +84,21 @@ await supabase
 
 ---
 
+## First Principles Thinking
+Use first-principles reasoning. Do not assume the user knows exactly what they want or how to get there. Be deliberate — reason from the original requirements and the root problem. If the motivation or goal is unclear, **stop and discuss** before proceeding.
+
+---
+
+## Solution Standards
+When proposing modifications or refactoring plans, all solutions must:
+
+- **No compatibility patches** — Do not propose backward-compatible shims or patch-style workarounds
+- **No over-engineering** — Use the shortest path to implementation without violating the above rule
+- **No scope creep** — Do not add solutions beyond the stated requirements (e.g., fallbacks, degradation paths) as this can cause business logic drift
+- **Logical correctness required** — Every solution must be logically sound and verified across the full chain of execution
+
+---
+
 ## Code Quality Standards
 ### No Quick Fixes
 Never suggest quick fixes, hacks, or workarounds. All recommendations must:

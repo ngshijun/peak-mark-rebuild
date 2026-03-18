@@ -1,4 +1,4 @@
-import { createClient, type User } from 'jsr:@supabase/supabase-js@2'
+import { createClient, type User } from '@supabase/supabase-js'
 import { corsHeaders, errorResponse } from './stripe.ts'
 import { supabaseAdmin } from './supabase-admin.ts'
 

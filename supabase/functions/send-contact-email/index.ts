@@ -1,4 +1,4 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import '@supabase/functions-js/edge-runtime.d.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const FROM_EMAIL = 'Clavis <noreply@clavis.com.my>'
@@ -9,28 +9,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Simple in-memory rate limiting (per-IP, sliding window)
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
-const RATE_LIMIT_MAX = 3
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const timestamps = rateLimitMap.get(ip) ?? []
-  const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS)
-  if (recent.length >= RATE_LIMIT_MAX) return true
-  recent.push(now)
-  rateLimitMap.set(ip, recent)
-  return false
-}
-
-function getClientIp(req: Request): string {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip') ||
-    'unknown'
-  )
-}
 
 interface ContactBody {
   name: string
@@ -382,14 +360,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const ip = getClientIp(req)
-    if (isRateLimited(ip)) {
-      return new Response(
-        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
     const rawBody = await req.json()
     const validation = validateBody(rawBody)
     if (!validation.valid) {

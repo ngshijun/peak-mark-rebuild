@@ -1,4 +1,4 @@
-import Stripe from 'https://esm.sh/stripe@20.4.1?target=deno'
+import Stripe from 'stripe'
 
 export const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2026-02-25.clover',
