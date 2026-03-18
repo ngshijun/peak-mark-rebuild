@@ -148,6 +148,7 @@ Deno.serve(async (req: Request) => {
         )
       `)
       .eq('session_id', sessionId)
+      .order('answered_at', { ascending: true })
 
     if (answersError) {
       return errorResponse('Failed to fetch answers', 500, answersError)
