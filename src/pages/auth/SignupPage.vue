@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed } from 'vue'
+import { ref, shallowRef, computed, toRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSeoMeta } from '@unhead/vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { signupFormSchema } from '@/lib/validations'
+import { usePasswordStrength } from '@/composables/usePasswordStrength'
 import logoSvg from '@/assets/logo.svg'
 import { ArrowLeft, Loader2, CalendarIcon } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -53,6 +54,9 @@ const { handleSubmit, values, setFieldValue, submitCount } = useForm({
     dateOfBirth: '',
   },
 })
+
+const passwordRef = toRef(() => values.password ?? '')
+const { strength: pwStrength, label: pwLabel, color: pwColor } = usePasswordStrength(passwordRef)
 
 const onSubmit = handleSubmit(async (formValues) => {
   isSubmitting.value = true
@@ -158,11 +162,22 @@ const onSubmit = handleSubmit(async (formValues) => {
               </FieldLabel>
               <PasswordInput
                 id="password"
-                placeholder="Create a password (min 6 characters)"
+                placeholder="Create a password (min 8 characters)"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
               />
+              <div v-if="values.password" class="space-y-1">
+                <div class="flex gap-1">
+                  <div
+                    v-for="i in 4"
+                    :key="i"
+                    class="h-1 flex-1 rounded-full transition-colors"
+                    :class="i <= pwStrength ? pwColor : 'bg-muted'"
+                  />
+                </div>
+                <p class="text-xs text-muted-foreground">{{ pwLabel }}</p>
+              </div>
               <FieldError :errors="errors" />
             </Field>
           </VeeField>

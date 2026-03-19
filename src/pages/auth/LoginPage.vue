@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { nextTick, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSeoMeta } from '@unhead/vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { loginFormSchema } from '@/lib/validations'
 import logoSvg from '@/assets/logo.svg'
-import { ArrowLeft, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Mail } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input, PasswordInput } from '@/components/ui/input'
 import { Field, FieldLabel, FieldError } from '@/components/ui/field'
@@ -24,6 +25,44 @@ useSeoMeta({
 
 const isSubmitting = ref(false)
 const passwordRef = ref<InstanceType<typeof PasswordInput> | null>(null)
+const unconfirmedEmail = ref('')
+const isResending = ref(false)
+const cooldownSeconds = ref(0)
+let cooldownTimer: ReturnType<typeof setInterval> | null = null
+
+onUnmounted(() => {
+  if (cooldownTimer) {
+    clearInterval(cooldownTimer)
+  }
+})
+
+function startCooldown() {
+  cooldownSeconds.value = 60
+  cooldownTimer = setInterval(() => {
+    cooldownSeconds.value--
+    if (cooldownSeconds.value <= 0) {
+      clearInterval(cooldownTimer!)
+      cooldownTimer = null
+    }
+  }, 1000)
+}
+
+async function handleResendVerification() {
+  isResending.value = true
+  try {
+    const result = await authStore.resendConfirmationEmail(unconfirmedEmail.value)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Verification email sent!')
+    startCooldown()
+  } catch {
+    toast.error('An unexpected error occurred')
+  } finally {
+    isResending.value = false
+  }
+}
 
 const { handleSubmit, submitCount } = useForm({
   validationSchema: loginFormSchema,
@@ -40,11 +79,18 @@ const onSubmit = handleSubmit(async (values) => {
     const result = await authStore.signIn(values.email, values.password)
 
     if (result.error) {
-      toast.error(result.error)
+      if (result.errorCode === 'email_not_confirmed') {
+        unconfirmedEmail.value = values.email
+      } else {
+        toast.error(result.error)
+      }
       await nextTick()
       passwordRef.value?.inputRef?.select()
       return
     }
+
+    // Clear any previous unconfirmed state on successful login
+    unconfirmedEmail.value = ''
 
     if (result.user) {
       toast.success('Welcome back!')
@@ -85,6 +131,28 @@ const onSubmit = handleSubmit(async (values) => {
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
+        <Alert v-if="unconfirmedEmail" variant="default" class="mb-4">
+          <Mail class="size-4" />
+          <AlertDescription class="flex flex-col gap-2">
+            <span
+              >Your email hasn't been verified yet. Check your inbox or resend the verification
+              email.</span
+            >
+            <Button
+              variant="outline"
+              size="sm"
+              class="w-fit"
+              :disabled="isResending || cooldownSeconds > 0"
+              @click="handleResendVerification"
+            >
+              <Loader2 v-if="isResending" class="mr-2 size-4 animate-spin" />
+              <template v-if="isResending">Sending...</template>
+              <template v-else-if="cooldownSeconds > 0">Resend in {{ cooldownSeconds }}s</template>
+              <template v-else>Resend Verification Email</template>
+            </Button>
+          </AlertDescription>
+        </Alert>
+
         <form class="space-y-4" @submit="onSubmit">
           <VeeField
             v-slot="{ field, errors }"

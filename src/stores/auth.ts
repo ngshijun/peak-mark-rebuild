@@ -325,7 +325,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (signInError) {
         const message = handleError(signInError, 'An unexpected error occurred.')
-        return { user: null, session: null, error: message }
+        return {
+          user: null,
+          session: null,
+          error: message,
+          errorCode: 'code' in signInError ? (signInError.code as string) : undefined,
+        }
       }
 
       if (data.user) {

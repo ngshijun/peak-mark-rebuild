@@ -31,6 +31,8 @@ onMounted(() => {
     return
   }
   email.value = queryEmail
+  // Start cooldown immediately — Supabase just sent the email
+  startCooldown()
 })
 
 onUnmounted(() => {
@@ -101,7 +103,7 @@ async function handleResend() {
             </div>
             <p class="text-center text-sm text-muted-foreground">
               Please check your inbox and click the link to verify your account. If you don't see
-              the email, check your spam folder.
+              the email, check your spam folder. The link will expire in 1 hour.
             </p>
           </div>
 
@@ -118,9 +120,19 @@ async function handleResend() {
             <template v-else>Resend Confirmation Email</template>
           </Button>
 
-          <div class="text-center text-sm text-muted-foreground">
-            Already verified?
-            <RouterLink to="/login" class="text-primary hover:underline">Back to Login</RouterLink>
+          <div class="space-y-1 text-center text-sm text-muted-foreground">
+            <div>
+              Already verified?
+              <RouterLink to="/login" class="text-primary hover:underline"
+                >Back to Login</RouterLink
+              >
+            </div>
+            <div>
+              Wrong email?
+              <RouterLink to="/signup" class="text-primary hover:underline"
+                >Sign up again</RouterLink
+              >
+            </div>
           </div>
         </div>
       </CardContent>

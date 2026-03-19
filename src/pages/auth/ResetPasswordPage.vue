@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, toRef, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSeoMeta } from '@unhead/vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
+import { usePasswordStrength } from '@/composables/usePasswordStrength'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import logoSvg from '@/assets/logo.svg'
@@ -36,7 +37,7 @@ const resetPasswordSchema = toTypedSchema(
       password: z
         .string()
         .min(1, 'Password is required')
-        .min(6, 'Password must be at least 6 characters'),
+        .min(8, 'Password must be at least 8 characters'),
       confirmPassword: z.string().min(1, 'Please confirm your password'),
     })
     .refine((data) => data.password === data.confirmPassword, {
@@ -45,13 +46,16 @@ const resetPasswordSchema = toTypedSchema(
     }),
 )
 
-const { handleSubmit } = useForm({
+const { handleSubmit, values, submitCount } = useForm({
   validationSchema: resetPasswordSchema,
   initialValues: {
     password: '',
     confirmPassword: '',
   },
 })
+
+const passwordRef = toRef(() => values.password ?? '')
+const { strength: pwStrength, label: pwLabel, color: pwColor } = usePasswordStrength(passwordRef)
 
 onMounted(async () => {
   // Check if we have a valid recovery session from the URL hash
@@ -184,7 +188,14 @@ function goToLogin() {
         <!-- Form State -->
         <template v-else>
           <form class="space-y-4" @submit="onSubmit">
-            <VeeField v-slot="{ field, errors }" name="password">
+            <VeeField
+              v-slot="{ field, errors }"
+              :validate-on-blur="false"
+              :validate-on-change="false"
+              :validate-on-input="false"
+              :validate-on-model-update="submitCount > 0"
+              name="password"
+            >
               <Field :data-invalid="!!errors.length">
                 <FieldLabel for="password">New Password</FieldLabel>
                 <PasswordInput
@@ -194,11 +205,29 @@ function goToLogin() {
                   :aria-invalid="!!errors.length"
                   v-bind="field"
                 />
+                <div v-if="values.password" class="space-y-1">
+                  <div class="flex gap-1">
+                    <div
+                      v-for="i in 4"
+                      :key="i"
+                      class="h-1 flex-1 rounded-full transition-colors"
+                      :class="i <= pwStrength ? pwColor : 'bg-muted'"
+                    />
+                  </div>
+                  <p class="text-xs text-muted-foreground">{{ pwLabel }}</p>
+                </div>
                 <FieldError :errors="errors" />
               </Field>
             </VeeField>
 
-            <VeeField v-slot="{ field, errors }" name="confirmPassword">
+            <VeeField
+              v-slot="{ field, errors }"
+              :validate-on-blur="false"
+              :validate-on-change="false"
+              :validate-on-input="false"
+              :validate-on-model-update="submitCount > 0"
+              name="confirmPassword"
+            >
               <Field :data-invalid="!!errors.length">
                 <FieldLabel for="confirmPassword">Confirm Password</FieldLabel>
                 <PasswordInput
