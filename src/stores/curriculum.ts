@@ -824,7 +824,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
    * Get optimized image URL for curriculum display (cards)
    */
   function getOptimizedImageUrl(path: string | null): string {
-    return getCurriculumImageUrl(path, { width: 400, quality: 80 })
+    return getCurriculumImageUrl(path, { width: 800, quality: 80 })
   }
 
   // ============================================

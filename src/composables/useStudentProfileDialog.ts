@@ -95,8 +95,8 @@ export function useStudentProfileDialog() {
         }
 
         const imageUrl = getStorageImageUrl('pet-images', imagePath, {
-          width: 300,
-          height: 300,
+          width: 600,
+          height: 600,
           quality: 80,
           resize: 'contain',
         })

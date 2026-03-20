@@ -204,7 +204,7 @@ export const usePetsStore = defineStore('pets', () => {
 
   // Get optimized pet image URL (medium size for dialog display)
   function getOptimizedPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
-    return getPetImageUrl(imagePath, updatedAt, { width: 400, quality: 80 })
+    return getPetImageUrl(imagePath, updatedAt, { width: 800, quality: 80 })
   }
 
   // Get pet image URL based on tier
