@@ -83,10 +83,11 @@ async function handleResend() {
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-8" />
-          <CardTitle class="text-2xl">Clavis</CardTitle>
+        <div class="mb-1 flex items-center justify-center gap-3">
+          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
+        <CardTitle class="text-xl">Verify Your Email</CardTitle>
         <CardDescription>Check your email</CardDescription>
       </CardHeader>
       <CardContent>

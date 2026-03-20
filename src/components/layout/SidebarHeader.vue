@@ -17,7 +17,9 @@ import logoSvg from '@/assets/logo.svg'
           <a href="#">
             <img :src="logoSvg" alt="Clavis logo" class="size-10" />
             <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">Clavis</span>
+              <span class="font-logo translate-y-1 truncate text-lg font-medium text-primary"
+                >Clavis</span
+              >
               <span class="truncate text-xs text-muted-foreground">Learning Platform</span>
             </div>
           </a>

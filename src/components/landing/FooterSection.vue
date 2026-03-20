@@ -13,7 +13,7 @@ const { t } = storeToRefs(useLanguageStore())
         <div>
           <div class="flex items-center gap-2">
             <img :src="logoSvg" alt="Clavis logo" class="size-10" />
-            <span class="text-xl font-bold">Clavis</span>
+            <span class="font-logo translate-y-1 text-2xl font-bold text-primary">Clavis</span>
           </div>
           <p class="mt-1 text-xs italic text-muted-foreground">
             {{ t.footer.tagline }}

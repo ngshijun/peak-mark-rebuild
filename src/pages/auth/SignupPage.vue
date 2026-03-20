@@ -96,10 +96,11 @@ const onSubmit = handleSubmit(async (formValues) => {
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-8" />
-          <CardTitle class="text-2xl">Clavis</CardTitle>
+        <div class="mb-1 flex items-center justify-center gap-3">
+          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
+        <CardTitle class="text-xl">Sign Up</CardTitle>
         <CardDescription>Create a new account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -291,7 +292,7 @@ const onSubmit = handleSubmit(async (formValues) => {
             </Field>
           </VeeField>
 
-          <Button type="submit" class="w-full" :disabled="isSubmitting">
+          <Button type="submit" class="mt-2 w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
             {{ isSubmitting ? 'Creating Account...' : 'Sign Up' }}
           </Button>

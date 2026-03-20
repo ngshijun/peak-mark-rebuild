@@ -15,8 +15,8 @@ const { t } = storeToRefs(useLanguageStore())
   >
     <div class="container mx-auto flex h-16 items-center justify-between px-4">
       <RouterLink to="/" class="flex items-center gap-2">
-        <img :src="logoSvg" alt="Clavis logo" class="size-10" />
-        <span class="text-xl font-bold">Clavis</span>
+        <img :src="logoSvg" alt="Clavis logo" class="size-8" />
+        <span class="font-logo translate-y-1 text-2xl font-bold text-primary">Clavis</span>
       </RouterLink>
 
       <div class="flex items-center gap-2">

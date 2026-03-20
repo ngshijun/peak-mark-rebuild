@@ -65,10 +65,11 @@ const onSubmit = handleSubmit(async (values) => {
   <div class="flex min-h-screen items-center justify-center bg-background p-4">
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-8" />
-          <CardTitle class="text-2xl">Reset Password</CardTitle>
+        <div class="mb-1 flex items-center justify-center gap-3">
+          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
+        <CardTitle class="text-xl">Reset Password</CardTitle>
         <CardDescription>
           {{ emailSent ? 'Check your email' : 'Enter your email to receive a reset link' }}
         </CardDescription>
@@ -125,7 +126,7 @@ const onSubmit = handleSubmit(async (values) => {
               </Field>
             </VeeField>
 
-            <Button type="submit" class="w-full" :disabled="isSubmitting">
+            <Button type="submit" class="mt-2 w-full" :disabled="isSubmitting">
               <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
               {{ isSubmitting ? 'Sending...' : 'Send Reset Link' }}
             </Button>

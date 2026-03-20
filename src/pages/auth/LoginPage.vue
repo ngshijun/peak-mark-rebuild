@@ -124,10 +124,11 @@ const onSubmit = handleSubmit(async (values) => {
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-8" />
-          <CardTitle class="text-2xl">Clavis</CardTitle>
+        <div class="mb-1 flex items-center justify-center gap-3">
+          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
+        <CardTitle class="text-xl">Sign In</CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -204,7 +205,7 @@ const onSubmit = handleSubmit(async (values) => {
             </RouterLink>
           </div>
 
-          <Button type="submit" class="w-full" :disabled="isSubmitting">
+          <Button type="submit" class="mt-2 w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
             {{ isSubmitting ? 'Signing in...' : 'Login' }}
           </Button>
