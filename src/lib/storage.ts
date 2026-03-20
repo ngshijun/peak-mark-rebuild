@@ -36,11 +36,14 @@ export function getStorageImageUrl(
 }
 
 /**
- * Get public URL for an avatar from its storage path.
- * Convenience wrapper around getStorageImageUrl for the 'avatars' bucket.
+ * Get optimized public URL for an avatar from its storage path.
+ * Avatars display at 32–48px CSS; 96px at 2x Retina with cover crop.
  */
 export function getAvatarUrl(path: string | null): string {
-  if (!path) return ''
-  const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-  return data.publicUrl
+  return getStorageImageUrl('avatars', path, {
+    width: 96,
+    height: 96,
+    quality: 80,
+    resize: 'cover',
+  })
 }
