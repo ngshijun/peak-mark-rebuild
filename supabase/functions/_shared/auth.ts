@@ -1,33 +1,41 @@
-import { createClient, type User } from '@supabase/supabase-js'
-import { corsHeaders, errorResponse } from './stripe.ts'
+import { createClient } from '@supabase/supabase-js'
+import { errorResponse } from './stripe.ts'
 import { supabaseAdmin } from './supabase-admin.ts'
+
+/** Lightweight user info extracted from JWT claims */
+export interface AuthUser {
+  id: string
+  email: string | undefined
+}
+
+// Shared client for JWKS-based local JWT verification (no network call per request)
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SB_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')!,
+)
 
 /**
  * Authenticate the request and return the user.
+ * Uses getClaims() for local JWKS verification (no network roundtrip).
  * Throws a Response if authentication fails.
  */
-export async function getAuthenticatedUser(req: Request): Promise<User> {
+export async function getAuthenticatedUser(req: Request): Promise<AuthUser> {
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     throw errorResponse('No authorization header', 401)
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
-  )
+  const token = authHeader.replace('Bearer ', '')
+  const { data, error } = await supabase.auth.getClaims(token)
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error || !user) {
+  if (error || !data?.claims?.sub) {
     throw errorResponse('Unauthorized', 401)
   }
 
-  return user
+  return {
+    id: data.claims.sub as string,
+    email: data.claims.email as string | undefined,
+  }
 }
 
 /**
