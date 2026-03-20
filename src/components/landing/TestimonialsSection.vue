@@ -9,7 +9,7 @@ const { t } = storeToRefs(useLanguageStore())
 </script>
 
 <template>
-  <section class="py-20">
+  <section class="border-t bg-muted/30 py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
         <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.testimonials.title }}</h2>

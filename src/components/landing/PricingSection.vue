@@ -12,7 +12,7 @@ const popularIndex = 2 // Pro plan
 </script>
 
 <template>
-  <section class="border-t bg-muted/30 py-20">
+  <section class="border-t py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
         <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.pricing.title }}</h2>
