@@ -9,7 +9,10 @@ export interface ImageTransformOptions {
 
 /**
  * Get public URL for a Supabase Storage image with optional transformation.
- * Handles null paths, http/data: URL passthrough, and transform defaults.
+ * Handles null paths, http/data: URL passthrough.
+ *
+ * Uses wsrv.nl as an image proxy for resizing/format conversion since
+ * Supabase Image Transformations requires a Pro plan.
  */
 export function getStorageImageUrl(
   bucket: string,
@@ -19,20 +22,21 @@ export function getStorageImageUrl(
   if (!path) return ''
   if (path.startsWith('http') || path.startsWith('data:')) return path
 
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+  const publicUrl = data.publicUrl
+
   if (transform) {
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path, {
-      transform: {
-        width: transform.width,
-        height: transform.height,
-        quality: transform.quality ?? 80,
-        resize: transform.resize ?? 'contain',
-      },
-    })
-    return data.publicUrl
+    const params = new URLSearchParams()
+    params.set('url', publicUrl)
+    if (transform.width) params.set('w', String(transform.width))
+    if (transform.height) params.set('h', String(transform.height))
+    params.set('q', String(transform.quality ?? 80))
+    params.set('fit', transform.resize ?? 'contain')
+    params.set('output', 'webp')
+    return `https://wsrv.nl/?${params.toString()}`
   }
 
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-  return data.publicUrl
+  return publicUrl
 }
 
 /**

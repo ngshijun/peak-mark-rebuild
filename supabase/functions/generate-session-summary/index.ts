@@ -37,9 +37,10 @@ interface SessionData {
 function getImagePublicUrl(path: string | null): string | null {
   if (!path) return null
   if (path.startsWith('http')) return path
-  // Use Supabase image transformation to resize images to 512x512
+  // Use wsrv.nl proxy to resize images to 512x512 and convert to WebP
   // This matches OpenAI's detail: 'low' processing size and speeds up image fetching
-  return `${supabaseUrl}/storage/v1/render/image/public/question-images/${path}?width=512&height=512&resize=contain`
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/question-images/${path}`
+  return `https://wsrv.nl/?url=${encodeURIComponent(publicUrl)}&w=512&h=512&fit=contain&output=webp&q=80`
 }
 
 Deno.serve(async (req: Request) => {
