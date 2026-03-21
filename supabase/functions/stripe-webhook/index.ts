@@ -131,61 +131,72 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 }
 
+/**
+ * Extract a subscription ID from a value that may be a string ID or expanded Subscription object.
+ */
 function extractSubscriptionId(raw: string | Stripe.Subscription | null | undefined): string | null {
   if (!raw) return null
   return typeof raw === 'string' ? raw : raw.id
 }
 
-async function handleInvoicePaid(invoiceFromWebhook: Stripe.Invoice) {
-  let invoice = invoiceFromWebhook
-  let subscriptionId = extractSubscriptionId(invoice.subscription)
+/**
+ * Extract subscription ID from a Clover-era Invoice object.
+ * In Clover API versions, `invoice.subscription` was moved to
+ * `invoice.parent.subscription_details.subscription`.
+ */
+function extractInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  // Primary: invoice.parent.subscription_details.subscription (Clover-era)
+  const fromParent = extractSubscriptionId(invoice.parent?.subscription_details?.subscription)
+  if (fromParent) return fromParent
 
-  if (!subscriptionId && invoice.lines?.data?.[0]?.subscription) {
-    subscriptionId = extractSubscriptionId(invoice.lines.data[0].subscription)
-  }
+  // Fallback: line item's parent.subscription_item_details.subscription
+  const lineItem = invoice.lines?.data?.[0]
+  const fromLineItem = extractSubscriptionId(lineItem?.parent?.subscription_item_details?.subscription)
+  if (fromLineItem) return fromLineItem
 
-  // If still no subscription ID, fetch the full invoice from Stripe API
-  if (!subscriptionId) {
-    invoice = await stripe.invoices.retrieve(invoiceFromWebhook.id, {
-      expand: ['lines.data.price'],
-    })
-    subscriptionId = extractSubscriptionId(invoice.subscription)
+  // Last resort: line item's top-level subscription field (may exist in some versions)
+  return extractSubscriptionId(lineItem?.subscription)
+}
 
-    if (!subscriptionId && invoice.lines?.data?.[0]?.subscription) {
-      subscriptionId = extractSubscriptionId(invoice.lines.data[0].subscription)
-    }
-  }
+async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  const subscriptionId = extractInvoiceSubscriptionId(invoice)
 
   if (!subscriptionId) {
     throw new Error(`No subscription ID found on invoice ${invoice.id}`)
   }
 
-  // Fetch subscription to get metadata
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  // Extract metadata directly from invoice's parent (Clover-era invoices carry subscription metadata)
+  const invoiceMetadata = invoice.parent?.subscription_details?.metadata
+  let parentId = invoiceMetadata?.supabase_parent_id
+  let studentId = invoiceMetadata?.supabase_student_id
 
-  let parentId = subscription.metadata.supabase_parent_id
-  let studentId = subscription.metadata.supabase_student_id
+  // Fallback: fetch subscription from Stripe for metadata
+  if (!parentId || !studentId) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    parentId = parentId || subscription.metadata.supabase_parent_id
+    studentId = studentId || subscription.metadata.supabase_student_id
+  }
 
   // Fallback: look up from existing child_subscriptions record
   if (!parentId || !studentId) {
     const { data: existingSub } = await supabaseAdmin
       .from('child_subscriptions')
       .select('parent_id, student_id')
-      .eq('stripe_subscription_id', subscription.id)
+      .eq('stripe_subscription_id', subscriptionId)
       .single()
 
     if (existingSub) {
-      parentId = existingSub.parent_id
-      studentId = existingSub.student_id
+      parentId = parentId || existingSub.parent_id
+      studentId = studentId || existingSub.student_id
     }
   }
 
   if (!parentId) {
-    throw new Error(`Missing parent_id for invoice ${invoice.id}, subscription ${subscription.id}`)
+    throw new Error(`Missing parent_id for invoice ${invoice.id}, subscription ${subscriptionId}`)
   }
 
-  // Get tier from subscription's price
-  const priceId = subscription.items.data[0]?.price?.id || invoice.lines?.data?.[0]?.price?.id
+  // Get tier from line item's price (Clover-era: pricing.price_details.price)
+  const priceId = invoice.lines?.data?.[0]?.pricing?.price_details?.price
   const { data: plan } = await supabaseAdmin
     .from('subscription_plans')
     .select('id')
@@ -201,7 +212,6 @@ async function handleInvoicePaid(invoiceFromWebhook: Stripe.Invoice) {
     parent_id: parentId,
     student_id: studentId || null,
     stripe_invoice_id: invoice.id,
-    stripe_payment_intent_id: typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent?.id ?? null,
     stripe_subscription_id: subscriptionId,
     amount_cents: invoice.amount_paid,
     currency: invoice.currency,
@@ -222,29 +232,34 @@ async function handleInvoicePaid(invoiceFromWebhook: Stripe.Invoice) {
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  let subscriptionId = extractSubscriptionId(invoice.subscription)
-  if (!subscriptionId && invoice.lines?.data?.[0]?.subscription) {
-    subscriptionId = extractSubscriptionId(invoice.lines.data[0].subscription)
-  }
+  const subscriptionId = extractInvoiceSubscriptionId(invoice)
   if (!subscriptionId) {
     throw new Error(`No subscription ID on failed payment invoice ${invoice.id}`)
   }
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-  let parentId = subscription.metadata.supabase_parent_id
-  let studentId = subscription.metadata.supabase_student_id
+  // Extract metadata directly from invoice's parent (Clover-era)
+  const invoiceMetadata = invoice.parent?.subscription_details?.metadata
+  let parentId = invoiceMetadata?.supabase_parent_id
+  let studentId = invoiceMetadata?.supabase_student_id
+
+  // Fallback: fetch subscription from Stripe for metadata
+  if (!parentId || !studentId) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    parentId = parentId || subscription.metadata.supabase_parent_id
+    studentId = studentId || subscription.metadata.supabase_student_id
+  }
 
   // Fallback: look up from existing child_subscriptions record
   if (!parentId || !studentId) {
     const { data: existingSub } = await supabaseAdmin
       .from('child_subscriptions')
       .select('parent_id, student_id')
-      .eq('stripe_subscription_id', subscription.id)
+      .eq('stripe_subscription_id', subscriptionId)
       .single()
 
     if (existingSub) {
-      parentId = existingSub.parent_id
-      studentId = existingSub.student_id
+      parentId = parentId || existingSub.parent_id
+      studentId = studentId || existingSub.student_id
     }
   }
 
