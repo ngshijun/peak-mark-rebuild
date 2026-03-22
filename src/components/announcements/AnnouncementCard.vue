@@ -6,7 +6,7 @@ import type { Announcement } from '@/stores/announcements'
 import { audienceConfig } from '@/stores/announcements'
 import { formatTimeAgo } from '@/lib/date'
 
-const props = defineProps<{
+defineProps<{
   announcement: Announcement
   showUnreadIndicator?: boolean
   compact?: boolean

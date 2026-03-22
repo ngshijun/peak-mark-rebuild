@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import { useQuestionsStore, type Question } from './questions'
+import { type Question, rowToQuestion } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
@@ -9,12 +9,9 @@ import type { Database } from '@/types/database.types'
 import {
   type DateRangeFilter,
   filterSessions,
-  getUniqueGradeLevels,
-  getUniqueSubjects,
-  getUniqueTopics,
-  getUniqueSubTopics,
+  createSessionLookupMethods,
 } from '@/lib/sessionFilters'
-import { type PracticeAnswer, type PracticeSession } from '@/lib/practiceHelpers'
+import { type PracticeSession } from '@/lib/practiceHelpers'
 import { mapAnswerRow } from '@/lib/questionHelpers'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
 
@@ -64,11 +61,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
    * Get curriculum names for a sub-topic
    * Note: topic_id column in DB now references sub_topics table
    */
-  function getCurriculumNames(
-    subTopicId: string,
-    gradeLevelId: string | null,
-    subjectId: string | null,
-  ): {
+  function getCurriculumNames(subTopicId: string): {
     gradeLevelName: string
     subjectName: string
     topicName: string
@@ -97,7 +90,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
    * @param answerCount - Optional answer count from nested query, defaults to 0
    */
   function rowToSession(row: PracticeSessionRow, answerCount: number = 0): PracticeSession {
-    const names = getCurriculumNames(row.topic_id, row.grade_level_id, row.subject_id)
+    const names = getCurriculumNames(row.topic_id)
     return {
       id: row.id,
       studentId: row.student_id,
@@ -215,44 +208,33 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
     })
   }
 
-  /**
-   * Get unique grade levels from student's history
-   */
+  // Reuse shared factory for cascading filter lookups
+  const sessionLookup = createSessionLookupMethods((id: string) =>
+    sessionHistory.value.filter((s) => s.studentId === id),
+  )
+
   function getHistoryGradeLevels(): string[] {
-    if (!authStore.user) return []
-    const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
-    return getUniqueGradeLevels(sessions)
+    return authStore.user ? sessionLookup.getGradeLevels(authStore.user.id) : []
   }
 
-  /**
-   * Get unique subjects from student's history
-   */
   function getHistorySubjects(gradeLevelName?: string): string[] {
-    if (!authStore.user) return []
-    const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
-    return getUniqueSubjects(sessions, gradeLevelName)
+    return authStore.user ? sessionLookup.getSubjects(authStore.user.id, gradeLevelName) : []
   }
 
-  /**
-   * Get unique topics from student's history
-   */
   function getHistoryTopics(gradeLevelName?: string, subjectName?: string): string[] {
-    if (!authStore.user) return []
-    const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
-    return getUniqueTopics(sessions, gradeLevelName, subjectName)
+    return authStore.user
+      ? sessionLookup.getTopics(authStore.user.id, gradeLevelName, subjectName)
+      : []
   }
 
-  /**
-   * Get unique sub-topics from student's history
-   */
   function getHistorySubTopics(
     gradeLevelName?: string,
     subjectName?: string,
     topicName?: string,
   ): string[] {
-    if (!authStore.user) return []
-    const sessions = sessionHistory.value.filter((s) => s.studentId === authStore.user!.id)
-    return getUniqueSubTopics(sessions, gradeLevelName, subjectName, topicName)
+    return authStore.user
+      ? sessionLookup.getSubTopics(authStore.user.id, gradeLevelName, subjectName, topicName)
+      : []
   }
 
   /**
@@ -318,52 +300,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
       const existingQuestions = new Map<string, Question>()
       if (questionsData) {
         for (const row of questionsData) {
-          // Get curriculum names for this question (topic_id references sub_topics)
-          const hierarchy = curriculumStore.getSubTopicWithHierarchy(row.topic_id)
-          existingQuestions.set(row.id, {
-            id: row.id,
-            type: row.type,
-            question: row.question,
-            imagePath: row.image_path,
-            subTopicId: row.topic_id, // topic_id column references sub_topics
-            gradeLevelId: row.grade_level_id,
-            subjectId: row.subject_id,
-            explanation: row.explanation,
-            answer: row.answer,
-            options: [
-              {
-                id: 'a',
-                text: row.option_1_text,
-                imagePath: row.option_1_image_path,
-                isCorrect: row.option_1_is_correct ?? false,
-              },
-              {
-                id: 'b',
-                text: row.option_2_text,
-                imagePath: row.option_2_image_path,
-                isCorrect: row.option_2_is_correct ?? false,
-              },
-              {
-                id: 'c',
-                text: row.option_3_text,
-                imagePath: row.option_3_image_path,
-                isCorrect: row.option_3_is_correct ?? false,
-              },
-              {
-                id: 'd',
-                text: row.option_4_text,
-                imagePath: row.option_4_image_path,
-                isCorrect: row.option_4_is_correct ?? false,
-              },
-            ],
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            imageHash: row.image_hash,
-            gradeLevelName: hierarchy?.gradeLevel.name ?? '',
-            subjectName: hierarchy?.subject.name ?? '',
-            topicName: hierarchy?.topic.name ?? '',
-            subTopicName: hierarchy?.subTopic.name ?? '',
-          })
+          existingQuestions.set(row.id, rowToQuestion(row, curriculumStore))
         }
       }
 

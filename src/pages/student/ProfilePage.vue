@@ -44,8 +44,16 @@ const authStore = useAuthStore()
 const practiceStore = usePracticeStore()
 const subscriptionStore = useSubscriptionStore()
 const curriculumStore = useCurriculumStore()
-const { isSaving, userInitials, formattedDateJoined, userAvatarUrl, saveAvatar, saveName } =
-  useProfileEditor()
+const {
+  isSaving,
+  userInitials,
+  formattedDateJoined,
+  userAvatarUrl,
+  age,
+  formattedBirthday,
+  saveAvatar,
+  saveName,
+} = useProfileEditor()
 const { resetAndStartTour } = useTour()
 
 // Subscription
@@ -69,27 +77,6 @@ function getTierIcon(tier: string) {
 const showAvatarDialog = ref(false)
 const showEditNameDialog = ref(false)
 const showEditBirthdayDialog = ref(false)
-
-const age = computed(() => {
-  if (!authStore.user?.dateOfBirth) return null
-  const now = new Date()
-  const birthDate = new Date(authStore.user.dateOfBirth)
-  let years = now.getFullYear() - birthDate.getFullYear()
-  const monthDiff = now.getMonth() - birthDate.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
-    years--
-  }
-  return years
-})
-
-const formattedBirthday = computed(() => {
-  if (!authStore.user?.dateOfBirth) return null
-  return new Date(authStore.user.dateOfBirth).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-})
 
 const currentGradeName = computed(() => {
   if (!authStore.studentProfile?.gradeLevelId) return 'Not set'

@@ -11,7 +11,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar } from 'lucide-vue-next'
 
-const props = defineProps<{
+defineProps<{
   dateRange: DateRangeFilter
   gradeLevel: string
   subject: string

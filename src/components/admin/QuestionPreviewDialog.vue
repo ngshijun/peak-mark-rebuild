@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { Question } from '@/stores/questions'
 import { useQuestionsStore } from '@/stores/questions'
 import type { QuestionFeedback } from '@/stores/feedback'
@@ -10,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
-const props = defineProps<{
+defineProps<{
   question: Question | null
   feedback?: QuestionFeedback | null
 }>()
@@ -45,21 +44,6 @@ function getCategoryVariant(
   }
   return variants[category]
 }
-
-const correctAnswer = computed(() => {
-  if (!props.question) return ''
-  if (props.question.type === 'mcq') {
-    const correct = props.question.options.find((o) => o.isCorrect)
-    return correct ? `${correct.id.toUpperCase()}. ${correct.text || '(Image)'}` : 'N/A'
-  }
-  if (props.question.type === 'mrq') {
-    const correctOptions = props.question.options.filter((o) => o.isCorrect)
-    return correctOptions.length > 0
-      ? correctOptions.map((o) => `${o.id.toUpperCase()}. ${o.text || '(Image)'}`).join(', ')
-      : 'N/A'
-  }
-  return props.question.answer ?? 'N/A'
-})
 </script>
 
 <template>

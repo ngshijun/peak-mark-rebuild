@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import { useQuestionsStore, type Question } from './questions'
+import { useQuestionsStore, type Question, rowToQuestion } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
@@ -455,37 +455,29 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   /**
-   * Generate AI summary for a session (Pro tier and above)
-   * This is called non-blocking after session completion
+   * Generate AI summary for a session (Pro tier and above).
+   * Called non-blocking after session completion.
    */
   async function generateAiSummary(sessionId: string): Promise<void> {
     try {
-      // Check subscription status
       const subscriptionStatus = await subscription.getStudentSubscriptionStatus()
       if (subscriptionStatus.tier !== 'pro' && subscriptionStatus.tier !== 'max') {
-        return // Only Pro tier and above gets AI summaries
+        return
       }
 
       aiSummaryStatus.value = 'generating'
+      const { summary, error: summaryError } = await generateSessionSummary(sessionId)
 
-      // Call Edge Function to generate summary
-      const { data, error } = await supabase.functions.invoke('generate-session-summary', {
-        body: { sessionId },
-      })
-
-      if (error) {
-        console.error('Failed to generate AI summary:', error)
+      if (summaryError || !summary) {
         aiSummaryStatus.value = 'failed'
         return
       }
 
-      // Update current session if it's still loaded
-      if (currentSession.value?.id === sessionId && data?.summary) {
-        currentSession.value.aiSummary = data.summary
+      if (currentSession.value?.id === sessionId) {
+        currentSession.value.aiSummary = summary
       }
       aiSummaryStatus.value = 'generated'
-    } catch (err) {
-      console.error('Error generating AI summary:', err)
+    } catch {
       aiSummaryStatus.value = 'failed'
     }
   }
@@ -544,51 +536,7 @@ export const usePracticeStore = defineStore('practice', () => {
     const questionsMap = new Map<string, Question>()
     if (questionsData) {
       for (const row of questionsData) {
-        const hierarchy = curriculumStore.getSubTopicWithHierarchy(row.topic_id)
-        questionsMap.set(row.id, {
-          id: row.id,
-          type: row.type,
-          question: row.question,
-          imagePath: row.image_path,
-          subTopicId: row.topic_id, // topic_id column references sub_topics
-          gradeLevelId: row.grade_level_id,
-          subjectId: row.subject_id,
-          explanation: row.explanation,
-          answer: row.answer,
-          options: [
-            {
-              id: 'a',
-              text: row.option_1_text,
-              imagePath: row.option_1_image_path,
-              isCorrect: row.option_1_is_correct ?? false,
-            },
-            {
-              id: 'b',
-              text: row.option_2_text,
-              imagePath: row.option_2_image_path,
-              isCorrect: row.option_2_is_correct ?? false,
-            },
-            {
-              id: 'c',
-              text: row.option_3_text,
-              imagePath: row.option_3_image_path,
-              isCorrect: row.option_3_is_correct ?? false,
-            },
-            {
-              id: 'd',
-              text: row.option_4_text,
-              imagePath: row.option_4_image_path,
-              isCorrect: row.option_4_is_correct ?? false,
-            },
-          ],
-          createdAt: row.created_at,
-          updatedAt: row.updated_at,
-          imageHash: row.image_hash,
-          gradeLevelName: hierarchy?.gradeLevel.name ?? '',
-          subjectName: hierarchy?.subject.name ?? '',
-          topicName: hierarchy?.topic.name ?? '',
-          subTopicName: hierarchy?.subTopic.name ?? '',
-        })
+        questionsMap.set(row.id, rowToQuestion(row, curriculumStore))
       }
     }
 

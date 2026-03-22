@@ -106,7 +106,7 @@ const onSubmit = handleSubmit(async (values) => {
         router.push('/login')
       }
     }
-  } catch (err) {
+  } catch {
     toast.error('An unexpected error occurred')
   } finally {
     isSubmitting.value = false

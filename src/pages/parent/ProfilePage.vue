@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileEditor } from '@/composables/useProfileEditor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,34 +14,21 @@ import { useTour } from '@/composables/useTour'
 import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
-const { isSaving, userInitials, formattedDateJoined, userAvatarUrl, saveAvatar, saveName } =
-  useProfileEditor()
+const {
+  isSaving,
+  userInitials,
+  formattedDateJoined,
+  userAvatarUrl,
+  age,
+  formattedBirthday,
+  saveAvatar,
+  saveName,
+} = useProfileEditor()
 const { resetAndStartTour } = useTour()
 
 const showAvatarDialog = ref(false)
 const showEditNameDialog = ref(false)
 const showEditBirthdayDialog = ref(false)
-
-const age = computed(() => {
-  if (!authStore.user?.dateOfBirth) return null
-  const now = new Date()
-  const birthDate = new Date(authStore.user.dateOfBirth)
-  let years = now.getFullYear() - birthDate.getFullYear()
-  const monthDiff = now.getMonth() - birthDate.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
-    years--
-  }
-  return years
-})
-
-const formattedBirthday = computed(() => {
-  if (!authStore.user?.dateOfBirth) return null
-  return new Date(authStore.user.dateOfBirth).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-})
 
 async function handleAvatarSave(payload: { file: File | null; previewUrl: string }) {
   const success = await saveAvatar(payload.file, payload.previewUrl)

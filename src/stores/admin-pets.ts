@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { handleError } from '@/lib/errors'
+import { uploadStorageFile } from '@/lib/storage'
 import { usePetsStore, type Pet, type PetRarity } from './pets'
 
 export const useAdminPetsStore = defineStore('adminPets', () => {
@@ -135,38 +136,8 @@ export const useAdminPetsStore = defineStore('adminPets', () => {
     }
   }
 
-  // Upload pet image to storage
-  async function uploadPetImage(
-    file: File,
-    oldPath?: string | null,
-  ): Promise<{ path: string | null; error: string | null }> {
-    try {
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${crypto.randomUUID()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('pet-images')
-        .upload(filePath, file, {
-          cacheControl: '31536000',
-        })
-
-      if (uploadError) {
-        return { path: null, error: handleError(uploadError, 'Failed to upload image.') }
-      }
-
-      // Best-effort cleanup of old file (don't block the upload result)
-      if (oldPath) {
-        supabase.storage
-          .from('pet-images')
-          .remove([oldPath])
-          .catch(() => {})
-      }
-
-      return { path: filePath, error: null }
-    } catch (err) {
-      const message = handleError(err, 'Failed to upload image.')
-      return { path: null, error: message }
-    }
+  function uploadPetImage(file: File, oldPath?: string | null) {
+    return uploadStorageFile('pet-images', file, { oldPath })
   }
 
   function $reset() {

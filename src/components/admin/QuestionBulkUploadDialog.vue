@@ -38,7 +38,7 @@ import {
   Download,
 } from 'lucide-vue-next'
 
-const props = defineProps<{ open: boolean }>()
+defineProps<{ open: boolean }>()
 const emit = defineEmits<{
   'update:open': [value: boolean]
   uploaded: []

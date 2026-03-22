@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
-import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
+import { uploadStorageFile, deleteStorageFile, createBucketImageHelpers } from '@/lib/storage'
 import type { Database } from '@/types/database.types'
 
 export type AnnouncementAudience = Database['public']['Enums']['announcement_audience']
@@ -74,24 +74,28 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     error.value = null
 
     try {
-      const { data: announcementData, error: fetchError } = await supabase
+      const announcementsQuery = supabase
         .from('announcements')
         .select('*')
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
 
-      if (fetchError) throw fetchError
+      const needsReadStatus = authStore.userType !== 'admin' && authStore.user?.id
+      const readsQuery = needsReadStatus
+        ? supabase
+            .from('announcement_reads')
+            .select('announcement_id')
+            .eq('user_id', authStore.user!.id)
+        : null
 
-      // Fetch read status for current user (if not admin)
-      let readAnnouncementIds: Set<string> = new Set()
-      if (authStore.userType !== 'admin' && authStore.user?.id) {
-        const { data: readData } = await supabase
-          .from('announcement_reads')
-          .select('announcement_id')
-          .eq('user_id', authStore.user.id)
+      const [announcementsResult, readsResult] = await Promise.all([announcementsQuery, readsQuery])
 
-        readAnnouncementIds = new Set((readData || []).map((r) => r.announcement_id))
-      }
+      if (announcementsResult.error) throw announcementsResult.error
+      const announcementData = announcementsResult.data
+
+      const readAnnouncementIds: Set<string> = new Set(
+        (readsResult?.data || []).map((r) => r.announcement_id),
+      )
 
       announcements.value = (announcementData || []).map((a) => ({
         id: a.id,
@@ -216,23 +220,12 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     }
   }
 
-  function getImageUrl(imagePath: string | null, transform?: ImageTransformOptions): string {
-    return getStorageImageUrl('announcement-images', imagePath, transform)
-  }
-
-  /**
-   * Get optimized image URL for announcement display (medium size for dialogs)
-   */
-  function getOptimizedImageUrl(imagePath: string | null): string {
-    return getImageUrl(imagePath, { width: 800, quality: 80 })
-  }
-
-  /**
-   * Get thumbnail URL for announcement image (small size for tables/lists)
-   */
-  function getThumbnailImageUrl(imagePath: string | null): string {
-    return getImageUrl(imagePath, { width: 100, height: 100, quality: 70, resize: 'cover' })
-  }
+  const { getImageUrl, getOptimizedImageUrl, getThumbnailImageUrl } = createBucketImageHelpers(
+    'announcement-images',
+    {
+      thumbnail: { width: 100, height: 100, quality: 70, resize: 'cover' },
+    },
+  )
 
   // ========== ADMIN FUNCTIONS ==========
 
@@ -392,39 +385,12 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     }
   }
 
-  // Upload image to storage
-  async function uploadImage(file: File): Promise<{ path: string | null; error: string | null }> {
-    try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${crypto.randomUUID()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('announcement-images')
-        .upload(fileName, file, {
-          cacheControl: '31536000',
-        })
-
-      if (uploadError) throw uploadError
-
-      return { path: fileName, error: null }
-    } catch (err) {
-      return { path: null, error: handleError(err, 'Failed to upload image.') }
-    }
+  function uploadImage(file: File) {
+    return uploadStorageFile('announcement-images', file)
   }
 
-  // Delete image from storage
-  async function deleteImage(path: string): Promise<{ error: string | null }> {
-    try {
-      const { error: deleteError } = await supabase.storage
-        .from('announcement-images')
-        .remove([path])
-
-      if (deleteError) throw deleteError
-
-      return { error: null }
-    } catch (err) {
-      return { error: handleError(err, 'Failed to delete image.') }
-    }
+  function deleteImage(path: string) {
+    return deleteStorageFile('announcement-images', path)
   }
 
   // Admin AnnouncementsPage filter setters

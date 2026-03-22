@@ -292,107 +292,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
   const { getFilteredSessions, getGradeLevels, getSubjects, getTopics, getSubTopics } =
     createSessionLookupMethods((childId: string) => getChildStatistics(childId)?.sessions)
 
-  // Calculate average score for filtered sessions
-  function getAverageScore(
-    childId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-    subTopicName?: string,
-    dateRange?: DateRangeFilter,
-  ): number {
-    const sessions = getFilteredSessions(
-      childId,
-      gradeLevelName,
-      subjectName,
-      topicName,
-      subTopicName,
-      dateRange,
-    )
-    const completedSessions = sessions.filter((s) => s.status === 'completed' && s.score !== null)
-    if (completedSessions.length === 0) return 0
-    const totalScore = completedSessions.reduce((sum, s) => sum + (s.score ?? 0), 0)
-    return Math.round(totalScore / completedSessions.length)
-  }
-
-  // Get total practice sessions count for filtered sessions
-  function getTotalSessions(
-    childId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-    subTopicName?: string,
-    dateRange?: DateRangeFilter,
-  ): number {
-    return getFilteredSessions(
-      childId,
-      gradeLevelName,
-      subjectName,
-      topicName,
-      subTopicName,
-      dateRange,
-    ).length
-  }
-
-  // Get total study time in seconds for filtered sessions
-  function getTotalStudyTime(
-    childId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-    subTopicName?: string,
-    dateRange?: DateRangeFilter,
-  ): number {
-    const sessions = getFilteredSessions(
-      childId,
-      gradeLevelName,
-      subjectName,
-      topicName,
-      subTopicName,
-      dateRange,
-    )
-    return sessions.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
-  }
-
-  // Get unique sub-topics practiced by a child (from filtered sessions)
-  function getSubTopicsPracticed(
-    childId: string,
-    gradeLevelName?: string,
-    subjectName?: string,
-    topicName?: string,
-    subTopicName?: string,
-    dateRange?: DateRangeFilter,
-  ): { subTopicName: string; topicName: string; subjectName: string; count: number }[] {
-    const sessions = getFilteredSessions(
-      childId,
-      gradeLevelName,
-      subjectName,
-      topicName,
-      subTopicName,
-      dateRange,
-    )
-
-    const subTopicMap = new Map<
-      string,
-      { subTopicName: string; topicName: string; subjectName: string; count: number }
-    >()
-    sessions.forEach((s) => {
-      const key = `${s.subjectName}-${s.topicName}-${s.subTopicName}`
-      if (subTopicMap.has(key)) {
-        subTopicMap.get(key)!.count++
-      } else {
-        subTopicMap.set(key, {
-          subTopicName: s.subTopicName,
-          topicName: s.topicName,
-          subjectName: s.subjectName,
-          count: 1,
-        })
-      }
-    })
-
-    return Array.from(subTopicMap.values()).sort((a, b) => b.count - a.count)
-  }
-
   // Get recent sessions for a child (sorted by date descending)
   function getRecentSessions(
     childId: string,
@@ -543,10 +442,6 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     fetchChildStatistics,
     getChildStatistics,
     getFilteredSessions,
-    getAverageScore,
-    getTotalSessions,
-    getTotalStudyTime,
-    getSubTopicsPracticed,
     getGradeLevels,
     getSubjects,
     getTopics,

@@ -178,21 +178,6 @@ function exitQuiz() {
   router.push(destination)
 }
 
-async function restartQuiz() {
-  const session = practiceStore.currentSession
-  if (session) {
-    practiceStore.endSession()
-    await practiceStore.startSession(session.subTopicId)
-    selectedOptionIds.value = new Set()
-    textAnswer.value = ''
-  }
-}
-
-function goHome() {
-  practiceStore.endSession()
-  router.push('/student/practice')
-}
-
 async function goToQuestion(index: number) {
   await practiceStore.goToQuestion(index)
   selectedOptionIds.value = new Set()

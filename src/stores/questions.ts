@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
-import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
+import { uploadStorageFile, deleteStorageFile, createBucketImageHelpers } from '@/lib/storage'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
 
-type QuestionRow = Database['public']['Tables']['questions']['Row']
+export type QuestionRow = Database['public']['Tables']['questions']['Row']
 export type QuestionType = Database['public']['Enums']['question_type']
 
 export interface MCQOption {
@@ -80,7 +80,7 @@ export interface UpdateQuestionInput {
  * Convert database row to Question interface
  * Note: topic_id in DB now references sub_topics table
  */
-function rowToQuestion(
+export function rowToQuestion(
   row: QuestionRow,
   curriculumStore: ReturnType<typeof useCurriculumStore>,
 ): Question {
@@ -167,7 +167,6 @@ export const useQuestionsStore = defineStore('questions', () => {
     setSubject: _setQuestionBankSubject,
     setTopic: _setQuestionBankTopic,
     setSubTopic: _setQuestionBankSubTopic,
-    setSearch: _setQuestionBankSearch,
     setPageIndex: _setQuestionBankPageIndex,
     setPageSize: _setQuestionBankPageSize,
     resetFilters: resetQuestionBankFilters,
@@ -540,7 +539,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         updateData.option_4_is_correct = optionD?.isCorrect ?? false
       }
 
-      const { data, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('questions')
         .update(updateData)
         .eq('id', id)
@@ -619,69 +618,20 @@ export const useQuestionsStore = defineStore('questions', () => {
     }
   }
 
-  /**
-   * Upload a question or option image
-   * Sets high cache-control value for better CDN caching (1 year)
-   */
-  async function uploadQuestionImage(
-    file: File,
-    questionId: string,
-    optionId?: 'a' | 'b' | 'c' | 'd',
-  ): Promise<{ path: string | null; error: string | null }> {
-    try {
-      const fileExt = file.name.split('.').pop()
-      const folder = optionId ? `options/${optionId}` : 'questions'
-      const filePath = `${folder}/${crypto.randomUUID()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('question-images')
-        .upload(filePath, file, {
-          cacheControl: '31536000',
-        })
-
-      if (uploadError) throw uploadError
-
-      return { path: filePath, error: null }
-    } catch (err) {
-      const message = handleError(err, 'Failed to upload image.')
-      return { path: null, error: message }
-    }
+  function uploadQuestionImage(file: File, optionId?: 'a' | 'b' | 'c' | 'd') {
+    const folder = optionId ? `options/${optionId}` : 'questions'
+    return uploadStorageFile('question-images', file, { folder })
   }
 
-  /**
-   * Delete a question image from storage
-   */
-  async function deleteQuestionImage(path: string): Promise<{ error: string | null }> {
-    try {
-      const { error: deleteError } = await supabase.storage.from('question-images').remove([path])
-
-      if (deleteError) throw deleteError
-
-      return { error: null }
-    } catch (err) {
-      const message = handleError(err, 'Failed to delete image.')
-      return { error: message }
-    }
+  function deleteQuestionImage(path: string) {
+    return deleteStorageFile('question-images', path)
   }
 
-  function getQuestionImageUrl(path: string | null, transform?: ImageTransformOptions): string {
-    return getStorageImageUrl('question-images', path, transform)
-  }
-
-  /**
-   * Get optimized image URL for question display (medium size)
-   * Uses width=800 which is suitable for most question displays
-   */
-  function getOptimizedQuestionImageUrl(path: string | null): string {
-    return getQuestionImageUrl(path, { width: 800, quality: 80 })
-  }
-
-  /**
-   * Get thumbnail URL for question image (small size for lists/previews)
-   */
-  function getThumbnailQuestionImageUrl(path: string | null): string {
-    return getQuestionImageUrl(path, { width: 200, quality: 70 })
-  }
+  const {
+    getImageUrl: getQuestionImageUrl,
+    getOptimizedImageUrl: getOptimizedQuestionImageUrl,
+    getThumbnailImageUrl: getThumbnailQuestionImageUrl,
+  } = createBucketImageHelpers('question-images')
 
   /**
    * Fetch question statistics via admin-only RPC function
@@ -706,11 +656,10 @@ export const useQuestionsStore = defineStore('questions', () => {
     }
   }
 
-  /**
-   * Get statistics for a specific question
-   */
+  const statsMap = computed(() => new Map(questionStatistics.value.map((s) => [s.questionId, s])))
+
   function getStatsByQuestionId(id: string): QuestionStatistics | undefined {
-    return questionStatistics.value.find((s) => s.questionId === id)
+    return statsMap.value.get(id)
   }
 
   /**
@@ -733,7 +682,7 @@ export const useQuestionsStore = defineStore('questions', () => {
    */
   const questionsWithStats = computed<QuestionWithStats[]>(() => {
     return questions.value.map((q) => {
-      const stats = questionStatistics.value.find((s) => s.questionId === q.id) ?? {
+      const stats = statsMap.value.get(q.id) ?? {
         questionId: q.id,
         attempts: 0,
         correctCount: 0,
@@ -801,20 +750,13 @@ export const useQuestionsStore = defineStore('questions', () => {
     topicName?: string,
     subTopicName?: string,
   ): Question[] {
-    let filtered = questions.value
-    if (gradeLevelName) {
-      filtered = filtered.filter((q) => q.gradeLevelName === gradeLevelName)
-    }
-    if (subjectName) {
-      filtered = filtered.filter((q) => q.subjectName === subjectName)
-    }
-    if (topicName) {
-      filtered = filtered.filter((q) => q.topicName === topicName)
-    }
-    if (subTopicName) {
-      filtered = filtered.filter((q) => q.subTopicName === subTopicName)
-    }
-    return filtered
+    return questions.value.filter(
+      (q) =>
+        (!gradeLevelName || q.gradeLevelName === gradeLevelName) &&
+        (!subjectName || q.subjectName === subjectName) &&
+        (!topicName || q.topicName === topicName) &&
+        (!subTopicName || q.subTopicName === subTopicName),
+    )
   }
 
   function getFilteredQuestionsWithStats(
@@ -823,20 +765,13 @@ export const useQuestionsStore = defineStore('questions', () => {
     topicName?: string,
     subTopicName?: string,
   ): QuestionWithStats[] {
-    let filtered = questionsWithStats.value
-    if (gradeLevelName) {
-      filtered = filtered.filter((q) => q.gradeLevelName === gradeLevelName)
-    }
-    if (subjectName) {
-      filtered = filtered.filter((q) => q.subjectName === subjectName)
-    }
-    if (topicName) {
-      filtered = filtered.filter((q) => q.topicName === topicName)
-    }
-    if (subTopicName) {
-      filtered = filtered.filter((q) => q.subTopicName === subTopicName)
-    }
-    return filtered
+    return questionsWithStats.value.filter(
+      (q) =>
+        (!gradeLevelName || q.gradeLevelName === gradeLevelName) &&
+        (!subjectName || q.subjectName === subjectName) &&
+        (!topicName || q.topicName === topicName) &&
+        (!subTopicName || q.subTopicName === subTopicName),
+    )
   }
 
   // ============================================
@@ -876,7 +811,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     fetchQuestionBankPage()
   }
   function setQuestionBankSearch(value: string) {
-    // Intentionally bypasses _setQuestionBankSearch to avoid resetting pageIndex on every keystroke.
+    // Bypasses the composable's setSearch to avoid resetting pageIndex on every keystroke.
     // pageIndex is reset in the debounce callback so the page and data update together.
     ;(questionBankFilters.value as { search: string }).search = value
     if (searchDebounceTimer) clearTimeout(searchDebounceTimer)

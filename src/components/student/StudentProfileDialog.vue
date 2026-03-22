@@ -3,10 +3,11 @@ import { watch, computed } from 'vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { useLeaderboardStore } from '@/stores/leaderboard'
+
 import { rarityConfig } from '@/stores/pets'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials } from '@/lib/utils'
+import { getAvatarUrl } from '@/lib/storage'
 import { formatDate } from '@/lib/date'
 import { Loader2, Star, PawPrint, Heart, Trophy, Flame } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
@@ -19,7 +20,6 @@ const props = defineProps<{
   activeTab: 'all-time' | 'weekly'
 }>()
 
-const leaderboardStore = useLeaderboardStore()
 const { profile, pet, bestSubjects, weeklyActivity, isLoading, fetchProfile } =
   useStudentProfileDialog()
 
@@ -69,10 +69,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
         <DialogHeader>
           <div class="flex items-center gap-4 overflow-hidden">
             <Avatar class="size-16 shrink-0">
-              <AvatarImage
-                :src="leaderboardStore.getAvatarUrl(student.avatarPath)"
-                :alt="student.name"
-              />
+              <AvatarImage :src="getAvatarUrl(student.avatarPath)" :alt="student.name" />
               <AvatarFallback class="text-lg">{{ getInitials(student.name) }}</AvatarFallback>
             </Avatar>
             <div class="min-w-0">

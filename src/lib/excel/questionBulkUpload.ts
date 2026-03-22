@@ -390,7 +390,7 @@ async function uploadImagesBeforeCreate(
     uploads.push(
       (async () => {
         const file = base64ToFile(q.questionImage!, `question_bulk`)
-        const uploadResult = await store.uploadQuestionImage(file, 'bulk')
+        const uploadResult = await store.uploadQuestionImage(file)
         result.questionImagePath = uploadResult.path
       })(),
     )
@@ -408,7 +408,7 @@ async function uploadImagesBeforeCreate(
       uploads.push(
         (async () => {
           const file = base64ToFile(image, `option_${key}_bulk`)
-          const uploadResult = await store.uploadQuestionImage(file, 'bulk', key)
+          const uploadResult = await store.uploadQuestionImage(file, key)
           result.optionImagePaths[key] = uploadResult.path
         })(),
       )

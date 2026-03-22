@@ -5,8 +5,6 @@ import { storeToRefs } from 'pinia'
 import { useLanguageStore } from '@/stores/language'
 
 const { t } = storeToRefs(useLanguageStore())
-
-const statIcons = [BookOpen, GraduationCap, PawPrint] as const
 </script>
 
 <template>

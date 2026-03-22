@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { useSubscriptionStore } from './subscription'
 import { handleError } from '@/lib/errors'
-import { getAvatarUrl } from '@/lib/storage'
+
 import { useInvitations } from '@/composables/useInvitations'
 
 export type { ParentStudentInvitation } from '@/lib/invitations'
@@ -207,7 +207,6 @@ export const useChildLinkStore = defineStore('childLink', () => {
     rejectInvitation: inv.rejectInvitation,
     cancelInvitation: inv.cancelInvitation,
     removeLinkedChild,
-    getAvatarUrl,
     $reset,
   }
 })

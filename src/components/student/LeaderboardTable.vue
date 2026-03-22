@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useLeaderboardStore } from '@/stores/leaderboard'
 import { useAuthStore } from '@/stores/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Trophy, Medal, Award } from 'lucide-vue-next'
 import { getInitials } from '@/lib/utils'
+import { getAvatarUrl } from '@/lib/storage'
 
 export interface LeaderboardEntry {
   id: string
@@ -29,7 +29,6 @@ defineSlots<{
   'current-student-stats'(props: { entry: LeaderboardEntry }): unknown
 }>()
 
-const leaderboardStore = useLeaderboardStore()
 const authStore = useAuthStore()
 
 function getRankIcon(rank: number) {
@@ -85,7 +84,7 @@ function getRankBg(rank: number): string {
 
       <!-- Avatar -->
       <Avatar class="size-10">
-        <AvatarImage :src="leaderboardStore.getAvatarUrl(entry.avatarPath)" :alt="entry.name" />
+        <AvatarImage :src="getAvatarUrl(entry.avatarPath)" :alt="entry.name" />
         <AvatarFallback>{{ getInitials(entry.name) }}</AvatarFallback>
       </Avatar>
 
@@ -121,7 +120,7 @@ function getRankBg(rank: number): string {
         <!-- Avatar -->
         <Avatar class="size-10">
           <AvatarImage
-            :src="leaderboardStore.getAvatarUrl(currentStudentEntry.avatarPath)"
+            :src="getAvatarUrl(currentStudentEntry.avatarPath)"
             :alt="currentStudentEntry.name"
           />
           <AvatarFallback>{{ getInitials(currentStudentEntry.name) }}</AvatarFallback>

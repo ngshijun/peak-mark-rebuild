@@ -2,7 +2,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePracticeHistoryStore } from '@/stores/practice-history'
-import { useAuthStore } from '@/stores/auth'
+
 import { resolveFilterValue, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
 import { computeScorePercent } from '@/lib/questionHelpers'
 import { useStatisticsSummary } from '@/composables/useStatisticsSummary'
@@ -11,7 +11,7 @@ import StatisticsSummaryCards from '@/components/statistics/StatisticsSummaryCar
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, BookOpen, History } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
-import { Button } from '@/components/ui/button'
+
 import { DataTable } from '@/components/ui/data-table'
 import {
   AlertDialog,
@@ -26,8 +26,6 @@ import {
 
 const router = useRouter()
 const practiceStore = usePracticeHistoryStore()
-const authStore = useAuthStore()
-
 const hideInProgress = ref(false)
 const isLoading = ref(true)
 

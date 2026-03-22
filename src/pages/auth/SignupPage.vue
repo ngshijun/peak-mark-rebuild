@@ -78,7 +78,7 @@ const onSubmit = handleSubmit(async (formValues) => {
     if (result.user) {
       router.push({ path: '/signup/confirm', query: { email: formValues.email } })
     }
-  } catch (err) {
+  } catch {
     toast.error('An unexpected error occurred')
   } finally {
     isSubmitting.value = false

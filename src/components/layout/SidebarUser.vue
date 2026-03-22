@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { getAvatarUrl } from '@/lib/storage'
 import { ChevronsUpDown, LogOut, Users } from 'lucide-vue-next'
 import {
   SidebarFooter,
@@ -14,7 +15,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -45,7 +45,7 @@ const userEmail = computed(() => authStore.user?.email ?? '')
 
 // Generate avatar URL from storage path
 const userAvatar = computed(() => {
-  return authStore.getAvatarUrl(authStore.user?.avatarPath ?? null)
+  return getAvatarUrl(authStore.user?.avatarPath ?? null)
 })
 
 async function handleLogout() {

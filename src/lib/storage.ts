@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { handleError } from '@/lib/errors'
 
 export interface ImageTransformOptions {
   width?: number
@@ -50,4 +51,85 @@ export function getAvatarUrl(path: string | null): string {
     quality: 80,
     resize: 'cover',
   })
+}
+
+/**
+ * Upload a file to Supabase Storage with a random UUID filename.
+ * Optionally deletes an old file at `oldPath` (best-effort, non-blocking).
+ */
+export async function uploadStorageFile(
+  bucket: string,
+  file: File,
+  options?: { folder?: string; oldPath?: string | null },
+): Promise<{ path: string | null; error: string | null }> {
+  try {
+    const dotIndex = file.name.lastIndexOf('.')
+    const fileExt = dotIndex > 0 ? file.name.slice(dotIndex) : ''
+    const folder = options?.folder
+    const fileName = `${crypto.randomUUID()}${fileExt}`
+    const filePath = folder ? `${folder}/${fileName}` : fileName
+
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file, {
+      cacheControl: '31536000',
+    })
+
+    if (uploadError) throw uploadError
+
+    if (options?.oldPath) {
+      supabase.storage
+        .from(bucket)
+        .remove([options.oldPath])
+        .catch(() => {})
+    }
+
+    return { path: filePath, error: null }
+  } catch (err) {
+    return { path: null, error: handleError(err, 'Failed to upload image.') }
+  }
+}
+
+/**
+ * Delete a file from Supabase Storage.
+ */
+export async function deleteStorageFile(
+  bucket: string,
+  path: string,
+): Promise<{ error: string | null }> {
+  try {
+    const { error: deleteError } = await supabase.storage.from(bucket).remove([path])
+    if (deleteError) throw deleteError
+    return { error: null }
+  } catch (err) {
+    return { error: handleError(err, 'Failed to delete image.') }
+  }
+}
+
+/**
+ * Factory that creates bucket-scoped image URL helpers.
+ * Eliminates the repeated getImageUrl/getOptimizedImageUrl/getThumbnailImageUrl
+ * triplet pattern across stores.
+ */
+export function createBucketImageHelpers(
+  bucket: string,
+  sizes?: {
+    optimized?: ImageTransformOptions
+    thumbnail?: ImageTransformOptions
+  },
+) {
+  const optimized = sizes?.optimized ?? { width: 800, quality: 80 }
+  const thumbnail = sizes?.thumbnail ?? { width: 200, quality: 70 }
+
+  function getImageUrl(path: string | null, transform?: ImageTransformOptions): string {
+    return getStorageImageUrl(bucket, path, transform)
+  }
+
+  function getOptimizedImageUrl(path: string | null): string {
+    return getStorageImageUrl(bucket, path, optimized)
+  }
+
+  function getThumbnailImageUrl(path: string | null): string {
+    return getStorageImageUrl(bucket, path, thumbnail)
+  }
+
+  return { getImageUrl, getOptimizedImageUrl, getThumbnailImageUrl }
 }

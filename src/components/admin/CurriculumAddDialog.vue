@@ -115,9 +115,8 @@ const handleAdd = handleSubmit(async (values) => {
       const uploadResult = await curriculumStore.uploadCurriculumImage(
         imageFile.value,
         config.value.imageType,
-        itemId,
       )
-      if (uploadResult.success && uploadResult.path) {
+      if (!uploadResult.error && uploadResult.path) {
         const imageIds: CurriculumIds = { ...ids, [getItemIdKey()]: itemId }
         await config.value.updateCoverImage(curriculumStore, imageIds, uploadResult.path)
       }

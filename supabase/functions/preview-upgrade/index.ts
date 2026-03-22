@@ -1,6 +1,7 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
+import { resolveSubscriptionChange } from '../_shared/sync-helpers.ts'
 import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
@@ -17,56 +18,23 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Missing required fields', 400)
     }
 
-    // Validate newPriceId against subscription_plans
-    const { data: validPlan } = await supabaseAdmin
-      .from('subscription_plans')
-      .select('id')
-      .eq('stripe_price_id', newPriceId)
-      .single()
-
-    if (!validPlan) {
-      return errorResponse('Invalid price ID', 400)
-    }
-
-    // Block deprecated tiers
-    if (validPlan.id === 'max') {
-      return errorResponse('This plan is no longer available', 400)
-    }
-
-    await verifyParentStudentLink(user.id, studentId)
-
-    // Get current subscription
-    const { data: subscription } = await supabaseAdmin
-      .from('child_subscriptions')
-      .select('stripe_subscription_id')
-      .eq('student_id', studentId)
-      .eq('parent_id', user.id)
-      .single()
-
-    if (!subscription?.stripe_subscription_id) {
-      return errorResponse('No active subscription found', 404)
-    }
-
-    // Retrieve the current subscription from Stripe
-    const stripeSubscription = await stripe.subscriptions.retrieve(
-      subscription.stripe_subscription_id,
-      { expand: ['items.data.price', 'customer'] }
+    const {
+      subscription,
+      stripeSubscription,
+      currentPriceId,
+      currentAmount,
+      newAmount,
+      isUpgrade,
+    } = await resolveSubscriptionChange(
+      user.id,
+      studentId,
+      newPriceId,
+      supabaseAdmin,
+      stripe,
+      errorResponse,
+      verifyParentStudentLink,
+      ['items.data.price', 'customer'],
     )
-
-    const currentPriceId = stripeSubscription.items.data[0]?.price.id
-    if (currentPriceId === newPriceId) {
-      return errorResponse('Already on this plan', 400)
-    }
-
-    // Get price amounts to determine upgrade vs downgrade
-    const [currentPrice, newPrice] = await Promise.all([
-      stripe.prices.retrieve(currentPriceId),
-      stripe.prices.retrieve(newPriceId),
-    ])
-
-    const currentAmount = currentPrice.unit_amount ?? 0
-    const newAmount = newPrice.unit_amount ?? 0
-    const isUpgrade = newAmount > currentAmount
 
     if (!isUpgrade) {
       // For downgrades, no immediate payment - scheduled for next cycle
@@ -78,12 +46,12 @@ Deno.serve(async (req: Request) => {
           currentPlan: {
             priceId: currentPriceId,
             amount: currentAmount,
-            currency: currentPrice.currency,
+            currency: stripeSubscription.currency,
           },
           newPlan: {
             priceId: newPriceId,
             amount: newAmount,
-            currency: newPrice.currency,
+            currency: stripeSubscription.currency,
           },
         }),
         {

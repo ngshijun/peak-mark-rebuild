@@ -85,11 +85,10 @@ async function handleSave() {
     const uploadResult = await curriculumStore.uploadCurriculumImage(
       imageFile.value,
       props.imageType,
-      itemId,
       props.currentImagePath,
     )
 
-    if (!uploadResult.success || !uploadResult.path) {
+    if (uploadResult.error || !uploadResult.path) {
       toast.error(uploadResult.error ?? 'Failed to upload image')
       return
     }

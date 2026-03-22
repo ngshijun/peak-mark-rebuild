@@ -26,7 +26,7 @@ export interface SessionQuestion {
   }>
 }
 
-const props = defineProps<{
+defineProps<{
   question: SessionQuestion
   answer: SessionAnswer | undefined
   index: number

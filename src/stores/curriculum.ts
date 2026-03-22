@@ -1,14 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
-import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
-
-type GradeLevelRow = Database['public']['Tables']['grade_levels']['Row']
-type SubjectRow = Database['public']['Tables']['subjects']['Row']
-type TopicRow = Database['public']['Tables']['topics']['Row']
-type SubTopicRow = Database['public']['Tables']['sub_topics']['Row']
+import { uploadStorageFile, createBucketImageHelpers } from '@/lib/storage'
 
 export interface SubTopic {
   id: string
@@ -67,9 +61,6 @@ export const useCurriculumStore = defineStore('curriculum', () => {
   const error = ref<string | null>(null)
 
   // Flat lists for easier access
-  const allSubjects = ref<SubjectRow[]>([])
-  const allTopics = ref<TopicRow[]>([])
-  const allSubTopics = ref<SubTopicRow[]>([])
 
   // Cache timestamp for staleness tracking
   const lastFetched = ref<number | null>(null)
@@ -179,11 +170,6 @@ export const useCurriculumStore = defineStore('curriculum', () => {
         const count = (st.questions as unknown as { count: number }[])?.[0]?.count ?? 0
         questionCountMap.set(st.id, count)
       }
-
-      // Store flat lists
-      allSubjects.value = subjectData ?? []
-      allTopics.value = topicData ?? []
-      allSubTopics.value = subTopicData ?? []
 
       // Build hierarchical structure
       const gradeMap = new Map<string, GradeLevel>()
@@ -780,87 +766,40 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     }
   }
 
-  /**
-   * Upload an image to Supabase storage
-   */
-  async function uploadCurriculumImage(
+  function uploadCurriculumImage(
     file: File,
     type: 'subject' | 'topic' | 'subtopic',
-    id: string,
     oldPath?: string | null,
-  ): Promise<{ success: boolean; path: string | null; error: string | null }> {
-    try {
-      const fileExt = file.name.split('.').pop()
-      // For subtopic, store in subtopics folder
-      const folder = type === 'subtopic' ? 'subtopics' : `${type}s`
-      const filePath = `${folder}/${crypto.randomUUID()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('curriculum-images')
-        .upload(filePath, file, {
-          cacheControl: '31536000', // 1 year cache for CDN
-        })
-
-      if (uploadError) throw uploadError
-
-      // Best-effort cleanup of old file (don't block the upload result)
-      if (oldPath) {
-        supabase.storage
-          .from('curriculum-images')
-          .remove([oldPath])
-          .catch(() => {})
-      }
-
-      return { success: true, path: filePath, error: null }
-    } catch (err) {
-      console.error('Error uploading image:', err)
-      const message = handleError(err, 'Failed to upload image.')
-      return { success: false, path: null, error: message }
-    }
+  ) {
+    const folder = type === 'subtopic' ? 'subtopics' : `${type}s`
+    return uploadStorageFile('curriculum-images', file, { folder, oldPath })
   }
 
-  function getCurriculumImageUrl(path: string | null, transform?: ImageTransformOptions): string {
-    return getStorageImageUrl('curriculum-images', path, transform)
-  }
+  const { getImageUrl: getCurriculumImageUrl, getOptimizedImageUrl } =
+    createBucketImageHelpers('curriculum-images')
 
-  /**
-   * Get optimized image URL for curriculum display (cards)
-   */
-  function getOptimizedImageUrl(path: string | null): string {
-    return getCurriculumImageUrl(path, { width: 800, quality: 80 })
-  }
+  // Lookup helpers (pre-built maps)
 
-  // ============================================
-  // O(1) Lookup Helpers (using pre-built maps)
-  // ============================================
-
-  // Helper to find a grade level by ID - O(1)
   function getGradeLevelById(id: string): GradeLevel | undefined {
     return gradeLevelMap.value.get(id)
   }
 
-  // Helper to find a subject by ID - O(1)
   function getSubjectById(subjectId: string): Subject | undefined {
     return subjectMap.value.get(subjectId)
   }
 
-  // Helper to find a topic by ID - O(1)
   function getTopicById(topicId: string): Topic | undefined {
     return topicMap.value.get(topicId)
   }
 
-  // Get topic with full hierarchy info - O(1)
   function getTopicWithHierarchy(topicId: string): TopicWithHierarchy | null {
     return topicHierarchyMap.value.get(topicId) ?? null
   }
 
-  // Helper to find a sub_topic by ID - O(1)
   function getSubTopicById(subTopicId: string): SubTopic | undefined {
     return subTopicMap.value.get(subTopicId)
   }
 
-  // Get sub_topic with full hierarchy info - O(1)
-  // (now used by questions/practice stores - major performance improvement)
   function getSubTopicWithHierarchy(subTopicId: string): SubTopicWithHierarchy | null {
     return subTopicHierarchyMap.value.get(subTopicId) ?? null
   }
@@ -939,9 +878,6 @@ export const useCurriculumStore = defineStore('curriculum', () => {
 
     $reset() {
       gradeLevels.value = []
-      allSubjects.value = []
-      allTopics.value = []
-      allSubTopics.value = []
       isLoading.value = false
       error.value = null
       lastFetched.value = null

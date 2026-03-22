@@ -135,7 +135,7 @@ export const useAdminPaymentHistoryStore = defineStore('adminPaymentHistory', ()
     isLoading.value = false
     error.value = null
     filters.value = { search: '' }
-    pagination.value = { pageIndex: 0, pageSize: 20 }
+    pagination.value = { pageIndex: 0, pageSize: 10 }
   }
 
   return {

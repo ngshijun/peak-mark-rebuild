@@ -14,8 +14,7 @@ export function usePetsLoader() {
     if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
       petsStore.fetchAllPets()
     }
-    // fetchOwnedPets has its own independent loading — always safe to call
-    if (petsStore.ownedPets.length === 0) {
+    if (!petsStore.ownedPetsLoaded) {
       petsStore.fetchOwnedPets()
     }
   })

@@ -69,10 +69,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
       if (form.questionImage.value.originalPath) {
         await questionsStore.deleteQuestionImage(form.questionImage.value.originalPath)
       }
-      const uploadResult = await questionsStore.uploadQuestionImage(
-        form.questionImage.value.file,
-        questionId,
-      )
+      const uploadResult = await questionsStore.uploadQuestionImage(form.questionImage.value.file)
       if (uploadResult.path) {
         questionImagePath = uploadResult.path
       } else {
@@ -91,11 +88,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
           if (optImg.originalPath) {
             await questionsStore.deleteQuestionImage(optImg.originalPath)
           }
-          const uploadResult = await questionsStore.uploadQuestionImage(
-            optImg.file,
-            questionId,
-            optionId,
-          )
+          const uploadResult = await questionsStore.uploadQuestionImage(optImg.file, optionId)
           if (uploadResult.path) {
             optionImagePaths[optionId] = uploadResult.path
           } else {

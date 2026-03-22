@@ -1,6 +1,86 @@
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+export interface SubscriptionChangeContext {
+  subscription: { stripe_subscription_id: string }
+  stripeSubscription: Stripe.Subscription
+  currentPriceId: string
+  newPriceId: string
+  currentAmount: number
+  newAmount: number
+  isUpgrade: boolean
+}
+
+/**
+ * Shared validation and lookup for subscription modification.
+ * Used by both modify-subscription and preview-upgrade.
+ * Throws a Response on validation failure.
+ */
+export async function resolveSubscriptionChange(
+  userId: string,
+  studentId: string,
+  newPriceId: string,
+  supabaseAdmin: SupabaseClient,
+  stripe: Stripe,
+  errorResponse: (msg: string, status: number) => Response,
+  verifyParentStudentLink: (parentId: string, studentId: string) => Promise<void>,
+  expandFields?: string[],
+): Promise<SubscriptionChangeContext> {
+  const [{ data: validPlan }] = await Promise.all([
+    supabaseAdmin
+      .from('subscription_plans')
+      .select('id')
+      .eq('stripe_price_id', newPriceId)
+      .single(),
+    verifyParentStudentLink(userId, studentId),
+  ])
+
+  if (!validPlan) {
+    throw errorResponse('Invalid price ID', 400)
+  }
+  if (validPlan.id === 'max') {
+    throw errorResponse('This plan is no longer available', 400)
+  }
+
+  const { data: subscription } = await supabaseAdmin
+    .from('child_subscriptions')
+    .select('stripe_subscription_id')
+    .eq('student_id', studentId)
+    .eq('parent_id', userId)
+    .single()
+
+  if (!subscription?.stripe_subscription_id) {
+    throw errorResponse('No active subscription found', 404)
+  }
+
+  const [stripeSubscription, newPrice] = await Promise.all([
+    stripe.subscriptions.retrieve(
+      subscription.stripe_subscription_id,
+      { expand: expandFields ?? ['items.data.price'] },
+    ),
+    stripe.prices.retrieve(newPriceId),
+  ])
+
+  const currentPrice = stripeSubscription.items.data[0]?.price
+  const currentPriceId = currentPrice?.id
+  if (currentPriceId === newPriceId) {
+    throw errorResponse('Already on this plan', 400)
+  }
+
+  const currentAmount = currentPrice?.unit_amount ?? 0
+  const newAmount = newPrice.unit_amount ?? 0
+
+  return {
+    subscription,
+    stripeSubscription,
+    currentPriceId,
+    newPriceId,
+    currentAmount,
+    newAmount,
+    isUpgrade: newAmount > currentAmount,
+  }
+}
+
 /**
  * Syncs a Stripe subscription object to the child_subscriptions table.
  * This is the single source of truth for subscription sync logic.

@@ -78,7 +78,7 @@ export async function generateQuestionTemplate(gradeLevels: GradeLevel[]): Promi
 
   // 1. Create Questions worksheet
   const questionsSheet = workbook.addWorksheet('Questions')
-  setupQuestionsSheet(questionsSheet, gradeLevels)
+  setupQuestionsSheet(questionsSheet)
 
   // 2. Create hidden DropdownData worksheet for cascading dropdowns
   const dropdownDataSheet = workbook.addWorksheet('DropdownData')
@@ -140,7 +140,7 @@ function getHelperRow(dataRow: number, rowSpacing: number): number {
   return HELPER_CONFIG.START_ROW + (dataRow - 2) * rowSpacing
 }
 
-function setupQuestionsSheet(sheet: ExcelJS.Worksheet, gradeLevels: GradeLevel[]) {
+function setupQuestionsSheet(sheet: ExcelJS.Worksheet) {
   // Set column widths
   // Columns A-Q: main data columns
   // Columns R-T: hidden helper columns with INDIRECT formulas for Google Sheets cascading dropdowns

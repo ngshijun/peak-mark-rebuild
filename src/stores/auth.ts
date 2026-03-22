@@ -6,7 +6,6 @@ import { resetAllStores } from '@/lib/piniaResetPlugin'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
 import { XP_PER_LEVEL, computeLevel } from '@/lib/xp'
-import { getAvatarUrl } from '@/lib/storage'
 
 type UserType = Database['public']['Enums']['user_type']
 
@@ -758,7 +757,6 @@ export const useAuthStore = defineStore('auth', () => {
     updateAvatar,
     uploadAvatar,
     uploadAvatarFromUrl,
-    getAvatarUrl,
     updateGradeLevel,
     updatePreferredLanguage,
     setTourCompleted,

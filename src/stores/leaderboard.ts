@@ -5,7 +5,6 @@ import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
 import { computeLevel } from '@/lib/xp'
-import { getAvatarUrl } from '@/lib/storage'
 
 type LeaderboardRow = Database['public']['Views']['leaderboard']['Row']
 type WeeklyLeaderboardRow = Database['public']['Views']['weekly_leaderboard']['Row']
@@ -383,7 +382,6 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     getStudentsByGradeLevel,
     getTop20,
     getWeeklyTop20,
-    getAvatarUrl,
     $reset,
   }
 })

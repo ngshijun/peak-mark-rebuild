@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { handleError } from '@/lib/errors'
-import { toMYTDateString, toMYTMonthKey, mytDateToUTCDate, utcDateToString } from '@/lib/date'
+import { toMYTDateString, toMYTMonthKey } from '@/lib/date'
 
 // Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
 const STATS_CACHE_TTL = 5 * 60 * 1000

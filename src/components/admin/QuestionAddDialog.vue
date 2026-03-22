@@ -56,10 +56,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
     const optionImagePaths: Record<string, string | null> = { a: null, b: null, c: null, d: null }
 
     if (form.questionImage.value.file) {
-      const uploadResult = await questionsStore.uploadQuestionImage(
-        form.questionImage.value.file,
-        'pending',
-      )
+      const uploadResult = await questionsStore.uploadQuestionImage(form.questionImage.value.file)
       if (uploadResult.path) {
         questionImagePath = uploadResult.path
       } else {
@@ -71,7 +68,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
       for (const optionId of ['a', 'b', 'c', 'd'] as const) {
         const file = form.optionImages.value[optionId].file
         if (file) {
-          const uploadResult = await questionsStore.uploadQuestionImage(file, 'pending', optionId)
+          const uploadResult = await questionsStore.uploadQuestionImage(file, optionId)
           if (uploadResult.path) {
             optionImagePaths[optionId] = uploadResult.path
           } else {

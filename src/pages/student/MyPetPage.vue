@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, Transition } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, rarityConfig } from '@/stores/pets'

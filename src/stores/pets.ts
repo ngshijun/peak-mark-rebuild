@@ -180,12 +180,11 @@ export const usePetsStore = defineStore('pets', () => {
         createdAt: op.created_at,
       }))
 
+      ownedPetsLoaded.value = true
       return { error: null }
     } catch (err) {
       const message = handleError(err, 'Failed to fetch owned pets.')
       return { error: message }
-    } finally {
-      ownedPetsLoaded.value = true
     }
   }
 

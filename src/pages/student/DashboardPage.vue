@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref, onMounted, watch, nextTick } from 'vue'
+import { defineAsyncComponent, ref, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import { usePracticeHistoryStore } from '@/stores/practice-history'
@@ -75,10 +75,7 @@ async function loadDashboardData() {
   }
 }
 
-// Fetch on mount
-onMounted(loadDashboardData)
-
-// Re-fetch when navigating back to this route (covers browser back, sidebar clicks, etc.)
+// Fetch on mount and re-fetch when navigating back to this route
 watch(
   () => route.path,
   (path) => {
@@ -86,6 +83,7 @@ watch(
       loadDashboardData()
     }
   },
+  { immediate: true },
 )
 
 // Show mood reminder dialog after loading completes

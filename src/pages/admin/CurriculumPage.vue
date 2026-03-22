@@ -67,6 +67,8 @@ const addButtonLabel = computed(() => {
       return 'Add Topic'
     case 'subtopic':
       return 'Add Sub-Topic'
+    default:
+      return 'Add'
   }
 })
 

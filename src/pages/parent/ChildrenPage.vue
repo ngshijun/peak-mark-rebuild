@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useChildLinkStore } from '@/stores/child-link'
+import { getAvatarUrl } from '@/lib/storage'
 import { useSubscriptionStore } from '@/stores/subscription'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -159,10 +160,7 @@ async function handleRemoveChild(childId: string) {
               class="flex items-center gap-3 rounded-lg border p-3"
             >
               <Avatar class="mx-2 size-12">
-                <AvatarImage
-                  :src="childLinkStore.getAvatarUrl(child.avatarPath)"
-                  :alt="child.name"
-                />
+                <AvatarImage :src="getAvatarUrl(child.avatarPath)" :alt="child.name" />
                 <AvatarFallback>{{ getInitials(child.name) }}</AvatarFallback>
               </Avatar>
               <div class="flex-1">

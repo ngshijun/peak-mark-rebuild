@@ -47,12 +47,6 @@ const topicFilter = computed(() =>
     ? undefined
     : questionsStore.questionBankFilters.topic,
 )
-const subTopicFilter = computed(() =>
-  questionsStore.questionBankFilters.subTopic === ALL_VALUE
-    ? undefined
-    : questionsStore.questionBankFilters.subTopic,
-)
-
 // Get available filter options
 const availableGradeLevels = computed(() => questionsStore.getGradeLevels())
 const availableSubjects = computed(() => questionsStore.getSubjects(gradeLevelFilter.value))
