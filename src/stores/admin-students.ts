@@ -53,11 +53,9 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
     studentsError.value = null
 
     try {
-      // Fetch all student profiles with their subscriptions and parent links
-      const { data: studentsData, error: fetchError } = await supabase
-        .from('profiles')
-        .select(
-          `
+      const BATCH_SIZE = 1000
+
+      const selectQuery = `
           id,
           email,
           name,
@@ -80,12 +78,35 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
               name
             )
           )
-        `,
-        )
+        `
+
+      const { data: firstBatch, error: firstError } = await supabase
+        .from('profiles')
+        .select(selectQuery)
         .eq('user_type', 'student')
         .order('name')
+        .range(0, BATCH_SIZE - 1)
 
-      if (fetchError) throw fetchError
+      if (firstError) throw firstError
+      const allRows = [...(firstBatch ?? [])]
+
+      let hasMore = (firstBatch?.length ?? 0) === BATCH_SIZE
+      let from = BATCH_SIZE
+      while (hasMore) {
+        const { data, error: fetchError } = await supabase
+          .from('profiles')
+          .select(selectQuery)
+          .eq('user_type', 'student')
+          .order('name')
+          .range(from, from + BATCH_SIZE - 1)
+
+        if (fetchError) throw fetchError
+        allRows.push(...(data ?? []))
+        hasMore = (data?.length ?? 0) === BATCH_SIZE
+        from += BATCH_SIZE
+      }
+
+      const studentsData = allRows
 
       // Transform the data
       students.value = (studentsData ?? []).map((student) => {

@@ -634,15 +634,30 @@ export const useQuestionsStore = defineStore('questions', () => {
   } = createBucketImageHelpers('question-images')
 
   /**
-   * Fetch question statistics via admin-only RPC function
+   * Fetch question statistics via admin-only RPC function.
+   * Uses batch pagination to avoid the default 1000-row limit.
    */
   async function fetchQuestionStatistics(): Promise<void> {
     try {
-      const { data, error: fetchError } = await supabase.rpc('get_question_statistics')
+      const BATCH_SIZE = 1000
+      const allRows: NonNullable<
+        Awaited<ReturnType<typeof supabase.rpc<'get_question_statistics'>>>['data']
+      > = []
+      let from = 0
+      let hasMore = true
 
-      if (fetchError) throw fetchError
+      while (hasMore) {
+        const { data, error: fetchError } = await supabase
+          .rpc('get_question_statistics')
+          .range(from, from + BATCH_SIZE - 1)
 
-      questionStatistics.value = (data ?? [])
+        if (fetchError) throw fetchError
+        allRows.push(...(data ?? []))
+        hasMore = (data?.length ?? 0) === BATCH_SIZE
+        from += BATCH_SIZE
+      }
+
+      questionStatistics.value = allRows
         .filter((row) => row.question_id !== null)
         .map((row) => ({
           questionId: row.question_id!,

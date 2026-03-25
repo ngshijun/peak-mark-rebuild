@@ -2,8 +2,8 @@
  * Shared session-fetching logic for parent and admin statistics stores.
  *
  * Both child-statistics (parent) and admin-student-stats (admin) need to
- * fetch sessions with curriculum hierarchy + batch-fetch answers to compute
- * scores and durations. This module extracts that duplicated pattern.
+ * fetch sessions with curriculum hierarchy. This module extracts that
+ * duplicated pattern.
  */
 
 import { supabase } from '@/lib/supabaseClient'
@@ -16,26 +16,6 @@ import {
   mapAnswerRows,
   assembleSessionFull,
 } from '@/lib/questionHelpers'
-
-/** Answer shape needed for summary computation */
-interface AnswerSummaryRow {
-  session_id: string
-  is_correct: boolean | null
-  time_spent_seconds: number | null
-}
-
-/** Group an array by a key function into a Map */
-function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
-  const map = new Map<string, T[]>()
-  for (const item of items) {
-    const key = keyFn(item)
-    if (!map.has(key)) {
-      map.set(key, [])
-    }
-    map.get(key)!.push(item)
-  }
-  return map
-}
 
 /**
  * Fetch practice sessions with scores for a student.
@@ -53,6 +33,8 @@ export async function fetchSessionSummaries(studentId: string): Promise<Practice
       student_id,
       topic_id,
       total_questions,
+      correct_count,
+      total_time_seconds,
       created_at,
       completed_at,
       sub_topics (
@@ -78,29 +60,13 @@ export async function fetchSessionSummaries(studentId: string): Promise<Practice
 
   if (fetchError) throw fetchError
 
-  const sessionIds = (sessionsData ?? []).map((s) => s.id)
-  if (sessionIds.length === 0) return []
-
-  // Batch fetch all answers in a single request
-  const { data: answersData } = await supabase
-    .from('practice_answers')
-    .select('session_id, is_correct, time_spent_seconds')
-    .in('session_id', sessionIds)
-
-  const answersBySession = groupBy((answersData ?? []) as AnswerSummaryRow[], (a) => a.session_id)
-
-  // Build session summaries
+  // Build session summaries directly from session-level aggregates
+  // (correct_count and total_time_seconds are set on completion)
   return (sessionsData ?? []).map((session) => {
-    const answers = answersBySession.get(session.id) ?? []
-    const correctAnswers = answers.filter((a) => a.is_correct).length
-    const totalQuestions = session.total_questions ?? answers.length
     const isCompleted = !!session.completed_at
-
+    const totalQuestions = session.total_questions ?? 0
+    const correctAnswers = session.correct_count ?? 0
     const subTopic = session.sub_topics as unknown as SubTopicHierarchy
-
-    const durationSeconds = isCompleted
-      ? answers.reduce((sum, a) => sum + (a.time_spent_seconds ?? 0), 0)
-      : null
 
     return {
       id: session.id,
@@ -108,10 +74,10 @@ export async function fetchSessionSummaries(studentId: string): Promise<Practice
       subjectName: subTopic?.topics?.subjects?.name ?? 'Unknown',
       topicName: subTopic?.topics?.name ?? 'Unknown',
       subTopicName: subTopic?.name ?? 'Unknown',
-      score: isCompleted ? computeScorePercent(correctAnswers, totalQuestions) || null : null,
+      score: isCompleted ? computeScorePercent(correctAnswers, totalQuestions) : null,
       totalQuestions,
       correctAnswers,
-      durationSeconds,
+      durationSeconds: isCompleted ? (session.total_time_seconds ?? 0) : null,
       createdAt: session.created_at ?? new Date().toISOString(),
       completedAt: session.completed_at,
       status: (isCompleted ? 'completed' : 'in_progress') as 'completed' | 'in_progress',

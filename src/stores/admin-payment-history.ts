@@ -51,10 +51,8 @@ export const useAdminPaymentHistoryStore = defineStore('adminPaymentHistory', ()
     error.value = null
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('payment_history')
-        .select(
-          `
+      const BATCH_SIZE = 1000
+      const selectQuery = `
           id,
           amount_cents,
           currency,
@@ -65,13 +63,33 @@ export const useAdminPaymentHistoryStore = defineStore('adminPaymentHistory', ()
           student_id,
           student:profiles!payment_history_student_id_fkey (name),
           parent:profiles!payment_history_parent_id_fkey (name)
-        `,
-        )
+        `
+
+      const { data: firstBatch, error: firstError } = await supabase
+        .from('payment_history')
+        .select(selectQuery)
         .order('created_at', { ascending: false })
+        .range(0, BATCH_SIZE - 1)
 
-      if (fetchError) throw fetchError
+      if (firstError) throw firstError
+      const allRows = [...(firstBatch ?? [])]
 
-      payments.value = (data ?? []).map((row) => {
+      let hasMore = (firstBatch?.length ?? 0) === BATCH_SIZE
+      let from = BATCH_SIZE
+      while (hasMore) {
+        const { data, error: fetchError } = await supabase
+          .from('payment_history')
+          .select(selectQuery)
+          .order('created_at', { ascending: false })
+          .range(from, from + BATCH_SIZE - 1)
+
+        if (fetchError) throw fetchError
+        allRows.push(...(data ?? []))
+        hasMore = (data?.length ?? 0) === BATCH_SIZE
+        from += BATCH_SIZE
+      }
+
+      payments.value = allRows.map((row) => {
         const student = row.student as { name: string | null } | null
         const parent = row.parent as { name: string | null } | null
 
