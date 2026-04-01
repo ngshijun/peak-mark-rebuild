@@ -348,26 +348,25 @@ async function handleSchoolChange(schoolId: string | null) {
                 </div>
                 <div class="flex-1">
                   <p class="text-xs text-muted-foreground">Grade Level</p>
-                  <p class="font-medium">{{ currentGradeName }}</p>
+                  <Select
+                    :model-value="authStore.studentProfile?.gradeLevelId ?? undefined"
+                    :disabled="isSaving || curriculumStore.isLoading"
+                    @update:model-value="handleGradeChange"
+                  >
+                    <SelectTrigger class="mt-1 w-auto">
+                      <SelectValue placeholder="Select grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="grade in curriculumStore.gradeLevels"
+                        :key="grade.id"
+                        :value="grade.id"
+                      >
+                        {{ grade.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select
-                  :model-value="authStore.studentProfile?.gradeLevelId ?? undefined"
-                  :disabled="isSaving || curriculumStore.isLoading"
-                  @update:model-value="handleGradeChange"
-                >
-                  <SelectTrigger class="w-auto">
-                    <SelectValue placeholder="Select grade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="grade in curriculumStore.gradeLevels"
-                      :key="grade.id"
-                      :value="grade.id"
-                    >
-                      {{ grade.name }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <!-- School -->
@@ -377,69 +376,68 @@ async function handleSchoolChange(schoolId: string | null) {
                 </div>
                 <div class="flex-1">
                   <p class="text-xs text-muted-foreground">School</p>
-                  <p class="font-medium">{{ currentSchoolName }}</p>
+                  <Popover v-model:open="schoolPopoverOpen">
+                    <PopoverTrigger as-child>
+                      <button
+                        role="combobox"
+                        :aria-expanded="schoolPopoverOpen"
+                        :disabled="isSaving"
+                        :class="
+                          cn(
+                            'border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*=\'text-\'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 mt-1 h-9',
+                          )
+                        "
+                      >
+                        {{ currentSchoolName }}
+                        <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-64 p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search school" />
+                        <CommandList>
+                          <CommandEmpty>No school found.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              v-for="school in schools"
+                              :key="school.id"
+                              :value="school.name"
+                              @select="() => handleSchoolChange(school.id)"
+                            >
+                              {{ school.name }}
+                              <Check
+                                :class="
+                                  cn(
+                                    'ml-auto size-4',
+                                    authStore.studentProfile?.schoolId === school.id
+                                      ? 'opacity-100'
+                                      : 'opacity-0',
+                                  )
+                                "
+                              />
+                            </CommandItem>
+                            <CommandItem
+                              value="my school is not listed"
+                              @select="() => handleSchoolChange(null)"
+                            >
+                              My school is not listed
+                              <Check
+                                :class="
+                                  cn(
+                                    'ml-auto size-4',
+                                    authStore.studentProfile?.schoolId === null
+                                      ? 'opacity-100'
+                                      : 'opacity-0',
+                                  )
+                                "
+                              />
+                            </CommandItem>
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <Popover v-model:open="schoolPopoverOpen">
-                  <PopoverTrigger as-child>
-                    <button
-                      role="combobox"
-                      :aria-expanded="schoolPopoverOpen"
-                      :disabled="isSaving"
-                      :class="
-                        cn(
-                          'border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*=\'text-\'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 h-9',
-                        )
-                      "
-                    >
-                      {{ currentSchoolName }}
-                      <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent class="w-64 p-0" align="end">
-                    <Command>
-                      <CommandInput placeholder="Search school" />
-                      <CommandList>
-                        <CommandEmpty>No school found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            v-for="school in schools"
-                            :key="school.id"
-                            :value="school.name"
-                            @select="() => handleSchoolChange(school.id)"
-                          >
-                            {{ school.name }}
-                            <Check
-                              :class="
-                                cn(
-                                  'ml-auto size-4',
-                                  authStore.studentProfile?.schoolId === school.id
-                                    ? 'opacity-100'
-                                    : 'opacity-0',
-                                )
-                              "
-                            />
-                          </CommandItem>
-                          <CommandItem
-                            value="my school is not listed"
-                            @select="() => handleSchoolChange(null)"
-                          >
-                            My school is not listed
-                            <Check
-                              :class="
-                                cn(
-                                  'ml-auto size-4',
-                                  authStore.studentProfile?.schoolId === null
-                                    ? 'opacity-100'
-                                    : 'opacity-0',
-                                )
-                              "
-                            />
-                          </CommandItem>
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
               </div>
 
               <!-- AI Summary Language -->
@@ -449,23 +447,20 @@ async function handleSchoolChange(schoolId: string | null) {
                 </div>
                 <div class="flex-1">
                   <p class="text-xs text-muted-foreground">AI Summary Language</p>
-                  <p class="font-medium">
-                    {{ authStore.studentProfile?.preferredLanguage === 'zh' ? '中文' : 'English' }}
-                  </p>
+                  <Select
+                    :model-value="authStore.studentProfile?.preferredLanguage ?? 'en'"
+                    :disabled="isSaving"
+                    @update:model-value="handleLanguageChange"
+                  >
+                    <SelectTrigger class="mt-1 w-auto">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="zh">中文</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select
-                  :model-value="authStore.studentProfile?.preferredLanguage ?? 'en'"
-                  :disabled="isSaving"
-                  @update:model-value="handleLanguageChange"
-                >
-                  <SelectTrigger class="w-auto">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="zh">中文</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
