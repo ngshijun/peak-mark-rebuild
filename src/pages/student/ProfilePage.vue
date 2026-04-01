@@ -37,7 +37,20 @@ import {
   CreditCard,
   Check,
   RotateCcw,
+  School,
+  ChevronsUpDown,
 } from 'lucide-vue-next'
+import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabaseClient'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTour } from '@/composables/useTour'
 
 const authStore = useAuthStore()
@@ -78,6 +91,13 @@ const showAvatarDialog = ref(false)
 const showEditNameDialog = ref(false)
 const showEditBirthdayDialog = ref(false)
 
+const schools = ref<{ id: string; name: string }[]>([])
+const schoolPopoverOpen = ref(false)
+
+const currentSchoolName = computed(() => {
+  return authStore.studentProfile?.schoolName ?? 'Not set'
+})
+
 const currentGradeName = computed(() => {
   if (!authStore.studentProfile?.gradeLevelId) return 'Not set'
   const grade = curriculumStore.gradeLevels.find(
@@ -94,6 +114,13 @@ onMounted(async () => {
       subscriptionStatus.value = status
     }),
     subscriptionStore.fetchPlans(),
+    supabase
+      .from('schools')
+      .select('id, name')
+      .order('name')
+      .then(({ data }) => {
+        if (data) schools.value = data
+      }),
   ]).finally(() => {
     isLoadingPlans.value = false
   })
@@ -151,6 +178,21 @@ async function handleLanguageChange(value: unknown) {
       return
     }
     toast.success('Language preference updated successfully')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function handleSchoolChange(schoolId: string | null) {
+  isSaving.value = true
+  try {
+    const result = await authStore.updateSchool(schoolId)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('School updated successfully')
+    schoolPopoverOpen.value = false
   } finally {
     isSaving.value = false
   }
@@ -301,6 +343,75 @@ async function handleLanguageChange(value: unknown) {
                 </SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <!-- School -->
+          <div class="flex items-center gap-4">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-muted">
+              <School class="size-5 text-muted-foreground" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm text-muted-foreground">School</p>
+              <p class="font-medium">{{ currentSchoolName }}</p>
+            </div>
+            <Popover v-model:open="schoolPopoverOpen">
+              <PopoverTrigger as-child>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  :aria-expanded="schoolPopoverOpen"
+                  :disabled="isSaving"
+                  class="w-auto justify-between"
+                >
+                  <span class="sr-only">Change school</span>
+                  <ChevronsUpDown class="size-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-64 p-0" align="end">
+                <Command>
+                  <CommandInput placeholder="Search school..." />
+                  <CommandList>
+                    <CommandEmpty>No school found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        v-for="school in schools"
+                        :key="school.id"
+                        :value="school.name"
+                        @select="() => handleSchoolChange(school.id)"
+                      >
+                        {{ school.name }}
+                        <Check
+                          :class="
+                            cn(
+                              'ml-auto size-4',
+                              authStore.studentProfile?.schoolId === school.id
+                                ? 'opacity-100'
+                                : 'opacity-0',
+                            )
+                          "
+                        />
+                      </CommandItem>
+                      <CommandItem
+                        value="my school is not listed"
+                        @select="() => handleSchoolChange(null)"
+                      >
+                        My school is not listed
+                        <Check
+                          :class="
+                            cn(
+                              'ml-auto size-4',
+                              authStore.studentProfile?.schoolId === null
+                                ? 'opacity-100'
+                                : 'opacity-0',
+                            )
+                          "
+                        />
+                      </CommandItem>
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <!-- AI Summary Language -->
