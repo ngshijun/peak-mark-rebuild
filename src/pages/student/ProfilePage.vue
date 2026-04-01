@@ -95,7 +95,7 @@ const schools = ref<{ id: string; name: string }[]>([])
 const schoolPopoverOpen = ref(false)
 
 const currentSchoolName = computed(() => {
-  return authStore.studentProfile?.schoolName ?? 'Not set'
+  return authStore.studentProfile?.schoolName ?? 'My school is not listed'
 })
 
 const currentGradeName = computed(() => {
