@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, shallowRef, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePracticeStore, type StudentSubscriptionStatus } from '@/stores/practice'
 import { useSubscriptionStore } from '@/stores/subscription'
@@ -19,7 +19,9 @@ import {
 import { toast } from 'vue-sonner'
 import EditAvatarDialog from '@/components/shared/EditAvatarDialog.vue'
 import EditNameDialog from '@/components/shared/EditNameDialog.vue'
-import EditBirthdayDialog from '@/components/shared/EditBirthdayDialog.vue'
+import { Calendar as CalendarPicker } from '@/components/ui/calendar'
+import { type DateValue, getLocalTimeZone, today, parseDate } from '@internationalized/date'
+import { createYearRange } from 'reka-ui/date'
 import {
   Cake,
   Mail,
@@ -89,21 +91,26 @@ function getTierIcon(tier: string) {
 // Dialog states
 const showAvatarDialog = ref(false)
 const showEditNameDialog = ref(false)
-const showEditBirthdayDialog = ref(false)
+
+// Birthday calendar popover
+const birthdayPopoverOpen = ref(false)
+const dateOfBirthValue = shallowRef<DateValue | undefined>(
+  authStore.user?.dateOfBirth ? parseDate(authStore.user.dateOfBirth) : undefined,
+)
+const maxBirthdayDate = computed(() => today(getLocalTimeZone()))
+const birthdayYearRange = computed(() => {
+  const now = today(getLocalTimeZone())
+  return createYearRange({
+    start: now.cycle('year', -100),
+    end: now,
+  }).reverse()
+})
 
 const schools = ref<{ id: string; name: string }[]>([])
 const schoolPopoverOpen = ref(false)
 
 const currentSchoolName = computed(() => {
   return authStore.studentProfile?.schoolName ?? 'My school is not listed'
-})
-
-const currentGradeName = computed(() => {
-  if (!authStore.studentProfile?.gradeLevelId) return 'Not set'
-  const grade = curriculumStore.gradeLevels.find(
-    (g) => g.id === authStore.studentProfile?.gradeLevelId,
-  )
-  return grade?.name ?? 'Not set'
 })
 
 onMounted(async () => {
@@ -152,7 +159,9 @@ async function handleGradeChange(value: unknown) {
   }
 }
 
-async function handleBirthdaySave(dateString: string | null) {
+async function handleBirthdayChange(v: DateValue | undefined) {
+  dateOfBirthValue.value = v
+  const dateString = v?.toString() ?? null
   isSaving.value = true
   try {
     const result = await authStore.updateDateOfBirth(dateString)
@@ -161,7 +170,7 @@ async function handleBirthdaySave(dateString: string | null) {
       return
     }
     toast.success('Birthday updated successfully')
-    showEditBirthdayDialog.value = false
+    birthdayPopoverOpen.value = false
   } finally {
     isSaving.value = false
   }
@@ -307,22 +316,37 @@ async function handleSchoolChange(schoolId: string | null) {
                 </div>
                 <div>
                   <p class="text-xs text-muted-foreground">Birthday</p>
-                  <button
-                    :class="
-                      cn(
-                        'border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-fit items-center gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
-                      )
-                    "
-                    :disabled="isSaving"
-                    @click="showEditBirthdayDialog = true"
-                  >
-                    <template v-if="formattedBirthday">
-                      {{ formattedBirthday }}
-                      <span class="text-muted-foreground">({{ age }})</span>
-                    </template>
-                    <template v-else>Not set</template>
-                    <Pencil class="size-3.5 opacity-50" />
-                  </button>
+                  <Popover v-model:open="birthdayPopoverOpen">
+                    <PopoverTrigger as-child>
+                      <button
+                        :class="
+                          cn(
+                            'border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 flex h-9 w-fit items-center gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
+                          )
+                        "
+                        :disabled="isSaving"
+                      >
+                        <template v-if="formattedBirthday">
+                          {{ formattedBirthday }}
+                          <span class="text-muted-foreground">({{ age }})</span>
+                        </template>
+                        <template v-else>Not set</template>
+                        <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-auto p-0" align="start">
+                      <CalendarPicker
+                        :model-value="dateOfBirthValue"
+                        :max-value="maxBirthdayDate"
+                        :year-range="birthdayYearRange"
+                        layout="month-and-year"
+                        initial-focus
+                        @update:model-value="
+                          (v) => handleBirthdayChange(v as DateValue | undefined)
+                        "
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 
@@ -555,13 +579,6 @@ async function handleSchoolChange(schoolId: string | null) {
       :current-name="authStore.user?.name ?? ''"
       :is-saving="isSaving"
       @save="handleNameSave"
-    />
-
-    <EditBirthdayDialog
-      v-model:open="showEditBirthdayDialog"
-      :current-date-of-birth="authStore.user?.dateOfBirth ?? null"
-      :is-saving="isSaving"
-      @save="handleBirthdaySave"
     />
   </div>
 </template>
