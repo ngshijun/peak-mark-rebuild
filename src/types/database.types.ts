@@ -4,7 +4,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '13.0.5'
+    PostgrestVersion: '14.4'
   }
   graphql_public: {
     Tables: {
@@ -968,6 +968,24 @@ export type Database = {
           },
         ]
       }
+      schools: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       session_questions: {
         Row: {
           id: string
@@ -1020,6 +1038,7 @@ export type Database = {
           grade_level_id: string | null
           id: string
           preferred_language: string
+          school_id: string | null
           selected_pet_id: string | null
           subscription_tier: Database['public']['Enums']['subscription_tier']
           updated_at: string | null
@@ -1033,6 +1052,7 @@ export type Database = {
           grade_level_id?: string | null
           id: string
           preferred_language?: string
+          school_id?: string | null
           selected_pet_id?: string | null
           subscription_tier?: Database['public']['Enums']['subscription_tier']
           updated_at?: string | null
@@ -1046,6 +1066,7 @@ export type Database = {
           grade_level_id?: string | null
           id?: string
           preferred_language?: string
+          school_id?: string | null
           selected_pet_id?: string | null
           subscription_tier?: Database['public']['Enums']['subscription_tier']
           updated_at?: string | null
@@ -1071,6 +1092,13 @@ export type Database = {
             columns: ['id']
             isOneToOne: true
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_profiles_school_id_fkey'
+            columns: ['school_id']
+            isOneToOne: false
+            referencedRelation: 'schools'
             referencedColumns: ['id']
           },
           {
@@ -1434,16 +1462,28 @@ export type Database = {
         }
         Returns: string
       }
-      create_user_profile: {
-        Args: {
-          p_date_of_birth?: string
-          p_email: string
-          p_name: string
-          p_user_id: string
-          p_user_type: string
-        }
-        Returns: undefined
-      }
+      create_user_profile:
+        | {
+            Args: {
+              p_date_of_birth?: string
+              p_email: string
+              p_name: string
+              p_user_id: string
+              p_user_type: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_date_of_birth?: string
+              p_email: string
+              p_name: string
+              p_school_id?: string
+              p_user_id: string
+              p_user_type: string
+            }
+            Returns: undefined
+          }
       distribute_weekly_leaderboard_rewards: { Args: never; Returns: undefined }
       evolve_pet: {
         Args: { p_owned_pet_id: string; p_student_id: string }
