@@ -369,7 +369,7 @@ async function handleSchoolChange(schoolId: string | null) {
               </PopoverTrigger>
               <PopoverContent class="w-64 p-0" align="end">
                 <Command>
-                  <CommandInput placeholder="Search school..." />
+                  <CommandInput placeholder="Search school" />
                   <CommandList>
                     <CommandEmpty>No school found.</CommandEmpty>
                     <CommandGroup>

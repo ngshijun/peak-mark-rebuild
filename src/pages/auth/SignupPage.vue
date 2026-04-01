@@ -56,6 +56,7 @@ const birthdayYearRange = computed(() => {
 // Schools
 const schools = ref<{ id: string; name: string }[]>([])
 const schoolPopoverOpen = ref(false)
+const NOT_LISTED = '__not_listed__'
 
 onMounted(async () => {
   const { data } = await supabase.from('schools').select('id, name').order('name')
@@ -79,7 +80,7 @@ watch(
   () => values.userType,
   (newType) => {
     if (newType === 'parent') {
-      setFieldValue('schoolId', '')
+      setFieldValue('schoolId', undefined)
       schoolPopoverOpen.value = false
     }
   },
@@ -98,7 +99,7 @@ const onSubmit = handleSubmit(async (formValues) => {
       formValues.name,
       formValues.userType,
       formValues.dateOfBirth || undefined,
-      formValues.schoolId || undefined,
+      formValues.schoolId && formValues.schoolId !== NOT_LISTED ? formValues.schoolId : undefined,
     )
 
     if (result.error) {
@@ -275,15 +276,15 @@ const onSubmit = handleSubmit(async (formValues) => {
 
           <VeeField
             v-if="values.userType === 'student'"
-            v-slot="{ handleChange }"
+            v-slot="{ handleChange, errors }"
             :validate-on-blur="false"
             :validate-on-change="false"
             :validate-on-input="false"
             :validate-on-model-update="submitCount > 0"
             name="schoolId"
           >
-            <Field>
-              <FieldLabel>School</FieldLabel>
+            <Field :data-invalid="!!errors.length">
+              <FieldLabel>School <span class="text-destructive">*</span></FieldLabel>
               <Popover v-model:open="schoolPopoverOpen">
                 <PopoverTrigger as-child>
                   <Button
@@ -295,17 +296,19 @@ const onSubmit = handleSubmit(async (formValues) => {
                     :disabled="isSubmitting"
                   >
                     {{
-                      values.schoolId
-                        ? (schools.find((s) => s.id === values.schoolId)?.name ??
-                          'Select school...')
-                        : 'Select school...'
+                      values.schoolId === NOT_LISTED
+                        ? 'My school is not listed'
+                        : values.schoolId
+                          ? (schools.find((s) => s.id === values.schoolId)?.name ??
+                            'Select your school')
+                          : 'Select your school'
                     }}
                     <ChevronsUpDown class="ml-2 size-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent class="w-[--reka-popover-trigger-width] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search school..." />
+                    <CommandInput placeholder="Search school" />
                     <CommandList>
                       <CommandEmpty>No school found.</CommandEmpty>
                       <CommandGroup>
@@ -335,8 +338,8 @@ const onSubmit = handleSubmit(async (formValues) => {
                           value="my school is not listed"
                           @select="
                             () => {
-                              handleChange('')
-                              setFieldValue('schoolId', '')
+                              handleChange(NOT_LISTED)
+                              setFieldValue('schoolId', NOT_LISTED)
                               schoolPopoverOpen = false
                             }
                           "
@@ -348,6 +351,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                   </Command>
                 </PopoverContent>
               </Popover>
+              <FieldError :errors="errors" />
             </Field>
           </VeeField>
 

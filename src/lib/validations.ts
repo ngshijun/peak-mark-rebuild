@@ -47,6 +47,10 @@ const signupFormZod = z
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   })
+  .refine((data) => data.userType !== 'student' || !!data.schoolId, {
+    message: 'Please select a school',
+    path: ['schoolId'],
+  })
 export const signupFormSchema = toTypedSchema(signupFormZod)
 export type SignupFormValues = z.infer<typeof signupFormZod>
 
