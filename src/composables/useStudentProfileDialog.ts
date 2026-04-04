@@ -94,12 +94,7 @@ export function useStudentProfileDialog() {
           imagePath = petData.tier3_image_path
         }
 
-        const imageUrl = getStorageImageUrl('pet-images', imagePath, {
-          width: 600,
-          height: 600,
-          quality: 80,
-          resize: 'contain',
-        })
+        const imageUrl = getStorageImageUrl('pet-images', imagePath)
 
         pet.value = {
           name: petData.name,

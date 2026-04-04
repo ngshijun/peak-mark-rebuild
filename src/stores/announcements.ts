@@ -220,12 +220,8 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     }
   }
 
-  const { getImageUrl, getOptimizedImageUrl, getThumbnailImageUrl } = createBucketImageHelpers(
-    'announcement-images',
-    {
-      thumbnail: { width: 100, height: 100, quality: 70, resize: 'cover' },
-    },
-  )
+  const { getImageUrl, getOptimizedImageUrl, getThumbnailImageUrl } =
+    createBucketImageHelpers('announcement-images')
 
   // ========== ADMIN FUNCTIONS ==========
 
