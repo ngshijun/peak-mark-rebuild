@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient'
 import { handleError } from '@/lib/errors'
+import { optimizeImage, type OptimizeImageOptions } from '@/lib/imageOptimizer'
 
 export interface ImageTransformOptions {
   width?: number
@@ -60,18 +61,28 @@ export function getAvatarUrl(path: string | null): string {
 export async function uploadStorageFile(
   bucket: string,
   file: File,
-  options?: { folder?: string; oldPath?: string | null },
+  options?: {
+    folder?: string
+    oldPath?: string | null
+    optimize?: OptimizeImageOptions | false
+  },
 ): Promise<{ path: string | null; error: string | null }> {
   try {
-    const dotIndex = file.name.lastIndexOf('.')
-    const fileExt = dotIndex > 0 ? file.name.slice(dotIndex) : ''
+    // Optimize image before upload (default: on)
+    const processedFile =
+      options?.optimize === false ? file : await optimizeImage(file, options?.optimize)
+
+    const dotIndex = processedFile.name.lastIndexOf('.')
+    const fileExt = dotIndex > 0 ? processedFile.name.slice(dotIndex) : ''
     const folder = options?.folder
     const fileName = `${crypto.randomUUID()}${fileExt}`
     const filePath = folder ? `${folder}/${fileName}` : fileName
 
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file, {
-      cacheControl: '31536000',
-    })
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, processedFile, {
+        cacheControl: '31536000',
+      })
 
     if (uploadError) throw uploadError
 
