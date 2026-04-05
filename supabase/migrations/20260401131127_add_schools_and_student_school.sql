@@ -61,4 +61,5 @@ ON CONFLICT (name) DO NOTHING;
 
 -- 7. Grant permissions
 GRANT SELECT ON public.schools TO anon, authenticated, service_role;
+GRANT UPDATE (school_id) ON public.student_profiles TO authenticated;
 GRANT ALL ON FUNCTION public.create_user_profile(UUID, TEXT, TEXT, TEXT, DATE, UUID) TO anon, authenticated, service_role;
