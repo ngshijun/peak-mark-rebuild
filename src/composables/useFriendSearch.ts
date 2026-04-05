@@ -8,6 +8,11 @@ export interface FriendSearchResult {
   avatarPath: string | null
 }
 
+type StudentSearchResult = {
+  id: string
+  profiles: { name: string; avatar_path: string | null }
+}
+
 const DEBOUNCE_MS = 300
 const SEARCH_LIMIT = 10
 const FRIEND_CODE_PATTERN = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/i
@@ -32,7 +37,7 @@ export function useFriendSearch() {
     try {
       const isFriendCode = FRIEND_CODE_PATTERN.test(query)
 
-      let data: any[] | null = null
+      let data: StudentSearchResult[] | null = null
 
       if (isFriendCode) {
         const { data: codeResults, error } = await supabase
@@ -43,7 +48,7 @@ export function useFriendSearch() {
           .limit(1)
 
         if (error) throw error
-        data = codeResults
+        data = codeResults as unknown as StudentSearchResult[]
       } else {
         const { data: nameResults, error } = await supabase
           .from('student_profiles')
@@ -53,15 +58,15 @@ export function useFriendSearch() {
           .limit(SEARCH_LIMIT)
 
         if (error) throw error
-        data = nameResults
+        data = nameResults as unknown as StudentSearchResult[]
       }
 
       if (version !== currentVersion) return
 
       results.value = (data ?? []).map((row) => ({
         id: row.id,
-        name: (row as any).profiles.name,
-        avatarPath: (row as any).profiles.avatar_path,
+        name: row.profiles.name,
+        avatarPath: row.profiles.avatar_path,
       }))
     } catch {
       if (version === currentVersion) results.value = []

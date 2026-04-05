@@ -6,6 +6,11 @@ import { handleError } from '@/lib/errors'
 
 const FRIEND_CAP = 30
 
+type FriendshipProfile = {
+  id: string
+  profiles: { name: string; avatar_path: string | null }
+}
+
 const CLOSENESS_LABELS: Record<number, string> = {
   0: 'New Friend',
   1: 'Acquaintance',
@@ -89,12 +94,14 @@ export const useFriendsStore = defineStore('friends', () => {
 
       friends.value = (data ?? []).map((row) => {
         const isRequester = row.requester_id === userId
-        const friendProfile = isRequester ? row.recipient : row.requester
-        const profile = (friendProfile as any).profiles
+        const friendProfile = (isRequester
+          ? row.recipient
+          : row.requester) as unknown as FriendshipProfile
+        const profile = friendProfile.profiles
 
         return {
           friendshipId: row.id,
-          friendId: (friendProfile as any).id,
+          friendId: friendProfile.id,
           name: profile.name,
           avatarPath: profile.avatar_path,
           closenessXp: row.closeness_xp,
@@ -146,12 +153,14 @@ export const useFriendsStore = defineStore('friends', () => {
 
       for (const row of data ?? []) {
         const isRequester = row.requester_id === userId
-        const otherProfile = isRequester ? row.recipient : row.requester
-        const profile = (otherProfile as any).profiles
+        const otherProfile = (isRequester
+          ? row.recipient
+          : row.requester) as unknown as FriendshipProfile
+        const profile = otherProfile.profiles
 
         const request: FriendRequest = {
           friendshipId: row.id,
-          studentId: (otherProfile as any).id,
+          studentId: otherProfile.id,
           name: profile.name,
           avatarPath: profile.avatar_path,
           createdAt: row.created_at,

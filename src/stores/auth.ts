@@ -29,6 +29,7 @@ export interface AuthUser {
     preferredLanguage: 'en' | 'zh'
     schoolId: string | null
     schoolName: string | null
+    friendCode: string
   }
   // Parent-specific fields
   parentProfile?: {
@@ -83,6 +84,7 @@ async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
           preferredLanguage: (studentProfile.preferred_language as 'en' | 'zh') ?? 'en',
           schoolId: studentProfile.school_id,
           schoolName: (studentProfile.schools as { name: string } | null)?.name ?? null,
+          friendCode: studentProfile.friend_code,
         }
       }
     } else if (profile.user_type === 'parent') {
