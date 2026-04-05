@@ -9,24 +9,18 @@ import { getAvatarUrl } from '@/lib/storage'
 import { getInitials } from '@/lib/utils'
 import { toast } from 'vue-sonner'
 import { Coins, UserMinus, Loader2, Users } from 'lucide-vue-next'
-import type { LeaderboardEntry } from '@/components/student/LeaderboardTable.vue'
-import StudentProfileDialog from '@/components/student/StudentProfileDialog.vue'
+import type { Friend } from '@/stores/friends'
+import FriendProfileDialog from './FriendProfileDialog.vue'
 import RemoveFriendDialog from './RemoveFriendDialog.vue'
 
 const friendsStore = useFriendsStore()
 const sendingTo = ref<string | null>(null)
 const removingFriend = ref<{ friendshipId: string; name: string } | null>(null)
 const showProfileDialog = ref(false)
-const selectedStudent = ref<(LeaderboardEntry & Record<string, unknown>) | null>(null)
+const selectedFriend = ref<Friend | null>(null)
 
-function handleFriendClick(friend: (typeof friendsStore.friends)[number]) {
-  selectedStudent.value = {
-    id: friend.friendId,
-    name: friend.name,
-    avatarPath: friend.avatarPath,
-    gradeLevelName: null,
-    rank: 0,
-  }
+function handleFriendClick(friend: Friend) {
+  selectedFriend.value = friend
   showProfileDialog.value = true
 }
 
@@ -126,11 +120,7 @@ async function handleRemove() {
     </CardContent>
   </Card>
 
-  <StudentProfileDialog
-    v-model:open="showProfileDialog"
-    :student="selectedStudent"
-    active-tab="all-time"
-  />
+  <FriendProfileDialog v-model:open="showProfileDialog" :friend="selectedFriend" />
 
   <RemoveFriendDialog
     :open="removingFriend !== null"

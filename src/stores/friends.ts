@@ -11,6 +11,8 @@ type FriendshipProfile = {
   profiles: { name: string; avatar_path: string | null }
 }
 
+export const CLOSENESS_THRESHOLDS = [0, 5, 15, 35, 70, 120] as const
+
 export const CLOSENESS_LABELS: Record<number, string> = {
   0: 'New Friend',
   1: 'Acquaintance',
@@ -28,6 +30,7 @@ export interface Friend {
   closenessXp: number
   closenessLevel: number
   closenessLabel: string
+  friendSince: string
   sentToday: boolean
 }
 
@@ -76,6 +79,8 @@ export const useFriendsStore = defineStore('friends', () => {
             recipient_id,
             closeness_xp,
             closeness_level,
+            created_at,
+            responded_at,
             requester:student_profiles!friendships_requester_id_fkey(
               id,
               profiles!inner(name, avatar_path)
@@ -110,6 +115,7 @@ export const useFriendsStore = defineStore('friends', () => {
           closenessXp: row.closeness_xp,
           closenessLevel: row.closeness_level,
           closenessLabel: CLOSENESS_LABELS[row.closeness_level] ?? 'New Friend',
+          friendSince: row.responded_at ?? row.created_at,
           sentToday: sentGiftSet.has(row.id),
         }
       })
