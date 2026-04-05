@@ -22,15 +22,20 @@ BEGIN
 END;
 $$;
 
+-- Add column as nullable first (metadata-only, no row scan)
 ALTER TABLE student_profiles
-ADD COLUMN friend_code TEXT UNIQUE DEFAULT generate_friend_code();
+ADD COLUMN friend_code TEXT;
 
+-- Backfill existing students
 UPDATE student_profiles
 SET friend_code = generate_friend_code()
 WHERE friend_code IS NULL;
 
+-- Now add constraints and default
 ALTER TABLE student_profiles
-ALTER COLUMN friend_code SET NOT NULL;
+ALTER COLUMN friend_code SET NOT NULL,
+ALTER COLUMN friend_code SET DEFAULT generate_friend_code(),
+ADD CONSTRAINT student_profiles_friend_code_key UNIQUE (friend_code);
 
 -- ============================================================
 -- 2. Friendships table
@@ -53,10 +58,10 @@ CREATE TABLE friendships (
 CREATE INDEX idx_friendships_requester ON friendships (requester_id) WHERE status IN ('pending', 'accepted');
 CREATE INDEX idx_friendships_recipient ON friendships (recipient_id) WHERE status IN ('pending', 'accepted');
 
-CREATE TRIGGER set_friendships_updated_at
+CREATE TRIGGER update_friendships_updated_at
   BEFORE UPDATE ON friendships
   FOR EACH ROW
-  EXECUTE FUNCTION moddatetime(updated_at);
+  EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================
 -- 3. Daily coin gifts table
