@@ -6,10 +6,12 @@ export interface FriendSearchResult {
   id: string
   name: string
   avatarPath: string | null
+  friendCode: string
 }
 
 type StudentSearchResult = {
   id: string
+  friend_code: string
   profiles: { name: string; avatar_path: string | null }
 }
 
@@ -42,7 +44,7 @@ export function useFriendSearch() {
       if (isFriendCode) {
         const { data: codeResults, error } = await supabase
           .from('student_profiles')
-          .select('id, profiles!inner(name, avatar_path)')
+          .select('id, friend_code, profiles!inner(name, avatar_path)')
           .eq('friend_code', query.toUpperCase())
           .neq('id', userId)
           .limit(1)
@@ -52,7 +54,7 @@ export function useFriendSearch() {
       } else {
         const { data: nameResults, error } = await supabase
           .from('student_profiles')
-          .select('id, profiles!inner(name, avatar_path)')
+          .select('id, friend_code, profiles!inner(name, avatar_path)')
           .neq('id', userId)
           .ilike('profiles.name', `%${query}%`)
           .limit(SEARCH_LIMIT)
@@ -67,6 +69,7 @@ export function useFriendSearch() {
         id: row.id,
         name: row.profiles.name,
         avatarPath: row.profiles.avatar_path,
+        friendCode: row.friend_code,
       }))
     } catch {
       if (version === currentVersion) results.value = []

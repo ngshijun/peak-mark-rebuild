@@ -120,7 +120,10 @@ async function copyFriendCode() {
               <AvatarFallback>{{ getInitials(student.name) }}</AvatarFallback>
             </Avatar>
 
-            <p class="flex-1 truncate font-medium">{{ student.name }}</p>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-medium">{{ student.name }}</p>
+              <p class="font-mono text-xs text-muted-foreground">{{ student.friendCode }}</p>
+            </div>
 
             <Button v-if="sentRequestIds.has(student.id)" size="sm" variant="secondary" disabled>
               Request Sent
