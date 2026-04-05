@@ -48,7 +48,7 @@ async function handleCancel(friendshipId: string) {
         </CardTitle>
         <CardDescription>Friend requests from other students</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent class="p-0">
         <div v-if="friendsStore.receivedRequests.length === 0" class="py-8 text-center">
           <Mail class="mx-auto size-12 text-muted-foreground/50" />
           <p class="mt-2 text-sm text-muted-foreground">No pending requests</p>
@@ -56,11 +56,11 @@ async function handleCancel(friendshipId: string) {
             When someone sends you a friend request, it will appear here
           </p>
         </div>
-        <div v-else class="space-y-2">
+        <div v-else class="divide-y border-t">
           <div
             v-for="req in friendsStore.receivedRequests"
             :key="req.friendshipId"
-            class="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3"
+            class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
           >
             <Avatar class="size-10">
               <AvatarImage :src="getAvatarUrl(req.avatarPath)" :alt="req.name" />
@@ -105,7 +105,7 @@ async function handleCancel(friendshipId: string) {
         </CardTitle>
         <CardDescription>Friend requests you've sent</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent class="p-0">
         <div v-if="friendsStore.sentRequests.length === 0" class="py-8 text-center">
           <Send class="mx-auto size-12 text-muted-foreground/50" />
           <p class="mt-2 text-sm text-muted-foreground">No sent requests</p>
@@ -113,11 +113,11 @@ async function handleCancel(friendshipId: string) {
             Requests you send will appear here until accepted
           </p>
         </div>
-        <div v-else class="space-y-2">
+        <div v-else class="divide-y border-t">
           <div
             v-for="req in friendsStore.sentRequests"
             :key="req.friendshipId"
-            class="flex items-center gap-3 rounded-lg border p-3"
+            class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
           >
             <Avatar class="size-10">
               <AvatarImage :src="getAvatarUrl(req.avatarPath)" :alt="req.name" />
