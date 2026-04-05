@@ -5,7 +5,6 @@ import { getAvatarUrl } from '@/lib/storage'
 import { useSubscriptionStore } from '@/stores/subscription'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   AlertDialog,
@@ -21,8 +20,11 @@ import {
 import InviteDialog from '@/components/shared/InviteDialog.vue'
 import InvitationCards from '@/components/shared/InvitationCards.vue'
 import { Users, Trash2, Loader2 } from 'lucide-vue-next'
+import fireGif from '@/assets/icons/fire.gif'
 import { toast } from 'vue-sonner'
 import { getInitials } from '@/lib/utils'
+import { computeLevel } from '@/lib/xp'
+import { formatRelativeDate } from '@/lib/date'
 
 const childLinkStore = useChildLinkStore()
 const subscriptionStore = useSubscriptionStore()
@@ -158,16 +160,44 @@ async function handleRemoveChild(childId: string) {
               :key="child.id"
               class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
             >
-              <Avatar class="mx-2 size-12">
+              <Avatar class="size-10">
                 <AvatarImage :src="getAvatarUrl(child.avatarPath)" :alt="child.name" />
                 <AvatarFallback>{{ getInitials(child.name) }}</AvatarFallback>
               </Avatar>
-              <div class="flex-1">
-                <p class="font-medium">{{ child.name }}</p>
-                <p class="text-sm text-muted-foreground">{{ child.email }}</p>
-                <Badge v-if="child.gradeLevelName" variant="outline" class="mt-1">
-                  {{ child.gradeLevelName }}
-                </Badge>
+
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium">{{ child.name }}</p>
+                <p class="text-xs text-muted-foreground">
+                  {{ child.gradeLevelName ?? 'No grade set' }}
+                </p>
+              </div>
+
+              <div class="flex items-start gap-6">
+                <div class="w-12 text-center">
+                  <p class="text-xs text-muted-foreground">Level</p>
+                  <p class="flex h-6 items-center justify-center font-semibold">
+                    {{ computeLevel(child.xp) }}
+                  </p>
+                </div>
+                <div class="w-12 text-center">
+                  <p class="text-xs text-muted-foreground">Streak</p>
+                  <p class="flex h-6 items-center justify-center gap-1 font-semibold">
+                    <img
+                      v-if="child.currentStreak > 0"
+                      :src="fireGif"
+                      alt="fire"
+                      loading="lazy"
+                      class="size-4"
+                    />
+                    {{ child.currentStreak }}
+                  </p>
+                </div>
+                <div class="w-20 text-center">
+                  <p class="text-xs text-muted-foreground">Last Active</p>
+                  <p class="flex h-6 items-center justify-center font-semibold">
+                    {{ formatRelativeDate(child.lastActive) }}
+                  </p>
+                </div>
               </div>
               <AlertDialog>
                 <AlertDialogTrigger as-child>
