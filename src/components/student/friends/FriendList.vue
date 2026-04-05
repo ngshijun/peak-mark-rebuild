@@ -74,7 +74,7 @@ async function handleRemove() {
         <p class="text-xs text-muted-foreground">Add some from the "Add Friend" tab!</p>
       </div>
 
-      <div v-else class="divide-y border-t">
+      <div v-else class="divide-y border-y">
         <div
           v-for="friend in friendsStore.friends"
           :key="friend.friendshipId"

@@ -58,7 +58,7 @@ const emit = defineEmits<{
         <Mail class="mx-auto size-12 text-muted-foreground/50" />
         <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
       </div>
-      <div v-else class="divide-y border-t">
+      <div v-else class="divide-y border-y">
         <div
           v-for="invitation in receivedInvitations"
           :key="invitation.id"
@@ -116,7 +116,7 @@ const emit = defineEmits<{
         <Send class="mx-auto size-12 text-muted-foreground/50" />
         <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
       </div>
-      <div v-else class="divide-y border-t">
+      <div v-else class="divide-y border-y">
         <div
           v-for="invitation in sentInvitations"
           :key="invitation.id"

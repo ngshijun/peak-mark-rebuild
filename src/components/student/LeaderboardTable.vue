@@ -58,7 +58,7 @@ function getRankBg(rank: number): string {
     <p class="text-muted-foreground">{{ emptyMessage ?? 'No students found.' }}</p>
   </div>
 
-  <div v-else class="divide-y border-t">
+  <div v-else class="divide-y border-y">
     <div
       v-for="entry in entries"
       :key="entry.id"

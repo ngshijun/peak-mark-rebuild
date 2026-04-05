@@ -152,7 +152,7 @@ async function handleRemoveChild(childId: string) {
             <p class="mt-2 text-sm text-muted-foreground">No linked children yet</p>
             <p class="text-xs text-muted-foreground">Invite a child to get started</p>
           </div>
-          <div v-else class="divide-y border-t">
+          <div v-else class="divide-y border-y">
             <div
               v-for="child in childLinkStore.linkedChildren"
               :key="child.id"

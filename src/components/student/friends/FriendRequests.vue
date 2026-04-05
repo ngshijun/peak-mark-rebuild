@@ -55,7 +55,7 @@ async function handleCancel(friendshipId: string) {
             When someone sends you a friend request, it will appear here
           </p>
         </div>
-        <div v-else class="divide-y border-t">
+        <div v-else class="divide-y border-y">
           <div
             v-for="req in friendsStore.receivedRequests"
             :key="req.friendshipId"
@@ -111,7 +111,7 @@ async function handleCancel(friendshipId: string) {
             Requests you send will appear here until accepted
           </p>
         </div>
-        <div v-else class="divide-y border-t">
+        <div v-else class="divide-y border-y">
           <div
             v-for="req in friendsStore.sentRequests"
             :key="req.friendshipId"
