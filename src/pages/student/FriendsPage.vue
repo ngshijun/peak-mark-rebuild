@@ -10,7 +10,9 @@ import AddFriend from '@/components/student/friends/AddFriend.vue'
 const friendsStore = useFriendsStore()
 
 onMounted(async () => {
-  await Promise.all([friendsStore.fetchFriends(), friendsStore.fetchRequests()])
+  if (friendsStore.friends.length === 0 && !friendsStore.isLoading) {
+    await Promise.all([friendsStore.fetchFriends(), friendsStore.fetchRequests()])
+  }
 })
 </script>
 

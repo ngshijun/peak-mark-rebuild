@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useFriendsStore } from '@/stores/friends'
+import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
 import { useFriendSearch } from '@/composables/useFriendSearch'
 import { useAuthStore } from '@/stores/auth'
 import { getAvatarUrl } from '@/lib/storage'
@@ -94,8 +94,7 @@ async function copyFriendCode() {
         </div>
 
         <p v-if="friendsStore.isFriendCapReached" class="text-sm text-destructive">
-          Friend limit reached ({{ friendsStore.FRIEND_CAP }}/{{ friendsStore.FRIEND_CAP }}). Remove
-          a friend to add new ones.
+          Friend limit reached ({{ FRIEND_CAP }}/{{ FRIEND_CAP }}). Remove a friend to add new ones.
         </p>
 
         <!-- Search results -->

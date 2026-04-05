@@ -399,3 +399,7 @@ SELECT cron.schedule(
   '0 0 * * *',
   $$SELECT decay_closeness_xp()$$
 );
+
+-- Index for fetchFriends gift query: WHERE sender_id = ? AND sent_date = ?
+CREATE INDEX idx_daily_gifts_sender_date
+  ON daily_coin_gifts (sender_id, sent_date);

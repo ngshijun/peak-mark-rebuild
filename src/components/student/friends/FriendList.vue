@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useFriendsStore } from '@/stores/friends'
+import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
 import { getAvatarUrl } from '@/lib/storage'
 import { getInitials } from '@/lib/utils'
 import { toast } from 'vue-sonner'
@@ -52,7 +52,7 @@ async function handleRemove() {
         <Users class="size-5" />
         My Friends
         <Badge variant="secondary" class="ml-2">
-          {{ friendsStore.friendCount }}/{{ friendsStore.FRIEND_CAP }}
+          {{ friendsStore.friendCount }}/{{ FRIEND_CAP }}
         </Badge>
       </CardTitle>
     </CardHeader>

@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, watch, onScopeDispose } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from '@/stores/auth'
 
@@ -87,6 +87,10 @@ export function useFriendSearch() {
     }
 
     debounceTimer = setTimeout(() => search(trimmed), DEBOUNCE_MS)
+  })
+
+  onScopeDispose(() => {
+    if (debounceTimer) clearTimeout(debounceTimer)
   })
 
   function clear() {

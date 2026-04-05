@@ -33,7 +33,6 @@ async function handleCancel(friendshipId: string) {
     toast.error(error)
   } else {
     toast.success('Request cancelled')
-    await friendsStore.fetchRequests()
   }
 }
 </script>

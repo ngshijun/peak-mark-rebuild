@@ -4,14 +4,14 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 
-const FRIEND_CAP = 30
+export const FRIEND_CAP = 30
 
 type FriendshipProfile = {
   id: string
   profiles: { name: string; avatar_path: string | null }
 }
 
-const CLOSENESS_LABELS: Record<number, string> = {
+export const CLOSENESS_LABELS: Record<number, string> = {
   0: 'New Friend',
   1: 'Acquaintance',
   2: 'Buddy',
@@ -39,6 +39,14 @@ export interface FriendRequest {
   createdAt: string
 }
 
+function getOtherProfile(
+  row: { requester_id: string; recipient_id: string; requester: unknown; recipient: unknown },
+  userId: string,
+): FriendshipProfile {
+  const isRequester = row.requester_id === userId
+  return (isRequester ? row.recipient : row.requester) as unknown as FriendshipProfile
+}
+
 export const useFriendsStore = defineStore('friends', () => {
   const authStore = useAuthStore()
 
@@ -58,52 +66,47 @@ export const useFriendsStore = defineStore('friends', () => {
     try {
       isLoading.value = true
 
-      const { data, error: fetchError } = await supabase
-        .from('friendships')
-        .select(
-          `
-          id,
-          requester_id,
-          recipient_id,
-          closeness_xp,
-          closeness_level,
-          requester:student_profiles!friendships_requester_id_fkey(
+      const [friendshipsResult, giftsResult] = await Promise.all([
+        supabase
+          .from('friendships')
+          .select(
+            `
             id,
-            profiles!inner(name, avatar_path)
-          ),
-          recipient:student_profiles!friendships_recipient_id_fkey(
-            id,
-            profiles!inner(name, avatar_path)
+            requester_id,
+            recipient_id,
+            closeness_xp,
+            closeness_level,
+            requester:student_profiles!friendships_requester_id_fkey(
+              id,
+              profiles!inner(name, avatar_path)
+            ),
+            recipient:student_profiles!friendships_recipient_id_fkey(
+              id,
+              profiles!inner(name, avatar_path)
+            )
+          `,
           )
-        `,
-        )
-        .eq('status', 'accepted')
-        .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`)
+          .eq('status', 'accepted')
+          .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`),
+        supabase
+          .from('daily_coin_gifts')
+          .select('friendship_id')
+          .eq('sender_id', userId)
+          .eq('sent_date', new Date().toISOString().split('T')[0]),
+      ])
 
-      if (fetchError) throw fetchError
+      if (friendshipsResult.error) throw friendshipsResult.error
+      if (giftsResult.error) throw giftsResult.error
 
-      const { data: todayGifts, error: giftsError } = await supabase
-        .from('daily_coin_gifts')
-        .select('friendship_id')
-        .eq('sender_id', userId)
-        .eq('sent_date', new Date().toISOString().split('T')[0])
+      const sentGiftSet = new Set(giftsResult.data?.map((g) => g.friendship_id) ?? [])
 
-      if (giftsError) throw giftsError
-
-      const sentGiftSet = new Set(todayGifts?.map((g) => g.friendship_id) ?? [])
-
-      friends.value = (data ?? []).map((row) => {
-        const isRequester = row.requester_id === userId
-        const friendProfile = (isRequester
-          ? row.recipient
-          : row.requester) as unknown as FriendshipProfile
-        const profile = friendProfile.profiles
-
+      friends.value = (friendshipsResult.data ?? []).map((row) => {
+        const other = getOtherProfile(row, userId)
         return {
           friendshipId: row.id,
-          friendId: friendProfile.id,
-          name: profile.name,
-          avatarPath: profile.avatar_path,
+          friendId: other.id,
+          name: other.profiles.name,
+          avatarPath: other.profiles.avatar_path,
           closenessXp: row.closeness_xp,
           closenessLevel: row.closeness_level,
           closenessLabel: CLOSENESS_LABELS[row.closeness_level] ?? 'New Friend',
@@ -152,21 +155,16 @@ export const useFriendsStore = defineStore('friends', () => {
       sentRequests.value = []
 
       for (const row of data ?? []) {
-        const isRequester = row.requester_id === userId
-        const otherProfile = (isRequester
-          ? row.recipient
-          : row.requester) as unknown as FriendshipProfile
-        const profile = otherProfile.profiles
-
+        const other = getOtherProfile(row, userId)
         const request: FriendRequest = {
           friendshipId: row.id,
-          studentId: otherProfile.id,
-          name: profile.name,
-          avatarPath: profile.avatar_path,
+          studentId: other.id,
+          name: other.profiles.name,
+          avatarPath: other.profiles.avatar_path,
           createdAt: row.created_at,
         }
 
-        if (isRequester) {
+        if (row.requester_id === userId) {
           sentRequests.value.push(request)
         } else {
           receivedRequests.value.push(request)
@@ -234,6 +232,7 @@ export const useFriendsStore = defineStore('friends', () => {
       })
       if (rpcError) throw rpcError
       friends.value = friends.value.filter((f) => f.friendshipId !== friendshipId)
+      sentRequests.value = sentRequests.value.filter((r) => r.friendshipId !== friendshipId)
       return { error: null }
     } catch (err) {
       return { error: handleError(err, 'Failed to remove friend.') }
@@ -262,7 +261,5 @@ export const useFriendsStore = defineStore('friends', () => {
     sendCoins,
     removeFriend,
     $reset,
-    FRIEND_CAP,
-    CLOSENESS_LABELS,
   }
 })
