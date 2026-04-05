@@ -22,6 +22,20 @@ export function getInitials(name: string): string {
     .toUpperCase()
 }
 
+export const MEDAL_EMOJIS = ['🥇', '🥈', '🥉'] as const
+
+export function getScoreBarColor(score: number): string {
+  if (score >= 80) return 'bg-green-500'
+  if (score >= 60) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
+
+export function getScoreTextColor(score: number): string {
+  if (score >= 80) return 'text-green-600'
+  if (score >= 60) return 'text-yellow-600'
+  return 'text-red-600'
+}
+
 /**
  * Parses simple markdown to HTML.
  * Supports: **bold**, *italic*, and newlines.

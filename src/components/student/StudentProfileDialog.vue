@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 
 import { rarityConfig } from '@/stores/pets'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
-import { getInitials } from '@/lib/utils'
+import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
 import { formatDate } from '@/lib/date'
 import { Loader2, Star, PawPrint, Heart, Trophy, Flame } from 'lucide-vue-next'
@@ -31,20 +31,6 @@ watch(
     }
   },
 )
-
-function getScoreBarColor(score: number): string {
-  if (score >= 80) return 'bg-green-500'
-  if (score >= 60) return 'bg-yellow-500'
-  return 'bg-red-500'
-}
-
-function getScoreTextColor(score: number): string {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-const medals = ['🥇', '🥈', '🥉']
 
 // Computed helpers to avoid `as Record<string, unknown>` casts in template
 // (prettier's HTML parser chokes on angle brackets in type assertions)
@@ -183,7 +169,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               </div>
               <div class="space-y-2">
                 <div v-for="index in 3" :key="index" class="flex items-center gap-2">
-                  <span class="text-lg leading-none">{{ medals[index - 1] }}</span>
+                  <span class="text-lg leading-none">{{ MEDAL_EMOJIS[index - 1] }}</span>
                   <template v-if="bestSubjects[index - 1]">
                     <div class="min-w-0 flex-1">
                       <div class="flex items-baseline justify-between gap-2">
@@ -286,19 +272,3 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-@keyframes bounce-slow {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.animate-bounce-slow {
-  animation: bounce-slow 2s ease-in-out infinite;
-}
-</style>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { useFriendsStore } from '@/stores/friends'
@@ -8,12 +7,6 @@ import FriendRequests from '@/components/student/friends/FriendRequests.vue'
 import AddFriend from '@/components/student/friends/AddFriend.vue'
 
 const friendsStore = useFriendsStore()
-
-onMounted(async () => {
-  if (friendsStore.friends.length === 0 && !friendsStore.isLoading) {
-    await Promise.all([friendsStore.fetchFriends(), friendsStore.fetchRequests()])
-  }
-})
 </script>
 
 <template>

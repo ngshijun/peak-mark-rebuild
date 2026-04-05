@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { rarityConfig } from '@/stores/pets'
 import { CLOSENESS_LABELS, CLOSENESS_THRESHOLDS } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
-import { getInitials } from '@/lib/utils'
+import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
 import { formatDate } from '@/lib/date'
 import {
@@ -34,14 +34,11 @@ const props = defineProps<{
 const { profile, pet, bestSubjects, weeklyActivity, isLoading, fetchProfile } =
   useStudentProfileDialog()
 
-watch(
-  () => ({ isOpen: open.value, friendId: props.friend?.friendId }),
-  ({ isOpen, friendId }) => {
-    if (isOpen && friendId) {
-      fetchProfile(friendId)
-    }
-  },
-)
+watch([open, () => props.friend?.friendId], ([isOpen, friendId]) => {
+  if (isOpen && friendId) {
+    fetchProfile(friendId)
+  }
+})
 
 const closenessProgress = computed(() => {
   if (!props.friend) return 0
@@ -65,20 +62,6 @@ const xpToNextLevel = computed(() => {
   if (!nextThreshold) return 0
   return nextThreshold - props.friend.closenessXp
 })
-
-function getScoreBarColor(score: number): string {
-  if (score >= 80) return 'bg-green-500'
-  if (score >= 60) return 'bg-yellow-500'
-  return 'bg-red-500'
-}
-
-function getScoreTextColor(score: number): string {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-const medals = ['🥇', '🥈', '🥉']
 </script>
 
 <template>
@@ -230,7 +213,7 @@ const medals = ['🥇', '🥈', '🥉']
               </div>
               <div class="space-y-2">
                 <div v-for="index in 3" :key="index" class="flex items-center gap-2">
-                  <span class="text-lg leading-none">{{ medals[index - 1] }}</span>
+                  <span class="text-lg leading-none">{{ MEDAL_EMOJIS[index - 1] }}</span>
                   <template v-if="bestSubjects[index - 1]">
                     <div class="min-w-0 flex-1">
                       <div class="flex items-baseline justify-between gap-2">
@@ -337,19 +320,3 @@ const medals = ['🥇', '🥈', '🥉']
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-@keyframes bounce-slow {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.animate-bounce-slow {
-  animation: bounce-slow 2s ease-in-out infinite;
-}
-</style>

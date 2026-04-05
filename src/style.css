@@ -195,6 +195,20 @@
   color: var(--secondary-foreground);
 }
 
+@keyframes bounce-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
 .clavis-tour-popover .driver-popover-arrow-side-left .driver-popover-arrow,
 .clavis-tour-popover .driver-popover-arrow-side-right .driver-popover-arrow,
 .clavis-tour-popover .driver-popover-arrow-side-top .driver-popover-arrow,

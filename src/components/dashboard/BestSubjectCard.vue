@@ -5,6 +5,7 @@ import { computeScorePercent } from '@/lib/questionHelpers'
 import { useRouter } from 'vue-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy } from 'lucide-vue-next'
+import { getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 
 const practiceStore = usePracticeHistoryStore()
 const router = useRouter()
@@ -61,20 +62,6 @@ const topSubjects = computed<SubjectStats[]>(() => {
   return subjects.sort((a, b) => b.averageScore - a.averageScore).slice(0, 3)
 })
 
-function getScoreBarColor(score: number): string {
-  if (score >= 80) return 'bg-green-500'
-  if (score >= 60) return 'bg-yellow-500'
-  return 'bg-red-500'
-}
-
-function getScoreTextColor(score: number): string {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-const medals = ['🥇', '🥈', '🥉']
-
 function goToHistory() {
   router.push('/student/history')
 }
@@ -93,7 +80,7 @@ function goToHistory() {
     <CardContent>
       <div class="space-y-3">
         <div v-for="index in 3" :key="index" class="flex items-center gap-2">
-          <span class="text-lg leading-none">{{ medals[index - 1] }}</span>
+          <span class="text-lg leading-none">{{ MEDAL_EMOJIS[index - 1] }}</span>
           <template v-if="topSubjects[index - 1]">
             <div class="min-w-0 flex-1">
               <div class="flex items-baseline justify-between gap-2">
