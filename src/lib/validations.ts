@@ -41,10 +41,15 @@ const signupFormZod = z
       required_error: 'Please select a user type',
     }),
     dateOfBirth: z.string().optional(),
+    schoolId: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
+  })
+  .refine((data) => data.userType !== 'student' || !!data.schoolId, {
+    message: 'Please select a school',
+    path: ['schoolId'],
   })
 export const signupFormSchema = toTypedSchema(signupFormZod)
 export type SignupFormValues = z.infer<typeof signupFormZod>

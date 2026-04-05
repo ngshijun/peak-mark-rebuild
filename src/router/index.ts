@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import type { Database } from '@/types/database.types'
+
+type UserType = Database['public']['Enums']['user_type']
 
 /**
  * Route guards for data preloading
@@ -346,59 +348,39 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach(
-  async (
-    to: RouteLocationNormalized,
-    _from: RouteLocationNormalized,
-    next: NavigationGuardNext,
-  ) => {
-    const authStore = useAuthStore()
+function getDashboardPath(userType: UserType | null): string {
+  if (userType === 'admin') return '/admin/dashboard'
+  if (userType === 'parent') return '/parent/dashboard'
+  return '/student/dashboard'
+}
 
-    // Initialize auth if not already done
-    if (!authStore.isInitialized) {
-      await authStore.initialize()
-    }
+router.beforeEach(async (to) => {
+  const authStore = useAuthStore()
 
-    const isAuthenticated = authStore.isAuthenticated
-    const userType = authStore.userType
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
+  }
 
-    // Check if route requires authentication
-    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
-    const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
-    const allowedRoles = to.matched.find((record) => record.meta.allowedRoles)?.meta
-      .allowedRoles as string[] | undefined
+  const isAuthenticated = authStore.isAuthenticated
+  const userType = authStore.userType
 
-    // If route requires guest (login/signup) and user is authenticated
-    if (requiresGuest && isAuthenticated) {
-      // Redirect to appropriate dashboard
-      if (userType === 'admin') {
-        return next('/admin/dashboard')
-      } else if (userType === 'student') {
-        return next('/student/dashboard')
-      } else if (userType === 'parent') {
-        return next('/parent/dashboard')
-      }
-    }
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
+  const allowedRoles = to.matched.find((record) => record.meta.allowedRoles)?.meta.allowedRoles as
+    | string[]
+    | undefined
 
-    // If route requires auth and user is not authenticated
-    if (requiresAuth && !isAuthenticated) {
-      return next('/login')
-    }
+  if (requiresGuest && isAuthenticated) {
+    return getDashboardPath(userType)
+  }
 
-    // If route requires specific role and user doesn't have it
-    if (requiresAuth && allowedRoles && userType && !allowedRoles.includes(userType)) {
-      // Redirect to user's own dashboard
-      if (userType === 'admin') {
-        return next('/admin/dashboard')
-      } else if (userType === 'student') {
-        return next('/student/dashboard')
-      } else if (userType === 'parent') {
-        return next('/parent/dashboard')
-      }
-    }
+  if (requiresAuth && !isAuthenticated) {
+    return '/login'
+  }
 
-    next()
-  },
-)
+  if (requiresAuth && allowedRoles && userType && !allowedRoles.includes(userType)) {
+    return getDashboardPath(userType)
+  }
+})
 
 export default router

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
-import { getStorageImageUrl, type ImageTransformOptions } from '@/lib/storage'
+import { getStorageImageUrl } from '@/lib/storage'
 
 export type PetRarity = Database['public']['Enums']['pet_rarity']
 
@@ -188,22 +188,18 @@ export const usePetsStore = defineStore('pets', () => {
     }
   }
 
-  // Get pet image URL from storage path with optional transformation and cache-busting
-  function getPetImageUrl(
-    imagePath: string | null,
-    updatedAt?: string | null,
-    transform?: ImageTransformOptions,
-  ): string {
-    const url = getStorageImageUrl('pet-images', imagePath, transform)
+  // Get pet image URL from storage path with cache-busting
+  function getPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
+    const url = getStorageImageUrl('pet-images', imagePath)
     if (!url || !updatedAt) return url
     // Add cache-busting query param for pet images that change on evolution
     const separator = url.includes('?') ? '&' : '?'
     return `${url}${separator}v=${new Date(updatedAt).getTime()}`
   }
 
-  // Get optimized pet image URL (medium size for dialog display)
+  // Alias kept for call-site compatibility (images are pre-optimized at upload time)
   function getOptimizedPetImageUrl(imagePath: string | null, updatedAt?: string | null): string {
-    return getPetImageUrl(imagePath, updatedAt, { width: 800, quality: 80 })
+    return getPetImageUrl(imagePath, updatedAt)
   }
 
   // Get pet image URL based on tier
