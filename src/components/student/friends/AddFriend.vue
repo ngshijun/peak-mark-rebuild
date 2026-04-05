@@ -19,16 +19,17 @@ const sendingTo = ref<string | null>(null)
 
 const friendCode = computed(() => authStore.studentProfile?.friendCode ?? '')
 
-// Exclude existing friends and pending requests from search results
-const existingIds = computed(() => {
+// Exclude existing friends and received requests from search results (but keep sent requests visible)
+const hiddenIds = computed(() => {
   const ids = new Set<string>()
   for (const f of friendsStore.friends) ids.add(f.friendId)
   for (const r of friendsStore.receivedRequests) ids.add(r.studentId)
-  for (const r of friendsStore.sentRequests) ids.add(r.studentId)
   return ids
 })
 
-const filteredResults = computed(() => results.value.filter((r) => !existingIds.value.has(r.id)))
+const sentRequestIds = computed(() => new Set(friendsStore.sentRequests.map((r) => r.studentId)))
+
+const filteredResults = computed(() => results.value.filter((r) => !hiddenIds.value.has(r.id)))
 
 async function handleSendRequest(targetId: string, name: string) {
   sendingTo.value = targetId
@@ -121,7 +122,11 @@ async function copyFriendCode() {
 
             <p class="flex-1 truncate font-medium">{{ student.name }}</p>
 
+            <Button v-if="sentRequestIds.has(student.id)" size="sm" variant="secondary" disabled>
+              Request Sent
+            </Button>
             <Button
+              v-else
               size="sm"
               :disabled="friendsStore.isFriendCapReached || sendingTo === student.id"
               @click="handleSendRequest(student.id, student.name)"
