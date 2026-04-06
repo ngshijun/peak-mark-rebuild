@@ -405,3 +405,27 @@ CREATE INDEX idx_daily_gifts_sender_date
   ON daily_coin_gifts (sender_id, sent_date);
 CREATE INDEX idx_daily_gifts_receiver_date
   ON daily_coin_gifts (receiver_id, sent_date);
+
+-- ============================================================
+-- 8. Announcement for friend system launch
+-- ============================================================
+INSERT INTO announcements (title, content, target_audience, is_pinned, created_by)
+VALUES (
+  'New: Friend System!',
+  'You can now add friends and send them **5 free coins** every day! Head to the **Friends** page from the sidebar to get started.'
+  || E'\n\n'
+  || '*How it works:*'
+  || E'\n'
+  || '- Send coins to a friend for free every day'
+  || E'\n'
+  || '- When both of you send coins on the same day, your **closeness** grows'
+  || E'\n'
+  || '- Build closeness to level up your **friendship level**'
+  || E'\n'
+  || '- Closeness slowly drops if you stop sending, so keep it up!'
+  || E'\n\n'
+  || 'Share your **friend code** with classmates so they can find and add you.',
+  'students_only',
+  true,
+  (SELECT id FROM profiles WHERE user_type = 'admin' LIMIT 1)
+);
