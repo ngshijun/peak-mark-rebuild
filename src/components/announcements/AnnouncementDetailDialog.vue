@@ -68,7 +68,7 @@ watch(
 
         <!-- Content -->
         <div
-          class="prose prose-sm max-w-none whitespace-pre-wrap dark:prose-invert"
+          class="prose prose-sm max-w-none dark:prose-invert"
           v-html="parseSimpleMarkdown(announcement.content)"
         />
 
