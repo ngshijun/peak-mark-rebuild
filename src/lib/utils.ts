@@ -59,7 +59,7 @@ export function parseSimpleMarkdown(text: string): string {
     const listMatch = line.match(/^- (.+)$/)
     if (listMatch) {
       if (!inList) {
-        output.push('<ul>')
+        output.push('<ul class="my-2 ml-4 list-disc space-y-1">')
         inList = true
       }
       output.push(`<li>${listMatch[1]}</li>`)

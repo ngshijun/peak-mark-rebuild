@@ -67,10 +67,7 @@ watch(
         />
 
         <!-- Content -->
-        <div
-          class="prose prose-sm max-w-none dark:prose-invert"
-          v-html="parseSimpleMarkdown(announcement.content)"
-        />
+        <div class="text-sm leading-relaxed" v-html="parseSimpleMarkdown(announcement.content)" />
 
         <!-- Expiry info -->
         <div v-if="announcement.expiresAt" class="text-sm text-muted-foreground">
