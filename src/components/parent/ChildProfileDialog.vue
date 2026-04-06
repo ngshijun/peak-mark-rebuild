@@ -15,7 +15,6 @@ import {
   Loader2,
   Star,
   PawPrint,
-  Heart,
   Trophy,
   Flame,
   Mail,
@@ -156,7 +155,7 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
               <div
                 class="flex size-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50"
               >
-                <Heart class="size-12 text-purple-400" />
+                <PawPrint class="size-12 text-purple-400" />
               </div>
               <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
             </div>

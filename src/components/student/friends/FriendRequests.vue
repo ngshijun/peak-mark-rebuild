@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { useFriendsStore } from '@/stores/friends'
+import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
 import { getAvatarUrl } from '@/lib/storage'
 import { getInitials } from '@/lib/utils'
 import { toast } from 'vue-sonner'
@@ -13,6 +13,12 @@ const friendsStore = useFriendsStore()
 const respondingTo = ref<string | null>(null)
 
 async function handleRespond(friendshipId: string, name: string, accept: boolean) {
+  if (accept && friendsStore.isFriendCapReached) {
+    toast.error(
+      `Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to accept requests.`,
+    )
+    return
+  }
   respondingTo.value = friendshipId
   const { error } = await friendsStore.respondRequest(friendshipId, accept)
   respondingTo.value = null

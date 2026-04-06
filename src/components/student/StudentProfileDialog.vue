@@ -1,16 +1,30 @@
 <script setup lang="ts">
-import { watch, computed } from 'vue'
+import { watch, computed, ref } from 'vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 import { rarityConfig } from '@/stores/pets'
+import { useAuthStore } from '@/stores/auth'
+import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
 import { formatDate } from '@/lib/date'
-import { Loader2, Star, PawPrint, Heart, Trophy, Flame } from 'lucide-vue-next'
+import {
+  Loader2,
+  Star,
+  PawPrint,
+  Trophy,
+  Flame,
+  UserPlus,
+  UserCheck,
+  Clock,
+  Check,
+} from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
+import { toast } from 'vue-sonner'
 import type { LeaderboardEntry } from '@/components/student/LeaderboardTable.vue'
 
 const open = defineModel<boolean>('open', { default: false })
@@ -20,17 +34,74 @@ const props = defineProps<{
   activeTab: 'all-time' | 'weekly'
 }>()
 
+const authStore = useAuthStore()
+const friendsStore = useFriendsStore()
+
 const { profile, pet, bestSubjects, weeklyActivity, isLoading, fetchProfile } =
   useStudentProfileDialog()
+
+const isActionPending = ref(false)
 
 watch(
   () => ({ isOpen: open.value, studentId: props.student?.id }),
   ({ isOpen, studentId }) => {
     if (isOpen && studentId) {
       fetchProfile(studentId)
+      if (!friendsStore.hasFetchedFriends) friendsStore.fetchFriends()
+      if (!friendsStore.hasFetchedRequests) friendsStore.fetchRequests()
     }
   },
 )
+
+const isSelf = computed(() => props.student?.id === authStore.user?.id)
+
+const friendRecord = computed(() =>
+  friendsStore.friends.find((f) => f.friendId === props.student?.id),
+)
+
+const friendshipStatus = computed<'none' | 'friends' | 'sent' | 'received'>(() => {
+  const studentId = props.student?.id
+  if (!studentId) return 'none'
+  if (friendRecord.value) return 'friends'
+  if (friendsStore.sentRequests.some((r) => r.studentId === studentId)) return 'sent'
+  if (friendsStore.receivedRequests.some((r) => r.studentId === studentId)) return 'received'
+  return 'none'
+})
+
+async function handleAddFriend() {
+  if (!props.student?.id) return
+  if (friendsStore.isFriendCapReached) {
+    toast.error(`Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to add new ones.`)
+    return
+  }
+  isActionPending.value = true
+  const { error } = await friendsStore.sendRequest(props.student.id)
+  isActionPending.value = false
+  if (error) {
+    toast.error(error)
+  } else {
+    toast.success(`Friend request sent to ${props.student.name}!`)
+  }
+}
+
+async function handleAcceptRequest() {
+  const request = friendsStore.receivedRequests.find((r) => r.studentId === props.student?.id)
+  if (!request) return
+  if (friendsStore.isFriendCapReached) {
+    toast.error(
+      `Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to accept requests.`,
+    )
+    return
+  }
+  isActionPending.value = true
+  const { error } = await friendsStore.respondRequest(request.friendshipId, true)
+  isActionPending.value = false
+  if (error) {
+    toast.error(error)
+  } else {
+    toast.success(`You and ${props.student?.name} are now friends!`)
+  }
+}
 
 // Computed helpers to avoid `as Record<string, unknown>` casts in template
 // (prettier's HTML parser chokes on angle brackets in type assertions)
@@ -58,7 +129,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               <AvatarImage :src="getAvatarUrl(student.avatarPath)" :alt="student.name" />
               <AvatarFallback class="text-lg">{{ getInitials(student.name) }}</AvatarFallback>
             </Avatar>
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
               <DialogTitle class="truncate text-xl">{{ student.name }}</DialogTitle>
               <div class="mt-1 flex items-center gap-2">
                 <Badge variant="outline">{{ student.gradeLevelName ?? 'N/A' }}</Badge>
@@ -67,6 +138,42 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                   Rank {{ student.rank }}
                 </Badge>
               </div>
+            </div>
+
+            <!-- Friend action button -->
+            <div v-if="!isSelf && !isLoading && friendsStore.hasFetchedFriends" class="shrink-0">
+              <Badge
+                v-if="friendshipStatus === 'friends' && friendRecord"
+                variant="secondary"
+                class="gap-1.5 px-3 py-1.5 text-sm"
+              >
+                <UserCheck class="size-4" />
+                {{ friendRecord.closenessLabel }}
+              </Badge>
+              <Button
+                v-else-if="friendshipStatus === 'sent'"
+                size="sm"
+                variant="secondary"
+                disabled
+              >
+                <Clock class="mr-1 size-4" />
+                Request Sent
+              </Button>
+              <Button
+                v-else-if="friendshipStatus === 'received'"
+                size="sm"
+                :disabled="isActionPending"
+                @click="handleAcceptRequest"
+              >
+                <Check v-if="!isActionPending" class="mr-1 size-4" />
+                <Loader2 v-else class="mr-1 size-4 animate-spin" />
+                Accept Request
+              </Button>
+              <Button v-else size="sm" :disabled="isActionPending" @click="handleAddFriend">
+                <UserPlus v-if="!isActionPending" class="mr-1 size-4" />
+                <Loader2 v-else class="mr-1 size-4 animate-spin" />
+                Add Friend
+              </Button>
             </div>
           </div>
         </DialogHeader>
@@ -154,7 +261,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               <div
                 class="flex size-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50"
               >
-                <Heart class="size-12 text-purple-400" />
+                <PawPrint class="size-12 text-purple-400" />
               </div>
               <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
             </div>

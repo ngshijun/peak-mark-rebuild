@@ -13,16 +13,7 @@ import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
 import { formatDate, formatRelativeDate } from '@/lib/date'
-import {
-  Loader2,
-  Star,
-  PawPrint,
-  Heart,
-  Trophy,
-  Flame,
-  CalendarHeart,
-  Handshake,
-} from 'lucide-vue-next'
+import { Loader2, Star, PawPrint, Trophy, Flame, CalendarHeart, Handshake } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
 import type { Friend } from '@/stores/friends'
 
@@ -218,7 +209,7 @@ const xpToNextLevel = computed(() => {
               <div
                 class="flex size-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50"
               >
-                <Heart class="size-12 text-purple-400" />
+                <PawPrint class="size-12 text-purple-400" />
               </div>
               <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
             </div>

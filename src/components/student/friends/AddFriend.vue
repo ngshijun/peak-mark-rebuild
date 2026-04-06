@@ -32,6 +32,10 @@ const sentRequestIds = computed(() => new Set(friendsStore.sentRequests.map((r) 
 const filteredResults = computed(() => results.value.filter((r) => !hiddenIds.value.has(r.id)))
 
 async function handleSendRequest(targetId: string, name: string) {
+  if (friendsStore.isFriendCapReached) {
+    toast.error(`Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to add new ones.`)
+    return
+  }
   sendingTo.value = targetId
   const { error } = await friendsStore.sendRequest(targetId)
   sendingTo.value = null

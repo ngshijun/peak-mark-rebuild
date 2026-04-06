@@ -60,6 +60,8 @@ export const useFriendsStore = defineStore('friends', () => {
   const receivedRequests = ref<FriendRequest[]>([])
   const sentRequests = ref<FriendRequest[]>([])
   const isLoading = ref(false)
+  const hasFetchedFriends = ref(false)
+  const hasFetchedRequests = ref(false)
 
   const friendCount = computed(() => friends.value.length)
   const pendingRequestCount = computed(() => receivedRequests.value.length)
@@ -134,6 +136,7 @@ export const useFriendsStore = defineStore('friends', () => {
           receivedToday: receivedGiftSet.has(row.id),
         }
       })
+      hasFetchedFriends.value = true
 
       return { error: null }
     } catch (err) {
@@ -191,6 +194,7 @@ export const useFriendsStore = defineStore('friends', () => {
           receivedRequests.value.push(request)
         }
       }
+      hasFetchedRequests.value = true
 
       return { error: null }
     } catch (err) {
@@ -265,6 +269,8 @@ export const useFriendsStore = defineStore('friends', () => {
     receivedRequests.value = []
     sentRequests.value = []
     isLoading.value = false
+    hasFetchedFriends.value = false
+    hasFetchedRequests.value = false
   }
 
   return {
@@ -275,6 +281,8 @@ export const useFriendsStore = defineStore('friends', () => {
     friendCount,
     pendingRequestCount,
     isFriendCapReached,
+    hasFetchedFriends,
+    hasFetchedRequests,
     fetchFriends,
     fetchRequests,
     sendRequest,

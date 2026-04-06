@@ -78,8 +78,10 @@ function studentRouteGuard() {
 
       leaderboardStore.checkUnseenReward()
 
-      if (friendsStore.friends.length === 0 && !friendsStore.isLoading) {
+      if (!friendsStore.hasFetchedFriends && !friendsStore.isLoading) {
         friendsStore.fetchFriends()
+      }
+      if (!friendsStore.hasFetchedRequests) {
         friendsStore.fetchRequests()
       }
     },
