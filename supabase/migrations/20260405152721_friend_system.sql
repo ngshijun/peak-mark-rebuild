@@ -429,3 +429,10 @@ VALUES (
   true,
   (SELECT id FROM profiles WHERE user_type = 'admin' LIMIT 1)
 );
+
+-- ============================================================
+-- Drop old create_user_profile overload (5 params, no p_school_id)
+-- The schools migration created a new 6-param overload instead of
+-- replacing the original, causing PGRST203 ambiguous function error.
+-- ============================================================
+DROP FUNCTION IF EXISTS public.create_user_profile(uuid, text, text, text, date);
