@@ -47,9 +47,8 @@ export default defineConfig({
           if (id.includes('node_modules/@unovis/')) {
             return 'unovis'
           }
-          if (id.includes('node_modules/driver.js/')) {
-            return 'driver'
-          }
+          // driver.js omitted from manualChunks — Rolldown minification bug
+          // (driver_exports binding not renamed in export statement)
           if (id.includes('node_modules/vee-validate/') || id.includes('node_modules/@vee-validate/')) {
             return 'vee-validate'
           }
