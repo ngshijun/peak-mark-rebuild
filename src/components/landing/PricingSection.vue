@@ -12,7 +12,7 @@ const popularIndex = 2 // Pro plan
 </script>
 
 <template>
-  <section class="border-t py-20">
+  <section class="border-t bg-landing-band py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
         <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.pricing.title }}</h2>
@@ -26,8 +26,8 @@ const popularIndex = 2 // Pro plan
           v-for="(plan, index) in t.pricing.plans"
           :key="index"
           :class="[
-            'relative flex flex-col',
-            index === popularIndex ? 'border-primary shadow-lg' : '',
+            'relative flex flex-col bg-landing-band-alt',
+            index === popularIndex ? 'border-primary shadow-lg' : 'shadow-md',
           ]"
         >
           <Badge v-if="index === popularIndex" class="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -44,9 +44,9 @@ const popularIndex = 2 // Pro plan
                   {{ plan.originalPrice }}
                 </span>
                 <span
-                  class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+                  class="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground"
                 >
-                  Save {{ plan.savePercent }}
+                  {{ t.pricing.save }}{{ plan.savePercent }}
                 </span>
               </div>
               <span class="text-3xl font-bold">{{ plan.price }}</span>
@@ -62,7 +62,10 @@ const popularIndex = 2 // Pro plan
             </ul>
             <Button
               :variant="index === popularIndex ? 'default' : 'outline'"
-              class="w-full"
+              :class="[
+                'w-full',
+                index !== popularIndex ? 'bg-landing-band dark:bg-landing-band' : '',
+              ]"
               as-child
             >
               <RouterLink to="/signup">{{ t.pricing.getStarted }}</RouterLink>

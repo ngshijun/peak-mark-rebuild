@@ -9,7 +9,7 @@ const { t } = storeToRefs(useLanguageStore())
 </script>
 
 <template>
-  <section class="border-t bg-muted/30 py-20">
+  <section class="border-t bg-landing-band-alt py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
         <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.testimonials.title }}</h2>
@@ -22,7 +22,7 @@ const { t } = storeToRefs(useLanguageStore())
         <Card
           v-for="(testimonial, index) in t.testimonials.items"
           :key="index"
-          class="relative flex flex-col"
+          class="relative flex flex-col bg-landing-band shadow-md"
         >
           <CardContent class="flex flex-1 flex-col pt-6">
             <Quote class="absolute right-4 top-4 size-8 text-muted-foreground/20" />
