@@ -23,6 +23,10 @@ export const CLOSENESS_LABELS: Record<number, string> = {
   5: 'Best Friend',
 }
 
+function getClosenessLabel(level: number): string {
+  return CLOSENESS_LABELS[level] ?? CLOSENESS_LABELS[0]!
+}
+
 export interface Friend {
   friendshipId: string
   friendId: string
@@ -129,7 +133,7 @@ export const useFriendsStore = defineStore('friends', () => {
           avatarPath: other.profiles.avatar_path,
           closenessXp: row.closeness_xp,
           closenessLevel: row.closeness_level,
-          closenessLabel: CLOSENESS_LABELS[row.closeness_level] ?? 'New Friend',
+          closenessLabel: getClosenessLabel(row.closeness_level),
           friendSince: row.responded_at ?? row.created_at,
           lastActive: other.updated_at,
           sentToday: sentGiftSet.has(row.id),
@@ -234,7 +238,7 @@ export const useFriendsStore = defineStore('friends', () => {
 
   async function sendCoins(friendshipId: string): Promise<{ error: string | null }> {
     try {
-      const { error: rpcError } = await supabase.rpc('send_daily_coins', {
+      const { data, error: rpcError } = await supabase.rpc('send_daily_coins', {
         p_friendship_id: friendshipId,
       })
       if (rpcError) throw rpcError
@@ -242,6 +246,15 @@ export const useFriendsStore = defineStore('friends', () => {
       const friend = friends.value.find((f) => f.friendshipId === friendshipId)
       if (friend) {
         friend.sentToday = true
+
+        // RPC returns post-update closeness state either way; mirror it so
+        // the UI reflects mutual-send level-ups without a refetch.
+        const result = data as { closeness_xp: number; closeness_level: number } | null
+        if (result) {
+          friend.closenessXp = result.closeness_xp
+          friend.closenessLevel = result.closeness_level
+          friend.closenessLabel = getClosenessLabel(result.closeness_level)
+        }
       }
 
       return { error: null }

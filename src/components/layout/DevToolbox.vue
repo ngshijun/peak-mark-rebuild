@@ -14,7 +14,8 @@ const isSigningIn = ref(false)
 const TEST_PASSWORD = 'Test1234!'
 
 const accounts = [
-  { label: 'Student', email: 'student@clavis.test', color: 'bg-blue-500 hover:bg-blue-600' },
+  { label: 'Student A', email: 'student@clavis.test', color: 'bg-blue-500 hover:bg-blue-600' },
+  { label: 'Student B', email: 'student2@clavis.test', color: 'bg-sky-500 hover:bg-sky-600' },
   { label: 'Parent', email: 'parent@clavis.test', color: 'bg-green-500 hover:bg-green-600' },
   { label: 'Admin', email: 'admin@clavis.test', color: 'bg-orange-500 hover:bg-orange-600' },
 ] as const

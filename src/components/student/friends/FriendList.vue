@@ -122,13 +122,14 @@ async function handleRemove() {
           </div>
 
           <div class="flex items-center gap-2" @click.stop>
-            <Button v-if="friend.sentToday" size="sm" variant="secondary" disabled>
+            <Button v-if="friend.sentToday" size="sm" variant="secondary" disabled class="w-20">
               <CirclePoundSterling class="size-4" />
               Sent
             </Button>
             <Button
               v-else
               size="sm"
+              class="w-20"
               :disabled="sendingTo === friend.friendshipId"
               @click="handleSendCoins(friend.friendshipId, friend.name)"
             >
