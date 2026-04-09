@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
@@ -15,6 +15,7 @@ const TOP_RANKS = 20
 export interface LeaderboardStudent {
   id: string
   name: string
+  gradeLevelId: string | null
   gradeLevelName: string | null
   xp: number
   level: number
@@ -42,109 +43,94 @@ export interface WeeklyReward {
   coinsAwarded: number
 }
 
-/**
- * Assign RANK()-style ranks to a sorted list.
- * Items with the same score get the same rank; next rank jumps by the count of ties.
- */
-function assignRanks<T>(items: T[], getScore: (item: T) => number): (T & { rank: number })[] {
-  let currentRank = 1
-  return items.map((item, index) => {
-    const prev = items[index - 1]
-    if (index > 0 && prev !== undefined && getScore(item) === getScore(prev)) {
-      return { ...item, rank: currentRank }
-    }
-    currentRank = index + 1
-    return { ...item, rank: currentRank }
-  })
-}
-
 export const useLeaderboardStore = defineStore('leaderboard', () => {
   const authStore = useAuthStore()
+
+  // All-time leaderboard state (scoped to the active grade-level filter).
+  // `students` holds the top N for the current filter; `self` holds the
+  // current student's row so the "your rank" row can be shown out-of-top-N.
   const students = ref<LeaderboardStudent[]>([])
-  const weeklyStudents = ref<WeeklyLeaderboardStudent[]>([])
+  const self = ref<LeaderboardStudent | null>(null)
   const isLoading = ref(false)
+
+  // Weekly leaderboard state (no grade-level filter in the UI).
+  const weeklyStudents = ref<WeeklyLeaderboardStudent[]>([])
+  const weeklySelf = ref<WeeklyLeaderboardStudent | null>(null)
   const isWeeklyLoading = ref(false)
+
   const error = ref<string | null>(null)
   const hasUnseenReward = ref(false)
 
-  // O(1) lookup Map for students by ID
-  const studentById = computed(() => {
-    const map = new Map<string, LeaderboardStudent>()
-    for (const student of students.value) {
-      map.set(student.id, student)
-    }
-    return map
-  })
+  type RankColumn = 'rank' | 'grade_rank'
 
-  // O(1) lookup Map for weekly students by ID
-  const weeklyStudentById = computed(() => {
-    const map = new Map<string, WeeklyLeaderboardStudent>()
-    for (const student of weeklyStudents.value) {
-      map.set(student.id, student)
-    }
-    return map
-  })
-
-  function mapLeaderboardRow(row: LeaderboardRow): LeaderboardStudent {
+  function mapLeaderboardRow(row: LeaderboardRow, rankColumn: RankColumn): LeaderboardStudent {
     const xp = row.xp ?? 0
     return {
       id: row.id ?? '',
       name: row.name ?? 'Unknown',
+      gradeLevelId: row.grade_level_id,
       gradeLevelName: row.grade_level_name,
       xp,
       level: computeLevel(xp),
-      rank: row.rank ?? 0,
+      rank: row[rankColumn] ?? 0,
       avatarPath: row.avatar_path,
       currentStreak: row.current_streak ?? 0,
     }
   }
 
   /**
-   * Fetch leaderboard data from Supabase.
-   * First counts how many students have rank <= TOP_RANKS (handles ties),
-   * then fetches that many rows. Also fetches the current student's row
-   * separately if they fall outside that range.
+   * Fetch the top-ranked students for either the global leaderboard or a
+   * specific grade level, plus the current student's row when they fall
+   * outside the top N. Rank comes from the view's `rank` (global) or
+   * `grade_rank` (partitioned by grade_level_id) — never recomputed client-side.
    */
-  async function fetchLeaderboard(): Promise<{ error: string | null }> {
+  async function fetchLeaderboard(
+    gradeLevelId: string | null = null,
+  ): Promise<{ error: string | null }> {
     isLoading.value = true
     error.value = null
+    self.value = null
 
     try {
-      // Count students with rank <= TOP_RANKS (may exceed TOP_RANKS due to ties)
-      const { count, error: countError } = await supabase
+      const rankColumn: RankColumn = gradeLevelId ? 'grade_rank' : 'rank'
+
+      // Count tie-inclusive: RANK() can place more than TOP_RANKS rows at
+      // rank <= TOP_RANKS if the 20th place is tied.
+      let countQuery = supabase
         .from('leaderboard')
         .select('*', { count: 'exact', head: true })
-        .lte('rank', TOP_RANKS)
-
+        .lte(rankColumn, TOP_RANKS)
+      if (gradeLevelId) {
+        countQuery = countQuery.eq('grade_level_id', gradeLevelId)
+      }
+      const { count, error: countError } = await countQuery
       if (countError) throw countError
 
       const fetchLimit = count ?? TOP_RANKS
 
-      const { data, error: fetchError } = await supabase
+      let dataQuery = supabase
         .from('leaderboard')
         .select('*')
-        .order('rank', { ascending: true })
+        .order(rankColumn, { ascending: true })
         .limit(fetchLimit)
-
+      if (gradeLevelId) {
+        dataQuery = dataQuery.eq('grade_level_id', gradeLevelId)
+      }
+      const { data, error: fetchError } = await dataQuery
       if (fetchError) throw fetchError
 
-      const rows = (data ?? []).map(mapLeaderboardRow)
+      students.value = (data ?? []).map((row) => mapLeaderboardRow(row, rankColumn))
 
-      // If current student is not in the fetched results, fetch their row separately
+      // Skip the self fetch if they're already in the top-N slice.
       const studentId = authStore.user?.id
-      if (studentId && authStore.isStudent && !rows.some((r) => r.id === studentId)) {
-        const { data: selfData } = await supabase
-          .from('leaderboard')
-          .select('*')
-          .eq('id', studentId)
-          .single()
-
-        if (selfData) {
-          rows.push(mapLeaderboardRow(selfData))
+      if (studentId && authStore.isStudent && !students.value.some((s) => s.id === studentId)) {
+        let selfQuery = supabase.from('leaderboard').select('*').eq('id', studentId)
+        if (gradeLevelId) {
+          selfQuery = selfQuery.eq('grade_level_id', gradeLevelId)
         }
+        const { data: selfData } = await selfQuery.maybeSingle()
+        self.value = selfData ? mapLeaderboardRow(selfData, rankColumn) : null
       }
-
-      students.value = rows
 
       return { error: null }
     } catch (err) {
@@ -171,12 +157,9 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     }
   }
 
-  /**
-   * Fetch weekly leaderboard data from Supabase.
-   * Same count-then-fetch strategy as fetchLeaderboard.
-   */
   async function fetchWeeklyLeaderboard(): Promise<{ error: string | null }> {
     isWeeklyLoading.value = true
+    weeklySelf.value = null
 
     try {
       const { count, error: countError } = await supabase
@@ -196,23 +179,24 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
 
       if (fetchError) throw fetchError
 
-      const rows = (data ?? []).map(mapWeeklyLeaderboardRow)
+      weeklyStudents.value = (data ?? []).map(mapWeeklyLeaderboardRow)
 
-      // If current student is not in the fetched results, fetch their row separately
+      // Skip the self fetch if they're already in the top-N slice.
+      // maybeSingle() for the fallback: a student with 0 weekly XP is
+      // filtered out of the view by its HAVING weekly_xp > 0 clause.
       const studentId = authStore.user?.id
-      if (studentId && authStore.isStudent && !rows.some((r) => r.id === studentId)) {
+      if (
+        studentId &&
+        authStore.isStudent &&
+        !weeklyStudents.value.some((s) => s.id === studentId)
+      ) {
         const { data: selfData } = await supabase
           .from('weekly_leaderboard')
           .select('*')
           .eq('id', studentId)
-          .single()
-
-        if (selfData) {
-          rows.push(mapWeeklyLeaderboardRow(selfData))
-        }
+          .maybeSingle()
+        weeklySelf.value = selfData ? mapWeeklyLeaderboardRow(selfData) : null
       }
-
-      weeklyStudents.value = rows
 
       return { error: null }
     } catch (err) {
@@ -294,64 +278,12 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     }
   }
 
-  // Get top-ranked weekly students (optionally filtered by grade level name)
-  function getWeeklyTop20(gradeLevelName?: string | null): WeeklyLeaderboardStudent[] {
-    const filtered = gradeLevelName
-      ? weeklyStudents.value.filter((s) => s.gradeLevelName === gradeLevelName)
-      : weeklyStudents.value
-
-    // Re-rank after filtering with RANK()-style tie handling
-    const ranked = assignRanks(filtered, (s) => s.weeklyXp)
-    return ranked.filter((s) => s.rank <= TOP_RANKS)
-  }
-
-  // Get current student's weekly data (O(1) via Map)
-  const currentWeeklyStudent = computed(() => {
-    if (!authStore.user || !authStore.isStudent) return null
-    return weeklyStudentById.value.get(authStore.user.id) ?? null
-  })
-
-  // Get students filtered by grade level name
-  function getStudentsByGradeLevel(gradeLevelName: string | null): LeaderboardStudent[] {
-    if (!gradeLevelName) {
-      return students.value
-    }
-    return students.value.filter((s) => s.gradeLevelName === gradeLevelName)
-  }
-
-  // Get top-ranked students (optionally filtered by grade level name)
-  function getTop20(gradeLevelName?: string | null): LeaderboardStudent[] {
-    const filtered = gradeLevelName
-      ? students.value.filter((s) => s.gradeLevelName === gradeLevelName)
-      : students.value
-
-    // Re-rank after filtering with RANK()-style tie handling
-    const ranked = assignRanks(filtered, (s) => s.xp)
-    return ranked.filter((s) => s.rank <= TOP_RANKS)
-  }
-
-  // Get current student's rank (O(1) via Map)
-  const currentStudentRank = computed(() => {
-    if (!authStore.user || !authStore.isStudent) return null
-    return studentById.value.get(authStore.user.id)?.rank ?? null
-  })
-
-  // Check if current student is in top ranks
-  const isCurrentStudentInTop20 = computed(() => {
-    if (!currentStudentRank.value) return false
-    return currentStudentRank.value <= TOP_RANKS
-  })
-
-  // Get current student's data from leaderboard (O(1) via Map)
-  const currentStudent = computed(() => {
-    if (!authStore.user || !authStore.isStudent) return null
-    return studentById.value.get(authStore.user.id) ?? null
-  })
-
   // Reset store state (call on logout)
   function $reset() {
     students.value = []
+    self.value = null
     weeklyStudents.value = []
+    weeklySelf.value = null
     isLoading.value = false
     isWeeklyLoading.value = false
     error.value = null
@@ -361,17 +293,13 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
   return {
     // State
     students,
+    self,
     weeklyStudents,
+    weeklySelf,
     isLoading,
     isWeeklyLoading,
     error,
     hasUnseenReward,
-
-    // Computed
-    currentStudentRank,
-    isCurrentStudentInTop20,
-    currentStudent,
-    currentWeeklyStudent,
 
     // Actions
     fetchLeaderboard,
@@ -379,9 +307,6 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     fetchLastWeekReward,
     checkUnseenReward,
     markRewardSeen,
-    getStudentsByGradeLevel,
-    getTop20,
-    getWeeklyTop20,
     $reset,
   }
 })

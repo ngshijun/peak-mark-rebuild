@@ -829,6 +829,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'practice_sessions_grade_level_id_fkey'
+            columns: ['grade_level_id']
+            isOneToOne: false
+            referencedRelation: 'leaderboard'
+            referencedColumns: ['grade_level_id']
+          },
+          {
             foreignKeyName: 'practice_sessions_student_id_fkey'
             columns: ['student_id']
             isOneToOne: false
@@ -1056,6 +1063,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'questions_grade_level_id_fkey'
+            columns: ['grade_level_id']
+            isOneToOne: false
+            referencedRelation: 'leaderboard'
+            referencedColumns: ['grade_level_id']
+          },
+          {
             foreignKeyName: 'questions_subject_id_fkey'
             columns: ['subject_id']
             isOneToOne: false
@@ -1185,6 +1199,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'grade_levels'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_profiles_grade_level_id_fkey'
+            columns: ['grade_level_id']
+            isOneToOne: false
+            referencedRelation: 'leaderboard'
+            referencedColumns: ['grade_level_id']
           },
           {
             foreignKeyName: 'student_profiles_id_fkey'
@@ -1353,6 +1374,13 @@ export type Database = {
             referencedRelation: 'grade_levels'
             referencedColumns: ['id']
           },
+          {
+            foreignKeyName: 'subjects_grade_level_id_fkey'
+            columns: ['grade_level_id']
+            isOneToOne: false
+            referencedRelation: 'leaderboard'
+            referencedColumns: ['grade_level_id']
+          },
         ]
       }
       subscription_plans: {
@@ -1480,7 +1508,9 @@ export type Database = {
         Row: {
           avatar_path: string | null
           current_streak: number | null
+          grade_level_id: string | null
           grade_level_name: string | null
+          grade_rank: number | null
           id: string | null
           name: string | null
           rank: number | null
