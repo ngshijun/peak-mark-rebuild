@@ -72,7 +72,7 @@ CREATE TABLE daily_coin_gifts (
   sender_id       UUID NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
   receiver_id     UUID NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
   coins           INTEGER NOT NULL DEFAULT 5,
-  sent_date       DATE NOT NULL DEFAULT CURRENT_DATE,
+  sent_date       DATE NOT NULL DEFAULT (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::DATE,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (friendship_id, sender_id, sent_date)
 );
@@ -288,7 +288,7 @@ BEGIN
     SELECT 1 FROM daily_coin_gifts
     WHERE friendship_id = p_friendship_id
       AND sender_id = v_receiver_id
-      AND sent_date = CURRENT_DATE
+      AND sent_date = (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::DATE
   ) INTO v_is_mutual;
 
   IF v_is_mutual THEN
@@ -389,14 +389,14 @@ BEGIN
         AND g1.sender_id = g2.receiver_id
         AND g1.receiver_id = g2.sender_id
       WHERE g1.friendship_id = f.id
-        AND g1.sent_date = CURRENT_DATE - INTERVAL '1 day'
+        AND g1.sent_date = ((now() AT TIME ZONE 'Asia/Kuala_Lumpur')::DATE - 1)
     );
 END;
 $$;
 
 SELECT cron.schedule(
   'decay-closeness-xp',
-  '0 0 * * *',
+  '0 17 * * *',  -- 17:00 UTC = 01:00 MYT next day (1-hour buffer past MYT midnight)
   $$SELECT decay_closeness_xp()$$
 );
 
@@ -436,3 +436,26 @@ VALUES (
 -- replacing the original, causing PGRST203 ambiguous function error.
 -- ============================================================
 DROP FUNCTION IF EXISTS public.create_user_profile(uuid, text, text, text, date);
+
+-- ============================================================
+-- 9. Timezone hygiene — fix legacy UTC defaults and drop dead function
+--
+-- The two column defaults below were inherited from the initial schema
+-- dump with CURRENT_DATE (UTC) and were silently overridden by every
+-- current insert path (frontend toMYTDateString(), SQL trigger using
+-- AT TIME ZONE 'Asia/Kuala_Lumpur', Stripe webhook explicit values).
+-- Fixing them removes a time bomb where any future insert without an
+-- explicit column value would get the wrong timezone.
+--
+-- get_student_streak() is dead code: zero callers in the app, while
+-- the active streak logic lives in update_student_streak() which is
+-- already MYT-aware and wired via the on_daily_status_change trigger.
+-- ============================================================
+
+ALTER TABLE public.daily_statuses
+  ALTER COLUMN date SET DEFAULT (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::DATE;
+
+ALTER TABLE public.child_subscriptions
+  ALTER COLUMN start_date SET DEFAULT (date_trunc('day', now() AT TIME ZONE 'Asia/Kuala_Lumpur') AT TIME ZONE 'Asia/Kuala_Lumpur');
+
+DROP FUNCTION IF EXISTS public.get_student_streak(uuid);

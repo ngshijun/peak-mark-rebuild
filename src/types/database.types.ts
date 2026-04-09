@@ -1568,28 +1568,17 @@ export type Database = {
         }
         Returns: string
       }
-      create_user_profile:
-        | {
-            Args: {
-              p_date_of_birth?: string
-              p_email: string
-              p_name: string
-              p_user_id: string
-              p_user_type: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_date_of_birth?: string
-              p_email: string
-              p_name: string
-              p_school_id?: string
-              p_user_id: string
-              p_user_type: string
-            }
-            Returns: undefined
-          }
+      create_user_profile: {
+        Args: {
+          p_date_of_birth?: string
+          p_email: string
+          p_name: string
+          p_school_id?: string
+          p_user_id: string
+          p_user_type: string
+        }
+        Returns: undefined
+      }
       decay_closeness_xp: { Args: never; Returns: undefined }
       distribute_weekly_leaderboard_rewards: { Args: never; Returns: undefined }
       evolve_pet: {
@@ -1625,7 +1614,6 @@ export type Database = {
         Args: { p_student_id: string }
         Returns: Json
       }
-      get_student_streak: { Args: { p_student_id: string }; Returns: number }
       get_tier_from_stripe_price: {
         Args: { p_price_id: string }
         Returns: Database['public']['Enums']['subscription_tier']

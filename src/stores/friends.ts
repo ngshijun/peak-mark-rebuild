@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
+import { toMYTDateString } from '@/lib/date'
 
 export const FRIEND_CAP = 30
 
@@ -108,7 +109,7 @@ export const useFriendsStore = defineStore('friends', () => {
           .from('daily_coin_gifts')
           .select('friendship_id, sender_id')
           .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-          .eq('sent_date', new Date().toISOString().split('T')[0]),
+          .eq('sent_date', toMYTDateString()),
       ])
 
       if (friendshipsResult.error) throw friendshipsResult.error
