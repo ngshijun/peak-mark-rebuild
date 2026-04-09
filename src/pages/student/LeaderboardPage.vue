@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import {
   useLeaderboardStore,
@@ -7,7 +7,6 @@ import {
   type WeeklyLeaderboardStudent,
   type WeeklyReward,
 } from '@/stores/leaderboard'
-import { useAuthStore } from '@/stores/auth'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -36,7 +35,6 @@ import WeeklyRewardDialog from '@/components/student/WeeklyRewardDialog.vue'
 import StudentProfileDialog from '@/components/student/StudentProfileDialog.vue'
 
 const leaderboardStore = useLeaderboardStore()
-const authStore = useAuthStore()
 const curriculumStore = useCurriculumStore()
 
 const ALL_VALUE = '__all__'
@@ -87,88 +85,39 @@ function handleRowClick(entry: LeaderboardEntry) {
   showProfileDialog.value = true
 }
 
-// Computed for the filtered all-time leaderboard
-const displayedStudents = computed<LeaderboardStudent[]>(() => {
-  if (selectedGradeLevel.value === ALL_VALUE) {
-    return leaderboardStore.getTop20()
-  }
-
-  const gradeLevel = curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)
-  if (!gradeLevel) {
-    return leaderboardStore.getTop20()
-  }
-
-  return leaderboardStore.getTop20(gradeLevel.name)
+// The store is already scoped to the active filter (via fetchLeaderboard),
+// so `currentStudentInfo` just needs to surface `self` when it's missing
+// from the displayed slice — the "you're outside top 20" row.
+const currentStudentInfo = computed<LeaderboardStudent | null>(() => {
+  const self = leaderboardStore.self
+  if (!self) return null
+  if (leaderboardStore.students.some((s) => s.id === self.id)) return null
+  return self
 })
 
-// Computed for the weekly leaderboard (no grade filter — purely weekly XP)
-const displayedWeeklyStudents = computed<WeeklyLeaderboardStudent[]>(() => {
-  return leaderboardStore.getWeeklyTop20()
+const currentWeeklyStudentInfo = computed<WeeklyLeaderboardStudent | null>(() => {
+  const self = leaderboardStore.weeklySelf
+  if (!self) return null
+  if (leaderboardStore.weeklyStudents.some((s) => s.id === self.id)) return null
+  return self
 })
 
-// Current student info for all-time when not in top 20
-const currentStudentInfo = computed(() => {
-  if (!authStore.user || !authStore.isStudent) return null
+function gradeLevelIdFor(value: string): string | null {
+  return value === ALL_VALUE ? null : value
+}
 
-  const inTop20 = displayedStudents.value.some((s) => s.id === authStore.user!.id)
-  if (inTop20) return null
-
-  const currentStudent = leaderboardStore.currentStudent
-  if (!currentStudent) return null
-
-  if (selectedGradeLevel.value !== ALL_VALUE) {
-    const gradeLevel = curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)
-    if (gradeLevel && currentStudent.gradeLevelName !== gradeLevel.name) {
-      return null
-    }
-  }
-
-  const allFiltered =
-    selectedGradeLevel.value === ALL_VALUE
-      ? leaderboardStore.students
-      : leaderboardStore.getStudentsByGradeLevel(
-          curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel.value)?.name ?? null,
-        )
-
-  // RANK()-style: count students with strictly higher XP + 1
-  const rank = allFiltered.filter((s) => s.xp > currentStudent.xp).length + 1
-
-  return {
-    ...currentStudent,
-    rank,
-  }
+watch(selectedGradeLevel, async (value) => {
+  await leaderboardStore.fetchLeaderboard(gradeLevelIdFor(value))
 })
 
-// Current student info for weekly when not in top 20
-const currentWeeklyStudentInfo = computed(() => {
-  if (!authStore.user || !authStore.isStudent) return null
-
-  const inTop20 = displayedWeeklyStudents.value.some((s) => s.id === authStore.user!.id)
-  if (inTop20) return null
-
-  const currentStudent = leaderboardStore.currentWeeklyStudent
-  if (!currentStudent) return null
-
-  // RANK()-style: count students with strictly higher weekly XP + 1
-  const rank =
-    leaderboardStore.weeklyStudents.filter((s) => s.weeklyXp > currentStudent.weeklyXp).length + 1
-
-  return {
-    ...currentStudent,
-    rank,
-  }
-})
-
-// Fetch data on mount
 onMounted(async () => {
   try {
     if (curriculumStore.gradeLevels.length === 0) {
       await curriculumStore.fetchCurriculum()
     }
 
-    // Fetch both leaderboards in parallel
     await Promise.all([
-      leaderboardStore.fetchLeaderboard(),
+      leaderboardStore.fetchLeaderboard(gradeLevelIdFor(selectedGradeLevel.value)),
       leaderboardStore.fetchWeeklyLeaderboard(),
     ])
   } catch (err) {
@@ -176,7 +125,6 @@ onMounted(async () => {
     toast.error('Failed to load leaderboard')
   }
 
-  // Check for weekly reward notification
   checkWeeklyReward()
 })
 </script>
@@ -238,7 +186,7 @@ onMounted(async () => {
           </CardHeader>
           <CardContent class="p-0">
             <LeaderboardTable
-              :entries="displayedStudents"
+              :entries="leaderboardStore.students"
               :current-student-entry="currentStudentInfo"
               empty-message="No students found for this grade level."
               @row-click="handleRowClick"
@@ -354,7 +302,7 @@ onMounted(async () => {
           </CardHeader>
           <CardContent class="p-0">
             <LeaderboardTable
-              :entries="displayedWeeklyStudents"
+              :entries="leaderboardStore.weeklyStudents"
               :current-student-entry="currentWeeklyStudentInfo"
               empty-message="No students have earned XP this week yet."
               @row-click="handleRowClick"

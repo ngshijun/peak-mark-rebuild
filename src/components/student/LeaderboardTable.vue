@@ -16,7 +16,7 @@ export interface LeaderboardEntry {
 
 defineProps<{
   entries: LeaderboardEntry[]
-  currentStudentEntry: (LeaderboardEntry & Record<string, unknown>) | null
+  currentStudentEntry: LeaderboardEntry | null
   emptyMessage?: string
 }>()
 
