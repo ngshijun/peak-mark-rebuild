@@ -141,7 +141,10 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
             </div>
 
             <!-- Friend action button -->
-            <div v-if="!isSelf && !isLoading && friendsStore.hasFetchedFriends" class="shrink-0">
+            <div
+              v-if="authStore.isStudent && !isSelf && !isLoading && friendsStore.hasFetchedFriends"
+              class="shrink-0"
+            >
               <Badge
                 v-if="friendshipStatus === 'friends' && friendRecord"
                 variant="secondary"
