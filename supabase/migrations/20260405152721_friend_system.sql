@@ -408,9 +408,15 @@ CREATE INDEX idx_daily_gifts_receiver_date
 
 -- ============================================================
 -- 8. Announcement for friend system launch
+--
+-- Uses INSERT ... SELECT (not VALUES) so that fresh databases with
+-- no admin profiles yet (e.g. CI running migrations before seeds)
+-- gracefully insert zero rows instead of NULL-ing created_by and
+-- tripping the NOT NULL constraint. NOT EXISTS guard prevents
+-- duplicates if the migration is re-applied on a populated DB.
 -- ============================================================
 INSERT INTO announcements (title, content, target_audience, is_pinned, created_by)
-VALUES (
+SELECT
   'New: Friend System!',
   'You can now add friends and send them **5 free coins** every day! Head to the **Friends** page from the sidebar to get started.'
   || E'\n\n'
@@ -427,8 +433,11 @@ VALUES (
   || 'Share your **friend code** with classmates so they can find and add you.',
   'students_only',
   true,
-  (SELECT id FROM profiles WHERE user_type = 'admin' LIMIT 1)
-);
+  p.id
+FROM profiles p
+WHERE p.user_type = 'admin'
+  AND NOT EXISTS (SELECT 1 FROM announcements WHERE title = 'New: Friend System!')
+LIMIT 1;
 
 -- ============================================================
 -- Drop old create_user_profile overload (5 params, no p_school_id)
