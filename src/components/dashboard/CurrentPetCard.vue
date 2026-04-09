@@ -4,7 +4,7 @@ import { usePetsStore, rarityConfig } from '@/stores/pets'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'vue-router'
-import { PawPrint, Star, Heart } from 'lucide-vue-next'
+import { PawPrint, Star } from 'lucide-vue-next'
 
 const petsStore = usePetsStore()
 const router = useRouter()
@@ -96,7 +96,7 @@ function goToMyPet() {
           <div
             class="flex size-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50"
           >
-            <Heart class="size-12 text-purple-400" />
+            <PawPrint class="size-12 text-purple-400" />
           </div>
           <div class="text-center">
             <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
@@ -107,19 +107,3 @@ function goToMyPet() {
     </CardContent>
   </Card>
 </template>
-
-<style scoped>
-@keyframes bounce-slow {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.animate-bounce-slow {
-  animation: bounce-slow 2s ease-in-out infinite;
-}
-</style>

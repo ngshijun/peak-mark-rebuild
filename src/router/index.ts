@@ -49,32 +49,43 @@ function studentRouteGuard() {
     import('@/stores/parent-link'),
     import('@/stores/announcements'),
     import('@/stores/leaderboard'),
-  ]).then(([curriculumMod, petsMod, parentLinkMod, announcementsMod, leaderboardMod]) => {
-    const curriculumStore = curriculumMod.useCurriculumStore()
-    const petsStore = petsMod.usePetsStore()
-    const parentLinkStore = parentLinkMod.useParentLinkStore()
-    const announcementsStore = announcementsMod.useAnnouncementsStore()
-    const leaderboardStore = leaderboardMod.useLeaderboardStore()
+    import('@/stores/friends'),
+  ]).then(
+    ([curriculumMod, petsMod, parentLinkMod, announcementsMod, leaderboardMod, friendsMod]) => {
+      const curriculumStore = curriculumMod.useCurriculumStore()
+      const petsStore = petsMod.usePetsStore()
+      const parentLinkStore = parentLinkMod.useParentLinkStore()
+      const announcementsStore = announcementsMod.useAnnouncementsStore()
+      const leaderboardStore = leaderboardMod.useLeaderboardStore()
+      const friendsStore = friendsMod.useFriendsStore()
 
-    if (curriculumStore.gradeLevels.length === 0 && !curriculumStore.isLoading) {
-      curriculumStore.fetchCurriculum()
-    }
+      if (curriculumStore.gradeLevels.length === 0 && !curriculumStore.isLoading) {
+        curriculumStore.fetchCurriculum()
+      }
 
-    if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
-      petsStore.fetchAllPets()
-      petsStore.fetchOwnedPets()
-    }
+      if (petsStore.allPets.length === 0 && !petsStore.isLoading) {
+        petsStore.fetchAllPets()
+        petsStore.fetchOwnedPets()
+      }
 
-    if (parentLinkStore.linkedParents.length === 0 && !parentLinkStore.isLoading) {
-      parentLinkStore.fetchLinkedParents()
-    }
+      if (parentLinkStore.linkedParents.length === 0 && !parentLinkStore.isLoading) {
+        parentLinkStore.fetchLinkedParents()
+      }
 
-    if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
-      announcementsStore.fetchAnnouncements()
-    }
+      if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
+        announcementsStore.fetchAnnouncements()
+      }
 
-    leaderboardStore.checkUnseenReward()
-  })
+      leaderboardStore.checkUnseenReward()
+
+      if (!friendsStore.hasFetchedFriends && !friendsStore.isLoading) {
+        friendsStore.fetchFriends()
+      }
+      if (!friendsStore.hasFetchedRequests) {
+        friendsStore.fetchRequests()
+      }
+    },
+  )
 }
 
 // Admin routes: fire-and-forget data preloading (non-blocking)
@@ -262,6 +273,11 @@ const router = createRouter({
           path: 'leaderboard',
           name: 'student-leaderboard',
           component: () => import('@/pages/student/LeaderboardPage.vue'),
+        },
+        {
+          path: 'friends',
+          name: 'student-friends',
+          component: () => import('@/pages/student/FriendsPage.vue'),
         },
         {
           path: 'my-pet',

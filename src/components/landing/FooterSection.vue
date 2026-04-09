@@ -7,7 +7,7 @@ const { t } = storeToRefs(useLanguageStore())
 </script>
 
 <template>
-  <footer class="border-t bg-background py-12">
+  <footer class="border-t bg-landing-band py-12">
     <div class="container mx-auto px-4">
       <div class="flex flex-col items-center justify-between gap-6 md:flex-row">
         <div>

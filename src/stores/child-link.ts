@@ -16,6 +16,9 @@ export interface LinkedChild {
   gradeLevelName: string | null
   avatarPath: string | null
   linkedAt: string
+  xp: number
+  currentStreak: number
+  lastActive: string | null
 }
 
 export const useChildLinkStore = defineStore('childLink', () => {
@@ -38,6 +41,9 @@ export const useChildLinkStore = defineStore('childLink', () => {
         avatarPath: result.student_avatar_path,
         gradeLevelName: result.student_grade_level_name,
         linkedAt: result.linked_at,
+        xp: 0,
+        currentStreak: 0,
+        lastActive: null,
       })
     },
   })
@@ -69,6 +75,10 @@ export const useChildLinkStore = defineStore('childLink', () => {
             avatar_path,
             student_profiles (
               grade_level_id,
+              xp,
+              coins,
+              current_streak,
+              updated_at,
               grade_levels (
                 name
               )
@@ -94,6 +104,9 @@ export const useChildLinkStore = defineStore('childLink', () => {
           avatar_path: string | null
           student_profiles: {
             grade_level_id: string | null
+            xp: number | null
+            current_streak: number
+            updated_at: string | null
             grade_levels: { name: string } | null
           } | null
         } | null
@@ -105,6 +118,9 @@ export const useChildLinkStore = defineStore('childLink', () => {
           avatarPath: profile?.avatar_path ?? null,
           gradeLevelName: profile?.student_profiles?.grade_levels?.name ?? null,
           linkedAt: link.linked_at ?? new Date().toISOString(),
+          xp: profile?.student_profiles?.xp ?? 0,
+          currentStreak: profile?.student_profiles?.current_streak ?? 0,
+          lastActive: profile?.student_profiles?.updated_at ?? null,
         }
       })
 

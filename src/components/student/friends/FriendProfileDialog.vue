@@ -3,177 +3,93 @@ import { watch, computed, ref } from 'vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 
+import { supabase } from '@/lib/supabaseClient'
+import { computeLevel } from '@/lib/xp'
 import { rarityConfig } from '@/stores/pets'
-import { useAuthStore } from '@/stores/auth'
-import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
+import { CLOSENESS_LABELS, CLOSENESS_THRESHOLDS } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
-import { formatDate } from '@/lib/date'
-import {
-  Loader2,
-  Star,
-  PawPrint,
-  Trophy,
-  Flame,
-  UserPlus,
-  UserCheck,
-  Clock,
-  Check,
-} from 'lucide-vue-next'
+import { formatDate, formatRelativeDate } from '@/lib/date'
+import { Loader2, Star, PawPrint, Trophy, Flame, CalendarHeart, Handshake } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
-import { toast } from 'vue-sonner'
-import type { LeaderboardEntry } from '@/components/student/LeaderboardTable.vue'
+import type { Friend } from '@/stores/friends'
 
 const open = defineModel<boolean>('open', { default: false })
 
 const props = defineProps<{
-  student: (LeaderboardEntry & Record<string, unknown>) | null
-  activeTab: 'all-time' | 'weekly'
+  friend: Friend | null
 }>()
-
-const authStore = useAuthStore()
-const friendsStore = useFriendsStore()
 
 const { profile, pet, bestSubjects, weeklyActivity, isLoading, fetchProfile } =
   useStudentProfileDialog()
 
-const isActionPending = ref(false)
+const friendXp = ref(0)
+const friendLevel = computed(() => computeLevel(friendXp.value))
 
-watch(
-  () => ({ isOpen: open.value, studentId: props.student?.id }),
-  ({ isOpen, studentId }) => {
-    if (isOpen && studentId) {
-      fetchProfile(studentId)
-      if (!friendsStore.hasFetchedFriends) friendsStore.fetchFriends()
-      if (!friendsStore.hasFetchedRequests) friendsStore.fetchRequests()
-    }
-  },
-)
-
-const isSelf = computed(() => props.student?.id === authStore.user?.id)
-
-const friendRecord = computed(() =>
-  friendsStore.friends.find((f) => f.friendId === props.student?.id),
-)
-
-const friendshipStatus = computed<'none' | 'friends' | 'sent' | 'received'>(() => {
-  const studentId = props.student?.id
-  if (!studentId) return 'none'
-  if (friendRecord.value) return 'friends'
-  if (friendsStore.sentRequests.some((r) => r.studentId === studentId)) return 'sent'
-  if (friendsStore.receivedRequests.some((r) => r.studentId === studentId)) return 'received'
-  return 'none'
+watch([open, () => props.friend?.friendId], async ([isOpen, friendId]) => {
+  if (isOpen && friendId) {
+    fetchProfile(friendId)
+    const { data } = await supabase
+      .from('student_profiles')
+      .select('xp')
+      .eq('id', friendId)
+      .single()
+    friendXp.value = data?.xp ?? 0
+  }
 })
 
-async function handleAddFriend() {
-  if (!props.student?.id) return
-  if (friendsStore.isFriendCapReached) {
-    toast.error(`Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to add new ones.`)
-    return
-  }
-  isActionPending.value = true
-  const { error } = await friendsStore.sendRequest(props.student.id)
-  isActionPending.value = false
-  if (error) {
-    toast.error(error)
-  } else {
-    toast.success(`Friend request sent to ${props.student.name}!`)
-  }
-}
-
-async function handleAcceptRequest() {
-  const request = friendsStore.receivedRequests.find((r) => r.studentId === props.student?.id)
-  if (!request) return
-  if (friendsStore.isFriendCapReached) {
-    toast.error(
-      `Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to accept requests.`,
-    )
-    return
-  }
-  isActionPending.value = true
-  const { error } = await friendsStore.respondRequest(request.friendshipId, true)
-  isActionPending.value = false
-  if (error) {
-    toast.error(error)
-  } else {
-    toast.success(`You and ${props.student?.name} are now friends!`)
-  }
-}
-
-// Computed helpers to avoid `as Record<string, unknown>` casts in template
-// (prettier's HTML parser chokes on angle brackets in type assertions)
-const studentRecord = computed(() => props.student as Record<string, unknown> | null)
-
-const studentLevel = computed(() => (studentRecord.value?.level as number) ?? '-')
-
-const studentXpDisplay = computed(() => {
-  if (props.activeTab === 'weekly') {
-    return (studentRecord.value?.weeklyXp as number)?.toLocaleString() ?? '-'
-  }
-  return (studentRecord.value?.xp as number)?.toLocaleString() ?? '-'
+const closenessProgress = computed(() => {
+  if (!props.friend) return 0
+  const level = props.friend.closenessLevel
+  const xp = props.friend.closenessXp
+  const currentThreshold = CLOSENESS_THRESHOLDS[level]
+  const nextThreshold = CLOSENESS_THRESHOLDS[level + 1]
+  if (!nextThreshold) return 100
+  return Math.round(((xp - currentThreshold) / (nextThreshold - currentThreshold)) * 100)
 })
 
-const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak as number) ?? 0)
+const nextLevelLabel = computed(() => {
+  if (!props.friend) return ''
+  const nextLevel = props.friend.closenessLevel + 1
+  return CLOSENESS_LABELS[nextLevel] ?? null
+})
+
+const xpToNextLevel = computed(() => {
+  if (!props.friend) return 0
+  const nextThreshold = CLOSENESS_THRESHOLDS[props.friend.closenessLevel + 1]
+  if (!nextThreshold) return 0
+  return nextThreshold - props.friend.closenessXp
+})
 </script>
 
 <template>
   <Dialog v-model:open="open">
     <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-5xl">
-      <template v-if="student">
+      <template v-if="friend">
         <DialogHeader>
           <div class="flex items-center gap-4 overflow-hidden">
             <Avatar class="size-16 shrink-0">
-              <AvatarImage :src="getAvatarUrl(student.avatarPath)" :alt="student.name" />
-              <AvatarFallback class="text-lg">{{ getInitials(student.name) }}</AvatarFallback>
+              <AvatarImage :src="getAvatarUrl(friend.avatarPath)" :alt="friend.name" />
+              <AvatarFallback class="text-lg">{{ getInitials(friend.name) }}</AvatarFallback>
             </Avatar>
-            <div class="min-w-0 flex-1">
-              <DialogTitle class="truncate text-xl">{{ student.name }}</DialogTitle>
+            <div class="min-w-0">
+              <DialogTitle class="truncate text-xl">{{ friend.name }}</DialogTitle>
               <div class="mt-1 flex items-center gap-2">
-                <Badge variant="outline">{{ student.gradeLevelName ?? 'N/A' }}</Badge>
-                <Badge v-if="student.rank" variant="secondary" class="gap-1">
-                  <Trophy class="size-3" />
-                  Rank {{ student.rank }}
+                <Badge variant="outline" class="gap-1">
+                  <Handshake class="size-3" />
+                  {{ friend.closenessLabel }}
+                </Badge>
+                <Badge variant="secondary" class="gap-1">
+                  <CalendarHeart class="size-3" />
+                  Friends since {{ formatDate(friend.friendSince) }}
+                </Badge>
+                <Badge variant="secondary" class="gap-1">
+                  Active {{ formatRelativeDate(friend.lastActive) }}
                 </Badge>
               </div>
-            </div>
-
-            <!-- Friend action button -->
-            <div v-if="!isSelf && !isLoading && friendsStore.hasFetchedFriends" class="shrink-0">
-              <Badge
-                v-if="friendshipStatus === 'friends' && friendRecord"
-                variant="secondary"
-                class="gap-1.5 px-3 py-1.5 text-sm"
-              >
-                <UserCheck class="size-4" />
-                {{ friendRecord.closenessLabel }}
-              </Badge>
-              <Button
-                v-else-if="friendshipStatus === 'sent'"
-                size="sm"
-                variant="secondary"
-                disabled
-              >
-                <Clock class="mr-1 size-4" />
-                Request Sent
-              </Button>
-              <Button
-                v-else-if="friendshipStatus === 'received'"
-                size="sm"
-                :disabled="isActionPending"
-                @click="handleAcceptRequest"
-              >
-                <Check v-if="!isActionPending" class="mr-1 size-4" />
-                <Loader2 v-else class="mr-1 size-4 animate-spin" />
-                Accept Request
-              </Button>
-              <Button v-else size="sm" :disabled="isActionPending" @click="handleAddFriend">
-                <UserPlus v-if="!isActionPending" class="mr-1 size-4" />
-                <Loader2 v-else class="mr-1 size-4 animate-spin" />
-                Add Friend
-              </Button>
             </div>
           </div>
         </DialogHeader>
@@ -184,17 +100,52 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
         </div>
 
         <div v-else class="space-y-4">
-          <!-- Stats Row (single row at top) -->
+          <!-- Friendship Section -->
+          <div
+            class="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 p-4 dark:border-purple-900/50 dark:from-purple-950/30 dark:to-fuchsia-950/30"
+          >
+            <div class="mb-3 flex items-center justify-between">
+              <p class="text-xs font-medium text-muted-foreground">Closeness</p>
+              <Handshake class="size-4 text-muted-foreground" />
+            </div>
+            <div class="flex items-baseline gap-2">
+              <p class="text-2xl font-bold">Lv.{{ friend.closenessLevel }}</p>
+              <p class="text-sm text-muted-foreground">{{ friend.closenessLabel }}</p>
+            </div>
+            <div class="mt-3">
+              <Progress :model-value="closenessProgress" class="h-2" />
+              <p v-if="nextLevelLabel" class="mt-1 text-xs text-muted-foreground">
+                Send coins to each other for {{ xpToNextLevel }} more days to reach
+                {{ nextLevelLabel }}
+              </p>
+              <p v-else class="mt-1 text-xs text-muted-foreground">Max level reached!</p>
+            </div>
+            <p class="mt-3 text-sm">
+              <span
+                v-if="friend.sentToday && friend.receivedToday"
+                class="font-medium text-green-600 dark:text-green-400"
+              >
+                You both sent coins today — streak grows!
+              </span>
+              <span v-else-if="friend.sentToday" class="text-muted-foreground">
+                You sent coins — waiting for {{ friend.name }}
+              </span>
+              <span v-else-if="friend.receivedToday" class="text-muted-foreground">
+                {{ friend.name }} sent coins — send back to grow your streak!
+              </span>
+              <span v-else class="text-muted-foreground"> Neither of you sent coins today </span>
+            </p>
+          </div>
+
+          <!-- Stats Row (matches leaderboard dialog) -->
           <div class="grid grid-cols-3 gap-3">
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">Level</p>
-              <p class="text-xl font-bold">{{ studentLevel }}</p>
+              <p class="text-xl font-bold">{{ friendLevel }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">
-                {{ activeTab === 'weekly' ? 'Weekly XP' : 'XP' }}
-              </p>
-              <p class="text-xl font-bold">{{ studentXpDisplay }}</p>
+              <p class="text-xs text-muted-foreground">XP</p>
+              <p class="text-xl font-bold">{{ friendXp.toLocaleString() }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">Coins</p>
@@ -211,12 +162,10 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               v-if="pet"
               class="row-span-2 flex min-h-[24rem] flex-col overflow-hidden rounded-lg border"
             >
-              <!-- Pet Display Area -->
               <div
                 class="relative flex flex-1 items-center justify-center overflow-hidden px-6"
                 :class="rarityConfig[pet.rarity].bgColor"
               >
-                <!-- Decorative background circles -->
                 <div
                   class="absolute left-1/2 top-1/2 size-48 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 lg:size-56"
                   :class="rarityConfig[pet.rarity].borderColor"
@@ -233,7 +182,6 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                   class="animate-bounce-slow relative z-10 h-full max-h-64 w-auto object-contain drop-shadow-lg"
                 />
               </div>
-              <!-- Pet Info -->
               <div class="flex items-center gap-3 px-5 py-3">
                 <PawPrint class="size-5 text-purple-500" />
                 <div>
@@ -324,17 +272,21 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               </div>
               <div class="flex items-center gap-3">
                 <div class="flex size-14 items-center justify-center">
-                  <img v-if="studentCurrentStreak > 0" :src="fireGif" alt="fire" class="size-10" />
+                  <img
+                    v-if="weeklyActivity.some((d) => d.active)"
+                    :src="fireGif"
+                    alt="fire"
+                    class="size-10"
+                  />
                   <span v-else class="text-4xl">&#x1F4A4;</span>
                 </div>
                 <div>
                   <p class="text-2xl font-bold">
-                    {{ studentCurrentStreak }}
-                    <span class="text-sm font-normal text-muted-foreground">days</span>
+                    {{ weeklyActivity.filter((d) => d.active).length }}
+                    <span class="text-sm font-normal text-muted-foreground">days this week</span>
                   </p>
                 </div>
               </div>
-              <!-- Weekly Activity Dots -->
               <div
                 v-if="weeklyActivity.length > 0"
                 class="mt-4 flex items-center justify-between gap-1"

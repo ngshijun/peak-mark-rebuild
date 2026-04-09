@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ParentStudentInvitation } from '@/lib/invitations'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -23,9 +23,7 @@ const props = withDefaults(
     sentInvitations: ParentStudentInvitation[]
     processingId: string | null
     receivedTitle: string
-    receivedDescription: string
     sentTitle: string
-    sentDescription: string
     getDisplayName: (inv: ParentStudentInvitation) => string
     getDisplayEmail: (inv: ParentStudentInvitation) => string
     getSentEmail: (inv: ParentStudentInvitation) => string
@@ -54,18 +52,17 @@ const emit = defineEmits<{
           {{ receivedInvitations.length }}
         </Badge>
       </CardTitle>
-      <CardDescription>{{ receivedDescription }}</CardDescription>
     </CardHeader>
-    <CardContent>
+    <CardContent class="p-0">
       <div v-if="receivedInvitations.length === 0" class="py-8 text-center">
         <Mail class="mx-auto size-12 text-muted-foreground/50" />
         <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
       </div>
-      <div v-else class="space-y-3">
+      <div v-else class="divide-y border-y">
         <div
           v-for="invitation in receivedInvitations"
           :key="invitation.id"
-          class="rounded-lg border p-4"
+          class="px-6 py-4 transition-colors hover:bg-muted/50"
         >
           <div class="flex items-start justify-between">
             <div>
@@ -113,18 +110,17 @@ const emit = defineEmits<{
           {{ sentInvitations.length }}
         </Badge>
       </CardTitle>
-      <CardDescription>{{ sentDescription }}</CardDescription>
     </CardHeader>
-    <CardContent>
+    <CardContent class="p-0">
       <div v-if="sentInvitations.length === 0" class="py-8 text-center">
         <Send class="mx-auto size-12 text-muted-foreground/50" />
         <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
       </div>
-      <div v-else class="space-y-3">
+      <div v-else class="divide-y border-y">
         <div
           v-for="invitation in sentInvitations"
           :key="invitation.id"
-          class="rounded-lg border p-4"
+          class="px-6 py-4 transition-colors hover:bg-muted/50"
         >
           <div class="flex items-start justify-between">
             <div>

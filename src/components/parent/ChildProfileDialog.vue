@@ -1,200 +1,97 @@
 <script setup lang="ts">
-import { watch, computed, ref } from 'vue'
+import { watch, ref, computed } from 'vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 
+import { supabase } from '@/lib/supabaseClient'
+import { computeLevel } from '@/lib/xp'
 import { rarityConfig } from '@/stores/pets'
-import { useAuthStore } from '@/stores/auth'
-import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatRelativeDate } from '@/lib/date'
 import {
   Loader2,
   Star,
   PawPrint,
   Trophy,
   Flame,
-  UserPlus,
-  UserCheck,
-  Clock,
-  Check,
+  Mail,
+  CalendarHeart,
+  GraduationCap,
 } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
-import { toast } from 'vue-sonner'
-import type { LeaderboardEntry } from '@/components/student/LeaderboardTable.vue'
+import type { LinkedChild } from '@/stores/child-link'
 
 const open = defineModel<boolean>('open', { default: false })
 
 const props = defineProps<{
-  student: (LeaderboardEntry & Record<string, unknown>) | null
-  activeTab: 'all-time' | 'weekly'
+  child: LinkedChild | null
 }>()
-
-const authStore = useAuthStore()
-const friendsStore = useFriendsStore()
 
 const { profile, pet, bestSubjects, weeklyActivity, isLoading, fetchProfile } =
   useStudentProfileDialog()
 
-const isActionPending = ref(false)
+const childXp = ref(0)
+const childLevel = computed(() => computeLevel(childXp.value))
 
-watch(
-  () => ({ isOpen: open.value, studentId: props.student?.id }),
-  ({ isOpen, studentId }) => {
-    if (isOpen && studentId) {
-      fetchProfile(studentId)
-      if (!friendsStore.hasFetchedFriends) friendsStore.fetchFriends()
-      if (!friendsStore.hasFetchedRequests) friendsStore.fetchRequests()
-    }
-  },
-)
-
-const isSelf = computed(() => props.student?.id === authStore.user?.id)
-
-const friendRecord = computed(() =>
-  friendsStore.friends.find((f) => f.friendId === props.student?.id),
-)
-
-const friendshipStatus = computed<'none' | 'friends' | 'sent' | 'received'>(() => {
-  const studentId = props.student?.id
-  if (!studentId) return 'none'
-  if (friendRecord.value) return 'friends'
-  if (friendsStore.sentRequests.some((r) => r.studentId === studentId)) return 'sent'
-  if (friendsStore.receivedRequests.some((r) => r.studentId === studentId)) return 'received'
-  return 'none'
+watch([open, () => props.child?.id], async ([isOpen, childId]) => {
+  if (isOpen && childId) {
+    fetchProfile(childId)
+    const { data } = await supabase.from('student_profiles').select('xp').eq('id', childId).single()
+    childXp.value = data?.xp ?? 0
+  }
 })
-
-async function handleAddFriend() {
-  if (!props.student?.id) return
-  if (friendsStore.isFriendCapReached) {
-    toast.error(`Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to add new ones.`)
-    return
-  }
-  isActionPending.value = true
-  const { error } = await friendsStore.sendRequest(props.student.id)
-  isActionPending.value = false
-  if (error) {
-    toast.error(error)
-  } else {
-    toast.success(`Friend request sent to ${props.student.name}!`)
-  }
-}
-
-async function handleAcceptRequest() {
-  const request = friendsStore.receivedRequests.find((r) => r.studentId === props.student?.id)
-  if (!request) return
-  if (friendsStore.isFriendCapReached) {
-    toast.error(
-      `Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to accept requests.`,
-    )
-    return
-  }
-  isActionPending.value = true
-  const { error } = await friendsStore.respondRequest(request.friendshipId, true)
-  isActionPending.value = false
-  if (error) {
-    toast.error(error)
-  } else {
-    toast.success(`You and ${props.student?.name} are now friends!`)
-  }
-}
-
-// Computed helpers to avoid `as Record<string, unknown>` casts in template
-// (prettier's HTML parser chokes on angle brackets in type assertions)
-const studentRecord = computed(() => props.student as Record<string, unknown> | null)
-
-const studentLevel = computed(() => (studentRecord.value?.level as number) ?? '-')
-
-const studentXpDisplay = computed(() => {
-  if (props.activeTab === 'weekly') {
-    return (studentRecord.value?.weeklyXp as number)?.toLocaleString() ?? '-'
-  }
-  return (studentRecord.value?.xp as number)?.toLocaleString() ?? '-'
-})
-
-const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak as number) ?? 0)
 </script>
 
 <template>
   <Dialog v-model:open="open">
     <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-5xl">
-      <template v-if="student">
+      <template v-if="child">
         <DialogHeader>
           <div class="flex items-center gap-4 overflow-hidden">
             <Avatar class="size-16 shrink-0">
-              <AvatarImage :src="getAvatarUrl(student.avatarPath)" :alt="student.name" />
-              <AvatarFallback class="text-lg">{{ getInitials(student.name) }}</AvatarFallback>
+              <AvatarImage :src="getAvatarUrl(child.avatarPath)" :alt="child.name" />
+              <AvatarFallback class="text-lg">{{ getInitials(child.name) }}</AvatarFallback>
             </Avatar>
-            <div class="min-w-0 flex-1">
-              <DialogTitle class="truncate text-xl">{{ student.name }}</DialogTitle>
-              <div class="mt-1 flex items-center gap-2">
-                <Badge variant="outline">{{ student.gradeLevelName ?? 'N/A' }}</Badge>
-                <Badge v-if="student.rank" variant="secondary" class="gap-1">
-                  <Trophy class="size-3" />
-                  Rank {{ student.rank }}
+            <div class="min-w-0">
+              <DialogTitle class="truncate text-xl">{{ child.name }}</DialogTitle>
+              <div class="mt-1 flex flex-wrap items-center gap-2">
+                <Badge v-if="child.gradeLevelName" variant="outline" class="gap-1">
+                  <GraduationCap class="size-3" />
+                  {{ child.gradeLevelName }}
+                </Badge>
+                <Badge variant="secondary" class="gap-1">
+                  <Mail class="size-3" />
+                  {{ child.email }}
+                </Badge>
+                <Badge variant="secondary" class="gap-1">
+                  <CalendarHeart class="size-3" />
+                  Linked since {{ formatDate(child.linkedAt) }}
+                </Badge>
+                <Badge variant="secondary" class="gap-1">
+                  Active {{ formatRelativeDate(child.lastActive) }}
                 </Badge>
               </div>
-            </div>
-
-            <!-- Friend action button -->
-            <div v-if="!isSelf && !isLoading && friendsStore.hasFetchedFriends" class="shrink-0">
-              <Badge
-                v-if="friendshipStatus === 'friends' && friendRecord"
-                variant="secondary"
-                class="gap-1.5 px-3 py-1.5 text-sm"
-              >
-                <UserCheck class="size-4" />
-                {{ friendRecord.closenessLabel }}
-              </Badge>
-              <Button
-                v-else-if="friendshipStatus === 'sent'"
-                size="sm"
-                variant="secondary"
-                disabled
-              >
-                <Clock class="mr-1 size-4" />
-                Request Sent
-              </Button>
-              <Button
-                v-else-if="friendshipStatus === 'received'"
-                size="sm"
-                :disabled="isActionPending"
-                @click="handleAcceptRequest"
-              >
-                <Check v-if="!isActionPending" class="mr-1 size-4" />
-                <Loader2 v-else class="mr-1 size-4 animate-spin" />
-                Accept Request
-              </Button>
-              <Button v-else size="sm" :disabled="isActionPending" @click="handleAddFriend">
-                <UserPlus v-if="!isActionPending" class="mr-1 size-4" />
-                <Loader2 v-else class="mr-1 size-4 animate-spin" />
-                Add Friend
-              </Button>
             </div>
           </div>
         </DialogHeader>
 
-        <!-- Loading -->
         <div v-if="isLoading" class="flex items-center justify-center py-8">
           <Loader2 class="size-6 animate-spin text-muted-foreground" />
         </div>
 
         <div v-else class="space-y-4">
-          <!-- Stats Row (single row at top) -->
+          <!-- Stats Row -->
           <div class="grid grid-cols-3 gap-3">
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">Level</p>
-              <p class="text-xl font-bold">{{ studentLevel }}</p>
+              <p class="text-xl font-bold">{{ childLevel }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">
-                {{ activeTab === 'weekly' ? 'Weekly XP' : 'XP' }}
-              </p>
-              <p class="text-xl font-bold">{{ studentXpDisplay }}</p>
+              <p class="text-xs text-muted-foreground">XP</p>
+              <p class="text-xl font-bold">{{ childXp.toLocaleString() }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">Coins</p>
@@ -211,12 +108,10 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               v-if="pet"
               class="row-span-2 flex min-h-[24rem] flex-col overflow-hidden rounded-lg border"
             >
-              <!-- Pet Display Area -->
               <div
                 class="relative flex flex-1 items-center justify-center overflow-hidden px-6"
                 :class="rarityConfig[pet.rarity].bgColor"
               >
-                <!-- Decorative background circles -->
                 <div
                   class="absolute left-1/2 top-1/2 size-48 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 lg:size-56"
                   :class="rarityConfig[pet.rarity].borderColor"
@@ -233,7 +128,6 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                   class="animate-bounce-slow relative z-10 h-full max-h-64 w-auto object-contain drop-shadow-lg"
                 />
               </div>
-              <!-- Pet Info -->
               <div class="flex items-center gap-3 px-5 py-3">
                 <PawPrint class="size-5 text-purple-500" />
                 <div>
@@ -324,17 +218,16 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               </div>
               <div class="flex items-center gap-3">
                 <div class="flex size-14 items-center justify-center">
-                  <img v-if="studentCurrentStreak > 0" :src="fireGif" alt="fire" class="size-10" />
+                  <img v-if="child.currentStreak > 0" :src="fireGif" alt="fire" class="size-10" />
                   <span v-else class="text-4xl">&#x1F4A4;</span>
                 </div>
                 <div>
                   <p class="text-2xl font-bold">
-                    {{ studentCurrentStreak }}
+                    {{ child.currentStreak }}
                     <span class="text-sm font-normal text-muted-foreground">days</span>
                   </p>
                 </div>
               </div>
-              <!-- Weekly Activity Dots -->
               <div
                 v-if="weeklyActivity.length > 0"
                 class="mt-4 flex items-center justify-between gap-1"

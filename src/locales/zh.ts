@@ -12,11 +12,11 @@ export default {
     getStarted: '免费开始',
     haveAccount: '我已有账号',
     stats: {
-      questionsValue: '1,000+',
+      questionsValue: '2,000+',
       questionsLabel: '练习题目',
       levelsValue: '一至六年级',
       levelsLabel: '华小 KSSR（修订版 2017）',
-      petsValue: '50+',
+      petsValue: '30+',
       petsLabel: '可收集宠物',
     },
   },
@@ -142,6 +142,7 @@ export default {
     title: '简单透明的定价',
     subtitle: '选择适合您学习需求的方案。免费开始，随时升级。',
     mostPopular: '最受欢迎',
+    save: '节省',
     getStarted: '立即开始',
     plans: [
       {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useParentLinkStore } from '@/stores/parent-link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -151,19 +151,18 @@ async function handleRemoveParent(parentId: string) {
             <Users class="size-5" />
             Linked Parents
           </CardTitle>
-          <CardDescription>Parents who can view your progress</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent class="p-0">
           <div v-if="parentLinkStore.linkedParents.length === 0" class="py-8 text-center">
             <Users class="mx-auto size-12 text-muted-foreground/50" />
             <p class="mt-2 text-sm text-muted-foreground">No linked parents yet</p>
             <p class="text-xs text-muted-foreground">Invite a parent to get started</p>
           </div>
-          <div v-else class="space-y-3">
+          <div v-else class="divide-y border-y">
             <div
               v-for="parent in parentLinkStore.linkedParents"
               :key="parent.id"
-              class="flex items-center gap-3 rounded-lg border p-3"
+              class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/50"
             >
               <Avatar>
                 <AvatarFallback>{{ getInitials(parent.name) }}</AvatarFallback>
@@ -224,9 +223,7 @@ async function handleRemoveParent(parentId: string) {
         :sent-invitations="parentLinkStore.sentInvitations"
         :processing-id="processingInvitationId"
         received-title="Invitations from Parents"
-        received-description="Parents who want to link with you"
         sent-title="Sent Invitations"
-        sent-description="Invitations you've sent to parents"
         :get-display-name="(inv) => inv.parentName || inv.parentEmail"
         :get-display-email="(inv) => inv.parentEmail"
         :get-sent-email="(inv) => inv.parentEmail"

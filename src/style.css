@@ -40,6 +40,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-landing-band: var(--landing-band);
+  --color-landing-band-alt: var(--landing-band-alt);
 }
 
 :root {
@@ -84,6 +86,9 @@
   --sidebar-accent-foreground: oklch(0.35 0.1 290);
   --sidebar-border: oklch(0.9 0.02 280);
   --sidebar-ring: oklch(0.585 0.233 292);
+  /* Landing page alternating bands - white / light lavender */
+  --landing-band: oklch(1 0 0);
+  --landing-band-alt: oklch(0.96 0.025 292);
 }
 
 .dark {
@@ -127,6 +132,9 @@
   --sidebar-accent-foreground: oklch(0.9 0.02 280);
   --sidebar-border: oklch(0.3 0.008 260);
   --sidebar-ring: oklch(0.65 0.25 292);
+  /* Landing page alternating bands - base-tier surfaces below --card for correct elevation */
+  --landing-band: oklch(0.18 0.006 260);
+  --landing-band-alt: oklch(0.21 0.022 292);
 }
 
 @layer base {
@@ -193,6 +201,20 @@
 .clavis-tour-popover .driver-popover-prev-btn:hover {
   background-color: var(--secondary);
   color: var(--secondary-foreground);
+}
+
+@keyframes bounce-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
 }
 
 .clavis-tour-popover .driver-popover-arrow-side-left .driver-popover-arrow,

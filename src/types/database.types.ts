@@ -222,6 +222,58 @@ export type Database = {
           },
         ]
       }
+      daily_coin_gifts: {
+        Row: {
+          coins: number
+          created_at: string
+          friendship_id: string
+          id: string
+          receiver_id: string
+          sender_id: string
+          sent_date: string
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          friendship_id: string
+          id?: string
+          receiver_id: string
+          sender_id: string
+          sent_date?: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          friendship_id?: string
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+          sent_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'daily_coin_gifts_friendship_id_fkey'
+            columns: ['friendship_id']
+            isOneToOne: false
+            referencedRelation: 'friendships'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'daily_coin_gifts_receiver_id_fkey'
+            columns: ['receiver_id']
+            isOneToOne: false
+            referencedRelation: 'student_profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'daily_coin_gifts_sender_id_fkey'
+            columns: ['sender_id']
+            isOneToOne: false
+            referencedRelation: 'student_profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       daily_statuses: {
         Row: {
           created_at: string | null
@@ -269,6 +321,57 @@ export type Database = {
             columns: ['student_id']
             isOneToOne: false
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          closeness_level: number
+          closeness_xp: number
+          created_at: string
+          id: string
+          recipient_id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closeness_level?: number
+          closeness_xp?: number
+          created_at?: string
+          id?: string
+          recipient_id: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closeness_level?: number
+          closeness_xp?: number
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'friendships_recipient_id_fkey'
+            columns: ['recipient_id']
+            isOneToOne: false
+            referencedRelation: 'student_profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'friendships_requester_id_fkey'
+            columns: ['requester_id']
+            isOneToOne: false
+            referencedRelation: 'student_profiles'
             referencedColumns: ['id']
           },
         ]
@@ -1035,6 +1138,7 @@ export type Database = {
           created_at: string | null
           current_streak: number
           food: number | null
+          friend_code: string
           grade_level_id: string | null
           id: string
           preferred_language: string
@@ -1049,6 +1153,7 @@ export type Database = {
           created_at?: string | null
           current_streak?: number
           food?: number | null
+          friend_code?: string
           grade_level_id?: string | null
           id: string
           preferred_language?: string
@@ -1063,6 +1168,7 @@ export type Database = {
           created_at?: string | null
           current_streak?: number
           food?: number | null
+          friend_code?: string
           grade_level_id?: string | null
           id?: string
           preferred_language?: string
@@ -1462,28 +1568,18 @@ export type Database = {
         }
         Returns: string
       }
-      create_user_profile:
-        | {
-            Args: {
-              p_date_of_birth?: string
-              p_email: string
-              p_name: string
-              p_user_id: string
-              p_user_type: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_date_of_birth?: string
-              p_email: string
-              p_name: string
-              p_school_id?: string
-              p_user_id: string
-              p_user_type: string
-            }
-            Returns: undefined
-          }
+      create_user_profile: {
+        Args: {
+          p_date_of_birth?: string
+          p_email: string
+          p_name: string
+          p_school_id?: string
+          p_user_id: string
+          p_user_type: string
+        }
+        Returns: undefined
+      }
+      decay_closeness_xp: { Args: never; Returns: undefined }
       distribute_weekly_leaderboard_rewards: { Args: never; Returns: undefined }
       evolve_pet: {
         Args: { p_owned_pet_id: string; p_student_id: string }
@@ -1503,6 +1599,7 @@ export type Database = {
       }
       gacha_multi_pull: { Args: never; Returns: string[] }
       gacha_pull: { Args: never; Returns: string }
+      generate_friend_code: { Args: never; Returns: string }
       get_question_statistics: {
         Args: never
         Returns: {
@@ -1517,7 +1614,6 @@ export type Database = {
         Args: { p_student_id: string }
         Returns: Json
       }
-      get_student_streak: { Args: { p_student_id: string }; Returns: number }
       get_tier_from_stripe_price: {
         Args: { p_price_id: string }
         Returns: Database['public']['Enums']['subscription_tier']
@@ -1533,6 +1629,13 @@ export type Database = {
         Returns: undefined
       }
       refresh_question_statistics: { Args: never; Returns: undefined }
+      remove_friend: { Args: { p_friendship_id: string }; Returns: undefined }
+      respond_friend_request: {
+        Args: { p_accept: boolean; p_friendship_id: string }
+        Returns: undefined
+      }
+      send_daily_coins: { Args: { p_friendship_id: string }; Returns: Json }
+      send_friend_request: { Args: { p_target_id: string }; Returns: string }
       update_student_streak: { Args: { p_student_id: string }; Returns: number }
     }
     Enums: {

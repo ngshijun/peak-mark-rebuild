@@ -12,11 +12,11 @@ export default {
     getStarted: 'Get Started Free',
     haveAccount: 'I Have an Account',
     stats: {
-      questionsValue: '1,000+',
+      questionsValue: '2,000+',
       questionsLabel: 'Practice Questions',
       levelsValue: 'Standard 1-6',
       levelsLabel: 'SJK(C) KSSR (Semakan 2017)',
-      petsValue: '50+',
+      petsValue: '30+',
       petsLabel: 'Collectible Pets',
     },
   },
@@ -151,6 +151,7 @@ export default {
     title: 'Simple, Transparent Pricing',
     subtitle: 'Choose the plan that fits your learning needs. Start free, upgrade anytime.',
     mostPopular: 'Most Popular',
+    save: 'Save ',
     getStarted: 'Get Started',
     plans: [
       {

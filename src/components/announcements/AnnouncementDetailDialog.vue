@@ -6,6 +6,7 @@ import { Pin } from 'lucide-vue-next'
 import type { Announcement } from '@/stores/announcements'
 import { audienceConfig, useAnnouncementsStore } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
+import { parseSimpleMarkdown } from '@/lib/utils'
 import { formatLongDateTime, formatLongDate } from '@/lib/date'
 
 const props = defineProps<{
@@ -62,13 +63,11 @@ watch(
           v-if="announcement.imagePath"
           :src="announcementsStore.getOptimizedImageUrl(announcement.imagePath)"
           alt="Announcement image"
-          class="w-full rounded-lg object-cover max-h-64"
+          class="w-full rounded-lg object-contain"
         />
 
         <!-- Content -->
-        <div class="prose prose-sm max-w-none dark:prose-invert">
-          <p class="whitespace-pre-wrap">{{ announcement.content }}</p>
-        </div>
+        <div class="text-sm leading-relaxed" v-html="parseSimpleMarkdown(announcement.content)" />
 
         <!-- Expiry info -->
         <div v-if="announcement.expiresAt" class="text-sm text-muted-foreground">

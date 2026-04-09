@@ -492,20 +492,6 @@ function getTierLabel(tier: number): string {
   animation: wiggle 0.3s ease-in-out infinite;
 }
 
-@keyframes bounce-slow {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.animate-bounce-slow {
-  animation: bounce-slow 2s ease-in-out infinite;
-}
-
 @keyframes glow {
   0%,
   100% {

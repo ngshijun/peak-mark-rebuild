@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { toTypedSchema } from '@vee-validate/zod'
 
 // ==========================================
 // Base field schemas (reusable primitives)
@@ -24,22 +23,20 @@ export const optionalStringSchema = z.string().optional()
 // ==========================================
 
 // Auth forms
-const loginFormZod = z.object({
+export const loginFormSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Password is required'),
 })
-export const loginFormSchema = toTypedSchema(loginFormZod)
-export type LoginFormValues = z.infer<typeof loginFormZod>
+export type LoginFormValues = z.infer<typeof loginFormSchema>
 
-const signupFormZod = z
+export const signupFormSchema = z
   .object({
     name: nameSchema,
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     userType: z.enum(['student', 'parent'], {
-      required_error: 'Please select a user type',
-      invalid_type_error: 'Please select a user type',
+      error: 'Please select a user type',
     }),
     dateOfBirth: z.string().optional(),
     schoolId: z.string().optional(),
@@ -52,71 +49,61 @@ const signupFormZod = z
     message: 'Please select a school',
     path: ['schoolId'],
   })
-export const signupFormSchema = toTypedSchema(signupFormZod)
-export type SignupFormValues = z.infer<typeof signupFormZod>
+export type SignupFormValues = z.infer<typeof signupFormSchema>
 
 // Invitation forms
-const inviteEmailFormZod = z.object({
+export const inviteEmailFormSchema = z.object({
   email: emailSchema,
 })
-export const inviteEmailFormSchema = toTypedSchema(inviteEmailFormZod)
-export type InviteEmailFormValues = z.infer<typeof inviteEmailFormZod>
+export type InviteEmailFormValues = z.infer<typeof inviteEmailFormSchema>
 
 // Profile forms
-const editNameFormZod = z.object({
+export const editNameFormSchema = z.object({
   name: nameSchema,
 })
-export const editNameFormSchema = toTypedSchema(editNameFormZod)
-export type EditNameFormValues = z.infer<typeof editNameFormZod>
+export type EditNameFormValues = z.infer<typeof editNameFormSchema>
 
 // Question feedback form
-const questionFeedbackFormZod = z.object({
+export const questionFeedbackFormSchema = z.object({
   category: z.enum(
     ['question_error', 'image_error', 'option_error', 'answer_error', 'explanation_error', 'other'],
     {
-      required_error: 'Please select an issue type',
-      invalid_type_error: 'Please select an issue type',
+      error: 'Please select an issue type',
     },
   ),
   details: z.string().optional(),
 })
-export const questionFeedbackFormSchema = toTypedSchema(questionFeedbackFormZod)
-export type QuestionFeedbackFormValues = z.infer<typeof questionFeedbackFormZod>
+export type QuestionFeedbackFormValues = z.infer<typeof questionFeedbackFormSchema>
 
 // Curriculum forms
-const addCurriculumItemFormZod = z.object({
+export const addCurriculumItemFormSchema = z.object({
   name: requiredStringSchema('Name'),
 })
-export const addCurriculumItemFormSchema = toTypedSchema(addCurriculumItemFormZod)
-export type AddCurriculumItemFormValues = z.infer<typeof addCurriculumItemFormZod>
+export type AddCurriculumItemFormValues = z.infer<typeof addCurriculumItemFormSchema>
 
 // Pet forms
-const petFormZod = z.object({
+export const petFormSchema = z.object({
   name: requiredStringSchema('Name'),
   rarity: z.enum(['common', 'rare', 'epic', 'legendary'], {
-    required_error: 'Please select a rarity',
-    invalid_type_error: 'Please select a rarity',
+    error: 'Please select a rarity',
   }),
 })
-export const petFormSchema = toTypedSchema(petFormZod)
-export type PetFormValues = z.infer<typeof petFormZod>
+export type PetFormValues = z.infer<typeof petFormSchema>
 
 // Announcement forms
-const announcementFormZod = z.object({
+export const announcementFormSchema = z.object({
   title: requiredStringSchema('Title'),
   content: z.string().min(1, 'Content is required'),
   targetAudience: z.enum(['all', 'students_only', 'parents_only'], {
-    required_error: 'Please select target audience',
-    invalid_type_error: 'Please select target audience',
+    error: 'Please select target audience',
   }),
   expiresAt: z.string().optional().nullable(),
   isPinned: z.boolean().default(false),
 })
-export const announcementFormSchema = toTypedSchema(announcementFormZod)
-export type AnnouncementFormValues = z.infer<typeof announcementFormZod>
+export type AnnouncementFormValues = z.infer<typeof announcementFormSchema>
 
 // Contact form
-const contactFormZod = z.object({
+export const contactFormSchema = z.object({
   name: nameSchema,
   email: emailSchema,
   subject: requiredStringSchema('Subject').max(200, 'Subject must be 200 characters or less'),
@@ -126,10 +113,8 @@ const contactFormZod = z.object({
     .max(5000, 'Message must be 5000 characters or less')
     .trim(),
 })
-export const contactFormSchema = toTypedSchema(contactFormZod)
-export type ContactFormValues = z.infer<typeof contactFormZod>
+export type ContactFormValues = z.infer<typeof contactFormSchema>
 
 // Contact form (in-app, authenticated — name/email from user profile)
-const contactMessageZod = contactFormZod.pick({ subject: true, message: true })
-export const contactMessageSchema = toTypedSchema(contactMessageZod)
-export type ContactMessageValues = z.infer<typeof contactMessageZod>
+export const contactMessageSchema = contactFormSchema.pick({ subject: true, message: true })
+export type ContactMessageValues = z.infer<typeof contactMessageSchema>

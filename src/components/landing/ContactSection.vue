@@ -42,7 +42,7 @@ const onSubmit = handleSubmit(async (formValues) => {
 </script>
 
 <template>
-  <section class="border-t bg-muted/30 py-20">
+  <section class="border-t bg-landing-band-alt py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
         <h2 class="mb-4 text-3xl font-bold md:text-4xl">
@@ -78,6 +78,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                 :placeholder="t.contact.namePlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
+                class="bg-landing-band dark:bg-landing-band"
                 v-bind="field"
               />
               <FieldError :errors="errors" />
@@ -102,6 +103,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                 :placeholder="t.contact.emailPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
+                class="bg-landing-band dark:bg-landing-band"
                 v-bind="field"
               />
               <FieldError :errors="errors" />
@@ -126,6 +128,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                 :placeholder="t.contact.subjectPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
+                class="bg-landing-band dark:bg-landing-band"
                 v-bind="field"
               />
               <FieldError :errors="errors" />
@@ -149,7 +152,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                 :placeholder="t.contact.messagePlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
-                class="min-h-32"
+                class="min-h-32 bg-landing-band dark:bg-landing-band"
                 v-bind="field"
               />
               <FieldError :errors="errors" />

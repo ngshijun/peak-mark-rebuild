@@ -11,6 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useAnnouncementsStore } from '@/stores/announcements'
 import { useLeaderboardStore } from '@/stores/leaderboard'
+import { useFriendsStore } from '@/stores/friends'
 import { useAuthStore } from '@/stores/auth'
 import type { NavItem } from '@/types'
 
@@ -28,6 +29,7 @@ const petItems = computed(() => props.items.filter((item) => PET_PATHS.has(item.
 const route = useRoute()
 const announcementsStore = useAnnouncementsStore()
 const leaderboardStore = useLeaderboardStore()
+const friendsStore = useFriendsStore()
 const authStore = useAuthStore()
 
 function shouldShowBadge(item: NavItem): boolean {
@@ -41,6 +43,9 @@ function shouldShowBadge(item: NavItem): boolean {
   if (item.path.includes('leaderboard') && leaderboardStore.hasUnseenReward) {
     return true
   }
+  if (item.path.includes('friends') && friendsStore.pendingRequestCount > 0) {
+    return true
+  }
   return false
 }
 
@@ -50,6 +55,9 @@ function getBadgeText(item: NavItem): string {
   }
   if (item.path.includes('leaderboard')) {
     return '1'
+  }
+  if (item.path.includes('friends')) {
+    return friendsStore.pendingRequestCount > 9 ? '9+' : String(friendsStore.pendingRequestCount)
   }
   return ''
 }

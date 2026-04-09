@@ -8,13 +8,13 @@ const { t } = storeToRefs(useLanguageStore())
 </script>
 
 <template>
-  <section class="relative overflow-hidden py-20 md:py-32">
+  <section class="relative overflow-hidden bg-landing-band py-20 md:py-32">
     <div class="container mx-auto px-4">
       <div class="mx-auto max-w-3xl text-center">
         <div
-          class="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-sm"
+          class="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300"
         >
-          <GraduationCap class="size-4 text-primary" />
+          <GraduationCap class="size-4" />
           <span>{{ t.hero.badge }}</span>
         </div>
 
@@ -65,11 +65,11 @@ const { t } = storeToRefs(useLanguageStore())
       <!-- Product screenshot -->
       <div class="mx-auto mt-16 max-w-5xl px-4">
         <img
-          src="/screenshots/student-dashboard.webp"
-          alt="Clavis student dashboard"
-          width="4336"
-          height="2804"
-          class="aspect-[4336/2804] w-full"
+          src="/screenshots/main-hero.webp"
+          alt="Clavis — 50% off launch promotion"
+          width="1280"
+          height="720"
+          class="aspect-video w-full"
           fetchpriority="high"
           decoding="async"
         />
