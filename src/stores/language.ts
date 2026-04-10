@@ -30,19 +30,15 @@ export const useLanguageStore = defineStore('language', () => {
           .update({ ui_language: lang })
           .eq('id', auth.user.id)
         if (error) {
-          // Bootstrap note: this string is hardcoded English because
-          // shared.ts does not yet have translated toasts. After Task 9
-          // (swap to translated toast), update this line to:
-          //   toast.error(locales[language.value].shared.toasts.languageSaveFailed)
-          toast.error('Failed to save language preference')
+          toast.error(locales[language.value].shared.toasts.languageSaveFailed)
           // Do NOT revert language.value — optimistic UI.
         }
       }
     } catch {
       // Guarantee the function never throws (unhandled rejection safety).
       // Covers dynamic import failure, network exceptions, and any synchronous
-      // throw from the Supabase client. Same bootstrap-note applies as above.
-      toast.error('Failed to save language preference')
+      // throw from the Supabase client.
+      toast.error(locales[language.value].shared.toasts.languageSaveFailed)
     }
   }
 
