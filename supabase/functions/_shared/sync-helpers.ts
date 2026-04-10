@@ -12,6 +12,27 @@ export interface SubscriptionChangeContext {
 }
 
 /**
+ * Extract billing period timestamps from a Subscription object.
+ * In Stripe Clover API (2025+), `current_period_start` and `current_period_end`
+ * were removed from the Subscription object. The equivalent data is now on the
+ * expanded `latest_invoice` (period_start / period_end).
+ *
+ * Callers must expand `latest_invoice` when retrieving the subscription.
+ */
+export function extractPeriodDates(subscription: Stripe.Subscription): {
+  periodStart: number | null
+  periodEnd: number | null
+} {
+  const latestInvoice =
+    typeof subscription.latest_invoice === 'object' ? subscription.latest_invoice : null
+
+  return {
+    periodStart: latestInvoice?.period_start ?? null,
+    periodEnd: latestInvoice?.period_end ?? null,
+  }
+}
+
+/**
  * Shared validation and lookup for subscription modification.
  * Used by both modify-subscription and preview-upgrade.
  * Throws a Response on validation failure.
@@ -140,12 +161,14 @@ async function syncWithIds(
   // Keep access during 'past_due' as a grace period while Stripe retries payment
   const isActive = ['active', 'trialing', 'past_due'].includes(subscription.status)
 
-  // Convert Unix timestamps to ISO strings
-  const currentPeriodStart = subscription.current_period_start
-    ? new Date(subscription.current_period_start * 1000).toISOString()
+  // Extract period dates from expanded latest_invoice (Clover API)
+  const { periodStart, periodEnd } = extractPeriodDates(subscription)
+
+  const currentPeriodStart = periodStart
+    ? new Date(periodStart * 1000).toISOString()
     : null
-  const currentPeriodEnd = subscription.current_period_end
-    ? new Date(subscription.current_period_end * 1000).toISOString()
+  const currentPeriodEnd = periodEnd
+    ? new Date(periodEnd * 1000).toISOString()
     : null
   const startDate = subscription.start_date
     ? new Date(subscription.start_date * 1000).toISOString()
@@ -154,9 +177,9 @@ async function syncWithIds(
   // next_billing_date is the end of current period (when next charge happens)
   // unless subscription is set to cancel at period end
   const nextBillingDate =
-    subscription.cancel_at_period_end || !subscription.current_period_end
+    subscription.cancel_at_period_end || !periodEnd
       ? null
-      : new Date(subscription.current_period_end * 1000).toISOString()
+      : new Date(periodEnd * 1000).toISOString()
 
   // Check if subscription has a schedule - if not, clear scheduled fields
   // This handles the case when a schedule executes and the tier changes

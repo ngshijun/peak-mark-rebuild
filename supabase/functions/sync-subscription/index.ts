@@ -1,7 +1,7 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
-import { syncSubscriptionToDatabase } from '../_shared/sync-helpers.ts'
+import { syncSubscriptionToDatabase, extractPeriodDates } from '../_shared/sync-helpers.ts'
 import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
 
 /**
@@ -63,8 +63,10 @@ Deno.serve(async (req: Request) => {
       return errorResponse('No subscription found for this student', 404)
     }
 
-    // Fetch current subscription from Stripe
-    const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId)
+    // Fetch current subscription from Stripe (expand latest_invoice for period dates)
+    const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, {
+      expand: ['latest_invoice'],
+    })
 
     // Ensure metadata has parent/student IDs for sync
     if (!subscription.metadata.supabase_parent_id || !subscription.metadata.supabase_student_id) {
@@ -88,14 +90,15 @@ Deno.serve(async (req: Request) => {
     }
 
     // Return synced subscription data
+    const { periodStart, periodEnd } = extractPeriodDates(subscription)
     return new Response(
       JSON.stringify({
         synced: true,
         subscription: {
           id: subscription.id,
           status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+          currentPeriodStart: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+          currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
         },
       }),

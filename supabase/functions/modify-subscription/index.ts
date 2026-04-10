@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import {
   syncSubscriptionToDatabase,
   resolveSubscriptionChange,
+  extractPeriodDates,
 } from '../_shared/sync-helpers.ts'
 import type Stripe from 'stripe'
 import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
@@ -35,7 +36,7 @@ Deno.serve(async (req: Request) => {
       stripe,
       errorResponse,
       verifyParentStudentLink,
-      ['items.data.price', 'schedule'],
+      ['items.data.price', 'schedule', 'latest_invoice'],
     )
 
     let updatedSubscription: Stripe.Subscription
@@ -66,6 +67,7 @@ Deno.serve(async (req: Request) => {
           proration_behavior: 'always_invoice',
           // Ensure payment is attempted immediately
           payment_behavior: 'error_if_incomplete',
+          expand: ['latest_invoice'],
         }
       )
 
@@ -83,6 +85,7 @@ Deno.serve(async (req: Request) => {
         })
         .eq('stripe_subscription_id', subscription.stripe_subscription_id)
 
+      const upgradePeriod = extractPeriodDates(updatedSubscription)
       return new Response(
         JSON.stringify({
           success: true,
@@ -91,12 +94,12 @@ Deno.serve(async (req: Request) => {
           subscription: {
             id: updatedSubscription.id,
             status: updatedSubscription.status,
-            currentPeriodStart: new Date(
-              updatedSubscription.current_period_start * 1000
-            ).toISOString(),
-            currentPeriodEnd: new Date(
-              updatedSubscription.current_period_end * 1000
-            ).toISOString(),
+            currentPeriodStart: upgradePeriod.periodStart
+              ? new Date(upgradePeriod.periodStart * 1000).toISOString()
+              : null,
+            currentPeriodEnd: upgradePeriod.periodEnd
+              ? new Date(upgradePeriod.periodEnd * 1000).toISOString()
+              : null,
           },
         }),
         {
@@ -105,6 +108,12 @@ Deno.serve(async (req: Request) => {
       )
     } else {
       // DOWNGRADE: Schedule change for next billing cycle
+      const { periodStart, periodEnd } = extractPeriodDates(stripeSubscription)
+
+      if (!periodStart || !periodEnd) {
+        return errorResponse('Cannot determine current billing period', 500)
+      }
+
       let schedule: Stripe.SubscriptionSchedule
 
       if (stripeSubscription.schedule) {
@@ -118,12 +127,12 @@ Deno.serve(async (req: Request) => {
           phases: [
             {
               items: [{ price: currentPriceId, quantity: 1 }],
-              start_date: stripeSubscription.current_period_start,
-              end_date: stripeSubscription.current_period_end,
+              start_date: periodStart,
+              end_date: periodEnd,
             },
             {
               items: [{ price: newPriceId, quantity: 1 }],
-              start_date: stripeSubscription.current_period_end,
+              start_date: periodEnd,
             },
           ],
           end_behavior: 'release',
@@ -141,12 +150,12 @@ Deno.serve(async (req: Request) => {
           phases: [
             {
               items: [{ price: currentPriceId, quantity: 1 }],
-              start_date: stripeSubscription.current_period_start,
-              end_date: stripeSubscription.current_period_end,
+              start_date: periodStart,
+              end_date: periodEnd,
             },
             {
               items: [{ price: newPriceId, quantity: 1 }],
-              start_date: stripeSubscription.current_period_end,
+              start_date: periodEnd,
             },
           ],
           end_behavior: 'release',
@@ -155,7 +164,8 @@ Deno.serve(async (req: Request) => {
 
       // Get the updated subscription (it now has a schedule attached)
       updatedSubscription = await stripe.subscriptions.retrieve(
-        subscription.stripe_subscription_id
+        subscription.stripe_subscription_id,
+        { expand: ['latest_invoice'] }
       )
 
       // Sync current state (tier stays the same until period end)
@@ -169,7 +179,7 @@ Deno.serve(async (req: Request) => {
         .single()
 
       // Save scheduled downgrade info to database
-      const scheduledDate = new Date(stripeSubscription.current_period_end * 1000).toISOString()
+      const scheduledDate = new Date(periodEnd * 1000).toISOString()
       await supabaseAdmin
         .from('child_subscriptions')
         .update({
@@ -180,6 +190,7 @@ Deno.serve(async (req: Request) => {
         })
         .eq('stripe_subscription_id', subscription.stripe_subscription_id)
 
+      const downgradePeriod = extractPeriodDates(updatedSubscription)
       return new Response(
         JSON.stringify({
           success: true,
@@ -191,9 +202,9 @@ Deno.serve(async (req: Request) => {
           subscription: {
             id: updatedSubscription.id,
             status: updatedSubscription.status,
-            currentPeriodEnd: new Date(
-              updatedSubscription.current_period_end * 1000
-            ).toISOString(),
+            currentPeriodEnd: downgradePeriod.periodEnd
+              ? new Date(downgradePeriod.periodEnd * 1000).toISOString()
+              : null,
           },
         }),
         {

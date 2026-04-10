@@ -118,7 +118,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
-  const result = await syncSubscriptionToDatabase(subscription, supabaseAdmin)
+  // Re-fetch with latest_invoice expanded — Clover API removed period fields from Subscription
+  const fullSubscription = await stripe.subscriptions.retrieve(subscription.id, {
+    expand: ['latest_invoice'],
+  })
+  const result = await syncSubscriptionToDatabase(fullSubscription, supabaseAdmin)
   if (!result.success) {
     throw new Error(`Sync failed: ${result.error}`)
   }
