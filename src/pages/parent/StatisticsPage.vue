@@ -19,11 +19,13 @@ import {
 } from '@/components/ui/select'
 import { DataTable } from '@/components/ui/data-table'
 import { Users, BookOpen, History, Loader2 } from 'lucide-vue-next'
+import { useLanguageStore } from '@/stores/language'
 
 const router = useRouter()
 const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
 const t = useT()
+const languageStore = useLanguageStore()
 
 const SELECTED_CHILD_KEY = 'parent_selected_child_id'
 const hideInProgress = ref(false)
@@ -203,7 +205,7 @@ function handleRowClick(row: ChildPracticeSession) {
       >
         <template #before>
           <!-- Child Selector -->
-          <Select v-model="selectedChildId">
+          <Select :key="languageStore.language" v-model="selectedChildId">
             <SelectTrigger class="w-[220px]">
               <SelectValue :placeholder="t.parent.statistics.selectChildPlaceholder" />
             </SelectTrigger>

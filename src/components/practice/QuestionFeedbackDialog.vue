@@ -25,8 +25,10 @@ import {
 } from '@/components/ui/select'
 import type { Database } from '@/types/database.types'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 
 const t = useT()
+const languageStore = useLanguageStore()
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
@@ -118,7 +120,11 @@ function handleOpenChange(value: boolean) {
               >{{ t.shared.questionFeedbackDialog.issueTypeLabel }}
               <span class="text-destructive">*</span></FieldLabel
             >
-            <Select :model-value="value" @update:model-value="handleChange">
+            <Select
+              :key="languageStore.language"
+              :model-value="value"
+              @update:model-value="handleChange"
+            >
               <SelectTrigger
                 id="category"
                 :class="{ 'border-destructive': !!errors.length }"

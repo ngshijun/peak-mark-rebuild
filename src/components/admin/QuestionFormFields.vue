@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Field as VeeField } from 'vee-validate'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 
 const t = useT()
+const languageStore = useLanguageStore()
 import { useCurriculumStore } from '@/stores/curriculum'
 import type { useQuestionForm } from '@/composables/useQuestionForm'
 import { ImagePlus, X } from 'lucide-vue-next'
@@ -51,6 +53,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           <span class="text-destructive">*</span>
         </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="f.isSaving.value"
           @update:model-value="handleChange"
@@ -79,6 +82,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           {{ t.shared.questionFormFields.gradeLevelLabel }} <span class="text-destructive">*</span>
         </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="f.isSaving.value"
           @update:model-value="
@@ -115,6 +119,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           {{ t.shared.questionFormFields.subjectLabel }} <span class="text-destructive">*</span>
         </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="!f.values.gradeLevelId || f.isSaving.value"
           @update:model-value="
@@ -148,6 +153,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           {{ t.shared.questionFormFields.topicLabel }} <span class="text-destructive">*</span>
         </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="!f.values.subjectId || f.isSaving.value"
           @update:model-value="
@@ -176,6 +182,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           {{ t.shared.questionFormFields.subTopicLabel }} <span class="text-destructive">*</span>
         </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="!f.values.topicId || f.isSaving.value"
           @update:model-value="handleChange"

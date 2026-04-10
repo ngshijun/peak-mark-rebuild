@@ -39,10 +39,12 @@ import {
 import { Sparkles, Zap, CreditCard, Users, Loader2, ExternalLink } from 'lucide-vue-next'
 import PlanCard from '@/components/parent/PlanCard.vue'
 import UpgradePreviewDialog from '@/components/parent/UpgradePreviewDialog.vue'
+import { useLanguageStore } from '@/stores/language'
 
 const subscriptionStore = useSubscriptionStore()
 const childLinkStore = useChildLinkStore()
 const t = useT()
+const languageStore = useLanguageStore()
 
 const SELECTED_CHILD_KEY = 'parent_selected_child_id'
 const selectedChildId = ref<string>(localStorage.getItem(SELECTED_CHILD_KEY) || '')
@@ -330,7 +332,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
             <CardDescription>{{ t.parent.subscription.selectChildDescription }}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Select v-model="selectedChildId">
+            <Select :key="languageStore.language" v-model="selectedChildId">
               <SelectTrigger class="w-full">
                 <SelectValue :placeholder="t.parent.subscription.selectChildPlaceholder" />
               </SelectTrigger>

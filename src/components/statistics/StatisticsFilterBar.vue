@@ -12,8 +12,10 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar } from 'lucide-vue-next'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 
 const t = useT()
+const languageStore = useLanguageStore()
 const dateRangeOptions = computed(() => getDateRangeOptions())
 
 defineProps<{
@@ -45,6 +47,7 @@ const emit = defineEmits<{
 
     <!-- Date Range Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="dateRange"
       @update:model-value="emit('update:dateRange', $event as DateRangeFilter)"
     >
@@ -61,6 +64,7 @@ const emit = defineEmits<{
 
     <!-- Grade Level Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="gradeLevel"
       @update:model-value="emit('update:gradeLevel', $event as string)"
     >
@@ -77,6 +81,7 @@ const emit = defineEmits<{
 
     <!-- Subject Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="subject"
       :disabled="gradeLevel === ALL_VALUE"
       @update:model-value="emit('update:subject', $event as string)"
@@ -94,6 +99,7 @@ const emit = defineEmits<{
 
     <!-- Topic Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="topic"
       :disabled="subject === ALL_VALUE"
       @update:model-value="emit('update:topic', $event as string)"
@@ -111,6 +117,7 @@ const emit = defineEmits<{
 
     <!-- Sub-Topic Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="subTopic"
       :disabled="topic === ALL_VALUE"
       @update:model-value="emit('update:subTopic', $event as string)"

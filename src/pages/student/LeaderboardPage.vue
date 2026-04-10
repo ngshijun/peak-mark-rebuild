@@ -9,6 +9,7 @@ import {
 } from '@/stores/leaderboard'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -38,6 +39,7 @@ import StudentProfileDialog from '@/components/student/StudentProfileDialog.vue'
 const leaderboardStore = useLeaderboardStore()
 const curriculumStore = useCurriculumStore()
 const t = useT()
+const languageStore = useLanguageStore()
 
 const ALL_VALUE = '__all__'
 const selectedGradeLevel = ref<string>(ALL_VALUE)
@@ -142,6 +144,7 @@ onMounted(async () => {
       <!-- Grade Level Filter (all-time only) -->
       <Select
         v-if="activeTab === 'all-time'"
+        :key="languageStore.language"
         v-model="selectedGradeLevel"
         :disabled="leaderboardStore.isLoading"
       >

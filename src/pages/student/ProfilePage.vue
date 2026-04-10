@@ -50,12 +50,14 @@ import { useSchoolSearch } from '@/composables/useSchoolSearch'
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTour } from '@/composables/useTour'
+import { useLanguageStore } from '@/stores/language'
 
 const authStore = useAuthStore()
 const practiceStore = usePracticeStore()
 const subscriptionStore = useSubscriptionStore()
 const curriculumStore = useCurriculumStore()
 const t = useT()
+const languageStore = useLanguageStore()
 const {
   isSaving,
   userInitials,
@@ -374,6 +376,7 @@ async function handleSchoolChange(schoolId: string) {
                     {{ t.student.profile.gradeLevelLabel }}
                   </p>
                   <Select
+                    :key="languageStore.language"
                     :model-value="authStore.studentProfile?.gradeLevelId ?? undefined"
                     :disabled="isSaving || curriculumStore.isLoading"
                     @update:model-value="handleGradeChange"
@@ -481,6 +484,7 @@ async function handleSchoolChange(schoolId: string) {
                     {{ t.student.profile.aiLanguageLabel }}
                   </p>
                   <Select
+                    :key="languageStore.language"
                     :model-value="authStore.studentProfile?.preferredLanguage ?? 'en'"
                     :disabled="isSaving"
                     @update:model-value="handleLanguageChange"

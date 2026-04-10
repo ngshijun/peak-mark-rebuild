@@ -30,8 +30,10 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 
 const t = useT()
+const languageStore = useLanguageStore()
 
 const props = defineProps<{
   announcement?: Announcement | null
@@ -227,7 +229,12 @@ const handleSave = handleSubmit(async (values) => {
                 >{{ t.shared.announcementFormDialog.targetAudienceLabel }}
                 <span class="text-destructive">*</span></FieldLabel
               >
-              <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
+              <Select
+                :key="languageStore.language"
+                :model-value="value"
+                :disabled="isSaving"
+                @update:model-value="handleChange"
+              >
                 <SelectTrigger class="w-full" :class="{ 'border-destructive': !!errors.length }">
                   <SelectValue :placeholder="t.shared.announcementFormDialog.audiencePlaceholder" />
                 </SelectTrigger>
@@ -250,6 +257,7 @@ const handleSave = handleSubmit(async (values) => {
             <Field>
               <FieldLabel>{{ t.shared.announcementFormDialog.pinToTop }}</FieldLabel>
               <Select
+                :key="languageStore.language"
                 :model-value="value ? 'yes' : 'no'"
                 :disabled="isSaving"
                 @update:model-value="(val) => handleChange(val === 'yes')"

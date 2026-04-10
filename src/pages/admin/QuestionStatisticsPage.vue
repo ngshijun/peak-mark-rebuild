@@ -17,8 +17,10 @@ import {
 } from '@/components/ui/select'
 import { QuestionPreviewDialog } from '@/components/admin'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 
 const t = useT()
+const languageStore = useLanguageStore()
 const questionsStore = useQuestionsStore()
 
 // Fetch statistics on mount
@@ -304,6 +306,7 @@ function handleRowClick(question: QuestionWithStats) {
 
       <!-- Grade Level Selector -->
       <Select
+        :key="languageStore.language"
         :model-value="questionsStore.questionStatisticsFilters.gradeLevel"
         @update:model-value="questionsStore.setQuestionStatisticsGradeLevel(String($event))"
       >
@@ -320,6 +323,7 @@ function handleRowClick(question: QuestionWithStats) {
 
       <!-- Subject Selector -->
       <Select
+        :key="languageStore.language"
         :model-value="questionsStore.questionStatisticsFilters.subject"
         :disabled="questionsStore.questionStatisticsFilters.gradeLevel === ALL_VALUE"
         @update:model-value="questionsStore.setQuestionStatisticsSubject(String($event))"
@@ -337,6 +341,7 @@ function handleRowClick(question: QuestionWithStats) {
 
       <!-- Topic Selector -->
       <Select
+        :key="languageStore.language"
         :model-value="questionsStore.questionStatisticsFilters.topic"
         :disabled="questionsStore.questionStatisticsFilters.subject === ALL_VALUE"
         @update:model-value="questionsStore.setQuestionStatisticsTopic(String($event))"
@@ -354,6 +359,7 @@ function handleRowClick(question: QuestionWithStats) {
 
       <!-- Sub-Topic Selector -->
       <Select
+        :key="languageStore.language"
         :model-value="questionsStore.questionStatisticsFilters.subTopic"
         :disabled="questionsStore.questionStatisticsFilters.topic === ALL_VALUE"
         @update:model-value="questionsStore.setQuestionStatisticsSubTopic(String($event))"

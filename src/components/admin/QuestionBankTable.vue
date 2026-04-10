@@ -21,8 +21,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 
 const t = useT()
+const languageStore = useLanguageStore()
 
 const emit = defineEmits<{
   edit: [question: Question]
@@ -200,6 +202,7 @@ defineExpose({ filteredQuestions: serverQuestions })
 
     <!-- Grade Level Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="questionsStore.questionBankFilters.gradeLevel"
       @update:model-value="questionsStore.setQuestionBankGradeLevel(String($event))"
     >
@@ -216,6 +219,7 @@ defineExpose({ filteredQuestions: serverQuestions })
 
     <!-- Subject Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="questionsStore.questionBankFilters.subject"
       :disabled="questionsStore.questionBankFilters.gradeLevel === ALL_VALUE"
       @update:model-value="questionsStore.setQuestionBankSubject(String($event))"
@@ -233,6 +237,7 @@ defineExpose({ filteredQuestions: serverQuestions })
 
     <!-- Topic Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="questionsStore.questionBankFilters.topic"
       :disabled="questionsStore.questionBankFilters.subject === ALL_VALUE"
       @update:model-value="questionsStore.setQuestionBankTopic(String($event))"
@@ -250,6 +255,7 @@ defineExpose({ filteredQuestions: serverQuestions })
 
     <!-- Sub-Topic Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="questionsStore.questionBankFilters.subTopic"
       :disabled="questionsStore.questionBankFilters.topic === ALL_VALUE"
       @update:model-value="questionsStore.setQuestionBankSubTopic(String($event))"

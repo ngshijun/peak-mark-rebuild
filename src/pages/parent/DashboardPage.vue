@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { defineAsyncComponent } from 'vue'
 import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget.vue'
+import { useLanguageStore } from '@/stores/language'
 
 const ChildMoodCalendar = defineAsyncComponent(
   () => import('@/components/parent/ChildMoodCalendar.vue'),
@@ -28,6 +29,7 @@ const SELECTED_CHILD_KEY = 'parent_selected_child_id'
 const childLinkStore = useChildLinkStore()
 const childStatisticsStore = useChildStatisticsStore()
 const t = useT()
+const languageStore = useLanguageStore()
 
 const isLoading = ref(true)
 const selectedChildId = ref<string>(localStorage.getItem(SELECTED_CHILD_KEY) || '')
@@ -98,7 +100,11 @@ watch(selectedChildId, async (newId) => {
         <p class="text-muted-foreground">{{ t.parent.dashboard.subtitle }}</p>
       </div>
       <!-- Child Selector -->
-      <Select v-if="linkedChildren.length > 1" v-model="selectedChildId">
+      <Select
+        v-if="linkedChildren.length > 1"
+        :key="languageStore.language"
+        v-model="selectedChildId"
+      >
         <SelectTrigger data-tour="parent-child-selector" class="w-[220px]">
           <SelectValue :placeholder="t.parent.dashboard.selectChildPlaceholder" />
         </SelectTrigger>

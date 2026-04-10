@@ -29,8 +29,10 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
 import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
 
 const t = useT()
+const languageStore = useLanguageStore()
 
 const props = defineProps<{
   open: boolean
@@ -158,7 +160,7 @@ function getItemIdKey(): keyof CurriculumIds {
         <!-- Grade Level Select (for subject when not in context) -->
         <div v-if="addType === 'subject' && !dialogGradeLevelId" class="space-y-2">
           <FieldLabel>{{ t.shared.curriculumAddDialog.gradeLevelLabel }}</FieldLabel>
-          <Select v-model="dialogGradeLevelId">
+          <Select :key="languageStore.language" v-model="dialogGradeLevelId">
             <SelectTrigger>
               <SelectValue :placeholder="t.shared.curriculumAddDialog.gradeLevelPlaceholder" />
             </SelectTrigger>
@@ -177,7 +179,7 @@ function getItemIdKey(): keyof CurriculumIds {
         <!-- Subject Select (for topic when not in context) -->
         <div v-if="addType === 'topic' && dialogGradeLevelId && !dialogSubjectId" class="space-y-2">
           <FieldLabel>{{ t.shared.curriculumAddDialog.subjectLabel }}</FieldLabel>
-          <Select v-model="dialogSubjectId">
+          <Select :key="languageStore.language" v-model="dialogSubjectId">
             <SelectTrigger>
               <SelectValue :placeholder="t.shared.curriculumAddDialog.subjectPlaceholder" />
             </SelectTrigger>

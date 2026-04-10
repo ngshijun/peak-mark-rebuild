@@ -30,11 +30,13 @@ import { useT } from '@/composables/useT'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import LanguageToggle from './LanguageToggle.vue'
+import { useLanguageStore } from '@/stores/language'
 const LevelUpDialog = defineAsyncComponent(() => import('./LevelUpDialog.vue'))
 const authStore = useAuthStore()
 const curriculumStore = useCurriculumStore()
 const petsStore = usePetsStore()
 const t = useT()
+const languageStore = useLanguageStore()
 const { showWelcomeDialog, promptTour, startTour, skipTour } = useTour()
 const { watchAndStart: watchAndStartFirstPetTour } = useFirstPetTour()
 
@@ -205,7 +207,11 @@ const greeting = computed(() => {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div class="py-4">
-          <Select v-model="selectedGradeId" :disabled="curriculumStore.isLoading || isSaving">
+          <Select
+            :key="languageStore.language"
+            v-model="selectedGradeId"
+            :disabled="curriculumStore.isLoading || isSaving"
+          >
             <SelectTrigger class="w-full">
               <SelectValue :placeholder="t.shared.layout.gradeDialog.selectPlaceholder" />
             </SelectTrigger>
