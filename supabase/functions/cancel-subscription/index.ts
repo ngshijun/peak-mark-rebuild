@@ -47,6 +47,7 @@ Deno.serve(async (req: Request) => {
         subscription.stripe_subscription_id,
         {
           cancel_at_period_end: true,
+          expand: ['latest_invoice'],
         }
       )
       // Immediately sync the updated subscription state to database

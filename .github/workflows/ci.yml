@@ -8,6 +8,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      # Dummy values so `pnpm build` succeeds; CI does not run the app.
+      # Real values come from Vercel at deploy time.
+      VITE_SUPABASE_URL: https://dummy.supabase.co
+      VITE_SUPABASE_KEY: dummy-key
+
     steps:
       - uses: actions/checkout@v6
 
@@ -26,6 +32,12 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec eslint .
+
+      - name: Build (type-check + bundle)
+        run: pnpm build
 
       - name: Verify generated types are checked in
         run: |
