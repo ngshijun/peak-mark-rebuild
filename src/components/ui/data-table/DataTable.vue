@@ -229,7 +229,7 @@ defineExpose({ table })
             </SelectContent>
           </Select>
         </div>
-        <div class="flex w-[100px] items-center justify-center text-sm font-medium">
+        <div class="flex w-[150px] items-center justify-center text-sm font-medium">
           {{
             t.shared.pagination.pageOf(
               table.getState().pagination.pageIndex + 1,

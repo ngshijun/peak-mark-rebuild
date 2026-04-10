@@ -106,7 +106,7 @@ export default {
     howItWorksResets: '每周一重置',
     endsIn: (countdown: string) => `${countdown} 后结束`,
     ending: '即将结束...',
-    streak: '连续',
+    streak: '连续天数',
     level: '等级',
     xp: '经验值',
     reward: '奖励',

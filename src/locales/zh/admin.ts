@@ -105,6 +105,9 @@ export default {
     attemptsCol: '作答次数',
     correctnessRateCol: '正确率',
     avgTimeCol: '平均用时',
+    typeMcq: '选择题',
+    typeMrq: '多选题',
+    typeShortAnswer: '简答题',
   },
 
   questionFeedback: {
@@ -126,6 +129,12 @@ export default {
     toastQuestionNotFound: '未找到该题目',
     toastQuestionDeleted: '该题目可能已被删除。',
     unknown: '未知',
+    categoryQuestionError: '题目错误',
+    categoryImageError: '图片错误',
+    categoryOptionError: '选项错误',
+    categoryAnswerError: '答案错误',
+    categoryExplanationError: '解析错误',
+    categoryOther: '其他',
   },
 
   curriculum: {

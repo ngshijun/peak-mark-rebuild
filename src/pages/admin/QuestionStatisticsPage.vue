@@ -151,19 +151,20 @@ const columns: ColumnDef<QuestionWithStats>[] = [
     header: () => t.value.admin.questionStatistics.typeCol,
     cell: ({ row }) => {
       const type = row.original.type
+      const labels = t.value.admin.questionStatistics
       const config: Record<string, { label: string; color: string; bgColor: string }> = {
         mcq: {
-          label: 'Multiple Choice',
+          label: labels.typeMcq,
           color: 'text-blue-700 dark:text-blue-300',
           bgColor: 'bg-blue-100 dark:bg-blue-900/50',
         },
         mrq: {
-          label: 'Multiple Response',
+          label: labels.typeMrq,
           color: 'text-purple-700 dark:text-purple-300',
           bgColor: 'bg-purple-100 dark:bg-purple-900/50',
         },
         short_answer: {
-          label: 'Short Answer',
+          label: labels.typeShortAnswer,
           color: 'text-green-700 dark:text-green-300',
           bgColor: 'bg-green-100 dark:bg-green-900/50',
         },

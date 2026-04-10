@@ -198,7 +198,7 @@ onMounted(async () => {
             >
               <template #stats="{ entry }">
                 <div class="flex items-center gap-6">
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.streak }}</p>
                     <p class="flex items-center justify-center gap-1 font-semibold">
                       <img
@@ -211,11 +211,11 @@ onMounted(async () => {
                       {{ (entry as LeaderboardStudent).currentStreak }}
                     </p>
                   </div>
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as LeaderboardStudent).level }}</p>
                   </div>
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.xp }}</p>
                     <p class="font-semibold">
                       {{ (entry as LeaderboardStudent).xp.toLocaleString() }}
@@ -225,7 +225,7 @@ onMounted(async () => {
               </template>
               <template #current-student-stats="{ entry }">
                 <div class="flex items-center gap-6">
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.streak }}</p>
                     <p class="flex items-center justify-center gap-1 font-semibold">
                       <img
@@ -238,11 +238,11 @@ onMounted(async () => {
                       {{ (entry as LeaderboardStudent).currentStreak }}
                     </p>
                   </div>
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as LeaderboardStudent).level }}</p>
                   </div>
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.xp }}</p>
                     <p class="font-semibold">
                       {{ (entry as LeaderboardStudent).xp.toLocaleString() }}
@@ -320,7 +320,7 @@ onMounted(async () => {
                 <div class="flex items-center gap-6">
                   <div
                     v-if="getWeeklyReward((entry as WeeklyLeaderboardStudent).rank)"
-                    class="w-12 text-center"
+                    class="w-14 text-center"
                   >
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.reward }}</p>
                     <p
@@ -331,11 +331,11 @@ onMounted(async () => {
                     </p>
                   </div>
                   <div v-else class="w-12" />
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as WeeklyLeaderboardStudent).level }}</p>
                   </div>
-                  <div class="w-16 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">
                       {{ t.student.leaderboard.weeklyXp }}
                     </p>
@@ -349,7 +349,7 @@ onMounted(async () => {
                 <div class="flex items-center gap-6">
                   <div
                     v-if="getWeeklyReward((entry as WeeklyLeaderboardStudent).rank)"
-                    class="w-12 text-center"
+                    class="w-14 text-center"
                   >
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.reward }}</p>
                     <p
@@ -360,11 +360,11 @@ onMounted(async () => {
                     </p>
                   </div>
                   <div v-else class="w-12" />
-                  <div class="w-12 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as WeeklyLeaderboardStudent).level }}</p>
                   </div>
-                  <div class="w-16 text-center">
+                  <div class="w-14 text-center">
                     <p class="text-sm text-muted-foreground">
                       {{ t.student.leaderboard.weeklyXp }}
                     </p>

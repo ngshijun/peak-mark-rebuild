@@ -106,6 +106,9 @@ export default {
     attemptsCol: 'Attempts',
     correctnessRateCol: 'Correctness Rate',
     avgTimeCol: 'Avg. Time',
+    typeMcq: 'Multiple Choice',
+    typeMrq: 'Multiple Response',
+    typeShortAnswer: 'Short Answer',
   },
 
   questionFeedback: {
@@ -128,6 +131,12 @@ export default {
     toastQuestionNotFound: 'Question not found',
     toastQuestionDeleted: 'The question may have been deleted.',
     unknown: 'Unknown',
+    categoryQuestionError: 'Question Error',
+    categoryImageError: 'Image Error',
+    categoryOptionError: 'Option Error',
+    categoryAnswerError: 'Answer Error',
+    categoryExplanationError: 'Explanation Error',
+    categoryOther: 'Other',
   },
 
   curriculum: {

@@ -44,39 +44,41 @@ const previewFeedback = ref<QuestionFeedback | null>(null)
 const editingQuestion = ref<Question | null>(null)
 
 // Category config with colors
-const categoryConfig: Record<FeedbackCategory, { label: string; color: string; bgColor: string }> =
-  {
+const categoryConfig = computed(() => {
+  const labels = t.value.admin.questionFeedback
+  return {
     question_error: {
-      label: 'Question Error',
+      label: labels.categoryQuestionError,
       color: 'text-red-700 dark:text-red-300',
       bgColor: 'bg-red-100 dark:bg-red-900/50',
     },
     image_error: {
-      label: 'Image Error',
+      label: labels.categoryImageError,
       color: 'text-orange-700 dark:text-orange-300',
       bgColor: 'bg-orange-100 dark:bg-orange-900/50',
     },
     option_error: {
-      label: 'Option Error',
+      label: labels.categoryOptionError,
       color: 'text-yellow-700 dark:text-yellow-300',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900/50',
     },
     answer_error: {
-      label: 'Answer Error',
+      label: labels.categoryAnswerError,
       color: 'text-red-700 dark:text-red-300',
       bgColor: 'bg-red-100 dark:bg-red-900/50',
     },
     explanation_error: {
-      label: 'Explanation Error',
+      label: labels.categoryExplanationError,
       color: 'text-purple-700 dark:text-purple-300',
       bgColor: 'bg-purple-100 dark:bg-purple-900/50',
     },
     other: {
-      label: 'Other',
+      label: labels.categoryOther,
       color: 'text-gray-700 dark:text-gray-300',
       bgColor: 'bg-gray-100 dark:bg-gray-800',
     },
-  }
+  } satisfies Record<FeedbackCategory, { label: string; color: string; bgColor: string }>
+})
 
 // Fetch feedbacks on mount (question text is already joined in the feedback query)
 // Full question data is fetched on-demand when preview/edit is needed
@@ -93,7 +95,7 @@ const filteredFeedbacks = computed(() => {
     (f) =>
       f.question.toLowerCase().includes(query) ||
       (f.comments?.toLowerCase().includes(query) ?? false) ||
-      categoryConfig[f.category].label.toLowerCase().includes(query),
+      categoryConfig.value[f.category].label.toLowerCase().includes(query),
   )
 })
 
@@ -205,7 +207,7 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     header: () => t.value.admin.questionFeedback.categoryCol,
     cell: ({ row }) => {
       const category = row.original.category
-      const config = categoryConfig[category]
+      const config = categoryConfig.value[category]
       return h(
         Badge,
         { variant: 'secondary', class: `${config.bgColor} ${config.color}` },
