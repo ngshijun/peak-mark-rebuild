@@ -6,6 +6,7 @@ import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { signupFormSchema } from '@/lib/validations'
 import { usePasswordStrength } from '@/composables/usePasswordStrength'
+import { useT } from '@/composables/useT'
 import logoSvg from '@/assets/logo.svg'
 import { ArrowLeft, Loader2, CalendarIcon, Check, ChevronsUpDown, Search } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +25,7 @@ import { createYearRange } from 'reka-ui/date'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const t = useT()
 
 useSeoMeta({
   title: 'Sign Up',
@@ -99,7 +101,7 @@ const onSubmit = handleSubmit(async (formValues) => {
       router.push({ path: '/signup/confirm', query: { email: formValues.email } })
     }
   } catch {
-    toast.error('An unexpected error occurred')
+    toast.error(t.value.auth.signup.unexpectedError)
   } finally {
     isSubmitting.value = false
   }
@@ -111,17 +113,17 @@ const onSubmit = handleSubmit(async (formValues) => {
     <Button as-child variant="ghost" size="sm" class="absolute left-4 top-4">
       <RouterLink to="/">
         <ArrowLeft class="mr-2 size-4" />
-        Back to Home
+        {{ t.auth.common.backToHome }}
       </RouterLink>
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
         <div class="mb-1 flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <img :src="logoSvg" :alt="t.auth.common.logoAlt" class="size-10" />
           <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
-        <CardTitle class="text-xl">Sign Up</CardTitle>
-        <CardDescription>Create a new account</CardDescription>
+        <CardTitle class="text-xl">{{ t.auth.signup.title }}</CardTitle>
+        <CardDescription>{{ t.auth.signup.description }}</CardDescription>
       </CardHeader>
       <CardContent>
         <form class="space-y-4" @submit="onSubmit">
@@ -134,11 +136,13 @@ const onSubmit = handleSubmit(async (formValues) => {
             name="name"
           >
             <Field :data-invalid="!!errors.length">
-              <FieldLabel for="name">Name <span class="text-destructive">*</span></FieldLabel>
+              <FieldLabel for="name"
+                >{{ t.auth.signup.nameLabel }} <span class="text-destructive">*</span></FieldLabel
+              >
               <Input
                 id="name"
                 type="text"
-                placeholder="Enter your name"
+                :placeholder="t.auth.signup.namePlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
@@ -156,11 +160,13 @@ const onSubmit = handleSubmit(async (formValues) => {
             name="email"
           >
             <Field :data-invalid="!!errors.length">
-              <FieldLabel for="email">Email <span class="text-destructive">*</span></FieldLabel>
+              <FieldLabel for="email"
+                >{{ t.auth.signup.emailLabel }} <span class="text-destructive">*</span></FieldLabel
+              >
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                :placeholder="t.auth.signup.emailPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
@@ -179,11 +185,12 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="password">
-                Password <span class="text-destructive">*</span>
+                {{ t.auth.signup.passwordLabel }}
+                <span class="text-destructive">*</span>
               </FieldLabel>
               <PasswordInput
                 id="password"
-                placeholder="Create a password (min 8 characters)"
+                :placeholder="t.auth.signup.passwordPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
@@ -213,11 +220,12 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="confirmPassword">
-                Confirm Password <span class="text-destructive">*</span>
+                {{ t.auth.signup.confirmPasswordLabel }}
+                <span class="text-destructive">*</span>
               </FieldLabel>
               <PasswordInput
                 id="confirmPassword"
-                placeholder="Confirm your password"
+                :placeholder="t.auth.signup.confirmPasswordPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
@@ -235,7 +243,10 @@ const onSubmit = handleSubmit(async (formValues) => {
             name="userType"
           >
             <Field :data-invalid="!!errors.length">
-              <FieldLabel>Account Type <span class="text-destructive">*</span></FieldLabel>
+              <FieldLabel
+                >{{ t.auth.signup.accountTypeLabel }}
+                <span class="text-destructive">*</span></FieldLabel
+              >
               <div class="flex gap-2">
                 <Button
                   type="button"
@@ -245,7 +256,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                   :disabled="isSubmitting"
                   @click="setFieldValue('userType', 'student')"
                 >
-                  Student
+                  {{ t.auth.signup.studentButton }}
                 </Button>
                 <Button
                   type="button"
@@ -255,7 +266,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                   :disabled="isSubmitting"
                   @click="setFieldValue('userType', 'parent')"
                 >
-                  Parent
+                  {{ t.auth.signup.parentButton }}
                 </Button>
               </div>
               <FieldError :errors="errors" />
@@ -272,7 +283,9 @@ const onSubmit = handleSubmit(async (formValues) => {
             name="schoolId"
           >
             <Field :data-invalid="!!errors.length">
-              <FieldLabel>School <span class="text-destructive">*</span></FieldLabel>
+              <FieldLabel
+                >{{ t.auth.signup.schoolLabel }} <span class="text-destructive">*</span></FieldLabel
+              >
               <Popover v-model:open="schoolPopoverOpen">
                 <PopoverTrigger as-child>
                   <Button
@@ -285,11 +298,11 @@ const onSubmit = handleSubmit(async (formValues) => {
                   >
                     {{
                       values.schoolId === SCHOOL_NOT_LISTED_ID
-                        ? 'My school is not listed'
+                        ? t.auth.signup.schoolNotListed
                         : values.schoolId
                           ? (schools.find((s) => s.id === values.schoolId)?.name ??
-                            'Select your school')
-                          : 'Select your school'
+                            t.auth.signup.schoolPlaceholder)
+                          : t.auth.signup.schoolPlaceholder
                     }}
                     <ChevronsUpDown class="ml-2 size-4 shrink-0 opacity-50" />
                   </Button>
@@ -300,7 +313,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                       <Search class="size-4 shrink-0 opacity-50" />
                       <input
                         v-model="schoolSearchTerm"
-                        placeholder="Search school"
+                        :placeholder="t.auth.signup.schoolSearchPlaceholder"
                         class="placeholder:text-muted-foreground flex h-10 w-full bg-transparent py-3 text-sm outline-hidden"
                       />
                     </div>
@@ -329,7 +342,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                           />
                         </CommandItem>
                         <CommandItem
-                          value="my school is not listed"
+                          :value="t.auth.signup.schoolNotListed"
                           @select="
                             () => {
                               handleChange(SCHOOL_NOT_LISTED_ID)
@@ -338,7 +351,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                             }
                           "
                         >
-                          My school is not listed
+                          {{ t.auth.signup.schoolNotListed }}
                         </CommandItem>
                       </CommandGroup>
                     </CommandList>
@@ -358,7 +371,7 @@ const onSubmit = handleSubmit(async (formValues) => {
             name="dateOfBirth"
           >
             <Field>
-              <FieldLabel>Date of Birth</FieldLabel>
+              <FieldLabel>{{ t.auth.signup.dateOfBirthLabel }}</FieldLabel>
               <Popover>
                 <PopoverTrigger as-child>
                   <Button
@@ -377,7 +390,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                         })
                       }}
                     </span>
-                    <span v-else>Pick a date</span>
+                    <span v-else>{{ t.auth.signup.datePickPlaceholder }}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent class="w-auto p-0" align="start">
@@ -401,13 +414,15 @@ const onSubmit = handleSubmit(async (formValues) => {
 
           <Button type="submit" class="mt-2 w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
-            {{ isSubmitting ? 'Creating Account...' : 'Sign Up' }}
+            {{ isSubmitting ? t.auth.signup.submitting : t.auth.signup.submit }}
           </Button>
         </form>
 
         <div class="mt-4 text-center text-sm text-muted-foreground">
-          Already have an account?
-          <RouterLink to="/login" class="text-primary hover:underline">Login</RouterLink>
+          {{ t.auth.signup.alreadyHaveAccount }}
+          <RouterLink to="/login" class="text-primary hover:underline">{{
+            t.auth.signup.login
+          }}</RouterLink>
         </div>
       </CardContent>
     </Card>

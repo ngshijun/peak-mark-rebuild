@@ -5,6 +5,7 @@ import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { resetAllStores } from '@/lib/piniaResetPlugin'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
+import { translateAuthError } from '@/lib/authErrors'
 import { XP_PER_LEVEL, computeLevel } from '@/lib/xp'
 import { optimizeImage } from '@/lib/imageOptimizer'
 
@@ -327,7 +328,9 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (signUpError) {
-        const message = handleError(signUpError, 'An unexpected error occurred.')
+        const message =
+          translateAuthError(signUpError) ||
+          handleError(signUpError, 'An unexpected error occurred.')
         return { user: null, error: message }
       }
 
@@ -361,7 +364,9 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (signInError) {
-        const message = handleError(signInError, 'An unexpected error occurred.')
+        const message =
+          translateAuthError(signInError) ||
+          handleError(signInError, 'An unexpected error occurred.')
         return {
           user: null,
           session: null,
@@ -470,7 +475,11 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (resetError) {
-        return { error: handleError(resetError, 'An unexpected error occurred.') }
+        return {
+          error:
+            translateAuthError(resetError) ||
+            handleError(resetError, 'An unexpected error occurred.'),
+        }
       }
 
       return { error: null }
@@ -490,7 +499,11 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (resendError) {
-        return { error: handleError(resendError, 'An unexpected error occurred.') }
+        return {
+          error:
+            translateAuthError(resendError) ||
+            handleError(resendError, 'An unexpected error occurred.'),
+        }
       }
 
       return { error: null }
@@ -509,7 +522,11 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (updateError) {
-        return { error: handleError(updateError, 'An unexpected error occurred.') }
+        return {
+          error:
+            translateAuthError(updateError) ||
+            handleError(updateError, 'An unexpected error occurred.'),
+        }
       }
 
       return { error: null }

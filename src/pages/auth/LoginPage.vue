@@ -5,6 +5,7 @@ import { useSeoMeta } from '@unhead/vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { loginFormSchema } from '@/lib/validations'
+import { useT } from '@/composables/useT'
 import logoSvg from '@/assets/logo.svg'
 import { ArrowLeft, Loader2, Mail } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +17,7 @@ import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const t = useT()
 
 useSeoMeta({
   title: 'Log In',
@@ -55,10 +57,10 @@ async function handleResendVerification() {
       toast.error(result.error)
       return
     }
-    toast.success('Verification email sent!')
+    toast.success(t.value.auth.login.resendSuccess)
     startCooldown()
   } catch {
-    toast.error('An unexpected error occurred')
+    toast.error(t.value.auth.login.unexpectedError)
   } finally {
     isResending.value = false
   }
@@ -93,7 +95,7 @@ const onSubmit = handleSubmit(async (values) => {
     unconfirmedEmail.value = ''
 
     if (result.user) {
-      toast.success('Welcome back!')
+      toast.success(t.value.auth.login.welcomeBack)
       // Redirect based on user type
       const userType = authStore.userType
       if (userType === 'admin') {
@@ -107,7 +109,7 @@ const onSubmit = handleSubmit(async (values) => {
       }
     }
   } catch {
-    toast.error('An unexpected error occurred')
+    toast.error(t.value.auth.login.unexpectedError)
   } finally {
     isSubmitting.value = false
   }
@@ -119,26 +121,23 @@ const onSubmit = handleSubmit(async (values) => {
     <Button as-child variant="ghost" size="sm" class="absolute left-4 top-4">
       <RouterLink to="/">
         <ArrowLeft class="mr-2 size-4" />
-        Back to Home
+        {{ t.auth.common.backToHome }}
       </RouterLink>
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
         <div class="mb-1 flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <img :src="logoSvg" :alt="t.auth.common.logoAlt" class="size-10" />
           <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
-        <CardTitle class="text-xl">Sign In</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
+        <CardTitle class="text-xl">{{ t.auth.login.title }}</CardTitle>
+        <CardDescription>{{ t.auth.login.description }}</CardDescription>
       </CardHeader>
       <CardContent>
         <Alert v-if="unconfirmedEmail" variant="default" class="mb-4">
           <Mail class="size-4" />
           <AlertDescription class="flex flex-col gap-2">
-            <span
-              >Your email hasn't been verified yet. Check your inbox or resend the verification
-              email.</span
-            >
+            <span>{{ t.auth.login.unconfirmedEmail }}</span>
             <Button
               variant="outline"
               size="sm"
@@ -147,9 +146,11 @@ const onSubmit = handleSubmit(async (values) => {
               @click="handleResendVerification"
             >
               <Loader2 v-if="isResending" class="mr-2 size-4 animate-spin" />
-              <template v-if="isResending">Sending...</template>
-              <template v-else-if="cooldownSeconds > 0">Resend in {{ cooldownSeconds }}s</template>
-              <template v-else>Resend Verification Email</template>
+              <template v-if="isResending">{{ t.auth.login.resendingSending }}</template>
+              <template v-else-if="cooldownSeconds > 0">{{
+                t.auth.login.resendCooldown(cooldownSeconds)
+              }}</template>
+              <template v-else>{{ t.auth.login.resendVerification }}</template>
             </Button>
           </AlertDescription>
         </Alert>
@@ -164,11 +165,11 @@ const onSubmit = handleSubmit(async (values) => {
             name="email"
           >
             <Field :data-invalid="!!errors.length">
-              <FieldLabel for="email">Email</FieldLabel>
+              <FieldLabel for="email">{{ t.auth.login.emailLabel }}</FieldLabel>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                :placeholder="t.auth.login.emailPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
@@ -186,11 +187,11 @@ const onSubmit = handleSubmit(async (values) => {
             name="password"
           >
             <Field :data-invalid="!!errors.length">
-              <FieldLabel for="password">Password</FieldLabel>
+              <FieldLabel for="password">{{ t.auth.login.passwordLabel }}</FieldLabel>
               <PasswordInput
                 id="password"
                 ref="passwordRef"
-                placeholder="Enter your password"
+                :placeholder="t.auth.login.passwordPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
@@ -201,19 +202,21 @@ const onSubmit = handleSubmit(async (values) => {
 
           <div class="text-right">
             <RouterLink to="/forgot-password" class="text-sm text-primary hover:underline">
-              Forgot password?
+              {{ t.auth.login.forgotPassword }}
             </RouterLink>
           </div>
 
           <Button type="submit" class="mt-2 w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
-            {{ isSubmitting ? 'Signing in...' : 'Login' }}
+            {{ isSubmitting ? t.auth.login.submitting : t.auth.login.submit }}
           </Button>
         </form>
 
         <div class="mt-4 text-center text-sm text-muted-foreground">
-          Don't have an account?
-          <RouterLink to="/signup" class="text-primary hover:underline">Sign up</RouterLink>
+          {{ t.auth.login.noAccount }}
+          <RouterLink to="/signup" class="text-primary hover:underline">{{
+            t.auth.login.signUp
+          }}</RouterLink>
         </div>
       </CardContent>
     </Card>

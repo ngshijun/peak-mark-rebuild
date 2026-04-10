@@ -5,6 +5,7 @@ import { useSeoMeta } from '@unhead/vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { usePasswordStrength } from '@/composables/usePasswordStrength'
+import { useT } from '@/composables/useT'
 import { z } from 'zod'
 import logoSvg from '@/assets/logo.svg'
 import { Loader2, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
@@ -17,6 +18,7 @@ import { toast } from 'vue-sonner'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const t = useT()
 
 useSeoMeta({
   title: 'Reset Password',
@@ -34,12 +36,14 @@ const resetPasswordSchema = z
   .object({
     password: z
       .string()
-      .min(1, 'Password is required')
-      .min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+      .min(1, t.value.auth.resetPassword.validation.passwordRequired)
+      .min(8, t.value.auth.resetPassword.validation.passwordMinLength),
+    confirmPassword: z
+      .string()
+      .min(1, t.value.auth.resetPassword.validation.confirmPasswordRequired),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
+    message: t.value.auth.resetPassword.validation.passwordsMismatch,
     path: ['confirmPassword'],
   })
 
@@ -77,17 +81,17 @@ onMounted(async () => {
     const session = await authStore.getSession()
 
     if (!session) {
-      tokenError.value = 'Invalid or expired reset link. Please request a new one.'
+      tokenError.value = t.value.auth.resetPassword.invalidLinkError
       isValidToken.value = false
     } else if (session) {
       isValidToken.value = true
     } else {
-      tokenError.value = 'Invalid or expired reset link. Please request a new one.'
+      tokenError.value = t.value.auth.resetPassword.invalidLinkError
       isValidToken.value = false
     }
   } catch (err) {
     console.error('Failed to verify reset token:', err)
-    tokenError.value = 'An error occurred. Please try again.'
+    tokenError.value = t.value.auth.resetPassword.verifyError
     isValidToken.value = false
   } finally {
     isLoading.value = false
@@ -106,13 +110,13 @@ const onSubmit = handleSubmit(async (values) => {
     }
 
     passwordUpdated.value = true
-    toast.success('Password updated successfully!')
+    toast.success(t.value.auth.resetPassword.passwordUpdatedSuccess)
 
     // Sign out after password reset so user can log in fresh
     await authStore.signOut()
   } catch (err) {
     console.error('Failed to reset password:', err)
-    toast.error('An unexpected error occurred')
+    toast.error(t.value.auth.resetPassword.unexpectedError)
   } finally {
     isSubmitting.value = false
   }
@@ -128,12 +132,16 @@ function goToLogin() {
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
         <div class="mb-1 flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <img :src="logoSvg" :alt="t.auth.common.logoAlt" class="size-10" />
           <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
-        <CardTitle class="text-xl">Set New Password</CardTitle>
+        <CardTitle class="text-xl">{{ t.auth.resetPassword.title }}</CardTitle>
         <CardDescription>
-          {{ passwordUpdated ? 'Your password has been reset' : 'Enter your new password below' }}
+          {{
+            passwordUpdated
+              ? t.auth.resetPassword.descriptionSuccess
+              : t.auth.resetPassword.descriptionForm
+          }}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -153,12 +161,14 @@ function goToLogin() {
 
           <div class="flex flex-col gap-2">
             <Button as-child class="w-full">
-              <RouterLink to="/forgot-password">Request New Reset Link</RouterLink>
+              <RouterLink to="/forgot-password">{{
+                t.auth.resetPassword.requestNewLink
+              }}</RouterLink>
             </Button>
             <Button as-child variant="outline" class="w-full">
               <RouterLink to="/login">
                 <ArrowLeft class="mr-2 size-4" />
-                Back to Login
+                {{ t.auth.resetPassword.backToLogin }}
               </RouterLink>
             </Button>
           </div>
@@ -173,12 +183,11 @@ function goToLogin() {
               <CheckCircle class="size-8 text-green-600" />
             </div>
             <p class="text-center text-sm text-muted-foreground">
-              Your password has been updated successfully. You can now log in with your new
-              password.
+              {{ t.auth.resetPassword.successMessage }}
             </p>
           </div>
 
-          <Button class="w-full" @click="goToLogin">Go to Login</Button>
+          <Button class="w-full" @click="goToLogin">{{ t.auth.resetPassword.goToLogin }}</Button>
         </div>
 
         <!-- Form State -->
@@ -193,10 +202,10 @@ function goToLogin() {
               name="password"
             >
               <Field :data-invalid="!!errors.length">
-                <FieldLabel for="password">New Password</FieldLabel>
+                <FieldLabel for="password">{{ t.auth.resetPassword.newPasswordLabel }}</FieldLabel>
                 <PasswordInput
                   id="password"
-                  placeholder="Enter your new password"
+                  :placeholder="t.auth.resetPassword.newPasswordPlaceholder"
                   :disabled="isSubmitting"
                   :aria-invalid="!!errors.length"
                   v-bind="field"
@@ -225,10 +234,12 @@ function goToLogin() {
               name="confirmPassword"
             >
               <Field :data-invalid="!!errors.length">
-                <FieldLabel for="confirmPassword">Confirm Password</FieldLabel>
+                <FieldLabel for="confirmPassword">{{
+                  t.auth.resetPassword.confirmPasswordLabel
+                }}</FieldLabel>
                 <PasswordInput
                   id="confirmPassword"
-                  placeholder="Confirm your new password"
+                  :placeholder="t.auth.resetPassword.confirmPasswordPlaceholder"
                   :disabled="isSubmitting"
                   :aria-invalid="!!errors.length"
                   v-bind="field"
@@ -239,7 +250,7 @@ function goToLogin() {
 
             <Button type="submit" class="mt-2 w-full" :disabled="isSubmitting">
               <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
-              {{ isSubmitting ? 'Updating...' : 'Update Password' }}
+              {{ isSubmitting ? t.auth.resetPassword.submitting : t.auth.resetPassword.submit }}
             </Button>
           </form>
         </template>
