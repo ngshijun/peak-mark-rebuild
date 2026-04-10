@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAnnouncementsStore } from '@/stores/announcements'
 import { useLeaderboardStore } from '@/stores/leaderboard'
 import { useFriendsStore } from '@/stores/friends'
+import { useFeedbackStore } from '@/stores/feedback'
 import { useAuthStore } from '@/stores/auth'
 import type { NavItem } from '@/types'
 
@@ -30,6 +31,7 @@ const route = useRoute()
 const announcementsStore = useAnnouncementsStore()
 const leaderboardStore = useLeaderboardStore()
 const friendsStore = useFriendsStore()
+const feedbackStore = useFeedbackStore()
 const authStore = useAuthStore()
 
 function shouldShowBadge(item: NavItem): boolean {
@@ -46,6 +48,9 @@ function shouldShowBadge(item: NavItem): boolean {
   if (item.path.includes('friends') && friendsStore.pendingRequestCount > 0) {
     return true
   }
+  if (item.path.includes('question-feedback') && feedbackStore.feedbacks.length > 0) {
+    return true
+  }
   return false
 }
 
@@ -58,6 +63,9 @@ function getBadgeText(item: NavItem): string {
   }
   if (item.path.includes('friends')) {
     return friendsStore.pendingRequestCount > 9 ? '9+' : String(friendsStore.pendingRequestCount)
+  }
+  if (item.path.includes('question-feedback')) {
+    return feedbackStore.feedbacks.length > 9 ? '9+' : String(feedbackStore.feedbacks.length)
   }
   return ''
 }

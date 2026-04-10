@@ -95,11 +95,13 @@ function adminRouteGuard() {
     import('@/stores/questions'),
     import('@/stores/pets'),
     import('@/stores/announcements'),
-  ]).then(([curriculumMod, questionsMod, petsMod, announcementsMod]) => {
+    import('@/stores/feedback'),
+  ]).then(([curriculumMod, questionsMod, petsMod, announcementsMod, feedbackMod]) => {
     const curriculumStore = curriculumMod.useCurriculumStore()
     const questionsStore = questionsMod.useQuestionsStore()
     const petsStore = petsMod.usePetsStore()
     const announcementsStore = announcementsMod.useAnnouncementsStore()
+    const feedbackStore = feedbackMod.useFeedbackStore()
 
     if (curriculumStore.gradeLevels.length === 0 && !curriculumStore.isLoading) {
       curriculumStore.fetchCurriculum()
@@ -115,6 +117,10 @@ function adminRouteGuard() {
 
     if (announcementsStore.announcements.length === 0 && !announcementsStore.isLoading) {
       announcementsStore.fetchAnnouncements()
+    }
+
+    if (feedbackStore.feedbacks.length === 0 && !feedbackStore.isLoading) {
+      feedbackStore.fetchFeedbacks()
     }
   })
 }
