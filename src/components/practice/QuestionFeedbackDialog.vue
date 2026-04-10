@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useFeedbackStore } from '@/stores/feedback'
 import { useAuthStore } from '@/stores/auth'
@@ -24,6 +24,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Database } from '@/types/database.types'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
@@ -38,14 +41,20 @@ const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
 
-const feedbackCategories: { value: FeedbackCategory; label: string }[] = [
-  { value: 'question_error', label: 'Question has an error' },
-  { value: 'image_error', label: 'Image is incorrect or missing' },
-  { value: 'option_error', label: 'Answer options are wrong' },
-  { value: 'answer_error', label: 'Correct answer is wrong' },
-  { value: 'explanation_error', label: 'Explanation is incorrect' },
-  { value: 'other', label: 'Other' },
-]
+const feedbackCategories = computed<{ value: FeedbackCategory; label: string }[]>(() => [
+  {
+    value: 'question_error',
+    label: t.value.shared.questionFeedbackDialog.categories.question_error,
+  },
+  { value: 'image_error', label: t.value.shared.questionFeedbackDialog.categories.image_error },
+  { value: 'option_error', label: t.value.shared.questionFeedbackDialog.categories.option_error },
+  { value: 'answer_error', label: t.value.shared.questionFeedbackDialog.categories.answer_error },
+  {
+    value: 'explanation_error',
+    label: t.value.shared.questionFeedbackDialog.categories.explanation_error,
+  },
+  { value: 'other', label: t.value.shared.questionFeedbackDialog.categories.other },
+])
 
 const { handleSubmit, resetForm } = useForm({
   validationSchema: questionFeedbackFormSchema,
@@ -70,14 +79,14 @@ const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = false
 
   if (result.error) {
-    toast.error('Failed to submit feedback', {
+    toast.error(t.value.shared.questionFeedbackDialog.toastFailed, {
       description: result.error,
     })
     return
   }
 
-  toast.success('Feedback submitted', {
-    description: 'Thank you for helping us improve!',
+  toast.success(t.value.shared.questionFeedbackDialog.toastSuccess, {
+    description: t.value.shared.questionFeedbackDialog.toastSuccessDesc,
   })
 
   resetForm()
@@ -96,9 +105,9 @@ function handleOpenChange(value: boolean) {
   <Dialog :open="open" @update:open="handleOpenChange">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Report an Issue</DialogTitle>
+        <DialogTitle>{{ t.shared.questionFeedbackDialog.title }}</DialogTitle>
         <DialogDescription>
-          Let us know if there's something wrong with this question.
+          {{ t.shared.questionFeedbackDialog.description }}
         </DialogDescription>
       </DialogHeader>
 
@@ -106,7 +115,8 @@ function handleOpenChange(value: boolean) {
         <VeeField v-slot="{ handleChange, value, errors }" name="category">
           <Field :data-invalid="!!errors.length">
             <FieldLabel for="category"
-              >Issue Type <span class="text-destructive">*</span></FieldLabel
+              >{{ t.shared.questionFeedbackDialog.issueTypeLabel }}
+              <span class="text-destructive">*</span></FieldLabel
             >
             <Select :model-value="value" @update:model-value="handleChange">
               <SelectTrigger
@@ -114,7 +124,7 @@ function handleOpenChange(value: boolean) {
                 :class="{ 'border-destructive': !!errors.length }"
                 :aria-invalid="!!errors.length"
               >
-                <SelectValue placeholder="Select an issue type" />
+                <SelectValue :placeholder="t.shared.questionFeedbackDialog.issueTypePlaceholder" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem
@@ -132,20 +142,28 @@ function handleOpenChange(value: boolean) {
 
         <VeeField v-slot="{ field }" name="details">
           <Field>
-            <FieldLabel for="comments">Additional Details (optional)</FieldLabel>
+            <FieldLabel for="comments">{{
+              t.shared.questionFeedbackDialog.additionalDetails
+            }}</FieldLabel>
             <Textarea
               id="comments"
               v-bind="field"
-              placeholder="Describe the issue in more detail..."
+              :placeholder="t.shared.questionFeedbackDialog.additionalDetailsPlaceholder"
               rows="3"
             />
           </Field>
         </VeeField>
 
         <DialogFooter>
-          <Button type="button" variant="outline" @click="open = false">Cancel</Button>
+          <Button type="button" variant="outline" @click="open = false">{{
+            t.shared.questionFeedbackDialog.cancel
+          }}</Button>
           <Button type="submit" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Submitting...' : 'Submit Feedback' }}
+            {{
+              isSubmitting
+                ? t.shared.questionFeedbackDialog.submitting
+                : t.shared.questionFeedbackDialog.submitFeedback
+            }}
           </Button>
         </DialogFooter>
       </form>

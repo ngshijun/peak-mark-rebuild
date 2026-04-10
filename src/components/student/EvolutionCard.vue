@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { EVOLUTION_COSTS } from '@/stores/pets'
 import { ArrowUp, Star, Sparkles, Loader2 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 defineProps<{
   currentTier: number
@@ -27,16 +30,16 @@ const emit = defineEmits<{
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <ArrowUp class="size-5 text-purple-500" />
-        Evolution
+        {{ t.shared.evolutionCard.title }}
       </CardTitle>
-      <CardDescription>Feed your pet to evolve it!</CardDescription>
+      <CardDescription>{{ t.shared.evolutionCard.description }}</CardDescription>
     </CardHeader>
     <CardContent class="space-y-6">
       <!-- Current Tier -->
       <div
         class="rounded-lg bg-gradient-to-r from-purple-100 to-fuchsia-100 p-4 text-center dark:bg-card dark:from-purple-950/20 dark:to-fuchsia-950/20"
       >
-        <p class="text-sm text-muted-foreground">Current Tier</p>
+        <p class="text-sm text-muted-foreground">{{ t.shared.evolutionCard.currentTier }}</p>
         <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">
           {{ currentTier }}
           <span class="text-base font-normal text-muted-foreground">/ 3</span>
@@ -46,7 +49,7 @@ const emit = defineEmits<{
       <!-- Evolution Progress -->
       <div v-if="evolutionProgress && !evolutionProgress.isMaxTier">
         <div class="mb-2 flex items-center justify-between">
-          <span class="text-sm font-medium">Evolution Progress</span>
+          <span class="text-sm font-medium">{{ t.shared.evolutionCard.evolutionProgress }}</span>
           <span class="text-sm text-muted-foreground">
             {{ evolutionProgress.foodFed }} / {{ evolutionProgress.requiredFood }}
           </span>
@@ -56,7 +59,11 @@ const emit = defineEmits<{
           class="h-3"
         />
         <p class="mt-2 text-xs text-muted-foreground">
-          Feed {{ evolutionProgress.requiredFood - evolutionProgress.foodFed }} more food to evolve
+          {{
+            t.shared.evolutionCard.feedMoreFood(
+              evolutionProgress.requiredFood - evolutionProgress.foodFed,
+            )
+          }}
         </p>
       </div>
 
@@ -66,8 +73,12 @@ const emit = defineEmits<{
         class="rounded-lg bg-gradient-to-r from-yellow-100 to-amber-100 p-4 text-center dark:bg-card dark:from-yellow-900/30 dark:to-amber-900/30"
       >
         <Star class="mx-auto size-8 text-yellow-500" />
-        <p class="mt-2 font-medium text-yellow-700 dark:text-yellow-400">Max Tier Reached!</p>
-        <p class="text-sm text-yellow-600 dark:text-yellow-500">Your pet is fully evolved</p>
+        <p class="mt-2 font-medium text-yellow-700 dark:text-yellow-400">
+          {{ t.shared.evolutionCard.maxTierReached }}
+        </p>
+        <p class="text-sm text-yellow-600 dark:text-yellow-500">
+          {{ t.shared.evolutionCard.fullyEvolved }}
+        </p>
       </div>
 
       <!-- Evolve Button -->
@@ -80,20 +91,24 @@ const emit = defineEmits<{
       >
         <Loader2 v-if="isEvolving" class="mr-2 size-5 animate-spin" />
         <ArrowUp v-else class="mr-2 size-5" />
-        Evolve to Tier {{ currentTier + 1 }}!
+        {{ t.shared.evolutionCard.evolveTo(currentTier + 1) }}
       </Button>
 
       <!-- Evolution Costs Info -->
       <div class="rounded-lg border border-purple-200 p-4 dark:border-purple-900">
-        <h4 class="mb-2 text-sm font-medium">Evolution Costs</h4>
+        <h4 class="mb-2 text-sm font-medium">{{ t.shared.evolutionCard.evolutionCosts }}</h4>
         <ul class="space-y-1 text-sm text-muted-foreground">
           <li class="flex justify-between">
-            <span>Tier 1 → 2</span>
-            <span class="font-medium">{{ EVOLUTION_COSTS.tier1to2 }} food</span>
+            <span>{{ t.shared.evolutionCard.tier1to2 }}</span>
+            <span class="font-medium"
+              >{{ EVOLUTION_COSTS.tier1to2 }} {{ t.shared.evolutionCard.food }}</span
+            >
           </li>
           <li class="flex justify-between">
-            <span>Tier 2 → 3</span>
-            <span class="font-medium">{{ EVOLUTION_COSTS.tier2to3 }} food</span>
+            <span>{{ t.shared.evolutionCard.tier2to3 }}</span>
+            <span class="font-medium"
+              >{{ EVOLUTION_COSTS.tier2to3 }} {{ t.shared.evolutionCard.food }}</span
+            >
           </li>
         </ul>
       </div>
@@ -105,7 +120,7 @@ const emit = defineEmits<{
         @click="emit('view-collection')"
       >
         <Sparkles class="mr-2 size-4 text-purple-500" />
-        View Collection
+        {{ t.shared.evolutionCard.viewCollection }}
       </Button>
     </CardContent>
   </Card>

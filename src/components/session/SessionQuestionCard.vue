@@ -9,6 +9,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, XCircle, Clock } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 export interface SessionQuestion {
   id: string
@@ -50,7 +53,9 @@ defineProps<{
   >
     <CardHeader class="pb-2">
       <div class="flex items-start justify-between gap-2">
-        <CardTitle class="text-sm font-medium"> Question {{ index + 1 }} </CardTitle>
+        <CardTitle class="text-sm font-medium">{{
+          t.shared.sessionQuestionCard.questionLabel(index)
+        }}</CardTitle>
         <div class="flex items-center gap-2">
           <span
             v-if="answer?.timeSpentSeconds != null"
@@ -60,16 +65,16 @@ defineProps<{
             {{ formatDuration(answer.timeSpentSeconds ?? 0) }}
           </span>
           <Badge v-if="isQuestionDeleted(question)" variant="secondary" class="shrink-0">
-            Deleted
+            {{ t.shared.sessionQuestionCard.deleted }}
           </Badge>
           <template v-else>
             <Badge variant="secondary" class="shrink-0">
               {{
                 question.type === 'mcq'
-                  ? 'Multiple Choice'
+                  ? t.shared.sessionQuestionCard.multipleChoice
                   : question.type === 'mrq'
-                    ? 'Multiple Response'
-                    : 'Short Answer'
+                    ? t.shared.sessionQuestionCard.multipleResponse
+                    : t.shared.sessionQuestionCard.shortAnswer
               }}
             </Badge>
           </template>
@@ -79,13 +84,17 @@ defineProps<{
     <CardContent class="space-y-3">
       <!-- Deleted Question Notice -->
       <div v-if="isQuestionDeleted(question)" class="text-sm italic text-muted-foreground">
-        <p>This question has been deleted from the question bank.</p>
+        <p>{{ t.shared.sessionQuestionCard.deletedNotice }}</p>
         <p class="mt-2">
-          {{ answerLabel }} answer was:
+          {{ t.shared.sessionQuestionCard.deletedAnswerWas(answerLabel) }}
           <span
             :class="answer?.isCorrect ? 'font-medium text-green-600' : 'font-medium text-red-600'"
           >
-            {{ answer?.isCorrect ? 'Correct' : 'Incorrect' }}
+            {{
+              answer?.isCorrect
+                ? t.shared.sessionQuestionCard.correct
+                : t.shared.sessionQuestionCard.incorrect
+            }}
           </span>
         </p>
       </div>
@@ -170,7 +179,7 @@ defineProps<{
               variant="outline"
               class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
             >
-              {{ answerLabel }} answer
+              {{ answerLabel }} {{ t.shared.sessionQuestionCard.yourAnswer }}
             </Badge>
             <Badge
               v-else-if="
@@ -179,7 +188,7 @@ defineProps<{
               variant="outline"
               class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
             >
-              Correct answer
+              {{ t.shared.sessionQuestionCard.correctAnswer }}
             </Badge>
             <Badge
               v-else-if="
@@ -188,14 +197,14 @@ defineProps<{
               variant="outline"
               class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
             >
-              Correct answer
+              {{ t.shared.sessionQuestionCard.correctAnswer }}
             </Badge>
             <Badge
               v-else-if="wasOptionSelected(answer, option.id)"
               variant="outline"
               class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
             >
-              {{ answerLabel }} answer
+              {{ answerLabel }} {{ t.shared.sessionQuestionCard.yourAnswer }}
             </Badge>
           </div>
         </div>
@@ -203,13 +212,15 @@ defineProps<{
         <!-- Short Answer -->
         <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
           <div class="flex gap-2">
-            <span class="font-medium">{{ answerLabel }} Answer:</span>
+            <span class="font-medium"
+              >{{ answerLabel }} {{ t.shared.sessionQuestionCard.correctAnswerLabel }}</span
+            >
             <span :class="answer?.isCorrect ? 'text-green-600' : 'text-red-600'">
               {{ answer?.textAnswer || '-' }}
             </span>
           </div>
           <div v-if="!answer?.isCorrect" class="flex gap-2">
-            <span class="font-medium">Correct Answer:</span>
+            <span class="font-medium">{{ t.shared.sessionQuestionCard.correctAnswerLabel }}</span>
             <span class="text-green-600">{{ question.answer }}</span>
           </div>
         </div>
@@ -219,9 +230,11 @@ defineProps<{
           v-if="answer"
           class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20"
         >
-          <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Explanation</p>
+          <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+            {{ t.shared.sessionQuestionCard.explanation }}
+          </p>
           <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
-            {{ question.explanation || 'No explanation available for this question.' }}
+            {{ question.explanation || t.shared.sessionQuestionCard.noExplanation }}
           </p>
         </div>
       </template>

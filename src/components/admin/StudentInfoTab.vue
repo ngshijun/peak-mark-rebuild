@@ -18,6 +18,9 @@ import {
 
 import { tierConfig } from '@/lib/tierConfig'
 import { formatDate, formatRelativeDate } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 defineProps<{
   student: {
@@ -46,7 +49,7 @@ defineProps<{
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <User class="size-5" />
-        Student Information
+        {{ t.shared.studentInfoTab.title }}
       </CardTitle>
     </CardHeader>
     <CardContent>
@@ -54,7 +57,7 @@ defineProps<{
         <!-- Personal -->
         <div class="space-y-4">
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Personal
+            {{ t.shared.studentInfoTab.personalSection }}
           </p>
 
           <div class="flex items-center gap-3">
@@ -62,7 +65,7 @@ defineProps<{
               <User class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Name</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentInfoTab.nameLabel }}</p>
               <p class="font-medium">{{ student.name }}</p>
             </div>
           </div>
@@ -72,7 +75,7 @@ defineProps<{
               <Mail class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Email</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentInfoTab.emailLabel }}</p>
               <p class="font-medium">{{ student.email }}</p>
             </div>
           </div>
@@ -82,7 +85,7 @@ defineProps<{
               <Cake class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Date of Birth</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentInfoTab.dobLabel }}</p>
               <p class="font-medium">{{ formatDate(student.dateOfBirth) }}</p>
             </div>
           </div>
@@ -92,7 +95,7 @@ defineProps<{
               <Users class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Parent</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentInfoTab.parentLabel }}</p>
               <p v-if="student.parentName" class="font-medium">
                 {{ student.parentName }}
                 <span v-if="student.parentEmail" class="text-muted-foreground">
@@ -107,7 +110,7 @@ defineProps<{
         <!-- Account -->
         <div class="space-y-4">
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Account
+            {{ t.shared.studentInfoTab.accountSection }}
           </p>
 
           <div class="flex items-center gap-3">
@@ -115,7 +118,9 @@ defineProps<{
               <GraduationCap class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Grade Level</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t.shared.studentInfoTab.gradeLevelLabel }}
+              </p>
               <p class="font-medium">{{ student.gradeLevelName ?? '-' }}</p>
             </div>
           </div>
@@ -125,7 +130,9 @@ defineProps<{
               <CreditCard class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Subscription</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t.shared.studentInfoTab.subscriptionLabel }}
+              </p>
               <Badge
                 v-if="student.subscriptionTier"
                 variant="secondary"
@@ -133,7 +140,9 @@ defineProps<{
               >
                 {{ tierConfig[student.subscriptionTier]?.label ?? student.subscriptionTier }}
               </Badge>
-              <p v-else class="font-medium text-muted-foreground">None</p>
+              <p v-else class="font-medium text-muted-foreground">
+                {{ t.shared.studentInfoTab.none }}
+              </p>
             </div>
           </div>
 
@@ -142,7 +151,7 @@ defineProps<{
               <CalendarDays class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Joined</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentInfoTab.joinedLabel }}</p>
               <p class="font-medium">{{ formatDate(student.joinedAt) }}</p>
             </div>
           </div>
@@ -152,7 +161,9 @@ defineProps<{
               <Clock class="size-4 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Last Active</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t.shared.studentInfoTab.lastActiveLabel }}
+              </p>
               <p class="font-medium">{{ formatRelativeDate(student.lastActive) }}</p>
             </div>
           </div>
@@ -161,7 +172,7 @@ defineProps<{
         <!-- Engagement -->
         <div class="space-y-4">
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Engagement
+            {{ t.shared.studentInfoTab.engagementSection }}
           </p>
 
           <div class="flex items-center gap-3">
@@ -172,7 +183,11 @@ defineProps<{
             </div>
             <div>
               <p class="text-xs text-muted-foreground">
-                Level {{ engagement?.level ?? Math.floor(student.xp / 500) + 1 }}
+                {{
+                  t.shared.studentInfoTab.levelLabel(
+                    engagement?.level ?? Math.floor(student.xp / 500) + 1,
+                  )
+                }}
               </p>
               <p class="font-medium text-purple-600 dark:text-purple-400">
                 {{ student.xp.toLocaleString() }} XP
@@ -187,7 +202,7 @@ defineProps<{
               <CirclePoundSterling class="size-4 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Coins</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentInfoTab.coinsLabel }}</p>
               <p class="font-medium text-amber-600 dark:text-amber-400">
                 {{ student.coins.toLocaleString() }}
               </p>
@@ -201,7 +216,7 @@ defineProps<{
               <Apple class="size-4 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Food</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentInfoTab.foodLabel }}</p>
               <p class="font-medium text-green-600 dark:text-green-400">
                 {{ engagement.food }}
               </p>
@@ -215,10 +230,16 @@ defineProps<{
               <Flame class="size-4 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Current Streak</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t.shared.studentInfoTab.currentStreakLabel }}
+              </p>
               <p class="font-medium text-orange-600 dark:text-orange-400">
                 {{ engagement.currentStreak }}
-                {{ engagement.currentStreak === 1 ? 'day' : 'days' }}
+                {{
+                  engagement.currentStreak === 1
+                    ? t.shared.studentInfoTab.day
+                    : t.shared.studentInfoTab.days
+                }}
               </p>
             </div>
           </div>

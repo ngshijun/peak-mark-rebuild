@@ -4,12 +4,15 @@ import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
 import type { StudentOwnedPet } from '@/stores/admin-student-engagement'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useT } from '@/composables/useT'
 
 const props = defineProps<{
   ownedPets: StudentOwnedPet[]
   selectedPetId: string | null
   totalPets: number
 }>()
+
+const t = useT()
 
 const petsStore = usePetsStore()
 
@@ -50,7 +53,7 @@ function getPetImagePath(pet: StudentOwnedPet): string {
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <p class="text-sm text-muted-foreground">
-        {{ ownedPets.length }} / {{ totalPets }} pets collected
+        {{ t.shared.studentPetCollectionTab.petsCollected(ownedPets.length, totalPets) }}
       </p>
     </div>
 

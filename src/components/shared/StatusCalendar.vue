@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 export interface StatusEntry {
   mood: string | null
@@ -175,19 +178,19 @@ defineExpose({ currentYear, currentMonth })
     <div class="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
       <div class="flex items-center gap-1">
         <div class="size-3 rounded bg-green-100 dark:bg-green-950/30" />
-        <span>Practiced</span>
+        <span>{{ t.shared.statusCalendar.practiced }}</span>
       </div>
       <div class="flex items-center gap-1">
         <span>😊</span>
-        <span>Happy</span>
+        <span>{{ t.shared.statusCalendar.happy }}</span>
       </div>
       <div class="flex items-center gap-1">
         <span>😐</span>
-        <span>Neutral</span>
+        <span>{{ t.shared.statusCalendar.neutral }}</span>
       </div>
       <div class="flex items-center gap-1">
         <span>😢</span>
-        <span>Sad</span>
+        <span>{{ t.shared.statusCalendar.sad }}</span>
       </div>
     </div>
   </template>

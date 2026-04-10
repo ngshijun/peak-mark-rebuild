@@ -2,6 +2,7 @@
 import { usePetsStore, rarityConfig, type Pet } from '@/stores/pets'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { useT } from '@/composables/useT'
 
 defineProps<{
   pet: Pet | null
@@ -9,6 +10,7 @@ defineProps<{
 
 const open = defineModel<boolean>('open', { required: true })
 
+const t = useT()
 const petsStore = usePetsStore()
 
 function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
@@ -23,7 +25,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
     <DialogContent class="sm:max-w-5xl">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
-          Pet Preview
+          {{ t.shared.petPreviewDialog.title }}
           <Badge
             v-if="pet"
             variant="secondary"
@@ -55,7 +57,9 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
               />
               <span v-else class="text-sm text-muted-foreground">—</span>
             </div>
-            <span class="text-sm font-medium text-muted-foreground">Tier {{ tier }}</span>
+            <span class="text-sm font-medium text-muted-foreground">{{
+              t.shared.petPreviewDialog.tier(tier)
+            }}</span>
           </div>
         </div>
       </div>

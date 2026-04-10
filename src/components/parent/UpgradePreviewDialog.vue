@@ -12,6 +12,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-vue-next'
 import { formatLongDate } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -36,8 +39,10 @@ function getActionLabel() {
   const planIndex = props.pendingTier ? tierOrder.indexOf(props.pendingTier) : -1
   const currentIndex = tierOrder.indexOf(props.currentTier)
 
-  if (props.pendingTier === 'core') return 'Downgrade'
-  return planIndex > currentIndex ? 'Upgrade' : 'Downgrade'
+  if (props.pendingTier === 'core') return t.value.shared.upgradePreviewDialog.downgrade
+  return planIndex > currentIndex
+    ? t.value.shared.upgradePreviewDialog.upgrade
+    : t.value.shared.upgradePreviewDialog.downgrade
 }
 
 function formatCurrency(amount: number) {
@@ -54,7 +59,7 @@ function formatCurrency(amount: number) {
           <!-- Loading preview state -->
           <div v-if="isLoading" class="flex items-center justify-center py-4">
             <Loader2 class="mr-2 size-5 animate-spin" />
-            <span>Calculating price...</span>
+            <span>{{ t.shared.upgradePreviewDialog.calculatingPrice }}</span>
           </div>
 
           <!-- Preview error -->
@@ -72,7 +77,9 @@ function formatCurrency(amount: number) {
                 v-if="preview.lineItems && preview.lineItems.length > 0"
                 class="rounded-lg border p-3"
               >
-                <p class="mb-2 text-sm font-medium">Price breakdown:</p>
+                <p class="mb-2 text-sm font-medium">
+                  {{ t.shared.upgradePreviewDialog.priceBreakdown }}
+                </p>
                 <ul class="space-y-1 text-sm">
                   <li
                     v-for="(item, index) in preview.lineItems"
@@ -88,7 +95,7 @@ function formatCurrency(amount: number) {
                   </li>
                 </ul>
                 <div class="mt-2 flex justify-between border-t pt-2 font-medium">
-                  <span>Total due today</span>
+                  <span>{{ t.shared.upgradePreviewDialog.totalDueToday }}</span>
                   <span>
                     {{ formatCurrency(preview.amountDue ?? 0) }}
                   </span>
@@ -96,9 +103,12 @@ function formatCurrency(amount: number) {
               </div>
 
               <p class="text-sm text-muted-foreground">
-                {{ childName }}'s new plan includes
-                {{ pendingPlan?.sessionsPerDay }}
-                sessions per day.
+                {{
+                  t.shared.upgradePreviewDialog.newPlanSessions(
+                    childName,
+                    pendingPlan?.sessionsPerDay ?? 0,
+                  )
+                }}
               </p>
             </div>
           </template>
@@ -108,40 +118,50 @@ function formatCurrency(amount: number) {
             <div class="space-y-3">
               <p>{{ preview.message }}</p>
               <p class="text-sm text-muted-foreground">
-                Your current plan will remain active until
-                {{ formatLongDate(preview.effectiveDate) }}.
+                {{
+                  t.shared.upgradePreviewDialog.currentPlanActiveUntil(
+                    formatLongDate(preview.effectiveDate),
+                  )
+                }}
               </p>
             </div>
           </template>
 
           <!-- Downgrade to basic -->
           <template v-else-if="pendingTier === 'core'">
-            {{ childName }} will be downgraded to the free Basic plan. Their sessions will be
-            limited to {{ pendingPlan?.sessionsPerDay }} per day.
+            {{
+              t.shared.upgradePreviewDialog.downgradeToBasic(
+                childName,
+                pendingPlan?.sessionsPerDay ?? 0,
+              )
+            }}
           </template>
 
           <!-- New subscription (no Stripe subscription yet) -->
           <template v-else-if="!hasActiveStripeSubscription">
-            You will be redirected to a secure checkout page to complete your payment.
-            {{ childName }}'s new plan includes
-            {{ pendingPlan?.sessionsPerDay }}
-            sessions per day.
+            {{
+              t.shared.upgradePreviewDialog.redirectToCheckout(
+                childName,
+                pendingPlan?.sessionsPerDay ?? 0,
+              )
+            }}
           </template>
 
           <!-- Downgrade with active subscription -->
           <template v-else>
-            {{ childName }} will be downgraded to the {{ pendingPlan?.name }} plan. The change will
-            take effect at the end of your current billing period.
+            {{ t.shared.upgradePreviewDialog.downgradeWithSub(childName, pendingPlan?.name ?? '') }}
           </template>
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel @click="emit('cancel')">Cancel</AlertDialogCancel>
+        <AlertDialogCancel @click="emit('cancel')">{{
+          t.shared.upgradePreviewDialog.cancel
+        }}</AlertDialogCancel>
         <AlertDialogAction :disabled="isLoading || !!error" @click="emit('confirm')">
           <template v-if="preview?.isUpgrade && preview.amountDue">
-            Pay {{ formatCurrency(preview.amountDue) }}
+            {{ t.shared.upgradePreviewDialog.pay(formatCurrency(preview.amountDue)) }}
           </template>
-          <template v-else> Confirm </template>
+          <template v-else>{{ t.shared.upgradePreviewDialog.confirm }}</template>
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

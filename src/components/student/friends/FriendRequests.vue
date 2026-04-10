@@ -8,15 +8,15 @@ import { getAvatarUrl } from '@/lib/storage'
 import { getInitials } from '@/lib/utils'
 import { toast } from 'vue-sonner'
 import { Check, X, Loader2, Mail, Send } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
 const friendsStore = useFriendsStore()
+const t = useT()
 const respondingTo = ref<string | null>(null)
 
 async function handleRespond(friendshipId: string, name: string, accept: boolean) {
   if (accept && friendsStore.isFriendCapReached) {
-    toast.error(
-      `Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to accept requests.`,
-    )
+    toast.error(t.value.shared.friendRequests.toastFriendListFull(FRIEND_CAP))
     return
   }
   respondingTo.value = friendshipId
@@ -26,7 +26,11 @@ async function handleRespond(friendshipId: string, name: string, accept: boolean
   if (error) {
     toast.error(error)
   } else {
-    toast.success(accept ? `You and ${name} are now friends!` : `Declined request from ${name}`)
+    toast.success(
+      accept
+        ? t.value.shared.friendRequests.toastAccepted(name)
+        : t.value.shared.friendRequests.toastDeclined(name),
+    )
   }
 }
 
@@ -38,7 +42,7 @@ async function handleCancel(friendshipId: string) {
   if (error) {
     toast.error(error)
   } else {
-    toast.success('Request cancelled')
+    toast.success(t.value.shared.friendRequests.toastCancelled)
   }
 }
 </script>
@@ -50,15 +54,17 @@ async function handleCancel(friendshipId: string) {
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <Mail class="size-5" />
-          Received Requests
+          {{ t.shared.friendRequests.receivedTitle }}
         </CardTitle>
       </CardHeader>
       <CardContent class="p-0">
         <div v-if="friendsStore.receivedRequests.length === 0" class="py-8 text-center">
           <Mail class="mx-auto size-12 text-muted-foreground/50" />
-          <p class="mt-2 text-sm text-muted-foreground">No pending requests</p>
+          <p class="mt-2 text-sm text-muted-foreground">
+            {{ t.shared.friendRequests.noPendingReceived }}
+          </p>
           <p class="text-xs text-muted-foreground">
-            When someone sends you a friend request, it will appear here
+            {{ t.shared.friendRequests.noPendingReceivedHint }}
           </p>
         </div>
         <div v-else class="divide-y border-y">
@@ -74,7 +80,9 @@ async function handleCancel(friendshipId: string) {
 
             <div class="min-w-0 flex-1">
               <p class="truncate font-medium">{{ req.name }}</p>
-              <p class="text-xs text-muted-foreground">Wants to be your friend</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t.shared.friendRequests.wantsToBeYourFriend }}
+              </p>
             </div>
 
             <div class="flex gap-2">
@@ -85,7 +93,7 @@ async function handleCancel(friendshipId: string) {
               >
                 <Loader2 v-if="respondingTo === req.friendshipId" class="size-4 animate-spin" />
                 <Check v-else class="size-4" />
-                Accept
+                {{ t.shared.friendRequests.accept }}
               </Button>
               <Button
                 size="sm"
@@ -106,15 +114,17 @@ async function handleCancel(friendshipId: string) {
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <Send class="size-5" />
-          Sent Requests
+          {{ t.shared.friendRequests.sentTitle }}
         </CardTitle>
       </CardHeader>
       <CardContent class="p-0">
         <div v-if="friendsStore.sentRequests.length === 0" class="py-8 text-center">
           <Send class="mx-auto size-12 text-muted-foreground/50" />
-          <p class="mt-2 text-sm text-muted-foreground">No sent requests</p>
+          <p class="mt-2 text-sm text-muted-foreground">
+            {{ t.shared.friendRequests.noSentRequests }}
+          </p>
           <p class="text-xs text-muted-foreground">
-            Requests you send will appear here until accepted
+            {{ t.shared.friendRequests.noSentRequestsHint }}
           </p>
         </div>
         <div v-else class="divide-y border-y">
@@ -130,7 +140,7 @@ async function handleCancel(friendshipId: string) {
 
             <div class="min-w-0 flex-1">
               <p class="truncate font-medium">{{ req.name }}</p>
-              <p class="text-xs text-muted-foreground">Pending</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.friendRequests.pending }}</p>
             </div>
 
             <Button
@@ -139,7 +149,7 @@ async function handleCancel(friendshipId: string) {
               :disabled="respondingTo === req.friendshipId"
               @click="handleCancel(req.friendshipId)"
             >
-              Cancel
+              {{ t.shared.friendRequests.cancel }}
             </Button>
           </div>
         </div>

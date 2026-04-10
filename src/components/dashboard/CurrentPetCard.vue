@@ -5,6 +5,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'vue-router'
 import { PawPrint, Star } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const petsStore = usePetsStore()
 const router = useRouter()
@@ -85,7 +88,9 @@ function goToMyPet() {
                 </div>
               </div>
             </div>
-            <span class="text-xs text-muted-foreground">Tap to visit</span>
+            <span class="text-xs text-muted-foreground">{{
+              t.shared.currentPetCard.tapToVisit
+            }}</span>
           </div>
         </div>
       </template>
@@ -99,8 +104,12 @@ function goToMyPet() {
             <PawPrint class="size-12 text-purple-400" />
           </div>
           <div class="text-center">
-            <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
-            <p class="mt-1 text-sm text-muted-foreground">Tap to choose a pet companion!</p>
+            <p class="text-lg font-semibold text-muted-foreground">
+              {{ t.shared.currentPetCard.noPetSelected }}
+            </p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              {{ t.shared.currentPetCard.tapToChoose }}
+            </p>
           </div>
         </div>
       </template>

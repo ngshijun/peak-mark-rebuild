@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
 import QuestionFormFields from './QuestionFormFields.vue'
+import { useT } from '@/composables/useT'
 
 const props = defineProps<{
   open: boolean
@@ -26,6 +27,8 @@ const emit = defineEmits<{
   'update:open': [value: boolean]
   save: []
 }>()
+
+const t = useT()
 
 const curriculumStore = useCurriculumStore()
 const questionsStore = useQuestionsStore()
@@ -126,7 +129,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
     })
 
     if (result.error) {
-      toast.error(result.error)
+      toast.error(t.value.shared.questionEditDialog.toastFailed(result.error))
       return
     }
 
@@ -179,7 +182,7 @@ const onSubmit = form.handleSubmit(async (formValues) => {
       await questionsStore.updateQuestion(questionId, { imageHash: imageHash || null })
     }
 
-    toast.success('Question updated successfully')
+    toast.success(t.value.shared.questionEditDialog.toastUpdated)
 
     emit('save')
     emit('update:open', false)
@@ -193,8 +196,8 @@ const onSubmit = form.handleSubmit(async (formValues) => {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Edit Question</DialogTitle>
-        <DialogDescription>Update an existing question in the question bank.</DialogDescription>
+        <DialogTitle>{{ t.shared.questionEditDialog.title }}</DialogTitle>
+        <DialogDescription>{{ t.shared.questionEditDialog.description }}</DialogDescription>
       </DialogHeader>
 
       <form class="space-y-4 py-4" @submit="onSubmit">
@@ -207,11 +210,11 @@ const onSubmit = form.handleSubmit(async (formValues) => {
             :disabled="form.isSaving.value"
             @click="emit('update:open', false)"
           >
-            Cancel
+            {{ t.shared.questionEditDialog.cancel }}
           </Button>
           <Button type="submit" :disabled="form.isSaving.value">
             <Loader2 v-if="form.isSaving.value" class="mr-2 size-4 animate-spin" />
-            Save Changes
+            {{ t.shared.questionEditDialog.saveChanges }}
           </Button>
         </DialogFooter>
       </form>

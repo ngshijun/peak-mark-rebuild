@@ -7,6 +7,9 @@ import { useRouter } from 'vue-router'
 import { Flame } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
 import { toMYTDateString, getMYTDayOfWeek, mytDateToUTCDate, utcDateToString } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const dashboardStore = useStudentDashboardStore()
 const practiceStore = usePracticeHistoryStore()
@@ -18,16 +21,18 @@ function goToPractice() {
 
 function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
   if (streak === 0) {
-    return hasPracticedToday ? 'Great start! Keep it up!' : 'Start your streak today!'
+    return hasPracticedToday
+      ? t.value.shared.streakCard.greatStart
+      : t.value.shared.streakCard.startStreak
   }
   if (!hasPracticedToday) {
-    return 'Complete a session to keep your streak!'
+    return t.value.shared.streakCard.keepStreak
   }
-  if (streak < 3) return 'Good momentum!'
-  if (streak < 7) return "You're on fire!"
-  if (streak < 14) return 'Amazing dedication!'
-  if (streak < 30) return 'Unstoppable!'
-  return 'Legendary streak!'
+  if (streak < 3) return t.value.shared.streakCard.goodMomentum
+  if (streak < 7) return t.value.shared.streakCard.onFire
+  if (streak < 14) return t.value.shared.streakCard.amazingDedication
+  if (streak < 30) return t.value.shared.streakCard.unstoppable
+  return t.value.shared.streakCard.legendaryStreak
 }
 
 // Weekly activity: derived from actual completed sessions (not daily_statuses)
@@ -78,7 +83,7 @@ const weeklyActivity = computed(() => {
     @click="goToPractice"
   >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm font-medium">Practice Streak</CardTitle>
+      <CardTitle class="text-sm font-medium">{{ t.shared.streakCard.title }}</CardTitle>
       <Flame class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
@@ -90,7 +95,9 @@ const weeklyActivity = computed(() => {
         <div>
           <p class="text-2xl font-bold">
             {{ dashboardStore.currentStreak }}
-            <span class="text-sm font-normal text-muted-foreground">days</span>
+            <span class="text-sm font-normal text-muted-foreground">{{
+              t.shared.streakCard.days
+            }}</span>
           </p>
           <p class="text-xs text-muted-foreground">
             {{ getStreakMessage(dashboardStore.currentStreak, dashboardStore.hasPracticedToday) }}

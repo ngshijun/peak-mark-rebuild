@@ -9,6 +9,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -25,19 +28,18 @@ const emit = defineEmits<{
   <AlertDialog :open="props.open" @update:open="emit('update:open', $event)">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Remove Friend</AlertDialogTitle>
+        <AlertDialogTitle>{{ t.shared.removeFriendDialog.title }}</AlertDialogTitle>
         <AlertDialogDescription>
-          Are you sure you want to remove <strong>{{ props.friendName }}</strong> from your friends?
-          Your closeness level will be reset.
+          {{ t.shared.removeFriendDialog.description(props.friendName) }}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{{ t.shared.removeFriendDialog.cancel }}</AlertDialogCancel>
         <AlertDialogAction
           class="bg-destructive text-white hover:bg-destructive/90"
           @click="emit('confirm')"
         >
-          Remove
+          {{ t.shared.removeFriendDialog.remove }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

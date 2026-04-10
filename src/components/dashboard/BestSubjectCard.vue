@@ -6,6 +6,9 @@ import { useRouter } from 'vue-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy } from 'lucide-vue-next'
 import { getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const practiceStore = usePracticeHistoryStore()
 const router = useRouter()
@@ -74,7 +77,7 @@ function goToHistory() {
     @click="goToHistory"
   >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm font-medium">Top Subjects</CardTitle>
+      <CardTitle class="text-sm font-medium">{{ t.shared.bestSubjectCard.title }}</CardTitle>
       <Trophy class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
@@ -92,7 +95,7 @@ function goToHistory() {
                   class="shrink-0 text-sm font-bold"
                   :class="getScoreTextColor(topSubjects[index - 1]!.averageScore)"
                 >
-                  Avg: {{ topSubjects[index - 1]!.averageScore }}%
+                  {{ t.shared.bestSubjectCard.averageLabel(topSubjects[index - 1]!.averageScore) }}
                 </span>
               </div>
               <div
@@ -108,7 +111,9 @@ function goToHistory() {
           </template>
           <template v-else>
             <div class="min-w-0 flex-1">
-              <p class="text-sm text-muted-foreground/60">Practice more to unlock!</p>
+              <p class="text-sm text-muted-foreground/60">
+                {{ t.shared.bestSubjectCard.practiceMore }}
+              </p>
               <div
                 class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
               />

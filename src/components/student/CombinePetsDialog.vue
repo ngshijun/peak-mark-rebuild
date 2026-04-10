@@ -21,6 +21,9 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { HelpCircle, Combine, Sparkles, Loader2, Plus, ArrowRight } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -191,7 +194,7 @@ async function handleCombine() {
     petSelectionCounts.value = new Map()
   } catch (err) {
     console.error('Failed to combine pets:', err)
-    toast.error('Failed to combine pets')
+    toast.error(t.value.shared.combinePetsDialog.toastFailed)
   } finally {
     isCombining.value = false
   }
@@ -244,13 +247,13 @@ async function handleQuickCombine() {
     if (results.length > 0) {
       emit('combined', results)
     } else {
-      toast.error('Failed to combine pets')
+      toast.error(t.value.shared.combinePetsDialog.toastFailed)
     }
 
     petSelectionCounts.value = new Map()
   } catch (err) {
     console.error('Failed to quick-combine pets:', err)
-    toast.error('Failed to combine pets')
+    toast.error(t.value.shared.combinePetsDialog.toastFailed)
   } finally {
     isCombining.value = false
   }
@@ -263,10 +266,10 @@ async function handleQuickCombine() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <Combine class="size-5 text-purple-500" />
-          Combine Pets
+          {{ t.shared.combinePetsDialog.title }}
         </DialogTitle>
         <DialogDescription>
-          Select 4 pets of the same rarity to combine them for a chance at a higher rarity pet
+          {{ t.shared.combinePetsDialog.description }}
         </DialogDescription>
       </DialogHeader>
 
@@ -291,7 +294,9 @@ async function handleQuickCombine() {
       <!-- 4-Slot Preview -->
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-sm font-medium">Selected ({{ totalSelectedCount }}/4)</p>
+          <p class="text-sm font-medium">
+            {{ t.shared.combinePetsDialog.selected(totalSelectedCount) }}
+          </p>
           <Button
             v-if="totalSelectedCount > 0"
             variant="ghost"
@@ -299,7 +304,7 @@ async function handleQuickCombine() {
             class="h-6 px-2 text-xs"
             @click="clearAllSelections"
           >
-            Clear
+            {{ t.shared.combinePetsDialog.clear }}
           </Button>
         </div>
 
@@ -358,7 +363,9 @@ async function handleQuickCombine() {
           </span>
           <span class="text-muted-foreground">·</span>
           <span class="font-semibold">
-            {{ COMBINE_SUCCESS_RATES[selectedCombineRarity] }}% success
+            {{
+              t.shared.combinePetsDialog.successRate(COMBINE_SUCCESS_RATES[selectedCombineRarity])
+            }}
           </span>
         </Badge>
       </div>
@@ -366,8 +373,10 @@ async function handleQuickCombine() {
       <!-- Pet Selection Grid -->
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-sm font-medium">Your Pets</p>
-          <p class="text-xs text-muted-foreground">Click to add · click selected above to remove</p>
+          <p class="text-sm font-medium">{{ t.shared.combinePetsDialog.yourPets }}</p>
+          <p class="text-xs text-muted-foreground">
+            {{ t.shared.combinePetsDialog.clickToAddHint }}
+          </p>
         </div>
 
         <div
@@ -430,7 +439,9 @@ async function handleQuickCombine() {
           class="flex flex-col items-center justify-center rounded-lg border py-8 text-center text-muted-foreground"
         >
           <HelpCircle class="mb-2 size-10 opacity-50" />
-          <p class="text-sm">No {{ rarityConfig[selectedCombineRarity].label }} pets</p>
+          <p class="text-sm">
+            {{ t.shared.combinePetsDialog.noPetsLabel(rarityConfig[selectedCombineRarity].label) }}
+          </p>
         </div>
       </div>
 
@@ -443,12 +454,14 @@ async function handleQuickCombine() {
         >
           <Loader2 v-if="isCombining" class="mr-2 size-4 animate-spin" />
           <Sparkles v-else class="mr-2 size-4" />
-          Combine All ({{ quickCombineCount }}x)
+          {{ t.shared.combinePetsDialog.combineAll(quickCombineCount) }}
         </Button>
         <Button :disabled="totalSelectedCount !== 4 || isCombining" @click="handleCombine">
           <Loader2 v-if="isCombining" class="mr-2 size-4 animate-spin" />
           <Combine v-else class="mr-2 size-4" />
-          {{ isCombining ? 'Combining...' : 'Combine' }}
+          {{
+            isCombining ? t.shared.combinePetsDialog.combining : t.shared.combinePetsDialog.combine
+          }}
         </Button>
       </DialogFooter>
     </DialogContent>

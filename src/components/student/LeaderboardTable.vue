@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Trophy, Medal, Award } from 'lucide-vue-next'
 import { getInitials } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 export interface LeaderboardEntry {
   id: string
@@ -55,7 +58,9 @@ function getRankBg(rank: number): string {
 
 <template>
   <div v-if="entries.length === 0" class="py-12 text-center">
-    <p class="text-muted-foreground">{{ emptyMessage ?? 'No students found.' }}</p>
+    <p class="text-muted-foreground">
+      {{ emptyMessage ?? t.shared.leaderboardTable.noStudentsFound }}
+    </p>
   </div>
 
   <div v-else class="divide-y border-y">
@@ -93,7 +98,7 @@ function getRankBg(rank: number): string {
         <p class="truncate font-medium">
           {{ entry.name }}
           <Badge v-if="authStore.user?.id === entry.id" variant="secondary" class="ml-2">
-            You
+            {{ t.shared.leaderboardTable.you }}
           </Badge>
         </p>
         <p class="text-sm text-muted-foreground">{{ entry.gradeLevelName ?? 'N/A' }}</p>
@@ -130,7 +135,7 @@ function getRankBg(rank: number): string {
         <div class="min-w-0 flex-1">
           <p class="truncate font-medium">
             {{ currentStudentEntry.name }}
-            <Badge variant="secondary" class="ml-2">You</Badge>
+            <Badge variant="secondary" class="ml-2">{{ t.shared.leaderboardTable.you }}</Badge>
           </p>
           <p class="text-sm text-muted-foreground">
             {{ currentStudentEntry.gradeLevelName ?? 'N/A' }}

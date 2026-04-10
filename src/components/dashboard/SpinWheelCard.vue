@@ -10,6 +10,9 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { CirclePoundSterling } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const dashboardStore = useStudentDashboardStore()
 const isOpen = ref(false)
@@ -115,14 +118,18 @@ watch(isOpen, (open) => {
       :class="{ 'animate-glow-border': !dashboardStore.hasSpunToday }"
       @click="isOpen = true"
     >
-      <span class="text-sm font-medium">Daily Spin</span>
+      <span class="text-sm font-medium">{{ t.shared.spinWheelCard.dailySpin }}</span>
       <span class="text-lg">{{ dashboardStore.hasSpunToday ? '✅' : '🎡' }}</span>
     </button>
     <DialogContent class="sm:max-w-md" :show-close-button="!isSpinning">
       <DialogHeader>
-        <DialogTitle>Daily Spin Wheel</DialogTitle>
+        <DialogTitle>{{ t.shared.spinWheelCard.title }}</DialogTitle>
         <DialogDescription>
-          {{ dashboardStore.hasSpunToday ? "You've already spun today!" : 'Spin to win coins!' }}
+          {{
+            dashboardStore.hasSpunToday
+              ? t.shared.spinWheelCard.alreadySpun
+              : t.shared.spinWheelCard.spinToWin
+          }}
         </DialogDescription>
       </DialogHeader>
 
@@ -171,7 +178,9 @@ watch(isOpen, (open) => {
           v-if="reward !== null && !isSpinning && !spinError"
           :class="['text-center', { 'animate-bounce': hasJustSpun }]"
         >
-          <p class="text-lg font-bold text-green-600">Congratulations!</p>
+          <p class="text-lg font-bold text-green-600">
+            {{ t.shared.spinWheelCard.congratulations }}
+          </p>
           <div class="mt-2 flex items-center justify-center gap-2">
             <span class="text-2xl font-bold">+{{ reward }}</span>
             <CirclePoundSterling class="size-7 text-amber-600 dark:text-amber-400" />
@@ -180,9 +189,9 @@ watch(isOpen, (open) => {
 
         <!-- Error Display (if RPC failed after animation) -->
         <div v-if="spinError && !isSpinning" class="text-center">
-          <p class="text-lg font-bold text-red-600">Oops!</p>
+          <p class="text-lg font-bold text-red-600">{{ t.shared.spinWheelCard.oops }}</p>
           <p class="mt-1 text-sm text-muted-foreground">{{ spinError }}</p>
-          <p class="mt-1 text-xs text-muted-foreground">Please try again</p>
+          <p class="mt-1 text-xs text-muted-foreground">{{ t.shared.spinWheelCard.tryAgain }}</p>
         </div>
 
         <!-- Spin Button -->
@@ -193,10 +202,12 @@ watch(isOpen, (open) => {
           class="min-w-32"
           @click="spin"
         >
-          {{ isSpinning ? 'Spinning...' : 'SPIN!' }}
+          {{ isSpinning ? t.shared.spinWheelCard.spinning : t.shared.spinWheelCard.spin }}
         </Button>
 
-        <Button v-else variant="outline" @click="closeDialog"> Come back tomorrow! </Button>
+        <Button v-else variant="outline" @click="closeDialog">{{
+          t.shared.spinWheelCard.comeBackTomorrow
+        }}</Button>
       </div>
     </DialogContent>
   </Dialog>

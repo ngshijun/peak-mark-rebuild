@@ -2,6 +2,9 @@
 import { formatDuration } from '@/lib/date'
 import { Card, CardContent } from '@/components/ui/card'
 import { CheckCircle2, XCircle, Clock } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 defineProps<{
   score: number
@@ -25,7 +28,7 @@ defineProps<{
         >
           {{ score }}%
         </div>
-        <div class="text-sm text-muted-foreground">Score</div>
+        <div class="text-sm text-muted-foreground">{{ t.shared.sessionSummaryCards.score }}</div>
       </CardContent>
     </Card>
     <Card>
@@ -34,7 +37,7 @@ defineProps<{
           <CheckCircle2 class="size-6" />
           {{ correctAnswers }}
         </div>
-        <div class="text-sm text-muted-foreground">Correct</div>
+        <div class="text-sm text-muted-foreground">{{ t.shared.sessionSummaryCards.correct }}</div>
       </CardContent>
     </Card>
     <Card>
@@ -43,7 +46,9 @@ defineProps<{
           <XCircle class="size-6" />
           {{ incorrectAnswers }}
         </div>
-        <div class="text-sm text-muted-foreground">Incorrect</div>
+        <div class="text-sm text-muted-foreground">
+          {{ t.shared.sessionSummaryCards.incorrect }}
+        </div>
       </CardContent>
     </Card>
     <Card>
@@ -52,7 +57,7 @@ defineProps<{
           <Clock class="size-6 text-muted-foreground" />
           {{ formatDuration(durationSeconds) }}
         </div>
-        <div class="text-sm text-muted-foreground">Time Used</div>
+        <div class="text-sm text-muted-foreground">{{ t.shared.sessionSummaryCards.timeUsed }}</div>
       </CardContent>
     </Card>
   </div>

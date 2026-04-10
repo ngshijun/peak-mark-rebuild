@@ -8,6 +8,9 @@ import { audienceConfig, useAnnouncementsStore } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import { formatLongDateTime, formatLongDate } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   announcement: Announcement | null
@@ -72,10 +75,14 @@ watch(
         <!-- Expiry info -->
         <div v-if="announcement.expiresAt" class="text-sm text-muted-foreground">
           <span v-if="new Date(announcement.expiresAt) > new Date()">
-            Expires on {{ formatLongDate(announcement.expiresAt) }}
+            {{
+              t.shared.announcementDetailDialog.expiresOn(formatLongDate(announcement.expiresAt))
+            }}
           </span>
           <span v-else class="text-destructive">
-            Expired on {{ formatLongDate(announcement.expiresAt) }}
+            {{
+              t.shared.announcementDetailDialog.expiredOn(formatLongDate(announcement.expiresAt))
+            }}
           </span>
         </div>
       </div>

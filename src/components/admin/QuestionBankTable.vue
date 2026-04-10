@@ -20,6 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const emit = defineEmits<{
   edit: [question: Question]
@@ -61,10 +64,10 @@ const availableSubTopics = computed(() =>
 const serverQuestions = computed(() => questionsStore.serverQuestions)
 
 // Column definitions
-const columns: ColumnDef<Question>[] = [
+const columns = computed<ColumnDef<Question>[]>(() => [
   {
     accessorKey: 'question',
-    header: 'Question',
+    header: t.value.shared.questionBankTable.questionCol,
     cell: ({ row }) => {
       const question = row.original.question
       return h(
@@ -76,22 +79,22 @@ const columns: ColumnDef<Question>[] = [
   },
   {
     accessorKey: 'type',
-    header: 'Type',
+    header: t.value.shared.questionBankTable.typeCol,
     cell: ({ row }) => {
       const type = row.original.type
       const config: Record<string, { label: string; color: string; bgColor: string }> = {
         mcq: {
-          label: 'Multiple Choice',
+          label: t.value.shared.questionBankTable.typeMultipleChoice,
           color: 'text-blue-700 dark:text-blue-300',
           bgColor: 'bg-blue-100 dark:bg-blue-900/50',
         },
         mrq: {
-          label: 'Multiple Response',
+          label: t.value.shared.questionBankTable.typeMultipleResponse,
           color: 'text-purple-700 dark:text-purple-300',
           bgColor: 'bg-purple-100 dark:bg-purple-900/50',
         },
         short_answer: {
-          label: 'Short Answer',
+          label: t.value.shared.questionBankTable.typeShortAnswer,
           color: 'text-green-700 dark:text-green-300',
           bgColor: 'bg-green-100 dark:bg-green-900/50',
         },
@@ -106,19 +109,19 @@ const columns: ColumnDef<Question>[] = [
   },
   {
     accessorKey: 'gradeLevelName',
-    header: 'Grade Level',
+    header: t.value.shared.questionBankTable.gradeLevelCol,
   },
   {
     accessorKey: 'subjectName',
-    header: 'Subject',
+    header: t.value.shared.questionBankTable.subjectCol,
   },
   {
     accessorKey: 'topicName',
-    header: 'Topic',
+    header: t.value.shared.questionBankTable.topicCol,
   },
   {
     accessorKey: 'subTopicName',
-    header: 'Sub-Topic',
+    header: t.value.shared.questionBankTable.subTopicCol,
   },
   {
     id: 'actions',
@@ -150,7 +153,7 @@ const columns: ColumnDef<Question>[] = [
                     emit('edit', question)
                   },
                 },
-                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit'],
+                () => [h(Pencil, { class: 'mr-2 size-4' }), t.value.shared.questionBankTable.edit],
               ),
               h(
                 DropdownMenuItem,
@@ -161,7 +164,10 @@ const columns: ColumnDef<Question>[] = [
                     emit('delete', question)
                   },
                 },
-                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete'],
+                () => [
+                  h(Trash2, { class: 'mr-2 size-4' }),
+                  t.value.shared.questionBankTable.delete,
+                ],
               ),
             ]),
           ],
@@ -169,7 +175,7 @@ const columns: ColumnDef<Question>[] = [
       )
     },
   },
-]
+])
 
 function handleRowClick(question: Question) {
   emit('preview', question)
@@ -186,7 +192,7 @@ defineExpose({ filteredQuestions: serverQuestions })
       <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         :model-value="questionsStore.questionBankFilters.search"
-        placeholder="Search questions..."
+        :placeholder="t.shared.questionBankTable.searchPlaceholder"
         class="pl-9"
         @update:model-value="questionsStore.setQuestionBankSearch(String($event))"
       />
@@ -198,10 +204,10 @@ defineExpose({ filteredQuestions: serverQuestions })
       @update:model-value="questionsStore.setQuestionBankGradeLevel(String($event))"
     >
       <SelectTrigger class="w-[130px]">
-        <SelectValue placeholder="All Grades" />
+        <SelectValue :placeholder="t.shared.questionBankTable.allGrades" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Grades</SelectItem>
+        <SelectItem :value="ALL_VALUE">{{ t.shared.questionBankTable.allGrades }}</SelectItem>
         <SelectItem v-for="grade in availableGradeLevels" :key="grade" :value="grade">
           {{ grade }}
         </SelectItem>
@@ -215,10 +221,10 @@ defineExpose({ filteredQuestions: serverQuestions })
       @update:model-value="questionsStore.setQuestionBankSubject(String($event))"
     >
       <SelectTrigger class="w-[140px]">
-        <SelectValue placeholder="All Subjects" />
+        <SelectValue :placeholder="t.shared.questionBankTable.allSubjects" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
+        <SelectItem :value="ALL_VALUE">{{ t.shared.questionBankTable.allSubjects }}</SelectItem>
         <SelectItem v-for="subject in availableSubjects" :key="subject" :value="subject">
           {{ subject }}
         </SelectItem>
@@ -232,10 +238,10 @@ defineExpose({ filteredQuestions: serverQuestions })
       @update:model-value="questionsStore.setQuestionBankTopic(String($event))"
     >
       <SelectTrigger class="w-[140px]">
-        <SelectValue placeholder="All Topics" />
+        <SelectValue :placeholder="t.shared.questionBankTable.allTopics" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
+        <SelectItem :value="ALL_VALUE">{{ t.shared.questionBankTable.allTopics }}</SelectItem>
         <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
           {{ topic }}
         </SelectItem>
@@ -249,10 +255,10 @@ defineExpose({ filteredQuestions: serverQuestions })
       @update:model-value="questionsStore.setQuestionBankSubTopic(String($event))"
     >
       <SelectTrigger class="w-[140px]">
-        <SelectValue placeholder="All Sub-Topics" />
+        <SelectValue :placeholder="t.shared.questionBankTable.allSubTopics" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Sub-Topics</SelectItem>
+        <SelectItem :value="ALL_VALUE">{{ t.shared.questionBankTable.allSubTopics }}</SelectItem>
         <SelectItem v-for="subTopic in availableSubTopics" :key="subTopic" :value="subTopic">
           {{ subTopic }}
         </SelectItem>

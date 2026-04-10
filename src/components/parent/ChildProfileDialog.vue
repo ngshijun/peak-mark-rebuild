@@ -23,6 +23,9 @@ import {
 } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
 import type { LinkedChild } from '@/stores/child-link'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -68,10 +71,10 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
                 </Badge>
                 <Badge variant="secondary" class="gap-1">
                   <CalendarHeart class="size-3" />
-                  Linked since {{ formatDate(child.linkedAt) }}
+                  {{ t.shared.childProfileDialog.linkedSince(formatDate(child.linkedAt)) }}
                 </Badge>
                 <Badge variant="secondary" class="gap-1">
-                  Active {{ formatRelativeDate(child.lastActive) }}
+                  {{ t.shared.childProfileDialog.active(formatRelativeDate(child.lastActive)) }}
                 </Badge>
               </div>
             </div>
@@ -86,15 +89,15 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
           <!-- Stats Row -->
           <div class="grid grid-cols-3 gap-3">
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">Level</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.childProfileDialog.level }}</p>
               <p class="text-xl font-bold">{{ childLevel }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">XP</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.childProfileDialog.xp }}</p>
               <p class="text-xl font-bold">{{ childXp.toLocaleString() }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">Coins</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.childProfileDialog.coins }}</p>
               <p class="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {{ profile?.coins.toLocaleString() ?? '-' }}
               </p>
@@ -157,7 +160,9 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
               >
                 <PawPrint class="size-12 text-purple-400" />
               </div>
-              <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
+              <p class="text-lg font-semibold text-muted-foreground">
+                {{ t.shared.childProfileDialog.noPetSelected }}
+              </p>
             </div>
 
             <!-- Best Subjects (top right, spans 2 cols) -->
@@ -165,7 +170,9 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
               class="col-span-2 rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
             >
               <div class="mb-5 flex items-center justify-between">
-                <p class="text-xs font-medium text-muted-foreground">Top Subjects</p>
+                <p class="text-xs font-medium text-muted-foreground">
+                  {{ t.shared.childProfileDialog.topSubjects }}
+                </p>
                 <Trophy class="size-4 text-muted-foreground" />
               </div>
               <div class="space-y-2">
@@ -198,7 +205,9 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
                   </template>
                   <template v-else>
                     <div class="min-w-0 flex-1">
-                      <p class="text-sm text-muted-foreground/60">Not yet unlocked</p>
+                      <p class="text-sm text-muted-foreground/60">
+                        {{ t.shared.childProfileDialog.notYetUnlocked }}
+                      </p>
                       <div
                         class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
                       />
@@ -213,7 +222,9 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
               class="col-span-2 rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 dark:border-orange-900/50 dark:from-orange-950/30 dark:to-amber-950/30"
             >
               <div class="mb-5 flex items-center justify-between">
-                <p class="text-xs font-medium text-muted-foreground">Practice Streak</p>
+                <p class="text-xs font-medium text-muted-foreground">
+                  {{ t.shared.childProfileDialog.practiceStreak }}
+                </p>
                 <Flame class="size-4 text-muted-foreground" />
               </div>
               <div class="flex items-center gap-3">
@@ -224,7 +235,9 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
                 <div>
                   <p class="text-2xl font-bold">
                     {{ child.currentStreak }}
-                    <span class="text-sm font-normal text-muted-foreground">days</span>
+                    <span class="text-sm font-normal text-muted-foreground">{{
+                      t.shared.childProfileDialog.days
+                    }}</span>
                   </p>
                 </div>
               </div>
@@ -265,7 +278,7 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
 
           <!-- Member Since -->
           <p v-if="profile?.memberSince" class="text-xs text-muted-foreground">
-            Member since {{ formatDate(profile.memberSince) }}
+            {{ t.shared.childProfileDialog.memberSince(formatDate(profile.memberSince)) }}
           </p>
         </div>
       </template>

@@ -19,7 +19,9 @@ import {
 import { Donut } from '@unovis/ts'
 import { VisSingleContainer, VisDonut } from '@unovis/vue'
 import { PieChart } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const dashboardStore = useAdminDashboardStore()
 
 const chartData = computed(() => {
@@ -58,14 +60,18 @@ const chartConfig = {
   <Card class="flex h-full flex-col">
     <CardHeader class="items-center pb-0">
       <div class="flex w-full flex-row items-center justify-between">
-        <CardTitle class="text-sm font-medium">Subscription Tiers</CardTitle>
+        <CardTitle class="text-sm font-medium">{{
+          t.shared.subscriptionTierChart.title
+        }}</CardTitle>
         <PieChart class="size-4 text-muted-foreground" />
       </div>
-      <CardDescription>Distribution of active subscriptions</CardDescription>
+      <CardDescription>{{ t.shared.subscriptionTierChart.description }}</CardDescription>
     </CardHeader>
     <CardContent class="flex-1 pb-0">
       <div v-if="chartData.length === 0" class="flex h-full items-center justify-center">
-        <p class="text-sm text-muted-foreground">No active subscriptions</p>
+        <p class="text-sm text-muted-foreground">
+          {{ t.shared.subscriptionTierChart.noSubscriptions }}
+        </p>
       </div>
       <ChartContainer
         v-else
@@ -85,7 +91,7 @@ const chartConfig = {
             :arc-width="30"
             :show-empty-segments="true"
             :central-label="totalStudents.toLocaleString()"
-            central-sub-label="Students"
+            :central-sub-label="t.shared.subscriptionTierChart.students"
             :central-label-offset-y="10"
           />
           <ChartTooltip

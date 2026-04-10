@@ -4,10 +4,13 @@ import { useAdminStudentEngagementStore, type MoodEntry } from '@/stores/admin-s
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from 'lucide-vue-next'
 import StatusCalendar, { type StatusEntry } from '@/components/shared/StatusCalendar.vue'
+import { useT } from '@/composables/useT'
 
 const props = defineProps<{
   studentId: string
 }>()
+
+const t = useT()
 
 const adminEngagementStore = useAdminStudentEngagementStore()
 const calendarRef = ref<InstanceType<typeof StatusCalendar> | null>(null)
@@ -45,7 +48,7 @@ watch(
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <Calendar class="size-5" />
-        Daily Status
+        {{ t.shared.studentDailyStatusTab.title }}
       </CardTitle>
     </CardHeader>
     <CardContent>

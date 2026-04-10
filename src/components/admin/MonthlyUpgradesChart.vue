@@ -12,7 +12,9 @@ import {
 } from '@/components/ui/chart'
 import { VisAxis, VisStackedBar, VisXYContainer } from '@unovis/vue'
 import { ArrowUpCircle } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const dashboardStore = useAdminDashboardStore()
 
 // Get monthly upgrades data
@@ -36,10 +38,10 @@ const chartConfig = {
   <Card class="flex h-full flex-col">
     <CardHeader class="space-y-0 pb-2">
       <div class="flex flex-row items-center justify-between">
-        <CardTitle class="text-sm font-medium">Monthly Upgrades</CardTitle>
+        <CardTitle class="text-sm font-medium">{{ t.shared.monthlyUpgradesChart.title }}</CardTitle>
         <ArrowUpCircle class="size-4 text-muted-foreground" />
       </div>
-      <CardDescription>Plan upgrades over last 12 months</CardDescription>
+      <CardDescription>{{ t.shared.monthlyUpgradesChart.description }}</CardDescription>
     </CardHeader>
     <CardContent class="flex-1">
       <ChartContainer :config="chartConfig" class="h-full max-h-[280px] w-full" cursor>
