@@ -14,8 +14,11 @@ export interface SubscriptionChangeContext {
 /**
  * Extract billing period timestamps from a Subscription object.
  * In Stripe Clover API (2025+), `current_period_start` and `current_period_end`
- * were removed from the Subscription object. The equivalent data is now on the
- * expanded `latest_invoice` (period_start / period_end).
+ * were removed from the Subscription object. The equivalent data is on the
+ * expanded `latest_invoice`'s line items (lines.data[0].period).
+ *
+ * Note: invoice.period_start/period_end are the invoice's own period (equals
+ * subscription start date for the first invoice), NOT the billing cycle period.
  *
  * Callers must expand `latest_invoice` when retrieving the subscription.
  */
@@ -26,9 +29,11 @@ export function extractPeriodDates(subscription: Stripe.Subscription): {
   const latestInvoice =
     typeof subscription.latest_invoice === 'object' ? subscription.latest_invoice : null
 
+  const lineItemPeriod = latestInvoice?.lines?.data?.[0]?.period
+
   return {
-    periodStart: latestInvoice?.period_start ?? null,
-    periodEnd: latestInvoice?.period_end ?? null,
+    periodStart: lineItemPeriod?.start ?? null,
+    periodEnd: lineItemPeriod?.end ?? null,
   }
 }
 
