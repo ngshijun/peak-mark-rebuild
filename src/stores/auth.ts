@@ -162,6 +162,24 @@ async function ensureProfileExists(user: SupabaseUser): Promise<{ error: string 
       return { error: handleError(rpcError, 'An unexpected error occurred.') }
     }
 
+    // Preserve the user's pre-signup language choice.
+    // If localStorage has a non-default value (meaning they toggled
+    // to Mandarin on the landing page before signing up), write it
+    // to the newly created profile. This runs only on first-ever
+    // profile creation — repeat calls to ensureProfileExists return
+    // early above because the profile already exists.
+    const currentLang = localStorage.getItem('language')
+    if (currentLang === 'zh') {
+      const { error: langError } = await supabase
+        .from('profiles')
+        .update({ ui_language: 'zh' })
+        .eq('id', user.id)
+      if (langError) {
+        // Non-fatal — the user can toggle again. Log and continue.
+        console.error('Failed to preserve signup language:', langError)
+      }
+    }
+
     return { error: null }
   } catch (err) {
     const message = handleError(err, 'An unexpected error occurred.')
