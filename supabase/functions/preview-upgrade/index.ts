@@ -1,7 +1,7 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
-import { resolveSubscriptionChange } from '../_shared/sync-helpers.ts'
+import { resolveSubscriptionChange, extractPeriodDates } from '../_shared/sync-helpers.ts'
 import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
@@ -33,8 +33,10 @@ Deno.serve(async (req: Request) => {
       stripe,
       errorResponse,
       verifyParentStudentLink,
-      ['items.data.price', 'customer'],
+      ['items.data.price', 'customer', 'latest_invoice'],
     )
+
+    const { periodEnd } = extractPeriodDates(stripeSubscription)
 
     if (!isUpgrade) {
       // For downgrades, no immediate payment - scheduled for next cycle
@@ -42,7 +44,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           isUpgrade: false,
           message: 'Downgrade will be applied at the end of your current billing cycle',
-          effectiveDate: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+          effectiveDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           currentPlan: {
             priceId: currentPriceId,
             amount: currentAmount,
