@@ -707,4 +707,80 @@ export default {
     petsCollected: (owned: number, total: number) => `${owned} / ${total} pets collected`,
   },
   announcementCard: {},
+  layout: {
+    greetings: {
+      morning: 'Good morning',
+      afternoon: 'Good afternoon',
+      evening: 'Good evening',
+      withName: (greeting: string, name: string) => `${greeting}, ${name}`,
+    },
+    gradeDialog: {
+      title: 'Set Your Grade Level',
+      description:
+        'Please select your current grade level to personalize your learning experience. This helps us show you the right content.',
+      selectPlaceholder: 'Select your grade',
+      continueButton: 'Continue',
+      toastNoGrade: 'Please select your grade level',
+      toastSuccess: 'Grade level set successfully',
+    },
+    welcomeTourDialog: {
+      title: 'Welcome to Clavis!',
+      description:
+        'Looks like this is your first time here. Would you like a quick tour of the app?',
+      skip: 'Skip',
+      startTour: 'Start Tour',
+    },
+    sidebar: {
+      navigation: 'Navigation',
+      pets: 'Pets',
+      learningPlatform: 'Learning Platform',
+      myParent: 'My Parent',
+      logOut: 'Log out',
+      nav: {
+        admin: {
+          dashboard: 'Dashboard',
+          announcements: 'Announcements',
+          curriculum: 'Curriculum',
+          questionBank: 'Question Bank',
+          questionStatistics: 'Question Statistics',
+          questionFeedback: 'Question Feedback',
+          students: 'Students',
+          paymentHistory: 'Payment History',
+          leaderboard: 'Leaderboard',
+          pets: 'Pets',
+        },
+        student: {
+          dashboard: 'Dashboard',
+          announcements: 'Announcements',
+          practice: 'Practice',
+          statistics: 'Statistics',
+          leaderboard: 'Leaderboard',
+          friends: 'Friends',
+          myPet: 'My Pet',
+          collections: 'Collections',
+        },
+        parent: {
+          dashboard: 'Dashboard',
+          announcements: 'Announcements',
+          children: 'Children',
+          statistics: 'Statistics',
+          subscription: 'Subscription',
+          contactUs: 'Contact Us',
+        },
+      },
+    },
+    levelUpDialog: {
+      title: 'Level Up!',
+      subtitle: 'You reached a new level!',
+      levelReached: (level: number) => `Level ${level}`,
+      keepPracticing: 'Keep practicing to reach the next level!',
+      awesome: 'Awesome!',
+      shareTitle: 'Clavis Level Up!',
+      shareText: (level: number) =>
+        `I just reached Level ${level} on Clavis! 🎉 Join me: https://clavis.com.my`,
+    },
+    xpProgress: {
+      levelLabel: (level: number) => `Level ${level}`,
+    },
+  },
 } as const

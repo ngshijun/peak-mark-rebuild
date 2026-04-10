@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { SidebarHeader, SidebarSeparator } from '@/components/ui/sidebar'
+import { useT } from '@/composables/useT'
 import logoSvg from '@/assets/logo.svg'
+
+const t = useT()
 </script>
 
 <template>
@@ -11,7 +14,9 @@ import logoSvg from '@/assets/logo.svg'
         <span class="font-logo translate-y-1 truncate text-lg font-medium text-primary"
           >Clavis</span
         >
-        <span class="truncate text-xs text-muted-foreground">Learning Platform</span>
+        <span class="truncate text-xs text-muted-foreground">{{
+          t.shared.layout.sidebar.learningPlatform
+        }}</span>
       </div>
     </div>
     <SidebarSeparator />
