@@ -28,6 +28,7 @@ import { useFirstPetTour } from '@/composables/useFirstPetTour'
 import { usePetsStore } from '@/stores/pets'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
+import LanguageToggle from './LanguageToggle.vue'
 const LevelUpDialog = defineAsyncComponent(() => import('./LevelUpDialog.vue'))
 const authStore = useAuthStore()
 const curriculumStore = useCurriculumStore()
@@ -175,6 +176,7 @@ const greeting = computed(() => {
               >
             </div>
           </div>
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>
