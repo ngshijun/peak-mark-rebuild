@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useT } from '@/composables/useT'
 import { useRoute, useRouter } from 'vue-router'
 import {
   useChildStatisticsStore,
@@ -18,6 +19,7 @@ const router = useRouter()
 const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
 
+const t = useT()
 const childId = computed(() => route.params.childId as string)
 const sessionId = computed(() => route.params.sessionId as string)
 
@@ -86,10 +88,10 @@ function goBack() {
       <div class="mb-6">
         <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
           <ArrowLeft class="mr-2 size-4" />
-          Back
+          {{ t.parent.sessionResult.back }}
         </Button>
 
-        <h1 class="text-2xl font-bold">Session Results</h1>
+        <h1 class="text-2xl font-bold">{{ t.parent.sessionResult.title }}</h1>
         <p v-if="child" class="text-muted-foreground">
           {{ child.name }} - {{ session.subjectName }} - {{ session.topicName }} |
           {{ session.gradeLevelName }}
@@ -113,7 +115,7 @@ function goBack() {
                 class="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300"
               >
                 <BotMessageSquare class="size-4" />
-                AI Summary
+                {{ t.parent.sessionResult.aiSummaryTitle }}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -122,10 +124,7 @@ function goBack() {
                 class="flex items-center gap-3 text-sm text-muted-foreground"
               >
                 <Crown class="size-5 text-amber-500" />
-                <span
-                  >Upgrade to <strong>Pro</strong> to unlock AI-powered feedback for each
-                  session.</span
-                >
+                <span>{{ t.parent.sessionResult.upgradeToProHint('Pro') }}</span>
               </div>
               <div
                 v-else-if="session.aiSummary"
@@ -133,7 +132,7 @@ function goBack() {
                 v-html="parseSimpleMarkdown(session.aiSummary)"
               />
               <div v-else class="text-sm text-muted-foreground">
-                No summary available for this session.
+                {{ t.parent.sessionResult.noAiSummary }}
               </div>
             </CardContent>
           </Card>
@@ -141,12 +140,11 @@ function goBack() {
 
         <template #locked-message>
           <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            Detailed session results require a Plus or higher subscription. Upgrade to view
-            individual questions and answers.
+            {{ t.parent.sessionResult.lockedMessage }}
           </p>
           <Button class="mt-4" @click="router.push('/parent/subscription')">
             <Sparkles class="mr-2 size-4" />
-            Upgrade Plan
+            {{ t.parent.sessionResult.upgradePlan }}
           </Button>
         </template>
       </SessionResultContent>
@@ -154,8 +152,8 @@ function goBack() {
 
     <!-- Empty State -->
     <div v-else-if="!isLoading" class="py-12 text-center">
-      <p class="text-muted-foreground">Session not found</p>
-      <Button class="mt-4" @click="goBack">Go Back</Button>
+      <p class="text-muted-foreground">{{ t.parent.sessionResult.sessionNotFound }}</p>
+      <Button class="mt-4" @click="goBack">{{ t.parent.sessionResult.goBack }}</Button>
     </div>
   </div>
 </template>

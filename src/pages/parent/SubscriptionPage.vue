@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useT } from '@/composables/useT'
 import {
   useSubscriptionStore,
   type SubscriptionTier,
@@ -41,6 +42,7 @@ import UpgradePreviewDialog from '@/components/parent/UpgradePreviewDialog.vue'
 
 const subscriptionStore = useSubscriptionStore()
 const childLinkStore = useChildLinkStore()
+const t = useT()
 
 const SELECTED_CHILD_KEY = 'parent_selected_child_id'
 const selectedChildId = ref<string>(localStorage.getItem(SELECTED_CHILD_KEY) || '')
@@ -83,20 +85,20 @@ onMounted(async () => {
     const { error } = await subscriptionStore.syncSubscription(selectedChildId.value, sessionId)
 
     if (!error) {
-      toast.success('Subscription activated!', {
-        description: 'Your subscription has been successfully activated.',
+      toast.success(t.value.parent.subscription.toastActivated, {
+        description: t.value.parent.subscription.toastActivatedDesc,
       })
       const childIds = childLinkStore.linkedChildren.map((c) => c.id)
       await subscriptionStore.fetchChildrenSubscriptions(childIds, true)
     } else {
-      toast.error('Sync issue', {
-        description: error || 'Subscription may not be fully synced. Please refresh the page.',
+      toast.error(t.value.parent.subscription.toastSyncIssue, {
+        description: error || t.value.parent.subscription.toastSyncIssueDesc,
       })
     }
     window.history.replaceState({}, '', window.location.pathname)
   } else if (isCanceled) {
-    toast.error('Checkout cancelled', {
-      description: 'You cancelled the checkout process.',
+    toast.error(t.value.parent.subscription.toastCheckoutCancelled, {
+      description: t.value.parent.subscription.toastCheckoutCancelledDesc,
     })
     window.history.replaceState({}, '', window.location.pathname)
   }
@@ -181,7 +183,7 @@ async function confirmPlanChange() {
   if (hasStripe) {
     const result = await subscriptionStore.modifySubscription(selectedChildId.value, tier)
     if (result.error) {
-      toast.error('Error', { description: result.error })
+      toast.error(t.value.parent.subscription.toastError, { description: result.error })
     } else if (result.type === 'scheduled') {
       const scheduledDate = result.scheduledDate
         ? new Date(result.scheduledDate).toLocaleDateString('en-US', {
@@ -190,12 +192,12 @@ async function confirmPlanChange() {
             day: 'numeric',
           })
         : 'next billing cycle'
-      toast.success('Downgrade scheduled', {
-        description: `Your plan will change to ${tier} on ${scheduledDate}. You'll keep your current plan until then.`,
+      toast.success(t.value.parent.subscription.toastDowngradeScheduled, {
+        description: t.value.parent.subscription.toastDowngradeScheduledDesc(tier, scheduledDate),
       })
     } else {
-      toast.success('Subscription upgraded!', {
-        description: `Plan has been upgraded to ${tier}. Your billing cycle has been reset.`,
+      toast.success(t.value.parent.subscription.toastUpgraded, {
+        description: t.value.parent.subscription.toastUpgradedDesc(tier),
       })
     }
   } else {
@@ -204,7 +206,7 @@ async function confirmPlanChange() {
       tier,
     )
     if (error) {
-      toast.error('Error', { description: error })
+      toast.error(t.value.parent.subscription.toastError, { description: error })
     } else if (url) {
       window.location.href = url
     }
@@ -225,18 +227,18 @@ async function handleCancel() {
   const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
 
   if (!hasStripe) {
-    toast.info('No active subscription', {
-      description: 'This child is already on the basic tier.',
+    toast.info(t.value.parent.subscription.toastNoActiveSub, {
+      description: t.value.parent.subscription.toastNoActiveSubDesc,
     })
     return
   }
 
   const { error } = await subscriptionStore.cancelStripeSubscription(selectedChildId.value, false)
   if (error) {
-    toast.error('Error', { description: error })
+    toast.error(t.value.parent.subscription.toastError, { description: error })
   } else {
-    toast.success('Subscription cancelled', {
-      description: 'Your subscription will end at the current billing period.',
+    toast.success(t.value.parent.subscription.toastCancelSuccess, {
+      description: t.value.parent.subscription.toastCancelSuccessDesc,
     })
   }
 }
@@ -244,7 +246,7 @@ async function handleCancel() {
 async function handleOpenPortal() {
   const { url, error } = await subscriptionStore.openCustomerPortal()
   if (error) {
-    toast.error('Error', { description: error })
+    toast.error(t.value.parent.subscription.toastError, { description: error })
   } else if (url) {
     window.location.href = url
   }
@@ -254,19 +256,19 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
   if (!subscription.stripe) return null
 
   if (subscription.stripe.cancelAtPeriodEnd) {
-    return { text: 'Cancels soon', variant: 'destructive' as const }
+    return { text: t.value.parent.subscription.cancelsSoon, variant: 'destructive' as const }
   }
 
   if (subscription.scheduledChange) {
-    return { text: 'Downgrade scheduled', variant: 'secondary' as const }
+    return { text: t.value.parent.subscription.downgradeScheduled, variant: 'secondary' as const }
   }
 
   if (subscription.stripe.stripeStatus === 'past_due') {
-    return { text: 'Payment failed', variant: 'destructive' as const }
+    return { text: t.value.parent.subscription.paymentFailed, variant: 'destructive' as const }
   }
 
   if (subscription.stripe.stripeStatus === 'active') {
-    return { text: 'Active', variant: 'default' as const }
+    return { text: t.value.parent.subscription.active, variant: 'default' as const }
   }
 
   return null
@@ -278,8 +280,8 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Subscription</h1>
-        <p class="text-muted-foreground">Manage subscriptions for your children</p>
+        <h1 class="text-2xl font-bold">{{ t.parent.subscription.title }}</h1>
+        <p class="text-muted-foreground">{{ t.parent.subscription.subtitle }}</p>
       </div>
 
       <!-- Manage Billing Button -->
@@ -289,7 +291,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
         @click="handleOpenPortal"
       >
         <CreditCard class="mr-2 size-4" />
-        Manage Billing
+        {{ t.parent.subscription.manageBilling }}
         <ExternalLink class="ml-2 size-3" />
       </Button>
     </div>
@@ -309,9 +311,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
     <!-- No Children State -->
     <div v-else-if="childLinkStore.linkedChildren.length === 0" class="py-16 text-center">
       <Users class="mx-auto size-16 text-muted-foreground/50" />
-      <h2 class="mt-4 text-lg font-semibold">No Linked Children</h2>
+      <h2 class="mt-4 text-lg font-semibold">{{ t.parent.subscription.noLinkedChildrenTitle }}</h2>
       <p class="mt-2 text-muted-foreground">
-        Link a child to manage their subscription. Go to the Children page to send an invitation.
+        {{ t.parent.subscription.noLinkedChildrenDesc }}
       </p>
     </div>
 
@@ -323,14 +325,14 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
               <Users class="size-5" />
-              Select Child
+              {{ t.parent.subscription.selectChildTitle }}
             </CardTitle>
-            <CardDescription>Choose a child to manage their subscription</CardDescription>
+            <CardDescription>{{ t.parent.subscription.selectChildDescription }}</CardDescription>
           </CardHeader>
           <CardContent>
             <Select v-model="selectedChildId">
               <SelectTrigger class="w-full">
-                <SelectValue placeholder="Select a child" />
+                <SelectValue :placeholder="t.parent.subscription.selectChildPlaceholder" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem
@@ -350,9 +352,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
               <CreditCard class="size-5" />
-              Current Plan for {{ selectedChild?.name }}
+              {{ t.parent.subscription.currentPlanTitle(selectedChild?.name ?? '') }}
             </CardTitle>
-            <CardDescription>Active subscription details</CardDescription>
+            <CardDescription>{{ t.parent.subscription.currentPlanDescription }}</CardDescription>
           </CardHeader>
           <CardContent>
             <div class="flex items-center justify-between">
@@ -367,9 +369,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                   </template>
                   <template v-else>
                     <Badge v-if="currentSubscription.tier !== 'core'" variant="default">
-                      Active
+                      {{ t.parent.subscription.active }}
                     </Badge>
-                    <Badge v-else variant="secondary">Free Tier</Badge>
+                    <Badge v-else variant="secondary">{{ t.parent.subscription.freeTier }}</Badge>
                   </template>
                 </div>
                 <!-- Show period end for Stripe subscriptions -->
@@ -378,10 +380,14 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                   class="text-sm text-muted-foreground"
                 >
                   <template v-if="currentSubscription.stripe.cancelAtPeriodEnd">
-                    Ends on {{ formatDate(currentSubscription.stripe.currentPeriodEnd) }}
+                    {{
+                      t.parent.subscription.endsOn(
+                        formatDate(currentSubscription.stripe.currentPeriodEnd),
+                      )
+                    }}
                   </template>
                   <template v-else-if="currentSubscription.scheduledChange">
-                    Changing to
+                    {{ t.parent.subscription.changingTo }}
                     <span class="font-medium text-amber-600 dark:text-amber-400">
                       {{
                         subscriptionStore.plans.find(
@@ -389,20 +395,30 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                         )?.name || currentSubscription?.scheduledChange?.scheduledTier
                       }}
                     </span>
-                    on {{ formatDate(currentSubscription?.scheduledChange?.scheduledChangeDate) }}
+                    {{
+                      t.parent.subscription.on(
+                        formatDate(currentSubscription?.scheduledChange?.scheduledChangeDate),
+                      )
+                    }}
                   </template>
                   <template v-else>
-                    Renews on {{ formatDate(currentSubscription.stripe.currentPeriodEnd) }}
+                    {{
+                      t.parent.subscription.renewsOn(
+                        formatDate(currentSubscription.stripe.currentPeriodEnd),
+                      )
+                    }}
                   </template>
                 </p>
               </div>
               <div class="text-right">
                 <div class="text-3xl font-bold">
                   RM {{ currentPlan.price.toFixed(2) }}
-                  <span class="text-base font-normal text-muted-foreground">/month</span>
+                  <span class="text-base font-normal text-muted-foreground">{{
+                    t.parent.subscription.perMonth
+                  }}</span>
                 </div>
                 <p class="text-sm text-muted-foreground">
-                  {{ currentPlan.sessionsPerDay }} sessions/day
+                  {{ t.parent.subscription.sessionsPerDay(currentPlan.sessionsPerDay) }}
                 </p>
               </div>
             </div>
@@ -415,31 +431,37 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
             <AlertDialog>
               <AlertDialogTrigger as-child>
                 <Button variant="outline" class="text-destructive hover:text-destructive">
-                  Cancel Subscription
+                  {{ t.parent.subscription.cancelSubscriptionButton }}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+                  <AlertDialogTitle>{{
+                    t.parent.subscription.cancelSubscriptionTitle
+                  }}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to cancel {{ selectedChild?.name }}'s subscription?
+                    {{ t.parent.subscription.cancelSubscriptionConfirm(selectedChild?.name ?? '') }}
                     <template v-if="currentSubscription.stripe?.stripeSubscriptionId">
-                      The subscription will remain active until
-                      {{ formatDate(currentSubscription.stripe.currentPeriodEnd) }}, then
-                      automatically downgrade to Basic.
+                      {{
+                        t.parent.subscription.cancelSubscriptionStripeNote(
+                          formatDate(currentSubscription.stripe.currentPeriodEnd),
+                        )
+                      }}
                     </template>
                     <template v-else>
-                      They will be downgraded to the Basic tier immediately.
+                      {{ t.parent.subscription.cancelSubscriptionImmediateNote }}
                     </template>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                  <AlertDialogCancel>{{
+                    t.parent.subscription.keepSubscription
+                  }}</AlertDialogCancel>
                   <AlertDialogAction
                     class="bg-destructive text-white hover:bg-destructive/90"
                     @click="handleCancel"
                   >
-                    Cancel Subscription
+                    {{ t.parent.subscription.cancelSubscriptionButton }}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -450,7 +472,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
 
       <!-- Subscription Tiers -->
       <div v-if="currentSubscription">
-        <h2 class="mb-4 text-xl font-semibold">Available Plans</h2>
+        <h2 class="mb-4 text-xl font-semibold">{{ t.parent.subscription.availablePlansTitle }}</h2>
         <div class="grid gap-4 md:grid-cols-3">
           <PlanCard
             v-for="plan in subscriptionStore.visiblePlans"
@@ -485,28 +507,26 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
       <!-- Feature Comparison Note -->
       <Card>
         <CardHeader>
-          <CardTitle class="text-lg">Plan Features Comparison</CardTitle>
+          <CardTitle class="text-lg">{{ t.parent.subscription.planFeaturesTitle }}</CardTitle>
         </CardHeader>
         <CardContent>
           <div class="grid gap-4 md:grid-cols-2">
             <div class="rounded-lg border p-4">
               <div class="flex items-center gap-2">
                 <Zap class="size-5 text-blue-500" />
-                <h3 class="font-semibold">Plus</h3>
+                <h3 class="font-semibold">{{ t.parent.subscription.plusPlanTitle }}</h3>
               </div>
               <p class="mt-2 text-sm text-muted-foreground">
-                More practice sessions per day and detailed session history including individual
-                questions and answers. Great for identifying specific areas to improve.
+                {{ t.parent.subscription.plusPlanDesc }}
               </p>
             </div>
             <div class="rounded-lg border p-4">
               <div class="flex items-center gap-2">
                 <Sparkles class="size-5 text-purple-500" />
-                <h3 class="font-semibold">Pro</h3>
+                <h3 class="font-semibold">{{ t.parent.subscription.proPlanTitle }}</h3>
               </div>
               <p class="mt-2 text-sm text-muted-foreground">
-                All Plus features plus AI-powered feedback after each session with personalized
-                weakness analysis and learning recommendations.
+                {{ t.parent.subscription.proPlanDesc }}
               </p>
             </div>
           </div>

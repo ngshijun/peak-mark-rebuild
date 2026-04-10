@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
+import { useT } from '@/composables/useT'
 import { useRouter } from 'vue-router'
 import { useChildStatisticsStore, type ChildPracticeSession } from '@/stores/child-statistics'
 import { useChildLinkStore } from '@/stores/child-link'
@@ -22,6 +23,7 @@ import { Users, BookOpen, History, Loader2 } from 'lucide-vue-next'
 const router = useRouter()
 const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
+const t = useT()
 
 const SELECTED_CHILD_KEY = 'parent_selected_child_id'
 const hideInProgress = ref(false)
@@ -53,7 +55,7 @@ onMounted(async () => {
     }
   } catch (err) {
     console.error('Failed to load statistics:', err)
-    toast.error('Failed to load statistics')
+    toast.error(t.value.parent.statistics.toastLoadFailed)
   }
 })
 
@@ -157,8 +159,8 @@ function handleRowClick(row: ChildPracticeSession) {
   <div class="space-y-6 p-6">
     <!-- Header -->
     <div>
-      <h1 class="text-2xl font-bold">Statistics</h1>
-      <p class="text-muted-foreground">View your children's learning progress</p>
+      <h1 class="text-2xl font-bold">{{ t.parent.statistics.title }}</h1>
+      <p class="text-muted-foreground">{{ t.parent.statistics.subtitle }}</p>
     </div>
 
     <!-- Loading State -->
@@ -172,9 +174,9 @@ function handleRowClick(row: ChildPracticeSession) {
     <!-- No Children State -->
     <div v-else-if="childLinkStore.linkedChildren.length === 0" class="py-16 text-center">
       <Users class="mx-auto size-16 text-muted-foreground/50" />
-      <h2 class="mt-4 text-lg font-semibold">No Linked Children</h2>
+      <h2 class="mt-4 text-lg font-semibold">{{ t.parent.statistics.noLinkedChildrenTitle }}</h2>
       <p class="mt-2 text-muted-foreground">
-        Link a child to view their statistics. Go to the Children page to send an invitation.
+        {{ t.parent.statistics.noLinkedChildrenDesc }}
       </p>
     </div>
 
@@ -203,7 +205,7 @@ function handleRowClick(row: ChildPracticeSession) {
           <!-- Child Selector -->
           <Select v-model="selectedChildId">
             <SelectTrigger class="w-[220px]">
-              <SelectValue placeholder="Select child" />
+              <SelectValue :placeholder="t.parent.statistics.selectChildPlaceholder" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem
@@ -232,9 +234,9 @@ function handleRowClick(row: ChildPracticeSession) {
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <History class="size-5" />
-            Practice History
+            {{ t.parent.statistics.practiceHistoryTitle }}
           </CardTitle>
-          <CardDescription>View your child's past practice sessions and scores.</CardDescription>
+          <CardDescription>{{ t.parent.statistics.practiceHistoryDesc }}</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -251,7 +253,7 @@ function handleRowClick(row: ChildPracticeSession) {
           <div v-else class="py-12 text-center">
             <BookOpen class="mx-auto size-12 text-muted-foreground/50" />
             <p class="mt-2 text-muted-foreground">
-              No practice sessions found for the selected filters.
+              {{ t.parent.statistics.noSessions }}
             </p>
           </div>
         </CardContent>
