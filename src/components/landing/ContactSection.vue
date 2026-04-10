@@ -31,10 +31,10 @@ const onSubmit = handleSubmit(async (formValues) => {
       body: { ...formValues, source: 'landing' },
     })
     if (error) throw error
-    toast.success(t.value.contact.successMessage)
+    toast.success(t.value.landing.contact.successMessage)
     resetForm()
   } catch {
-    toast.error(t.value.contact.errorMessage)
+    toast.error(t.value.landing.contact.errorMessage)
   } finally {
     isSubmitting.value = false
   }
@@ -46,10 +46,10 @@ const onSubmit = handleSubmit(async (formValues) => {
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
         <h2 class="mb-4 text-3xl font-bold md:text-4xl">
-          {{ t.contact.title }}
+          {{ t.landing.contact.title }}
         </h2>
         <p class="text-lg text-muted-foreground">
-          {{ t.contact.subtitle }}
+          {{ t.landing.contact.subtitle }}
         </p>
       </div>
 
@@ -70,12 +70,12 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-name">
-                {{ t.contact.name }} <span class="text-destructive">*</span>
+                {{ t.landing.contact.name }} <span class="text-destructive">*</span>
               </FieldLabel>
               <Input
                 id="contact-name"
                 type="text"
-                :placeholder="t.contact.namePlaceholder"
+                :placeholder="t.landing.contact.namePlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 class="bg-landing-band dark:bg-landing-band"
@@ -95,12 +95,12 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-email">
-                {{ t.contact.email }} <span class="text-destructive">*</span>
+                {{ t.landing.contact.email }} <span class="text-destructive">*</span>
               </FieldLabel>
               <Input
                 id="contact-email"
                 type="email"
-                :placeholder="t.contact.emailPlaceholder"
+                :placeholder="t.landing.contact.emailPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 class="bg-landing-band dark:bg-landing-band"
@@ -120,12 +120,12 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-subject">
-                {{ t.contact.subject }} <span class="text-destructive">*</span>
+                {{ t.landing.contact.subject }} <span class="text-destructive">*</span>
               </FieldLabel>
               <Input
                 id="contact-subject"
                 type="text"
-                :placeholder="t.contact.subjectPlaceholder"
+                :placeholder="t.landing.contact.subjectPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 class="bg-landing-band dark:bg-landing-band"
@@ -145,11 +145,11 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-message">
-                {{ t.contact.message }} <span class="text-destructive">*</span>
+                {{ t.landing.contact.message }} <span class="text-destructive">*</span>
               </FieldLabel>
               <Textarea
                 id="contact-message"
-                :placeholder="t.contact.messagePlaceholder"
+                :placeholder="t.landing.contact.messagePlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 class="min-h-32 bg-landing-band dark:bg-landing-band"
@@ -162,7 +162,7 @@ const onSubmit = handleSubmit(async (formValues) => {
           <Button type="submit" class="w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
             <Send v-else class="mr-2 size-4" />
-            {{ isSubmitting ? t.contact.submitting : t.contact.submit }}
+            {{ isSubmitting ? t.landing.contact.submitting : t.landing.contact.submit }}
           </Button>
         </form>
       </div>

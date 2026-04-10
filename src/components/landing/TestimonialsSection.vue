@@ -12,15 +12,15 @@ const { t } = storeToRefs(useLanguageStore())
   <section class="border-t bg-landing-band-alt py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
-        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.testimonials.title }}</h2>
+        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.landing.testimonials.title }}</h2>
         <p class="text-lg text-muted-foreground">
-          {{ t.testimonials.subtitle }}
+          {{ t.landing.testimonials.subtitle }}
         </p>
       </div>
 
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card
-          v-for="(testimonial, index) in t.testimonials.items"
+          v-for="(testimonial, index) in t.landing.testimonials.items"
           :key="index"
           class="relative flex flex-col bg-landing-band shadow-md"
         >

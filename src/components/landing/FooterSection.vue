@@ -16,7 +16,7 @@ const { t } = storeToRefs(useLanguageStore())
             <span class="font-logo translate-y-1 text-2xl font-bold text-primary">Clavis</span>
           </div>
           <p class="mt-1 text-xs italic text-muted-foreground">
-            {{ t.footer.tagline }}
+            {{ t.landing.footer.tagline }}
           </p>
         </div>
 
@@ -25,24 +25,24 @@ const { t } = storeToRefs(useLanguageStore())
             to="/login"
             class="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            {{ t.footer.login }}
+            {{ t.landing.footer.login }}
           </RouterLink>
           <RouterLink
             to="/signup"
             class="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            {{ t.footer.signup }}
+            {{ t.landing.footer.signup }}
           </RouterLink>
           <RouterLink
             to="/forgot-password"
             class="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            {{ t.footer.forgotPassword }}
+            {{ t.landing.footer.forgotPassword }}
           </RouterLink>
         </nav>
 
         <p class="text-sm text-muted-foreground">
-          &copy; {{ new Date().getFullYear() }} {{ t.footer.copyright }}
+          &copy; {{ new Date().getFullYear() }} {{ t.landing.footer.copyright }}
         </p>
       </div>
     </div>
