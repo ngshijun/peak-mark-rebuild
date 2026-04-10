@@ -19,6 +19,13 @@ export default {
     failedToCopyLink: 'Failed to copy link',
     pullFailed: 'Pull failed',
     tourError: 'The onboarding tour ran into an issue. Please try again later.',
+    signedOut: 'You have been signed out',
+    dismiss: 'Dismiss',
+  },
+  appUpdate: {
+    title: 'New version available',
+    description: 'Refresh the page to get the latest updates.',
+    refresh: 'Refresh',
   },
   tours: {
     mainTour: {
@@ -557,7 +564,10 @@ export default {
     multipleResponse: 'Multiple Response',
     shortAnswer: 'Short Answer',
     deletedNotice: 'This question has been deleted from the question bank.',
-    deletedAnswerWas: (label: string) => `${label} answer was:`,
+    selfAnswerLabel: 'Your',
+    studentAnswerLabel: "Student's",
+    deletedAnswerWasSelf: 'Your answer was:',
+    deletedAnswerWasStudent: "Student's answer was:",
     correct: 'Correct',
     incorrect: 'Incorrect',
     explanation: 'Explanation',
@@ -957,5 +967,10 @@ export default {
     xpProgress: {
       levelLabel: (level: number) => `Level ${level}`,
     },
+    toggleLanguage: 'Toggle language',
+    toggleTheme: 'Toggle theme',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    themeSystem: 'System',
   },
 } as const

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { formatDuration } from '@/lib/date'
 import {
   type SessionAnswer,
@@ -29,15 +30,27 @@ export interface SessionQuestion {
   }>
 }
 
-defineProps<{
+const props = defineProps<{
   question: SessionQuestion
   answer: SessionAnswer | undefined
   index: number
-  /** Controls label text: "Your" produces "Your answer", "Student's" produces "Student's answer" */
-  answerLabel: 'Your' | "Student's"
+  /** 'self' = viewer's own answer, 'student' = student's answer (admin/parent view) */
+  answerLabel: 'self' | 'student'
   getImageUrl: (path: string | null) => string
   getThumbnailUrl: (path: string | null) => string
 }>()
+
+const answerLabelText = computed(() =>
+  props.answerLabel === 'self'
+    ? t.value.shared.sessionQuestionCard.selfAnswerLabel
+    : t.value.shared.sessionQuestionCard.studentAnswerLabel,
+)
+
+const deletedAnswerWasText = computed(() =>
+  props.answerLabel === 'self'
+    ? t.value.shared.sessionQuestionCard.deletedAnswerWasSelf
+    : t.value.shared.sessionQuestionCard.deletedAnswerWasStudent,
+)
 </script>
 
 <template>
@@ -86,7 +99,7 @@ defineProps<{
       <div v-if="isQuestionDeleted(question)" class="text-sm italic text-muted-foreground">
         <p>{{ t.shared.sessionQuestionCard.deletedNotice }}</p>
         <p class="mt-2">
-          {{ t.shared.sessionQuestionCard.deletedAnswerWas(answerLabel) }}
+          {{ deletedAnswerWasText }}
           <span
             :class="answer?.isCorrect ? 'font-medium text-green-600' : 'font-medium text-red-600'"
           >
@@ -179,7 +192,7 @@ defineProps<{
               variant="outline"
               class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
             >
-              {{ answerLabel }} {{ t.shared.sessionQuestionCard.yourAnswer }}
+              {{ answerLabelText }} {{ t.shared.sessionQuestionCard.yourAnswer }}
             </Badge>
             <Badge
               v-else-if="
@@ -204,7 +217,7 @@ defineProps<{
               variant="outline"
               class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
             >
-              {{ answerLabel }} {{ t.shared.sessionQuestionCard.yourAnswer }}
+              {{ answerLabelText }} {{ t.shared.sessionQuestionCard.yourAnswer }}
             </Badge>
           </div>
         </div>
@@ -213,7 +226,7 @@ defineProps<{
         <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
           <div class="flex gap-2">
             <span class="font-medium"
-              >{{ answerLabel }} {{ t.shared.sessionQuestionCard.correctAnswerLabel }}</span
+              >{{ answerLabelText }} {{ t.shared.sessionQuestionCard.correctAnswerLabel }}</span
             >
             <span :class="answer?.isCorrect ? 'text-green-600' : 'text-red-600'">
               {{ answer?.textAnswer || '-' }}

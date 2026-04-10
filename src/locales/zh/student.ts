@@ -155,6 +155,7 @@ export default {
     close: '关闭',
     pullOneMore: '再抽 1 次',
     pullTenMore: '再十连抽',
+    machineName: '幸运宠物',
   },
   collections: {
     title: '收藏',
@@ -211,6 +212,7 @@ export default {
   parent: {
     title: '家长',
     subtitle: '管理已关联的家长和邀请',
+    entityLabel: '家长',
     linkedParentsTitle: '已关联家长',
     noLinkedParents: '暂无关联家长',
     noLinkedParentsHint: '邀请家长开始关联',

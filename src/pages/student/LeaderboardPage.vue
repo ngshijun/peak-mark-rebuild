@@ -263,7 +263,7 @@ onMounted(async () => {
             @click="weeklyBannerDismissed = true"
           >
             <X class="size-4" />
-            <span class="sr-only">Dismiss</span>
+            <span class="sr-only">{{ t.shared.toasts.dismiss }}</span>
           </button>
           <h3 class="mb-3 pr-6 font-bold">{{ t.student.leaderboard.howItWorks }}</h3>
           <div class="grid gap-2 text-sm sm:grid-cols-3">

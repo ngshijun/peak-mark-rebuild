@@ -8,8 +8,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/composables/useT'
 
 const themeStore = useThemeStore()
+const t = useT()
 </script>
 
 <template>
@@ -19,21 +21,21 @@ const themeStore = useThemeStore()
         <Sun v-if="themeStore.theme === 'light'" class="size-4" />
         <Moon v-else-if="themeStore.theme === 'dark'" class="size-4" />
         <Monitor v-else class="size-4" />
-        <span class="sr-only">Toggle theme</span>
+        <span class="sr-only">{{ t.shared.layout.toggleTheme }}</span>
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end">
       <DropdownMenuItem @click="themeStore.setTheme('light')">
         <Sun class="mr-2 size-4" />
-        Light
+        {{ t.shared.layout.themeLight }}
       </DropdownMenuItem>
       <DropdownMenuItem @click="themeStore.setTheme('dark')">
         <Moon class="mr-2 size-4" />
-        Dark
+        {{ t.shared.layout.themeDark }}
       </DropdownMenuItem>
       <DropdownMenuItem @click="themeStore.setTheme('system')">
         <Monitor class="mr-2 size-4" />
-        System
+        {{ t.shared.layout.themeSystem }}
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

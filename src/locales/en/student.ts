@@ -162,6 +162,7 @@ export default {
     close: 'Close',
     pullOneMore: 'Pull 1 More',
     pullTenMore: 'Pull 10 More',
+    machineName: 'LUCKY PETS',
   },
   collections: {
     title: 'Collections',
@@ -218,6 +219,7 @@ export default {
   parent: {
     title: 'Parent',
     subtitle: 'Manage your linked parents and invitations',
+    entityLabel: 'Parent',
     linkedParentsTitle: 'Linked Parents',
     noLinkedParents: 'No linked parents yet',
     noLinkedParentsHint: 'Invite a parent to get started',

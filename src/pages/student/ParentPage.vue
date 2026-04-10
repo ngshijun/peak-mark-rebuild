@@ -127,7 +127,7 @@ async function handleRemoveParent(parentId: string) {
       <InviteDialog
         ref="inviteDialogRef"
         v-model:open="inviteDialogOpen"
-        entity-label="Parent"
+        :entity-label="t.student.parent.entityLabel"
         :is-sending="isSending"
         :invite-success="inviteSuccess"
         :trigger-disabled="parentLinkStore.isLoading || parentLinkStore.hasLinkedParent"

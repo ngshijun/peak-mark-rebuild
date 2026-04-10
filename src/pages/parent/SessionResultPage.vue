@@ -104,7 +104,7 @@ function goBack() {
         :questions="session.questions"
         :answers="session.answers"
         :is-locked="subscriptionRequired"
-        answer-label="Your"
+        answer-label="self"
       >
         <template #ai-summary>
           <Card

@@ -96,7 +96,7 @@ function goBack() {
         :questions="session.questions"
         :answers="session.answers"
         :is-locked="false"
-        answer-label="Student's"
+        answer-label="student"
       >
         <template #ai-summary>
           <Card

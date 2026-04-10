@@ -19,6 +19,13 @@ export default {
     failedToCopyLink: '复制链接失败',
     pullFailed: '抽取失败',
     tourError: '引导教程出现问题，请稍后再试。',
+    signedOut: '您已退出登录',
+    dismiss: '关闭',
+  },
+  appUpdate: {
+    title: '新版本可用',
+    description: '刷新页面以获取最新更新。',
+    refresh: '刷新',
   },
   tours: {
     mainTour: {
@@ -534,7 +541,10 @@ export default {
     multipleResponse: '多选题',
     shortAnswer: '简答题',
     deletedNotice: '此题已从题库中删除。',
-    deletedAnswerWas: (label: string) => `${label}答案为：`,
+    selfAnswerLabel: '你的',
+    studentAnswerLabel: '学生的',
+    deletedAnswerWasSelf: '你的答案为：',
+    deletedAnswerWasStudent: '学生的答案为：',
     correct: '正确',
     incorrect: '错误',
     explanation: '解析',
@@ -930,5 +940,10 @@ export default {
     xpProgress: {
       levelLabel: (level: number) => `等级 ${level}`,
     },
+    toggleLanguage: '切换语言',
+    toggleTheme: '切换主题',
+    themeLight: '浅色',
+    themeDark: '深色',
+    themeSystem: '跟随系统',
   },
 } as const

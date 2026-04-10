@@ -25,7 +25,7 @@ defineProps<{
   questions: SessionQuestion[]
   answers: SessionAnswer[]
   isLocked: boolean
-  answerLabel: 'Your' | "Student's"
+  answerLabel: 'self' | 'student'
 }>()
 
 function getAnswerByIndex(answers: SessionAnswer[], index: number): SessionAnswer | undefined {

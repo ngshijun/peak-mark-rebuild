@@ -155,14 +155,14 @@ defineExpose({ currentYear, currentMonth })
             <span
               v-if="getStatus(cell.date)?.mood"
               :class="emojiClass"
-              :title="`${cell.day}: ${getStatus(cell.date)?.mood}${getStatus(cell.date)?.hasPracticed ? ' (Practiced)' : ''}`"
+              :title="`${cell.day}: ${getStatus(cell.date)?.mood}${getStatus(cell.date)?.hasPracticed ? ` (${t.shared.statusCalendar.practiced})` : ''}`"
             >
               {{ getMoodEmoji(getStatus(cell.date)?.mood ?? null) }}
             </span>
             <span
               v-else-if="getStatus(cell.date)?.hasPracticed"
               class="font-medium text-green-700 dark:text-green-400"
-              title="Practiced"
+              :title="t.shared.statusCalendar.practiced"
             >
               {{ cell.day }}
             </span>

@@ -11,6 +11,7 @@ export default {
   children: {
     title: '我的孩子',
     subtitle: '管理已关联的孩子及邀请',
+    entityLabel: '孩子',
     inviteDialogDescription: '发送邀请以关联孩子的账户，关联后您将能查看他们的学习进度。',
     linkedChildrenTitle: '已关联的孩子',
     noLinkedChildren: '尚未关联任何孩子',

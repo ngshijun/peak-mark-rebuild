@@ -151,7 +151,9 @@ onMounted(async () => {
                   <div
                     class="mt-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-400 px-6 py-1 shadow-md"
                   >
-                    <span class="text-sm font-bold text-amber-900">LUCKY PETS</span>
+                    <span class="text-sm font-bold text-amber-900">{{
+                      t.student.gacha.machineName
+                    }}</span>
                   </div>
 
                   <!-- Dispenser Opening -->

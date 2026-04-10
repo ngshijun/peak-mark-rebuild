@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
 import { SpeedInsights } from '@vercel/speed-insights/vue'
 import { defineAsyncComponent } from 'vue'
+import { useT } from '@/composables/useT'
 import 'vue-sonner/style.css'
 
 const DevToolbox = import.meta.env.DEV
@@ -17,6 +18,7 @@ const DevToolbox = import.meta.env.DEV
 const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
+const t = useT()
 
 useHead({
   titleTemplate: (title) =>
@@ -57,7 +59,7 @@ watch(
 
     // User was signed out (session expired, revoked, manually signed out, etc.)
     if (!isAuthenticated && previousAuthState) {
-      toast.info('You have been signed out')
+      toast.info(t.value.shared.toasts.signedOut)
       router.replace('/login')
     }
 
@@ -111,8 +113,8 @@ watch(
           </svg>
         </div>
         <div class="flex-1 space-y-1">
-          <p class="text-sm font-medium">New version available</p>
-          <p class="text-xs text-muted-foreground">Refresh the page to get the latest updates.</p>
+          <p class="text-sm font-medium">{{ t.shared.appUpdate.title }}</p>
+          <p class="text-xs text-muted-foreground">{{ t.shared.appUpdate.description }}</p>
         </div>
         <button
           class="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
@@ -137,7 +139,7 @@ watch(
         class="mt-3 w-full rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         @click="reloadPage"
       >
-        Refresh
+        {{ t.shared.appUpdate.refresh }}
       </button>
     </div>
   </Transition>

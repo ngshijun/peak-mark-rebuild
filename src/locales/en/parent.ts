@@ -11,6 +11,7 @@ export default {
   children: {
     title: 'Children',
     subtitle: 'Manage your linked children and invitations',
+    entityLabel: 'Child',
     inviteDialogDescription:
       "Send an invitation to link a child's account. You will be able to view their progress.",
     linkedChildrenTitle: 'Linked Children',

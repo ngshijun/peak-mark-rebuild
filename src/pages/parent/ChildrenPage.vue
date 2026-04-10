@@ -133,7 +133,7 @@ async function handleRemoveChild(childId: string) {
       <InviteDialog
         ref="inviteDialogRef"
         v-model:open="inviteDialogOpen"
-        entity-label="Child"
+        :entity-label="t.parent.children.entityLabel"
         :is-sending="isSending"
         :invite-success="inviteSuccess"
         :trigger-disabled="childLinkStore.isLoading"
