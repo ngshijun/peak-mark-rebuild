@@ -102,7 +102,9 @@ function getButtonVariant() {
       </div>
       <ul class="space-y-2">
         <li
-          v-for="(feature, index) in plan.features"
+          v-for="(feature, index) in (
+            t.shared.planCard.features as Record<string, readonly string[]>
+          )[plan.id] ?? plan.features"
           :key="index"
           class="flex items-start gap-2 text-sm"
         >

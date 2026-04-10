@@ -28,6 +28,9 @@ export default {
     refresh: 'Refresh',
   },
   tours: {
+    prevBtn: '← Previous',
+    nextBtn: 'Next →',
+    doneBtnText: 'Done',
     mainTour: {
       student: {
         step1: {
@@ -271,7 +274,6 @@ export default {
     weeklyXp: 'Weekly XP',
     xp: 'XP',
     coins: 'Coins',
-    noStreak: 'No pet selected',
     topSubjects: 'Top Subjects',
     practiceStreak: 'Practice Streak',
     days: 'days',
@@ -441,6 +443,7 @@ export default {
     happy: 'Happy',
     neutral: 'Neutral',
     sad: 'Sad',
+    weekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   },
   announcementsWidget: {
     title: 'Unread Announcements',
@@ -539,13 +542,39 @@ export default {
   },
   planCard: {
     mostPopular: 'Most Popular',
-    sessionsPerDay: (n: number) => `${n} sessions/day`,
+    sessionsPerDay: (n: number) => `${n} daily sessions`,
     month: '/month',
     save: (pct: number) => `Save ${pct}%`,
     currentPlan: 'Current Plan',
     scheduled: 'Scheduled',
     upgrade: 'Upgrade',
     downgrade: 'Downgrade',
+    features: {
+      core: [
+        '3 daily practice sessions',
+        'All subjects & topics',
+        'Track your learning progress',
+        'Collect & evolve cute pets',
+        'Compete on the weekly leaderboard',
+      ],
+      plus: [
+        '10 daily practice sessions',
+        'All subjects & topics',
+        'Review mistakes with full explanations',
+        'Track your learning progress',
+        'Collect & evolve cute pets',
+        'Compete on the weekly leaderboard',
+      ],
+      pro: [
+        '20 daily practice sessions',
+        'All subjects & topics',
+        'Review mistakes with full explanations',
+        'AI-powered feedback after every session',
+        'Track your learning progress',
+        'Collect & evolve cute pets',
+        'Compete on the weekly leaderboard',
+      ],
+    },
   },
   childProfileDialog: {
     linkedSince: (date: string) => `Linked since ${date}`,
@@ -589,17 +618,17 @@ export default {
     multipleResponse: 'Multiple Response',
     shortAnswer: 'Short Answer',
     deletedNotice: 'This question has been deleted from the question bank.',
-    selfAnswerLabel: 'Your',
-    studentAnswerLabel: "Student's",
+    selfAnswer: 'Your answer',
+    studentAnswer: "Student's answer",
+    selfCorrectAnswer: 'Your Correct Answer:',
+    studentCorrectAnswer: "Student's Correct Answer:",
     deletedAnswerWasSelf: 'Your answer was:',
     deletedAnswerWasStudent: "Student's answer was:",
     correct: 'Correct',
     incorrect: 'Incorrect',
     explanation: 'Explanation',
     noExplanation: 'No explanation available for this question.',
-    yourAnswer: 'answer',
     correctAnswer: 'Correct answer',
-    correctAnswerLabel: 'Correct Answer:',
     theCorrectAnswerIs: 'The correct answer is:',
   },
   sessionSummaryCards: {

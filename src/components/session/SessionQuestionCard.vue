@@ -40,10 +40,15 @@ const props = defineProps<{
   getThumbnailUrl: (path: string | null) => string
 }>()
 
-const answerLabelText = computed(() =>
+const answerText = computed(() =>
   props.answerLabel === 'self'
-    ? t.value.shared.sessionQuestionCard.selfAnswerLabel
-    : t.value.shared.sessionQuestionCard.studentAnswerLabel,
+    ? t.value.shared.sessionQuestionCard.selfAnswer
+    : t.value.shared.sessionQuestionCard.studentAnswer,
+)
+const correctAnswerText = computed(() =>
+  props.answerLabel === 'self'
+    ? t.value.shared.sessionQuestionCard.selfCorrectAnswer
+    : t.value.shared.sessionQuestionCard.studentCorrectAnswer,
 )
 
 const deletedAnswerWasText = computed(() =>
@@ -192,7 +197,7 @@ const deletedAnswerWasText = computed(() =>
               variant="outline"
               class="ml-auto shrink-0 border-green-500 text-green-600 dark:border-green-600 dark:text-green-400"
             >
-              {{ answerLabelText }} {{ t.shared.sessionQuestionCard.yourAnswer }}
+              {{ answerText }}
             </Badge>
             <Badge
               v-else-if="
@@ -217,7 +222,7 @@ const deletedAnswerWasText = computed(() =>
               variant="outline"
               class="ml-auto shrink-0 border-red-500 text-red-600 dark:border-red-600 dark:text-red-400"
             >
-              {{ answerLabelText }} {{ t.shared.sessionQuestionCard.yourAnswer }}
+              {{ answerText }}
             </Badge>
           </div>
         </div>
@@ -225,15 +230,13 @@ const deletedAnswerWasText = computed(() =>
         <!-- Short Answer -->
         <div v-else-if="question.type === 'short_answer'" class="space-y-2 text-sm">
           <div class="flex gap-2">
-            <span class="font-medium"
-              >{{ answerLabelText }} {{ t.shared.sessionQuestionCard.correctAnswerLabel }}</span
-            >
+            <span class="font-medium">{{ correctAnswerText }}</span>
             <span :class="answer?.isCorrect ? 'text-green-600' : 'text-red-600'">
               {{ answer?.textAnswer || '-' }}
             </span>
           </div>
           <div v-if="!answer?.isCorrect" class="flex gap-2">
-            <span class="font-medium">{{ t.shared.sessionQuestionCard.correctAnswerLabel }}</span>
+            <span class="font-medium">{{ t.shared.sessionQuestionCard.theCorrectAnswerIs }}</span>
             <span class="text-green-600">{{ question.answer }}</span>
           </div>
         </div>

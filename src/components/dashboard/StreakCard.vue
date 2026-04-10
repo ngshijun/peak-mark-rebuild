@@ -36,7 +36,7 @@ function getStreakMessage(streak: number, hasPracticedToday: boolean): string {
 }
 
 // Weekly activity: derived from actual completed sessions (not daily_statuses)
-const weekDayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const weekDayLabels = computed(() => t.value.shared.studentProfileDialog.weekDayLabels)
 
 const weeklyActivity = computed(() => {
   // All date logic uses MYT timezone to match server-side daily_statuses
@@ -61,7 +61,7 @@ const weeklyActivity = computed(() => {
   })
 
   // Build the 7-day array
-  return weekDayLabels.map((label, i) => {
+  return weekDayLabels.value.map((label, i) => {
     const d = new Date(monday)
     d.setUTCDate(monday.getUTCDate() + i)
     const dateStr = utcDateToString(d)

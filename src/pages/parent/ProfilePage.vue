@@ -150,11 +150,13 @@ async function handleBirthdayChange(v: DateValue | undefined) {
         <CardContent>
           <div class="space-y-4">
             <!-- Email -->
-            <div class="flex items-center gap-3">
-              <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+              >
                 <Mail class="size-4 text-muted-foreground" />
               </div>
-              <div>
+              <div class="space-y-1">
                 <p class="text-xs text-muted-foreground">{{ t.parent.profile.emailLabel }}</p>
                 <p class="flex h-9 items-center text-sm font-medium">
                   {{ authStore.user?.email }}
@@ -163,11 +165,13 @@ async function handleBirthdayChange(v: DateValue | undefined) {
             </div>
 
             <!-- Birthday -->
-            <div class="flex items-center gap-3">
-              <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+              >
                 <Cake class="size-4 text-muted-foreground" />
               </div>
-              <div>
+              <div class="space-y-1">
                 <p class="text-xs text-muted-foreground">{{ t.parent.profile.birthdayLabel }}</p>
                 <Popover v-model:open="birthdayPopoverOpen">
                   <PopoverTrigger as-child>
@@ -202,11 +206,13 @@ async function handleBirthdayChange(v: DateValue | undefined) {
             </div>
 
             <!-- Date Joined -->
-            <div class="flex items-center gap-3">
-              <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+              >
                 <Calendar class="size-4 text-muted-foreground" />
               </div>
-              <div>
+              <div class="space-y-1">
                 <p class="text-xs text-muted-foreground">{{ t.parent.profile.memberSinceLabel }}</p>
                 <p class="flex h-9 items-center text-sm font-medium">
                   {{ formattedDateJoined }}

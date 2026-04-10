@@ -1,7 +1,7 @@
 export default {
   dashboard: {
     title: 'Dashboard',
-    subtitle: "Here's your daily overview",
+    subtitle: 'Your learning snapshot for today',
     toastLoadFailed: 'Failed to load dashboard data',
   },
   practice: {
@@ -101,7 +101,7 @@ export default {
   },
   leaderboard: {
     title: 'Leaderboard',
-    subtitle: 'Top students with the highest XP',
+    subtitle: 'Top students by XP',
     allGradeLevels: 'All Grade Levels',
     tabAllTime: 'All-Time',
     tabWeekly: 'Weekly Competition',
@@ -124,7 +124,7 @@ export default {
   },
   myPet: {
     title: 'My Pet',
-    subtitle: 'Take care of your pet companion',
+    subtitle: 'Care for your pet buddy',
     unlockNewPets: 'Unlock New Pets',
     buyFood: 'Buy Food',
     noPetTitle: 'No Pet Selected',
@@ -188,6 +188,8 @@ export default {
     title: 'My Profile',
     subtitle: 'Manage your account settings and preferences',
     restartTour: 'Restart Tour',
+    levelBadge: (level: number) => `Level ${level}`,
+    coinsBadge: (coins: number) => `${coins} Coins`,
     xpProgress: 'XP Progress',
     accountDetailsTitle: 'Account Details',
     accountDetailsDesc: 'Your personal information',
@@ -209,7 +211,7 @@ export default {
     myPlanTitle: 'My Plan',
     myPlanDesc: "See what's included in your plan",
     currentPlan: 'Current Plan',
-    sessionsPerDay: (n: number) => `${n} sessions/day`,
+    sessionsPerDay: (n: number) => `${n} daily sessions`,
     askParentToUpgrade: 'Ask your parent to upgrade',
     toastGradeUpdated: 'Grade level updated successfully',
     toastBirthdayUpdated: 'Birthday updated successfully',

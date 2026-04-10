@@ -96,7 +96,7 @@ function nextMonth() {
   emit('month-change', currentYear.value, currentMonth.value)
 }
 
-const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const weekDays = computed(() => t.value.shared.statusCalendar.weekDays)
 
 // Expose year/month so parents can read the initial values
 defineExpose({ currentYear, currentMonth })

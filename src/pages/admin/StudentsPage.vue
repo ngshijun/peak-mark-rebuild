@@ -212,7 +212,7 @@ const columns: ColumnDef<AdminStudent>[] = [
       if (!lastActive) {
         return h('div', { class: 'text-muted-foreground' }, t.value.admin.students.neverActive)
       }
-      return h('div', {}, formatRelativeDate(lastActive))
+      return h('div', {}, formatRelativeDate(lastActive, t.value.shared.relativeDate))
     },
   },
 ]

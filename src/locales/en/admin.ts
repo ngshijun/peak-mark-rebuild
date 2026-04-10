@@ -54,7 +54,6 @@ export default {
   studentSessionResult: {
     backToStatistics: 'Back to Statistics',
     title: 'Session Results',
-    answerLabel: "Student's",
     aiSummary: 'AI Summary',
     sessionNotFound: 'Session not found',
     goBack: 'Go Back',
@@ -221,7 +220,7 @@ export default {
 
   profile: {
     title: 'My Profile',
-    subtitle: 'Manage your account settings',
+    subtitle: 'Manage your account settings and preferences',
     administratorRole: 'Administrator',
     accountDetails: 'Account Details',
     accountDetailsDesc: 'Your account information',

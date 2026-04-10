@@ -1,11 +1,11 @@
 export default {
   dashboard: {
     title: 'Dashboard',
-    subtitle: "Monitor your child's learning progress",
+    subtitle: "Track your child's learning journey",
     toastLoadFailed: 'Failed to load children data',
     selectChildPlaceholder: 'Select child',
     noChildrenLinked: 'No children linked to your account yet.',
-    noChildrenLinkedHint: "Go to Settings to link your child's account.",
+    noChildrenLinkedHint: "Go to the Children page to link your child's account.",
   },
 
   children: {
@@ -106,7 +106,7 @@ export default {
     selectChildPlaceholder: 'Select a child',
     currentPlanTitle: (childName: string) => `Current Plan for ${childName}`,
     currentPlanDescription: 'Active subscription details',
-    sessionsPerDay: (n: number) => `${n} sessions/day`,
+    sessionsPerDay: (n: number) => `${n} daily sessions`,
     perMonth: '/month',
     active: 'Active',
     freeTier: 'Free Tier',

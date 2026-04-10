@@ -214,7 +214,7 @@ async function handleRemoveChild(childId: string) {
                     {{ t.parent.children.lastActiveLabel }}
                   </p>
                   <p class="flex h-6 items-center justify-center font-semibold">
-                    {{ formatRelativeDate(child.lastActive) }}
+                    {{ formatRelativeDate(child.lastActive, t.shared.relativeDate) }}
                   </p>
                 </div>
               </div>

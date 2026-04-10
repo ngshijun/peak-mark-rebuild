@@ -252,11 +252,11 @@ async function handleSchoolChange(schoolId: string) {
           <div class="flex items-center justify-center gap-2">
             <Badge variant="secondary" class="text-sm">
               <Trophy class="mr-1 size-3" />
-              Level {{ authStore.currentLevel }}
+              {{ t.student.profile.levelBadge(authStore.currentLevel) }}
             </Badge>
             <Badge variant="outline" class="text-sm">
               <CirclePoundSterling class="mr-1 size-3 text-amber-600 dark:text-amber-400" />
-              {{ authStore.studentProfile?.coins ?? 0 }} Coins
+              {{ t.student.profile.coinsBadge(authStore.studentProfile?.coins ?? 0) }}
             </Badge>
           </div>
 
@@ -291,11 +291,13 @@ async function handleSchoolChange(schoolId: string) {
               </p>
 
               <!-- Email -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Mail class="size-4 text-muted-foreground" />
                 </div>
-                <div>
+                <div class="space-y-1">
                   <p class="text-xs text-muted-foreground">{{ t.student.profile.emailLabel }}</p>
                   <p class="flex h-9 items-center text-sm font-medium">
                     {{ authStore.user?.email }}
@@ -304,11 +306,13 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- Birthday -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Cake class="size-4 text-muted-foreground" />
                 </div>
-                <div>
+                <div class="space-y-1">
                   <p class="text-xs text-muted-foreground">{{ t.student.profile.birthdayLabel }}</p>
                   <Popover v-model:open="birthdayPopoverOpen">
                     <PopoverTrigger as-child>
@@ -345,11 +349,13 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- Date Joined -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Calendar class="size-4 text-muted-foreground" />
                 </div>
-                <div>
+                <div class="space-y-1">
                   <p class="text-xs text-muted-foreground">
                     {{ t.student.profile.memberSinceLabel }}
                   </p>
@@ -367,11 +373,13 @@ async function handleSchoolChange(schoolId: string) {
               </p>
 
               <!-- Grade Level -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <GraduationCap class="size-4 text-muted-foreground" />
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 space-y-1">
                   <p class="text-xs text-muted-foreground">
                     {{ t.student.profile.gradeLevelLabel }}
                   </p>
@@ -398,11 +406,13 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- School -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <School class="size-4 text-muted-foreground" />
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 space-y-1">
                   <p class="text-xs text-muted-foreground">{{ t.student.profile.schoolLabel }}</p>
                   <Popover v-model:open="schoolPopoverOpen">
                     <PopoverTrigger as-child>
@@ -475,11 +485,13 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- AI Summary Language -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Languages class="size-4 text-muted-foreground" />
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 space-y-1">
                   <p class="text-xs text-muted-foreground">
                     {{ t.student.profile.aiLanguageLabel }}
                   </p>
@@ -551,7 +563,9 @@ async function handleSchoolChange(schoolId: string) {
             <!-- Features list -->
             <ul class="mt-3 flex-1 space-y-1.5">
               <li
-                v-for="(feature, i) in plan.features"
+                v-for="(feature, i) in (
+                  t.shared.planCard.features as Record<string, readonly string[]>
+                )[plan.id] ?? plan.features"
                 :key="i"
                 class="flex items-start gap-2 text-sm"
               >

@@ -111,6 +111,7 @@ export function useFirstPetTour() {
       import('./tour/firstPetTourSteps'),
     ])
 
+    const tourLabels = useLanguageStore().t.shared.tours
     tourInstance = driver({
       allowClose: false,
       overlayClickBehavior: () => undefined,
@@ -120,6 +121,9 @@ export function useFirstPetTour() {
       stagePadding: 4,
       stageRadius: 8,
       popoverClass: 'clavis-tour-popover',
+      prevBtnText: tourLabels.prevBtn,
+      nextBtnText: tourLabels.nextBtn,
+      doneBtnText: tourLabels.doneBtnText,
       steps: getFirstPetTourSteps({
         // Step 1: User clicks Collections sidebar link → navigates to Collections page
         onCollectionsStepReady: () => {

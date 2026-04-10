@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useLanguageStore } from '@/stores/language'
 import { loadDriver } from './tour/loadDriver'
 
 const TOUR_CACHE_PREFIX = 'tour_completed_'
@@ -65,6 +66,7 @@ export function useTour() {
 
     const steps = userType === 'student' ? getStudentTourSteps() : getParentTourSteps()
 
+    const tourLabels = useLanguageStore().t.shared.tours
     driverInstance = driver({
       showProgress: true,
       animate: true,
@@ -74,6 +76,9 @@ export function useTour() {
       disableActiveInteraction: true,
       overlayClickBehavior: 'nextStep',
       popoverClass: 'clavis-tour-popover',
+      prevBtnText: tourLabels.prevBtn,
+      nextBtnText: tourLabels.nextBtn,
+      doneBtnText: tourLabels.doneBtnText,
       steps,
       onDestroyed: () => {
         // Fires on both completion and skip

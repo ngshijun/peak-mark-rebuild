@@ -53,13 +53,13 @@ export default {
   },
 
   profile: {
-    title: '我的个人资料',
-    subtitle: '管理您的账户设置和个人信息',
-    restartTour: '重新引导',
+    title: '个人资料',
+    subtitle: '管理您的账号设置和个人信息',
+    restartTour: '再次导览',
     parentAccountBadge: '家长账户',
-    accountDetailsTitle: '账户详情',
-    accountDetailsDescription: '您的个人信息',
-    emailLabel: '电子邮箱',
+    accountDetailsTitle: '账号详情',
+    accountDetailsDescription: '您的账号信息',
+    emailLabel: '电子邮件',
     birthdayLabel: '生日',
     birthdayNotSet: '未设置',
     memberSinceLabel: '注册时间',
@@ -79,7 +79,7 @@ export default {
   },
 
   statistics: {
-    title: '统计',
+    title: '学习概况',
     subtitle: '查看您孩子的学习进度',
     toastLoadFailed: '加载统计数据失败',
     selectChildPlaceholder: '选择孩子',
@@ -91,7 +91,7 @@ export default {
   },
 
   subscription: {
-    title: '订阅',
+    title: '订阅管理',
     subtitle: '管理您孩子的订阅套餐',
     manageBilling: '管理账单',
     noLinkedChildrenTitle: '尚未关联孩子',
@@ -101,7 +101,7 @@ export default {
     selectChildPlaceholder: '请选择孩子',
     currentPlanTitle: (childName: string) => `${childName} 的当前套餐`,
     currentPlanDescription: '当前订阅详情',
-    sessionsPerDay: (n: number) => `每日 ${n} 次练习`,
+    sessionsPerDay: (n: number) => `每天 ${n} 次练习`,
     perMonth: '/月',
     active: '生效中',
     freeTier: '免费套餐',
