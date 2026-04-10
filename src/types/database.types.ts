@@ -892,7 +892,6 @@ export type Database = {
           has_completed_tour: boolean
           id: string
           name: string
-          ui_language: string
           updated_at: string | null
           user_type: Database['public']['Enums']['user_type']
         }
@@ -904,7 +903,6 @@ export type Database = {
           has_completed_tour?: boolean
           id: string
           name: string
-          ui_language?: string
           updated_at?: string | null
           user_type: Database['public']['Enums']['user_type']
         }
@@ -916,7 +914,6 @@ export type Database = {
           has_completed_tour?: boolean
           id?: string
           name?: string
-          ui_language?: string
           updated_at?: string | null
           user_type?: Database['public']['Enums']['user_type']
         }

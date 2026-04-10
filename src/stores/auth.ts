@@ -67,15 +67,6 @@ async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
       hasCompletedTour: profile.has_completed_tour ?? false,
     }
 
-    // Hydrate UI language from profile (profile wins on login).
-    // Dynamic import of language store avoids a circular dependency
-    // (language store imports auth store in setLanguage — see Task 5).
-    if (profile.ui_language === 'en' || profile.ui_language === 'zh') {
-      const { useLanguageStore } = await import('@/stores/language')
-      const languageStore = useLanguageStore()
-      await languageStore.setLanguage(profile.ui_language)
-    }
-
     // Fetch type-specific profile
     if (profile.user_type === 'student') {
       const { data: studentProfile } = await supabase
@@ -161,24 +152,6 @@ async function ensureProfileExists(user: SupabaseUser): Promise<{ error: string 
 
     if (rpcError) {
       return { error: handleError(rpcError, 'An unexpected error occurred.') }
-    }
-
-    // Preserve the user's pre-signup language choice.
-    // If localStorage has a non-default value (meaning they toggled
-    // to Mandarin on the landing page before signing up), write it
-    // to the newly created profile. This runs only on first-ever
-    // profile creation — repeat calls to ensureProfileExists return
-    // early above because the profile already exists.
-    const currentLang = localStorage.getItem('language')
-    if (currentLang === 'zh') {
-      const { error: langError } = await supabase
-        .from('profiles')
-        .update({ ui_language: 'zh' })
-        .eq('id', user.id)
-      if (langError) {
-        // Non-fatal — the user can toggle again. Log and continue.
-        console.error('Failed to preserve signup language:', langError)
-      }
     }
 
     return { error: null }
