@@ -118,7 +118,7 @@ async function handleRemove() {
             <div class="w-20 text-center">
               <p class="text-xs text-muted-foreground">{{ t.shared.friendList.lastActive }}</p>
               <p class="flex h-6 items-center justify-center font-semibold">
-                {{ formatRelativeDate(friend.lastActive) }}
+                {{ formatRelativeDate(friend.lastActive, t.shared.relativeDate) }}
               </p>
             </div>
           </div>

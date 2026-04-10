@@ -248,7 +248,7 @@ export default {
   },
   foodExchangeDialog: {
     title: 'Buy Food',
-    description: 'Exchange coins for food to feed your pet.',
+    description: 'Exchange coins for food to feed your pet',
     exchangeRate: 'Exchange Rate:',
     exchangeRateValue: (rate: number) => `${rate} coins = 1 food`,
     cost: 'Cost:',
@@ -408,7 +408,7 @@ export default {
   },
   editAvatarDialog: {
     title: 'Change Profile Picture',
-    description: 'Upload an image or generate a random avatar.',
+    description: 'Upload an image or generate a random avatar',
     uploadImage: 'Upload Image',
     randomAvatar: 'Random Avatar',
     cancel: 'Cancel',
@@ -417,7 +417,7 @@ export default {
   },
   editNameDialog: {
     title: 'Edit Name',
-    description: 'Enter your new display name.',
+    description: 'Enter your new display name',
     nameLabel: 'Name',
     placeholder: 'Enter your name',
     cancel: 'Cancel',
@@ -562,7 +562,7 @@ export default {
   },
   questionFeedbackDialog: {
     title: 'Report an Issue',
-    description: "Let us know if there's something wrong with this question.",
+    description: "Let us know if there's something wrong with this question",
     issueTypeLabel: 'Issue Type',
     issueTypePlaceholder: 'Select an issue type',
     additionalDetails: 'Additional Details (optional)',
@@ -751,10 +751,12 @@ export default {
     multipleChoiceSingle: 'Multiple Choice (Single Answer)',
     multipleResponseMultiple: 'Multiple Response (Multiple Answers)',
     shortAnswerType: 'Short Answer',
+    optionPlaceholder: (letter: string) => `Option ${letter} text`,
+    optionValidation: 'At least 2 options must have text or an image',
   },
   questionAddDialog: {
     title: 'Add Question',
-    description: 'Create a new question for the question bank.',
+    description: 'Create a new question for the question bank',
     cancel: 'Cancel',
     addQuestion: 'Add Question',
     toastAdded: 'Question added successfully',
@@ -762,7 +764,7 @@ export default {
   },
   questionEditDialog: {
     title: 'Edit Question',
-    description: 'Update an existing question in the question bank.',
+    description: 'Update an existing question in the question bank',
     cancel: 'Cancel',
     saveChanges: 'Save Changes',
     toastUpdated: 'Question updated successfully',
@@ -917,7 +919,7 @@ export default {
   pages: {
     announcements: {
       title: 'Announcements',
-      subtitle: 'Stay updated with the latest news and updates.',
+      subtitle: 'Stay updated with the latest news and updates',
       markAllAsRead: 'Mark all as read',
       noAnnouncements: 'No announcements yet. Check back later!',
       toastMarkAllReadFailed: (error: string) => error,
@@ -1004,5 +1006,30 @@ export default {
     themeLight: 'Light',
     themeDark: 'Dark',
     themeSystem: 'System',
+  },
+  relativeDate: {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    daysAgo: (n: number) => `${n}d ago`,
+    weeksAgo: (n: number) => `${n}w ago`,
+    never: 'Never',
+  },
+  pagination: {
+    rowsTotal: (count: number) => `${count} row(s) total.`,
+    rowsPerPage: 'Rows per page',
+    pageOf: (page: number, total: number) => `Page ${page} of ${total}`,
+    noResults: 'No results.',
+  },
+  petTiers: {
+    common: 'Common',
+    rare: 'Rare',
+    epic: 'Epic',
+    legendary: 'Legendary',
+  },
+  paymentStatus: {
+    succeeded: 'Succeeded',
+    failed: 'Failed',
+    pending: 'Pending',
+    refunded: 'Refunded',
   },
 } as const

@@ -1,7 +1,7 @@
 export default {
   dashboard: {
     title: 'Dashboard',
-    subtitle: 'Overview of your platform metrics.',
+    subtitle: 'Overview of your platform metrics',
     toastLoadFailed: 'Failed to load dashboard data',
     revenueThisMonth: 'Revenue This Month',
     fromLastMonth: 'from last month',
@@ -16,7 +16,7 @@ export default {
 
   students: {
     title: 'Students',
-    subtitle: 'View and manage all student accounts.',
+    subtitle: 'View and manage all student accounts',
     searchPlaceholder: 'Search by name, email, or parent...',
     nameCol: 'Name',
     emailCol: 'Email',
@@ -46,7 +46,7 @@ export default {
     tabPets: (owned: number, total: number) => `Pets (${owned}/${total})`,
     tabDailyStatus: 'Daily Status',
     practiceHistoryTitle: 'Practice History',
-    practiceHistoryDesc: 'View all practice sessions and scores.',
+    practiceHistoryDesc: 'View all practice sessions and scores',
     noSessionsFound: 'No practice sessions found for the selected filters.',
     toastLoadFailed: 'Failed to load statistics',
   },
@@ -62,7 +62,7 @@ export default {
 
   questionBank: {
     title: 'Question Bank',
-    subtitle: 'Manage your question library.',
+    subtitle: 'Manage your question library',
     templateBtn: 'Template',
     exportBtn: 'Export',
     bulkUploadBtn: 'Bulk Upload',
@@ -88,7 +88,7 @@ export default {
 
   questionStatistics: {
     title: 'Question Statistics',
-    subtitle: 'View performance metrics for all questions.',
+    subtitle: 'View performance metrics for all questions',
     refreshBtn: 'Refresh Statistics',
     refreshingBtn: 'Refreshing...',
     toastRefreshed: 'Statistics refreshed successfully',
@@ -110,7 +110,7 @@ export default {
 
   questionFeedback: {
     title: 'Question Feedback',
-    subtitle: 'Review and manage feedback reports from users.',
+    subtitle: 'Review and manage feedback reports from users',
     searchPlaceholder: 'Search feedback...',
     questionCol: 'Question',
     categoryCol: 'Category',
@@ -154,7 +154,7 @@ export default {
 
   announcements: {
     title: 'Announcements',
-    subtitle: 'Create and manage announcements for students and parents.',
+    subtitle: 'Create and manage announcements for students and parents',
     addAnnouncementBtn: 'Add Announcement',
     searchPlaceholder: 'Search announcements...',
     titleCol: 'Title',
@@ -180,7 +180,7 @@ export default {
 
   pets: {
     title: 'Pets',
-    subtitle: 'Manage gacha pets and their rarities.',
+    subtitle: 'Manage gacha pets and their rarities',
     addPetBtn: 'Add Pet',
     searchPlaceholder: 'Search pets...',
     allTab: 'All',
@@ -196,7 +196,7 @@ export default {
 
   paymentHistory: {
     title: 'Payment History',
-    subtitle: 'View all payment transactions across students.',
+    subtitle: 'View all payment transactions across students',
     searchPlaceholder: 'Search by student, parent, description, or status...',
     dateCol: 'Date',
     studentCol: 'Student',

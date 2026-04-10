@@ -84,9 +84,9 @@ export default {
   },
   statistics: {
     title: 'Statistics',
-    subtitle: 'View your learning progress and practice history.',
+    subtitle: 'View your learning progress and practice history',
     practiceHistoryTitle: 'Practice History',
-    practiceHistoryDesc: 'View your past practice sessions and scores.',
+    practiceHistoryDesc: 'View your past practice sessions and scores',
     noSessions: 'No practice sessions found for the selected filters.',
     toastLoadFailed: 'Failed to load practice history',
     resumeDialog: {

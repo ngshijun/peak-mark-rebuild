@@ -283,7 +283,14 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
         {{ t.shared.questionFormFields.optionsDesc }}
         {{ f.values.type === 'mrq' ? t.shared.questionFormFields.mrqToggleHint : '' }}
       </p>
-      <FieldError v-if="f.errors.value.options" :errors="[f.errors.value.options]" />
+      <FieldError
+        v-if="f.errors.value.options"
+        :errors="[
+          f.errors.value.options === 'At least 2 options must have text or an image'
+            ? t.shared.questionFormFields.optionValidation
+            : f.errors.value.options,
+        ]"
+      />
     </Field>
 
     <div v-for="option in f.values.options" :key="option.id" class="space-y-2">
@@ -305,7 +312,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
         <div class="flex-1 space-y-2">
           <Input
             :model-value="option.text ?? ''"
-            :placeholder="`Option ${option.id.toUpperCase()} text`"
+            :placeholder="t.shared.questionFormFields.optionPlaceholder(option.id.toUpperCase())"
             :disabled="f.isSaving.value"
             @update:model-value="f.updateOptionText(option.id, $event as string)"
           />

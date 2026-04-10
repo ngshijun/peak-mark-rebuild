@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import {
   usePetsStore,
   rarityConfig,
+  getRarityLabel,
   COMBINE_SUCCESS_RATES,
   type PetRarity,
   type Pet,
@@ -283,7 +284,7 @@ async function handleQuickCombine() {
             :class="rarityConfig[rarity].color"
             @click="handleCombineRarityChange(rarity)"
           >
-            {{ rarityConfig[rarity].label }}
+            {{ getRarityLabel(rarity) }}
             <Badge variant="secondary" class="ml-2">
               {{ getCombineCountForRarity(rarity) }}
             </Badge>
@@ -352,14 +353,14 @@ async function handleQuickCombine() {
       <div class="flex items-center justify-center gap-2">
         <Badge variant="outline" class="gap-1.5 px-3 py-1 text-sm">
           <span :class="rarityConfig[selectedCombineRarity].color" class="font-medium">
-            {{ rarityConfig[selectedCombineRarity].label }}
+            {{ getRarityLabel(selectedCombineRarity) }}
           </span>
           <ArrowRight class="size-3.5" />
           <span
             :class="rarityConfig[getNextRarity(selectedCombineRarity)].color"
             class="font-medium"
           >
-            {{ rarityConfig[getNextRarity(selectedCombineRarity)].label }}
+            {{ getRarityLabel(getNextRarity(selectedCombineRarity)) }}
           </span>
           <span class="text-muted-foreground">·</span>
           <span class="font-semibold">
@@ -440,7 +441,7 @@ async function handleQuickCombine() {
         >
           <HelpCircle class="mb-2 size-10 opacity-50" />
           <p class="text-sm">
-            {{ t.shared.combinePetsDialog.noPetsLabel(rarityConfig[selectedCombineRarity].label) }}
+            {{ t.shared.combinePetsDialog.noPetsLabel(getRarityLabel(selectedCombineRarity)) }}
           </p>
         </div>
       </div>

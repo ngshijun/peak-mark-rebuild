@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { usePetsStore, rarityConfig, type Pet } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type Pet } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -95,7 +95,7 @@ function handleOpenChange(value: boolean) {
         <DialogTitle class="flex items-center gap-2">
           {{ props.pet.name }}
           <Badge variant="outline" :class="rarityConfig[props.pet.rarity].color">
-            {{ rarityConfig[props.pet.rarity].label }}
+            {{ getRarityLabel(props.pet.rarity) }}
           </Badge>
         </DialogTitle>
         <DialogDescription>

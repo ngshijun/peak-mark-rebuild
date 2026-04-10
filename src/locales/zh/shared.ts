@@ -231,7 +231,7 @@ export default {
   },
   foodExchangeDialog: {
     title: '购买食物',
-    description: '用金币兑换食物来喂养宠物。',
+    description: '用金币兑换食物来喂养宠物',
     exchangeRate: '兑换比率：',
     exchangeRateValue: (rate: number) => `${rate} 金币 = 1 食物`,
     cost: '费用：',
@@ -386,7 +386,7 @@ export default {
   },
   editAvatarDialog: {
     title: '更换头像',
-    description: '上传图片或生成随机头像。',
+    description: '上传图片或生成随机头像',
     uploadImage: '上传图片',
     randomAvatar: '随机头像',
     cancel: '取消',
@@ -395,7 +395,7 @@ export default {
   },
   editNameDialog: {
     title: '编辑名字',
-    description: '输入您的新显示名称。',
+    description: '输入您的新显示名称',
     nameLabel: '名字',
     placeholder: '请输入名字',
     cancel: '取消',
@@ -539,7 +539,7 @@ export default {
   },
   questionFeedbackDialog: {
     title: '反馈问题',
-    description: '如果此题有误，请告知我们。',
+    description: '如果此题有误，请告知我们',
     issueTypeLabel: '问题类型',
     issueTypePlaceholder: '选择问题类型',
     additionalDetails: '补充说明（可选）',
@@ -727,10 +727,12 @@ export default {
     multipleChoiceSingle: '单选题（单一答案）',
     multipleResponseMultiple: '多选题（多个答案）',
     shortAnswerType: '简答题',
+    optionPlaceholder: (letter: string) => `选项 ${letter} 文字`,
+    optionValidation: '至少2个选项需要有文字或图片',
   },
   questionAddDialog: {
     title: '添加题目',
-    description: '为题库创建新题目。',
+    description: '为题库创建新题目',
     cancel: '取消',
     addQuestion: '添加题目',
     toastAdded: '题目已成功添加',
@@ -738,7 +740,7 @@ export default {
   },
   questionEditDialog: {
     title: '编辑题目',
-    description: '更新题库中的现有题目。',
+    description: '更新题库中的现有题目',
     cancel: '取消',
     saveChanges: '保存更改',
     toastUpdated: '题目已成功更新',
@@ -892,7 +894,7 @@ export default {
   pages: {
     announcements: {
       title: '公告',
-      subtitle: '了解最新动态与消息。',
+      subtitle: '了解最新动态与消息',
       markAllAsRead: '全部标为已读',
       noAnnouncements: '暂无公告，请稍后再来！',
       toastMarkAllReadFailed: (error: string) => error,
@@ -952,7 +954,7 @@ export default {
         parent: {
           dashboard: '主页',
           announcements: '公告',
-          children: '孩子',
+          children: '我的孩子',
           statistics: '统计',
           subscription: '订阅',
           contactUs: '联系我们',
@@ -977,5 +979,30 @@ export default {
     themeLight: '浅色',
     themeDark: '深色',
     themeSystem: '跟随系统',
+  },
+  relativeDate: {
+    today: '今天',
+    yesterday: '昨天',
+    daysAgo: (n: number) => `${n}天前`,
+    weeksAgo: (n: number) => `${n}周前`,
+    never: '从未',
+  },
+  pagination: {
+    rowsTotal: (count: number) => `共 ${count} 行`,
+    rowsPerPage: '每页行数',
+    pageOf: (page: number, total: number) => `第 ${page} 页，共 ${total} 页`,
+    noResults: '暂无结果',
+  },
+  petTiers: {
+    common: '普通',
+    rare: '稀有',
+    epic: '史诗',
+    legendary: '传说',
+  },
+  paymentStatus: {
+    succeeded: '成功',
+    failed: '失败',
+    pending: '处理中',
+    refunded: '已退款',
   },
 } as const

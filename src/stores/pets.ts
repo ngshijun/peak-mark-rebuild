@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
+import { useLanguageStore } from './language'
 import type { Database } from '@/types/database.types'
 import { handleError } from '@/lib/errors'
 import { getStorageImageUrl } from '@/lib/storage'
@@ -85,6 +86,19 @@ export const rarityConfig: Record<
     textColor: 'text-yellow-800 dark:text-yellow-200',
     chance: 1,
   },
+}
+
+/**
+ * Returns the locale-aware display label for a pet rarity.
+ * Falls back to the English label when the language store is not available.
+ */
+export function getRarityLabel(rarity: PetRarity): string {
+  try {
+    const labels = useLanguageStore().t.shared.petTiers
+    return labels[rarity]
+  } catch {
+    return rarityConfig[rarity].label
+  }
 }
 
 export const usePetsStore = defineStore('pets', () => {

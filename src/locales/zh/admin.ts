@@ -1,7 +1,7 @@
 export default {
   dashboard: {
     title: '主页',
-    subtitle: '平台数据概览。',
+    subtitle: '平台数据概览',
     toastLoadFailed: '加载主页数据失败',
     revenueThisMonth: '本月收入',
     fromLastMonth: '较上月',
@@ -16,7 +16,7 @@ export default {
 
   students: {
     title: '学生',
-    subtitle: '查看和管理所有学生账户。',
+    subtitle: '查看和管理所有学生账户',
     searchPlaceholder: '按姓名、邮箱或家长搜索...',
     nameCol: '姓名',
     emailCol: '邮箱',
@@ -46,7 +46,7 @@ export default {
     tabPets: (owned: number, total: number) => `宠物 (${owned}/${total})`,
     tabDailyStatus: '每日状态',
     practiceHistoryTitle: '练习记录',
-    practiceHistoryDesc: '查看所有练习次数及得分。',
+    practiceHistoryDesc: '查看所有练习次数及得分',
     noSessionsFound: '所选筛选条件下未找到练习记录。',
     toastLoadFailed: '加载统计数据失败',
   },
@@ -62,7 +62,7 @@ export default {
 
   questionBank: {
     title: '题库',
-    subtitle: '管理您的题目库。',
+    subtitle: '管理您的题目库',
     templateBtn: '模板',
     exportBtn: '导出',
     bulkUploadBtn: '批量上传',
@@ -87,7 +87,7 @@ export default {
 
   questionStatistics: {
     title: '题目统计',
-    subtitle: '查看所有题目的表现数据。',
+    subtitle: '查看所有题目的表现数据',
     refreshBtn: '刷新统计',
     refreshingBtn: '刷新中...',
     toastRefreshed: '统计数据已成功刷新',
@@ -109,7 +109,7 @@ export default {
 
   questionFeedback: {
     title: '题目反馈',
-    subtitle: '查看和管理用户提交的反馈报告。',
+    subtitle: '查看和管理用户提交的反馈报告',
     searchPlaceholder: '搜索反馈...',
     questionCol: '题目',
     categoryCol: '类别',
@@ -152,7 +152,7 @@ export default {
 
   announcements: {
     title: '公告',
-    subtitle: '为学生和家长创建和管理公告。',
+    subtitle: '为学生和家长创建和管理公告',
     addAnnouncementBtn: '添加公告',
     searchPlaceholder: '搜索公告...',
     titleCol: '标题',
@@ -177,7 +177,7 @@ export default {
 
   pets: {
     title: '宠物',
-    subtitle: '管理抽卡宠物及其稀有度。',
+    subtitle: '管理抽卡宠物及其稀有度',
     addPetBtn: '添加宠物',
     searchPlaceholder: '搜索宠物...',
     allTab: '全部',
@@ -192,7 +192,7 @@ export default {
 
   paymentHistory: {
     title: '付款记录',
-    subtitle: '查看所有学生的付款交易记录。',
+    subtitle: '查看所有学生的付款交易记录',
     searchPlaceholder: '按学生、家长、描述或状态搜索...',
     dateCol: '日期',
     studentCol: '学生',

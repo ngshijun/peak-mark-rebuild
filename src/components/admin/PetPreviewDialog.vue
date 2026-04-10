@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { usePetsStore, rarityConfig, type Pet } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type Pet } from '@/stores/pets'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { useT } from '@/composables/useT'
@@ -31,7 +31,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
             variant="secondary"
             :class="[rarityConfig[pet.rarity].bgColor, rarityConfig[pet.rarity].color]"
           >
-            {{ rarityConfig[pet.rarity].label }}
+            {{ getRarityLabel(pet.rarity) }}
           </Badge>
         </DialogTitle>
       </DialogHeader>

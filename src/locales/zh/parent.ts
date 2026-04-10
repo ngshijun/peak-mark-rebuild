@@ -9,7 +9,7 @@ export default {
   },
 
   children: {
-    title: '孩子',
+    title: '我的孩子',
     subtitle: '管理已关联的孩子及邀请',
     entityLabel: '孩子',
     inviteDialogDescription: '发送邀请以关联孩子的账户，关联后您将能查看他们的学习进度。',
@@ -39,7 +39,7 @@ export default {
 
   contact: {
     title: '联系我们',
-    subtitle: '有任何问题或意见？欢迎告诉我们。',
+    subtitle: '有任何问题或意见？欢迎告诉我们',
     cardTitle: '发送消息',
     cardDescription: '我们会尽快回复您。',
     subjectLabel: '主题',
@@ -86,7 +86,7 @@ export default {
     noLinkedChildrenTitle: '尚未关联孩子',
     noLinkedChildrenDesc: '请先关联孩子以查看其统计数据，前往"我的孩子"页面发送邀请。',
     practiceHistoryTitle: '练习记录',
-    practiceHistoryDesc: '查看孩子过往的练习记录和成绩。',
+    practiceHistoryDesc: '查看孩子过往的练习记录和成绩',
     noSessions: '所选筛选条件下暂无练习记录。',
   },
 

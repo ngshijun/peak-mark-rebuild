@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { usePetsStore, rarityConfig, type PetRarity, type Pet } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity, type Pet } from '@/stores/pets'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -99,7 +99,7 @@ function close() {
             variant="outline"
             class="mt-2"
           >
-            {{ rarityConfig[props.results[0].resultRarity].label }}
+            {{ getRarityLabel(props.results[0].resultRarity) }}
           </Badge>
         </div>
       </div>

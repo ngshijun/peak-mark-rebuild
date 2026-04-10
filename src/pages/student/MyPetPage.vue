@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel } from '@/stores/pets'
 import { usePetsLoader } from '@/composables/usePetsLoader'
 import { usePetConversation } from '@/composables/usePetConversation'
 import { usePetAnimation } from '@/composables/usePetAnimation'
@@ -199,7 +199,7 @@ function getTierLabel(tier: number): string {
                   </CardTitle>
                   <CardDescription>
                     <Badge :class="rarityConfig[selectedPet.rarity].color" variant="outline">
-                      {{ rarityConfig[selectedPet.rarity].label }}
+                      {{ getRarityLabel(selectedPet.rarity) }}
                     </Badge>
                   </CardDescription>
                 </div>

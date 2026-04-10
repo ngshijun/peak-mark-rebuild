@@ -22,55 +22,55 @@ export default {
   },
   features: {
     title: '助力学习的一切所需',
-    subtitle: '一个全面的学习平台，让学习变得高效又有趣。',
+    subtitle: '一个全面的学习平台，让学习变得高效又有趣',
     items: [
       {
         title: '专为华小学生打造',
-        description: '每道题目都紧跟 KSSR（修订版 2017）课程纲要——练习内容与学校教学完全一致。',
+        description: '每道题目都紧跟 KSSR（修订版 2017）课程纲要——练习内容与学校教学完全一致',
       },
       {
         title: '只需5至10分钟',
-        description: '简短的测验环节，适合任何时间安排。培养每日学习的好习惯。',
+        description: '简短的测验环节，适合任何时间安排。培养每日学习的好习惯',
       },
       {
         title: '从错误中学习',
-        description: '每道题后即时获得详细解析，让孩子明白错在哪里。',
+        description: '每道题后即时获得详细解析，让孩子明白错在哪里',
       },
       {
         title: '清楚了解学习状况',
-        description: '详细的成绩分析显示优势和薄弱环节——不再猜测该复习什么。',
+        description: '详细的成绩分析显示优势和薄弱环节——不再猜测该复习什么',
       },
       {
         title: '孩子主动想学习',
-        description: '赚取经验值、收集和进化可爱宠物、参与排行榜竞争。学习就像玩游戏。',
+        description: '赚取经验值、收集和进化可爱宠物、参与排行榜竞争。学习就像玩游戏',
       },
       {
         title: '家长随时掌握动态',
-        description: '与孩子关联，实时监控学习进度，在一个面板上管理一切。',
+        description: '与孩子关联，实时监控学习进度，在一个面板上管理一切',
       },
     ],
   },
   howItWorks: {
     title: '使用方法',
-    subtitle: '三个简单步骤即可开始。',
+    subtitle: '三个简单步骤即可开始',
     steps: [
       {
         title: '创建免费账号',
-        description: '不到一分钟即可注册，无需信用卡。',
+        description: '不到一分钟即可注册，无需信用卡',
       },
       {
         title: '每日练习',
-        description: '完成各科目5至10分钟的快速练习。沿途赚取经验值、金币和收集宠物。',
+        description: '完成各科目5至10分钟的快速练习。沿途赚取经验值、金币和收集宠物',
       },
       {
         title: '见证成绩进步',
-        description: '通过详细统计追踪进度。家长可实时查看孩子的学习历程。',
+        description: '通过详细统计追踪进度。家长可实时查看孩子的学习历程',
       },
     ],
   },
   testimonials: {
     title: '深受学生和家长喜爱',
-    subtitle: '看看我们的用户怎么说。',
+    subtitle: '看看我们的用户怎么说',
     items: [
       {
         quote:
@@ -140,7 +140,7 @@ export default {
   },
   pricing: {
     title: '简单透明的定价',
-    subtitle: '选择适合您学习需求的方案。免费开始，随时升级。',
+    subtitle: '选择适合您学习需求的方案。免费开始，随时升级',
     mostPopular: '最受欢迎',
     save: '节省',
     getStarted: '立即开始',
@@ -197,7 +197,7 @@ export default {
   },
   contact: {
     title: '联系我们',
-    subtitle: '有疑问或反馈？我们很乐意听取您的意见。',
+    subtitle: '有疑问或反馈？我们很乐意听取您的意见',
     name: '姓名',
     namePlaceholder: '您的姓名',
     email: '电子邮件',
@@ -213,7 +213,7 @@ export default {
   },
   cta: {
     title: '准备好让学习变有趣了吗？',
-    subtitle: '今天就加入 Clavis。免费方案开始——无需信用卡。',
+    subtitle: '今天就加入 Clavis。免费方案开始——无需信用卡',
     getStarted: '免费开始',
     haveAccount: '我已有账号',
   },

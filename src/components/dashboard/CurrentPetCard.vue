@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { usePetsStore, rarityConfig } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel } from '@/stores/pets'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'vue-router'
@@ -79,7 +79,7 @@ function goToMyPet() {
                     :class="rarityConfig[petsStore.selectedPet.rarity].color"
                     class="text-xs"
                   >
-                    {{ rarityConfig[petsStore.selectedPet.rarity].label }}
+                    {{ getRarityLabel(petsStore.selectedPet.rarity) }}
                   </Badge>
                   <Badge v-if="petsStore.selectedOwnedPet" variant="secondary" class="text-xs">
                     <Star class="mr-0.5 size-2.5" />

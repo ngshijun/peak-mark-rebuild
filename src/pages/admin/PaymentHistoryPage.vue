@@ -121,6 +121,9 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
     cell: ({ row }) => {
       const status = row.original.status
       const isSuccess = status === 'succeeded'
+      const paymentStatuses = t.value.shared.paymentStatus
+      const label =
+        status in paymentStatuses ? paymentStatuses[status as keyof typeof paymentStatuses] : status
       return h(
         Badge,
         {
@@ -129,7 +132,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
             ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400'
             : 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400',
         },
-        () => status,
+        () => label,
       )
     },
   },

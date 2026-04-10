@@ -59,11 +59,11 @@ export default {
   },
   howItWorks: {
     title: 'How It Works',
-    subtitle: 'Get started in three simple steps.',
+    subtitle: 'Get started in three simple steps',
     steps: [
       {
         title: 'Create a Free Account',
-        description: 'Sign up in under a minute. No credit card required.',
+        description: 'Sign up in under a minute. No credit card required',
       },
       {
         title: 'Practice Daily',
@@ -79,7 +79,7 @@ export default {
   },
   testimonials: {
     title: 'Loved by Students & Parents',
-    subtitle: 'See what our community has to say about their learning experience.',
+    subtitle: 'See what our community has to say about their learning experience',
     items: [
       {
         quote:
@@ -149,7 +149,7 @@ export default {
   },
   pricing: {
     title: 'Simple, Transparent Pricing',
-    subtitle: 'Choose the plan that fits your learning needs. Start free, upgrade anytime.',
+    subtitle: 'Choose the plan that fits your learning needs. Start free, upgrade anytime',
     mostPopular: 'Most Popular',
     save: 'Save ',
     getStarted: 'Get Started',
@@ -222,7 +222,7 @@ export default {
   },
   cta: {
     title: 'Ready to Make Learning Fun?',
-    subtitle: 'Join Clavis today. Start with the free plan — no credit card needed.',
+    subtitle: 'Join Clavis today. Start with the free plan — no credit card needed',
     getStarted: 'Get Started Free',
     haveAccount: 'I Have an Account',
   },

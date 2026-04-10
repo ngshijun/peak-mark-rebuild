@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress'
 
 import { supabase } from '@/lib/supabaseClient'
 import { computeLevel } from '@/lib/xp'
-import { rarityConfig } from '@/stores/pets'
+import { rarityConfig, getRarityLabel } from '@/stores/pets'
 import { CLOSENESS_LABELS, CLOSENESS_THRESHOLDS } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
@@ -90,7 +90,11 @@ const xpToNextLevel = computed(() => {
                   {{ t.shared.friendProfileDialog.friendsSince(formatDate(friend.friendSince)) }}
                 </Badge>
                 <Badge variant="secondary" class="gap-1">
-                  {{ t.shared.friendProfileDialog.active(formatRelativeDate(friend.lastActive)) }}
+                  {{
+                    t.shared.friendProfileDialog.active(
+                      formatRelativeDate(friend.lastActive, t.shared.relativeDate),
+                    )
+                  }}
                 </Badge>
               </div>
             </div>
@@ -200,7 +204,7 @@ const xpToNextLevel = computed(() => {
                       :class="rarityConfig[pet.rarity].color"
                       class="text-xs"
                     >
-                      {{ rarityConfig[pet.rarity].label }}
+                      {{ getRarityLabel(pet.rarity) }}
                     </Badge>
                     <Badge variant="secondary" class="text-xs">
                       <Star class="mr-0.5 size-2.5" />

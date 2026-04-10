@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, type PetRarity, type Pet } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity, type Pet } from '@/stores/pets'
 import { usePetsLoader } from '@/composables/usePetsLoader'
 import { useT } from '@/composables/useT'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -116,7 +116,7 @@ function closeCombineResult() {
                 class="flex items-center gap-2 text-base"
                 :class="rarityConfig[rarity].color"
               >
-                {{ rarityConfig[rarity].label }}
+                {{ getRarityLabel(rarity) }}
               </CardTitle>
               <Badge variant="outline" :class="rarityConfig[rarity].color">
                 {{ petsStore.collectionStats[rarity].owned }} /

@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
-import { rarityConfig } from '@/stores/pets'
+import { rarityConfig, getRarityLabel } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
 import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
@@ -252,7 +252,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                       :class="rarityConfig[pet.rarity].color"
                       class="text-xs"
                     >
-                      {{ rarityConfig[pet.rarity].label }}
+                      {{ getRarityLabel(pet.rarity) }}
                     </Badge>
                     <Badge variant="secondary" class="text-xs">
                       <Star class="mr-0.5 size-2.5" />

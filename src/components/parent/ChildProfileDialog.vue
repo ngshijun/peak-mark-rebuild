@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 
 import { supabase } from '@/lib/supabaseClient'
 import { computeLevel } from '@/lib/xp'
-import { rarityConfig } from '@/stores/pets'
+import { rarityConfig, getRarityLabel } from '@/stores/pets'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
 import { getAvatarUrl } from '@/lib/storage'
@@ -74,7 +74,11 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
                   {{ t.shared.childProfileDialog.linkedSince(formatDate(child.linkedAt)) }}
                 </Badge>
                 <Badge variant="secondary" class="gap-1">
-                  {{ t.shared.childProfileDialog.active(formatRelativeDate(child.lastActive)) }}
+                  {{
+                    t.shared.childProfileDialog.active(
+                      formatRelativeDate(child.lastActive, t.shared.relativeDate),
+                    )
+                  }}
                 </Badge>
               </div>
             </div>
@@ -141,7 +145,7 @@ watch([open, () => props.child?.id], async ([isOpen, childId]) => {
                       :class="rarityConfig[pet.rarity].color"
                       class="text-xs"
                     >
-                      {{ rarityConfig[pet.rarity].label }}
+                      {{ getRarityLabel(pet.rarity) }}
                     </Badge>
                     <Badge variant="secondary" class="text-xs">
                       <Star class="mr-0.5 size-2.5" />

@@ -90,7 +90,7 @@ export default {
     noLinkedChildrenDesc:
       'Link a child to view their statistics. Go to the Children page to send an invitation.',
     practiceHistoryTitle: 'Practice History',
-    practiceHistoryDesc: "View your child's past practice sessions and scores.",
+    practiceHistoryDesc: "View your child's past practice sessions and scores",
     noSessions: 'No practice sessions found for the selected filters.',
   },
 

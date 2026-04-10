@@ -78,9 +78,9 @@ export default {
   },
   statistics: {
     title: '统计',
-    subtitle: '查看您的学习进度和练习历史。',
+    subtitle: '查看您的学习进度和练习历史',
     practiceHistoryTitle: '练习历史',
-    practiceHistoryDesc: '查看您过去的练习记录和分数。',
+    practiceHistoryDesc: '查看您过去的练习记录和分数',
     noSessions: '所选筛选条件下暂无练习记录。',
     toastLoadFailed: '加载练习历史失败',
     resumeDialog: {
@@ -106,7 +106,7 @@ export default {
     howItWorksResets: '每周一重置',
     endsIn: (countdown: string) => `${countdown} 后结束`,
     ending: '即将结束...',
-    streak: '连续天数',
+    streak: '连续',
     level: '等级',
     xp: '经验值',
     reward: '奖励',

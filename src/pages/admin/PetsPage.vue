@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { usePetsStore, rarityConfig, type Pet, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type Pet, type PetRarity } from '@/stores/pets'
 import { useAdminPetsStore } from '@/stores/admin-pets'
 import { Search, Plus, Trash2, Loader2, Pencil } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
@@ -150,7 +150,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
             <span class="ml-1 text-xs text-muted-foreground"> ({{ allFilteredPets.length }}) </span>
           </TabsTrigger>
           <TabsTrigger v-for="rarity in rarities" :key="rarity" :value="rarity">
-            <span :class="rarityConfig[rarity].color">{{ rarityConfig[rarity].label }}</span>
+            <span :class="rarityConfig[rarity].color">{{ getRarityLabel(rarity) }}</span>
             <span class="ml-1 text-xs text-muted-foreground">
               ({{ filteredPetsByRarity(rarity).length }})
             </span>
@@ -193,7 +193,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
                     variant="secondary"
                     :class="[rarityConfig[pet.rarity].bgColor, rarityConfig[pet.rarity].color]"
                   >
-                    {{ rarityConfig[pet.rarity].label }}
+                    {{ getRarityLabel(pet.rarity) }}
                   </Badge>
                 </div>
                 <div class="flex gap-1">

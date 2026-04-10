@@ -164,7 +164,9 @@ defineProps<{
               <p class="text-xs text-muted-foreground">
                 {{ t.shared.studentInfoTab.lastActiveLabel }}
               </p>
-              <p class="font-medium">{{ formatRelativeDate(student.lastActive) }}</p>
+              <p class="font-medium">
+                {{ formatRelativeDate(student.lastActive, t.shared.relativeDate) }}
+              </p>
             </div>
           </div>
         </div>

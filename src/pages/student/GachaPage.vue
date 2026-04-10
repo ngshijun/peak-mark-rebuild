@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity } from '@/stores/pets'
 import { useGachaPull, SINGLE_PULL_COST, MULTI_PULL_COST } from '@/composables/useGachaPull'
 import { useT } from '@/composables/useT'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -259,7 +259,7 @@ onMounted(async () => {
                 <div class="flex items-center gap-2">
                   <div class="size-4 rounded-full" :style="{ background: rarityColors[rarity] }" />
                   <span class="text-sm font-medium" :class="rarityConfig[rarity].color">
-                    {{ rarityConfig[rarity].label }}
+                    {{ getRarityLabel(rarity) }}
                   </span>
                 </div>
                 <span class="font-bold" :class="rarityConfig[rarity].color">
@@ -337,7 +337,7 @@ onMounted(async () => {
             </div>
             <p class="mt-2 text-center text-sm font-semibold">{{ pet.name }}</p>
             <Badge :class="rarityConfig[pet.rarity].color" variant="outline" class="mt-1 text-xs">
-              {{ rarityConfig[pet.rarity].label }}
+              {{ getRarityLabel(pet.rarity) }}
             </Badge>
           </div>
         </div>

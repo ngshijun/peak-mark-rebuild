@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity } from '@/stores/pets'
 import type { StudentOwnedPet } from '@/stores/admin-student-engagement'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -61,7 +61,7 @@ function getPetImagePath(pet: StudentOwnedPet): string {
       <CardHeader class="pb-3">
         <div class="flex items-center justify-between">
           <CardTitle class="flex items-center gap-2 text-base" :class="rarityConfig[rarity].color">
-            {{ rarityConfig[rarity].label }}
+            {{ getRarityLabel(rarity) }}
           </CardTitle>
           <Badge variant="outline" :class="rarityConfig[rarity].color">
             {{ petCollectionStats[rarity].owned }} / {{ petCollectionStats[rarity].total }}
