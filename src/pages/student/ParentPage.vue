@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useParentLinkStore } from '@/stores/parent-link'
+import { useT } from '@/composables/useT'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -22,6 +23,7 @@ import { toast } from 'vue-sonner'
 import { getInitials } from '@/lib/utils'
 
 const parentLinkStore = useParentLinkStore()
+const t = useT()
 
 const inviteDialogOpen = ref(false)
 const inviteSuccess = ref(false)
@@ -46,7 +48,7 @@ async function handleInviteSubmit(email: string) {
       inviteDialogRef.value?.setFieldError('email', result.error)
     } else {
       inviteSuccess.value = true
-      toast.success('Invitation sent successfully!')
+      toast.success(t.value.student.parent.toastInvitationSent)
       setTimeout(() => {
         inviteSuccess.value = false
         inviteDialogOpen.value = false
@@ -64,7 +66,7 @@ async function handleAcceptInvitation(invitationId: string) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success('Invitation accepted!')
+      toast.success(t.value.student.parent.toastInvitationAccepted)
     }
   } finally {
     processingInvitationId.value = null
@@ -78,7 +80,7 @@ async function handleRejectInvitation(invitationId: string) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.info('Invitation declined')
+      toast.info(t.value.student.parent.toastInvitationDeclined)
     }
   } finally {
     processingInvitationId.value = null
@@ -92,7 +94,7 @@ async function handleCancelInvitation(invitationId: string) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.info('Invitation cancelled')
+      toast.info(t.value.student.parent.toastInvitationCancelled)
     }
   } finally {
     processingInvitationId.value = null
@@ -106,7 +108,7 @@ async function handleRemoveParent(parentId: string) {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.info('Parent removed')
+      toast.info(t.value.student.parent.toastParentRemoved)
     }
   } finally {
     removingParentId.value = null
@@ -119,13 +121,13 @@ async function handleRemoveParent(parentId: string) {
     <!-- Header with Invite Button -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Parent</h1>
-        <p class="text-muted-foreground">Manage your linked parents and invitations</p>
+        <h1 class="text-2xl font-bold">{{ t.student.parent.title }}</h1>
+        <p class="text-muted-foreground">{{ t.student.parent.subtitle }}</p>
       </div>
       <InviteDialog
         ref="inviteDialogRef"
         v-model:open="inviteDialogOpen"
-        entity-label="Parent"
+        :entity-label="t.student.parent.entityLabel"
         :is-sending="isSending"
         :invite-success="inviteSuccess"
         :trigger-disabled="parentLinkStore.isLoading || parentLinkStore.hasLinkedParent"
@@ -133,7 +135,7 @@ async function handleRemoveParent(parentId: string) {
         @reset="inviteSuccess = false"
       >
         <template #description>
-          Send an invitation to link a parent account. They will be able to view your progress.
+          {{ t.student.parent.inviteDescription }}
         </template>
       </InviteDialog>
     </div>
@@ -149,14 +151,14 @@ async function handleRemoveParent(parentId: string) {
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <Users class="size-5" />
-            Linked Parents
+            {{ t.student.parent.linkedParentsTitle }}
           </CardTitle>
         </CardHeader>
         <CardContent class="p-0">
           <div v-if="parentLinkStore.linkedParents.length === 0" class="py-8 text-center">
             <Users class="mx-auto size-12 text-muted-foreground/50" />
-            <p class="mt-2 text-sm text-muted-foreground">No linked parents yet</p>
-            <p class="text-xs text-muted-foreground">Invite a parent to get started</p>
+            <p class="mt-2 text-sm text-muted-foreground">{{ t.student.parent.noLinkedParents }}</p>
+            <p class="text-xs text-muted-foreground">{{ t.student.parent.noLinkedParentsHint }}</p>
           </div>
           <div v-else class="divide-y border-y">
             <div
@@ -185,29 +187,27 @@ async function handleRemoveParent(parentId: string) {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Remove Parent</AlertDialogTitle>
+                    <AlertDialogTitle>{{ t.student.parent.removeParentTitle }}</AlertDialogTitle>
                     <AlertDialogDescription
                       v-if="parentLinkStore.hasActivePaidSubscription(parent.id)"
                     >
-                      You have an active paid subscription managed by {{ parent.name }}. Please ask
-                      them to cancel the subscription before unlinking.
+                      {{ t.student.parent.removeParentHasSub(parent.name) }}
                     </AlertDialogDescription>
                     <AlertDialogDescription v-else>
-                      Are you sure you want to remove {{ parent.name }} from your linked parents?
-                      They will no longer be able to view your progress.
+                      {{ t.student.parent.removeParentConfirm(parent.name) }}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel v-if="parentLinkStore.hasActivePaidSubscription(parent.id)">
-                      Close
+                      {{ t.student.parent.close }}
                     </AlertDialogCancel>
                     <template v-else>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{{ t.student.parent.cancel }}</AlertDialogCancel>
                       <AlertDialogAction
                         class="bg-destructive text-white hover:bg-destructive/90"
                         @click="handleRemoveParent(parent.id)"
                       >
-                        Remove
+                        {{ t.student.parent.remove }}
                       </AlertDialogAction>
                     </template>
                   </AlertDialogFooter>
@@ -222,8 +222,8 @@ async function handleRemoveParent(parentId: string) {
         :received-invitations="parentLinkStore.receivedInvitations"
         :sent-invitations="parentLinkStore.sentInvitations"
         :processing-id="processingInvitationId"
-        received-title="Invitations from Parents"
-        sent-title="Sent Invitations"
+        :received-title="t.student.parent.receivedInvitationsTitle"
+        :sent-title="t.student.parent.sentInvitationsTitle"
         :get-display-name="(inv) => inv.parentName || inv.parentEmail"
         :get-display-email="(inv) => inv.parentEmail"
         :get-sent-email="(inv) => inv.parentEmail"

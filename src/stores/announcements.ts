@@ -5,6 +5,7 @@ import { useAuthStore } from './auth'
 import { handleError } from '@/lib/errors'
 import { uploadStorageFile, deleteStorageFile, createBucketImageHelpers } from '@/lib/storage'
 import type { Database } from '@/types/database.types'
+import { useLanguageStore } from '@/stores/language'
 
 export type AnnouncementAudience = Database['public']['Enums']['announcement_audience']
 
@@ -22,25 +23,29 @@ export interface Announcement {
   isRead?: boolean
 }
 
-export const audienceConfig: Record<
+export function getAudienceConfig(): Record<
   AnnouncementAudience,
   { label: string; color: string; bgColor: string }
-> = {
-  all: {
-    label: 'All Users',
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/50',
-  },
-  students_only: {
-    label: 'Students Only',
-    color: 'text-green-600 dark:text-green-400',
-    bgColor: 'bg-green-100 dark:bg-green-900/50',
-  },
-  parents_only: {
-    label: 'Parents Only',
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/50',
-  },
+> {
+  const store = useLanguageStore()
+  const labels = store.t.shared.announcements.audience
+  return {
+    all: {
+      label: labels.all,
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-900/50',
+    },
+    students_only: {
+      label: labels.studentsOnly,
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-900/50',
+    },
+    parents_only: {
+      label: labels.parentsOnly,
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-100 dark:bg-purple-900/50',
+    },
+  }
 }
 
 export const useAnnouncementsStore = defineStore('announcements', () => {

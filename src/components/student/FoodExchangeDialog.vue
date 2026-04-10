@@ -10,6 +10,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Plus, Minus, Loader2, Apple, CirclePoundSterling } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -64,14 +67,16 @@ defineExpose({ handleDone })
   <Dialog :open="props.open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Buy Food</DialogTitle>
-        <DialogDescription>Exchange coins for food to feed your pet.</DialogDescription>
+        <DialogTitle>{{ t.shared.foodExchangeDialog.title }}</DialogTitle>
+        <DialogDescription>{{ t.shared.foodExchangeDialog.description }}</DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-4">
         <!-- Exchange Rate Info -->
         <div class="rounded-lg bg-muted p-3 text-center text-sm">
-          <span class="text-muted-foreground">Exchange Rate: </span>
-          <span class="font-semibold">{{ props.exchangeRate }} coins = 1 food</span>
+          <span class="text-muted-foreground">{{ t.shared.foodExchangeDialog.exchangeRate }}</span>
+          <span class="font-semibold">{{
+            t.shared.foodExchangeDialog.exchangeRateValue(props.exchangeRate)
+          }}</span>
         </div>
 
         <!-- Amount Selector -->
@@ -134,7 +139,7 @@ defineExpose({ handleDone })
 
         <!-- Cost Display -->
         <div class="flex items-center justify-center gap-2 text-lg">
-          <span class="text-muted-foreground">Cost:</span>
+          <span class="text-muted-foreground">{{ t.shared.foodExchangeDialog.cost }}</span>
           <div class="flex items-center gap-1">
             <CirclePoundSterling class="size-5 text-amber-600 dark:text-amber-400" />
             <span class="font-bold" :class="canAffordExchange ? 'text-amber-600' : 'text-red-500'">
@@ -145,22 +150,24 @@ defineExpose({ handleDone })
 
         <!-- Current Balance -->
         <div class="text-center text-sm text-muted-foreground">
-          Your balance:
+          {{ t.shared.foodExchangeDialog.balance }}
           <span class="font-semibold text-amber-600">{{
             props.currentCoins.toLocaleString()
           }}</span>
-          coins
+          {{ t.shared.foodExchangeDialog.coins }}
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" @click="emit('update:open', false)">Cancel</Button>
+        <Button variant="outline" @click="emit('update:open', false)">{{
+          t.shared.foodExchangeDialog.cancel
+        }}</Button>
         <Button
           :disabled="!canAffordExchange || isExchanging"
           class="bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
           @click="handleExchange"
         >
           <Loader2 v-if="isExchanging" class="mr-2 size-4 animate-spin" />
-          Buy Food
+          {{ t.shared.foodExchangeDialog.buyFood }}
         </Button>
       </DialogFooter>
     </DialogContent>

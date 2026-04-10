@@ -2,6 +2,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePracticeHistoryStore } from '@/stores/practice-history'
+import { useT } from '@/composables/useT'
 
 import { resolveFilterValue, createPracticeHistoryColumns } from '@/lib/statisticsColumns'
 import { computeScorePercent } from '@/lib/questionHelpers'
@@ -26,6 +27,7 @@ import {
 
 const router = useRouter()
 const practiceStore = usePracticeHistoryStore()
+const t = useT()
 const hideInProgress = ref(false)
 const isLoading = ref(true)
 
@@ -35,7 +37,7 @@ onMounted(async () => {
     await practiceStore.fetchSessionHistory()
   } catch (err) {
     console.error('Failed to load practice history:', err)
-    toast.error('Failed to load practice history')
+    toast.error(t.value.student.statistics.toastLoadFailed)
   } finally {
     isLoading.value = false
   }
@@ -119,7 +121,7 @@ const displayedHistory = computed(() => {
 const { averageScore, totalSessions, totalStudyTime, subTopicsPracticed } =
   useStatisticsSummary(historyData)
 
-const columns = createPracticeHistoryColumns<HistoryRow>()
+const columns = computed(() => createPracticeHistoryColumns<HistoryRow>())
 
 const showResumeDialog = ref(false)
 const pendingResumeSession = ref<HistoryRow | null>(null)
@@ -146,8 +148,8 @@ function confirmResume() {
 <template>
   <div class="space-y-6 p-6">
     <div>
-      <h1 class="text-2xl font-bold">Statistics</h1>
-      <p class="text-muted-foreground">View your learning progress and practice history.</p>
+      <h1 class="text-2xl font-bold">{{ t.student.statistics.title }}</h1>
+      <p class="text-muted-foreground">{{ t.student.statistics.subtitle }}</p>
     </div>
 
     <!-- Loading State -->
@@ -189,9 +191,9 @@ function confirmResume() {
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <History class="size-5" />
-            Practice History
+            {{ t.student.statistics.practiceHistoryTitle }}
           </CardTitle>
-          <CardDescription>View your past practice sessions and scores.</CardDescription>
+          <CardDescription>{{ t.student.statistics.practiceHistoryDesc }}</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -208,7 +210,7 @@ function confirmResume() {
           <div v-else class="py-12 text-center">
             <BookOpen class="mx-auto size-12 text-muted-foreground/50" />
             <p class="mt-2 text-muted-foreground">
-              No practice sessions found for the selected filters.
+              {{ t.student.statistics.noSessions }}
             </p>
           </div>
         </CardContent>
@@ -219,24 +221,31 @@ function confirmResume() {
     <AlertDialog v-model:open="showResumeDialog">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Continue Session?</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.student.statistics.resumeDialog.title }}</AlertDialogTitle>
           <AlertDialogDescription v-if="pendingResumeSession" as="div">
             <p>
-              You have an in-progress session for
-              <span class="font-medium text-foreground">{{
-                pendingResumeSession.subTopicName
-              }}</span>
-              ({{ pendingResumeSession.subjectName }}).
+              {{
+                t.student.statistics.resumeDialog.inProgress(
+                  pendingResumeSession.subTopicName,
+                  pendingResumeSession.subjectName,
+                )
+              }}
             </p>
             <p class="mt-1">
-              Progress: {{ pendingResumeSession.answeredCount }} /
-              {{ pendingResumeSession.totalQuestions }} questions answered.
+              {{
+                t.student.statistics.resumeDialog.progress(
+                  pendingResumeSession.answeredCount,
+                  pendingResumeSession.totalQuestions,
+                )
+              }}
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction @click="confirmResume">Continue</AlertDialogAction>
+          <AlertDialogCancel>{{ t.student.statistics.resumeDialog.cancel }}</AlertDialogCancel>
+          <AlertDialogAction @click="confirmResume">{{
+            t.student.statistics.resumeDialog.continue
+          }}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

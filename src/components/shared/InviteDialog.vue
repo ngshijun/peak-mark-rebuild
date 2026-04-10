@@ -14,6 +14,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { UserPlus, Send, Loader2 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -56,15 +59,15 @@ defineExpose({ setFieldError })
     <DialogTrigger as-child>
       <Button :disabled="triggerDisabled">
         <UserPlus class="mr-2 size-4" />
-        Invite {{ entityLabel }}
+        {{ t.shared.inviteDialog.inviteButton(entityLabel) }}
       </Button>
     </DialogTrigger>
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Invite {{ entityLabel }}</DialogTitle>
+        <DialogTitle>{{ t.shared.inviteDialog.title(entityLabel) }}</DialogTitle>
         <DialogDescription>
           <slot name="description">
-            Send an invitation to link a {{ entityLabel.toLowerCase() }} account.
+            {{ t.shared.inviteDialog.defaultDescription(entityLabel) }}
           </slot>
         </DialogDescription>
       </DialogHeader>
@@ -72,25 +75,28 @@ defineExpose({ setFieldError })
         <VeeField v-slot="{ field, errors }" name="email">
           <Field :data-invalid="!!errors.length">
             <FieldLabel :for="`${entityLabel.toLowerCase()}Email`">
-              {{ entityLabel }}'s Email <span class="text-destructive">*</span>
+              {{ t.shared.inviteDialog.emailLabel(entityLabel) }}
+              <span class="text-destructive">*</span>
             </FieldLabel>
             <Input
               :id="`${entityLabel.toLowerCase()}Email`"
               type="email"
-              :placeholder="`Enter ${entityLabel.toLowerCase()}'s email address`"
+              :placeholder="t.shared.inviteDialog.emailPlaceholder(entityLabel)"
               :disabled="isSending"
               :aria-invalid="!!errors.length"
               v-bind="field"
             />
             <FieldError :errors="errors" />
-            <p v-if="inviteSuccess" class="text-sm text-green-600">Invitation sent successfully!</p>
+            <p v-if="inviteSuccess" class="text-sm text-green-600">
+              {{ t.shared.inviteDialog.invitationSent }}
+            </p>
           </Field>
         </VeeField>
         <DialogFooter>
           <Button type="submit" :disabled="isSending || inviteSuccess">
             <Loader2 v-if="isSending" class="mr-2 size-4 animate-spin" />
             <Send v-else class="mr-2 size-4" />
-            {{ isSending ? 'Sending...' : 'Send Invitation' }}
+            {{ isSending ? t.shared.inviteDialog.sending : t.shared.inviteDialog.sendInvitation }}
           </Button>
         </DialogFooter>
       </form>

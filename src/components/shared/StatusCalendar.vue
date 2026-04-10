@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 export interface StatusEntry {
   mood: string | null
@@ -93,7 +96,7 @@ function nextMonth() {
   emit('month-change', currentYear.value, currentMonth.value)
 }
 
-const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const weekDays = computed(() => t.value.shared.statusCalendar.weekDays)
 
 // Expose year/month so parents can read the initial values
 defineExpose({ currentYear, currentMonth })
@@ -152,14 +155,14 @@ defineExpose({ currentYear, currentMonth })
             <span
               v-if="getStatus(cell.date)?.mood"
               :class="emojiClass"
-              :title="`${cell.day}: ${getStatus(cell.date)?.mood}${getStatus(cell.date)?.hasPracticed ? ' (Practiced)' : ''}`"
+              :title="`${cell.day}: ${getStatus(cell.date)?.mood}${getStatus(cell.date)?.hasPracticed ? ` (${t.shared.statusCalendar.practiced})` : ''}`"
             >
               {{ getMoodEmoji(getStatus(cell.date)?.mood ?? null) }}
             </span>
             <span
               v-else-if="getStatus(cell.date)?.hasPracticed"
               class="font-medium text-green-700 dark:text-green-400"
-              title="Practiced"
+              :title="t.shared.statusCalendar.practiced"
             >
               {{ cell.day }}
             </span>
@@ -175,19 +178,19 @@ defineExpose({ currentYear, currentMonth })
     <div class="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
       <div class="flex items-center gap-1">
         <div class="size-3 rounded bg-green-100 dark:bg-green-950/30" />
-        <span>Practiced</span>
+        <span>{{ t.shared.statusCalendar.practiced }}</span>
       </div>
       <div class="flex items-center gap-1">
         <span>😊</span>
-        <span>Happy</span>
+        <span>{{ t.shared.statusCalendar.happy }}</span>
       </div>
       <div class="flex items-center gap-1">
         <span>😐</span>
-        <span>Neutral</span>
+        <span>{{ t.shared.statusCalendar.neutral }}</span>
       </div>
       <div class="flex items-center gap-1">
         <span>😢</span>
-        <span>Sad</span>
+        <span>{{ t.shared.statusCalendar.sad }}</span>
       </div>
     </div>
   </template>

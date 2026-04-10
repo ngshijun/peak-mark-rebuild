@@ -21,10 +21,10 @@ const { t } = storeToRefs(useLanguageStore())
 
       <div class="flex items-center gap-2">
         <Button variant="outline" as-child>
-          <RouterLink to="/login">{{ t.header.login }}</RouterLink>
+          <RouterLink to="/login">{{ t.landing.header.login }}</RouterLink>
         </Button>
         <Button as-child>
-          <RouterLink to="/signup">{{ t.header.signup }}</RouterLink>
+          <RouterLink to="/signup">{{ t.landing.header.signup }}</RouterLink>
         </Button>
         <LanguageToggle />
         <ThemeToggle />

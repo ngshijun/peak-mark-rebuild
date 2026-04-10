@@ -11,6 +11,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Sparkles, Zap, CreditCard, Loader2 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   plan: SubscriptionPlan
@@ -36,17 +39,20 @@ function getTierIcon(tier: SubscriptionTier) {
 }
 
 function getButtonText() {
-  if (props.plan.id === props.currentTier) return 'Current Plan'
+  if (props.plan.id === props.currentTier) return t.value.shared.planCard.currentPlan
 
-  if (props.scheduledChange?.scheduledTier === props.plan.id) return 'Scheduled'
+  if (props.scheduledChange?.scheduledTier === props.plan.id)
+    return t.value.shared.planCard.scheduled
 
-  if (props.plan.id === 'core') return 'Downgrade'
+  if (props.plan.id === 'core') return t.value.shared.planCard.downgrade
 
   const tierOrder: SubscriptionTier[] = ['core', 'plus', 'pro']
   const planIndex = tierOrder.indexOf(props.plan.id)
   const currentIndex = tierOrder.indexOf(props.currentTier)
 
-  return planIndex > currentIndex ? 'Upgrade' : 'Downgrade'
+  return planIndex > currentIndex
+    ? t.value.shared.planCard.upgrade
+    : t.value.shared.planCard.downgrade
 }
 
 function getButtonVariant() {
@@ -66,7 +72,7 @@ function getButtonVariant() {
   >
     <!-- Popular Badge -->
     <Badge v-if="plan.highlighted" class="absolute -top-2 left-1/2 -translate-x-1/2">
-      Most Popular
+      {{ t.shared.planCard.mostPopular }}
     </Badge>
 
     <CardHeader>
@@ -80,23 +86,25 @@ function getButtonVariant() {
             RM {{ plan.originalPrice.toFixed(2) }}
           </span>
           <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-            Save {{ Math.round((1 - plan.price / plan.originalPrice) * 100) }}%
+            {{ t.shared.planCard.save(Math.round((1 - plan.price / plan.originalPrice) * 100)) }}
           </span>
         </div>
         <div>
           <span class="text-2xl font-bold text-foreground">RM {{ plan.price.toFixed(2) }}</span>
-          <span class="text-muted-foreground">/month</span>
+          <span class="text-muted-foreground">{{ t.shared.planCard.month }}</span>
         </div>
       </CardDescription>
     </CardHeader>
 
     <CardContent class="flex-1">
       <div class="mb-4">
-        <Badge variant="outline"> {{ plan.sessionsPerDay }} sessions/day </Badge>
+        <Badge variant="outline">{{ t.shared.planCard.sessionsPerDay(plan.sessionsPerDay) }}</Badge>
       </div>
       <ul class="space-y-2">
         <li
-          v-for="(feature, index) in plan.features"
+          v-for="(feature, index) in (
+            t.shared.planCard.features as Record<string, readonly string[]>
+          )[plan.id] ?? plan.features"
           :key="index"
           class="flex items-start gap-2 text-sm"
         >
@@ -120,7 +128,9 @@ function getButtonVariant() {
         />
         {{ getButtonText() }}
       </Button>
-      <Button v-else class="w-full" variant="outline" disabled> Current Plan </Button>
+      <Button v-else class="w-full" variant="outline" disabled>{{
+        t.shared.planCard.currentPlan
+      }}</Button>
     </CardFooter>
   </Card>
 </template>

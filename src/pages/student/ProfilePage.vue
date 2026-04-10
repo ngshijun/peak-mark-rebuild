@@ -5,6 +5,7 @@ import { usePracticeStore, type StudentSubscriptionStatus } from '@/stores/pract
 import { useSubscriptionStore } from '@/stores/subscription'
 import { useCurriculumStore } from '@/stores/curriculum'
 import { useProfileEditor } from '@/composables/useProfileEditor'
+import { useT } from '@/composables/useT'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -49,11 +50,14 @@ import { useSchoolSearch } from '@/composables/useSchoolSearch'
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTour } from '@/composables/useTour'
+import { useLanguageStore } from '@/stores/language'
 
 const authStore = useAuthStore()
 const practiceStore = usePracticeStore()
 const subscriptionStore = useSubscriptionStore()
 const curriculumStore = useCurriculumStore()
+const t = useT()
+const languageStore = useLanguageStore()
 const {
   isSaving,
   userInitials,
@@ -143,7 +147,7 @@ async function handleGradeChange(value: unknown) {
       toast.error(result.error)
       return
     }
-    toast.success('Grade level updated successfully')
+    toast.success(t.value.student.profile.toastGradeUpdated)
   } finally {
     isSaving.value = false
   }
@@ -159,7 +163,7 @@ async function handleBirthdayChange(v: DateValue | undefined) {
       toast.error(result.error)
       return
     }
-    toast.success('Birthday updated successfully')
+    toast.success(t.value.student.profile.toastBirthdayUpdated)
     birthdayPopoverOpen.value = false
   } finally {
     isSaving.value = false
@@ -176,7 +180,7 @@ async function handleLanguageChange(value: unknown) {
       toast.error(result.error)
       return
     }
-    toast.success('Language preference updated successfully')
+    toast.success(t.value.student.profile.toastLanguageUpdated)
   } finally {
     isSaving.value = false
   }
@@ -190,7 +194,7 @@ async function handleSchoolChange(schoolId: string) {
       toast.error(result.error)
       return
     }
-    toast.success('School updated successfully')
+    toast.success(t.value.student.profile.toastSchoolUpdated)
     schoolPopoverOpen.value = false
   } finally {
     isSaving.value = false
@@ -203,12 +207,12 @@ async function handleSchoolChange(schoolId: string) {
     <!-- Header -->
     <div class="flex items-start justify-between">
       <div>
-        <h1 class="text-2xl font-bold">My Profile</h1>
-        <p class="text-muted-foreground">Manage your account settings and preferences</p>
+        <h1 class="text-2xl font-bold">{{ t.student.profile.title }}</h1>
+        <p class="text-muted-foreground">{{ t.student.profile.subtitle }}</p>
       </div>
       <Button variant="outline" size="sm" @click="resetAndStartTour">
         <RotateCcw class="mr-2 size-4" />
-        Restart Tour
+        {{ t.student.profile.restartTour }}
       </Button>
     </div>
 
@@ -248,18 +252,18 @@ async function handleSchoolChange(schoolId: string) {
           <div class="flex items-center justify-center gap-2">
             <Badge variant="secondary" class="text-sm">
               <Trophy class="mr-1 size-3" />
-              Level {{ authStore.currentLevel }}
+              {{ t.student.profile.levelBadge(authStore.currentLevel) }}
             </Badge>
             <Badge variant="outline" class="text-sm">
               <CirclePoundSterling class="mr-1 size-3 text-amber-600 dark:text-amber-400" />
-              {{ authStore.studentProfile?.coins ?? 0 }} Coins
+              {{ t.student.profile.coinsBadge(authStore.studentProfile?.coins ?? 0) }}
             </Badge>
           </div>
 
           <!-- XP Progress -->
           <div class="space-y-2">
             <div class="flex justify-between text-sm">
-              <span class="text-muted-foreground">XP Progress</span>
+              <span class="text-muted-foreground">{{ t.student.profile.xpProgress }}</span>
               <span>{{ authStore.currentLevelXp }} / {{ authStore.xpToNextLevel }}</span>
             </div>
             <div class="h-2 w-full overflow-hidden rounded-full bg-secondary">
@@ -275,24 +279,26 @@ async function handleSchoolChange(schoolId: string) {
       <!-- Details Card -->
       <Card>
         <CardHeader>
-          <CardTitle>Account Details</CardTitle>
-          <CardDescription>Your personal information</CardDescription>
+          <CardTitle>{{ t.student.profile.accountDetailsTitle }}</CardTitle>
+          <CardDescription>{{ t.student.profile.accountDetailsDesc }}</CardDescription>
         </CardHeader>
         <CardContent>
           <div class="grid gap-6 sm:grid-cols-2">
             <!-- Personal -->
             <div class="space-y-4">
               <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Personal
+                {{ t.student.profile.sectionPersonal }}
               </p>
 
               <!-- Email -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Mail class="size-4 text-muted-foreground" />
                 </div>
-                <div>
-                  <p class="text-xs text-muted-foreground">Email Address</p>
+                <div class="space-y-1">
+                  <p class="text-xs text-muted-foreground">{{ t.student.profile.emailLabel }}</p>
                   <p class="flex h-9 items-center text-sm font-medium">
                     {{ authStore.user?.email }}
                   </p>
@@ -300,12 +306,14 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- Birthday -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Cake class="size-4 text-muted-foreground" />
                 </div>
-                <div>
-                  <p class="text-xs text-muted-foreground">Birthday</p>
+                <div class="space-y-1">
+                  <p class="text-xs text-muted-foreground">{{ t.student.profile.birthdayLabel }}</p>
                   <Popover v-model:open="birthdayPopoverOpen">
                     <PopoverTrigger as-child>
                       <button
@@ -320,7 +328,7 @@ async function handleSchoolChange(schoolId: string) {
                           {{ formattedBirthday }}
                           <span class="text-muted-foreground">({{ age }})</span>
                         </template>
-                        <template v-else>Not set</template>
+                        <template v-else>{{ t.student.profile.birthdayNotSet }}</template>
                         <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
                       </button>
                     </PopoverTrigger>
@@ -341,12 +349,16 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- Date Joined -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Calendar class="size-4 text-muted-foreground" />
                 </div>
-                <div>
-                  <p class="text-xs text-muted-foreground">Member Since</p>
+                <div class="space-y-1">
+                  <p class="text-xs text-muted-foreground">
+                    {{ t.student.profile.memberSinceLabel }}
+                  </p>
                   <p class="flex h-9 items-center text-sm font-medium">
                     {{ formattedDateJoined }}
                   </p>
@@ -357,23 +369,28 @@ async function handleSchoolChange(schoolId: string) {
             <!-- Academic -->
             <div class="space-y-4">
               <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Academic
+                {{ t.student.profile.sectionAcademic }}
               </p>
 
               <!-- Grade Level -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <GraduationCap class="size-4 text-muted-foreground" />
                 </div>
-                <div class="flex-1">
-                  <p class="text-xs text-muted-foreground">Grade Level</p>
+                <div class="flex-1 space-y-1">
+                  <p class="text-xs text-muted-foreground">
+                    {{ t.student.profile.gradeLevelLabel }}
+                  </p>
                   <Select
+                    :key="languageStore.language"
                     :model-value="authStore.studentProfile?.gradeLevelId ?? undefined"
                     :disabled="isSaving || curriculumStore.isLoading"
                     @update:model-value="handleGradeChange"
                   >
                     <SelectTrigger class="w-auto">
-                      <SelectValue placeholder="Select grade" />
+                      <SelectValue :placeholder="t.student.profile.gradeLevelPlaceholder" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem
@@ -389,12 +406,14 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- School -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <School class="size-4 text-muted-foreground" />
                 </div>
-                <div class="flex-1">
-                  <p class="text-xs text-muted-foreground">School</p>
+                <div class="flex-1 space-y-1">
+                  <p class="text-xs text-muted-foreground">{{ t.student.profile.schoolLabel }}</p>
                   <Popover v-model:open="schoolPopoverOpen">
                     <PopoverTrigger as-child>
                       <button
@@ -417,7 +436,7 @@ async function handleSchoolChange(schoolId: string) {
                           <Search class="size-4 shrink-0 opacity-50" />
                           <input
                             v-model="schoolSearchTerm"
-                            placeholder="Search school"
+                            :placeholder="t.student.profile.schoolSearchPlaceholder"
                             class="placeholder:text-muted-foreground flex h-10 w-full bg-transparent py-3 text-sm outline-hidden"
                           />
                         </div>
@@ -445,7 +464,7 @@ async function handleSchoolChange(schoolId: string) {
                               value="my school is not listed"
                               @select="() => handleSchoolChange(SCHOOL_NOT_LISTED_ID)"
                             >
-                              My school is not listed
+                              {{ t.student.profile.schoolNotListed }}
                               <Check
                                 :class="
                                   cn(
@@ -466,23 +485,28 @@ async function handleSchoolChange(schoolId: string) {
               </div>
 
               <!-- AI Summary Language -->
-              <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+                >
                   <Languages class="size-4 text-muted-foreground" />
                 </div>
-                <div class="flex-1">
-                  <p class="text-xs text-muted-foreground">AI Summary Language</p>
+                <div class="flex-1 space-y-1">
+                  <p class="text-xs text-muted-foreground">
+                    {{ t.student.profile.aiLanguageLabel }}
+                  </p>
                   <Select
+                    :key="languageStore.language"
                     :model-value="authStore.studentProfile?.preferredLanguage ?? 'en'"
                     :disabled="isSaving"
                     @update:model-value="handleLanguageChange"
                   >
                     <SelectTrigger class="w-auto">
-                      <SelectValue placeholder="Select language" />
+                      <SelectValue :placeholder="t.student.profile.aiLanguagePlaceholder" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="zh">中文</SelectItem>
+                      <SelectItem value="en">{{ t.student.profile.langEnglish }}</SelectItem>
+                      <SelectItem value="zh">{{ t.student.profile.langChinese }}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -496,8 +520,8 @@ async function handleSchoolChange(schoolId: string) {
     <!-- My Plan -->
     <Card>
       <CardHeader>
-        <CardTitle>My Plan</CardTitle>
-        <CardDescription>See what's included in your plan</CardDescription>
+        <CardTitle>{{ t.student.profile.myPlanTitle }}</CardTitle>
+        <CardDescription>{{ t.student.profile.myPlanDesc }}</CardDescription>
       </CardHeader>
       <CardContent>
         <div
@@ -520,7 +544,7 @@ async function handleSchoolChange(schoolId: string) {
               v-if="subscriptionStatus.tier === plan.id"
               class="absolute -top-2 left-1/2 -translate-x-1/2"
             >
-              Current Plan
+              {{ t.student.profile.currentPlan }}
             </Badge>
 
             <!-- Plan header -->
@@ -531,13 +555,17 @@ async function handleSchoolChange(schoolId: string) {
 
             <!-- Sessions badge -->
             <div class="mt-3">
-              <Badge variant="outline">{{ plan.sessionsPerDay }} sessions/day</Badge>
+              <Badge variant="outline">{{
+                t.student.profile.sessionsPerDay(plan.sessionsPerDay)
+              }}</Badge>
             </div>
 
             <!-- Features list -->
             <ul class="mt-3 flex-1 space-y-1.5">
               <li
-                v-for="(feature, i) in plan.features"
+                v-for="(feature, i) in (
+                  t.shared.planCard.features as Record<string, readonly string[]>
+                )[plan.id] ?? plan.features"
                 :key="i"
                 class="flex items-start gap-2 text-sm"
               >
@@ -555,7 +583,7 @@ async function handleSchoolChange(schoolId: string) {
               "
               class="mt-3 text-center text-xs text-muted-foreground"
             >
-              Ask your parent to upgrade
+              {{ t.student.profile.askParentToUpgrade }}
             </p>
           </div>
         </div>

@@ -29,15 +29,15 @@ const featureScreenshots = [
   <section class="border-t bg-landing-band-alt py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
-        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.features.title }}</h2>
+        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.landing.features.title }}</h2>
         <p class="text-lg text-muted-foreground">
-          {{ t.features.subtitle }}
+          {{ t.landing.features.subtitle }}
         </p>
       </div>
 
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card
-          v-for="(feature, index) in t.features.items"
+          v-for="(feature, index) in t.landing.features.items"
           :key="index"
           class="border-0 bg-landing-band shadow-md"
         >

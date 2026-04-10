@@ -15,6 +15,7 @@ import {
 } from '@tanstack/vue-table'
 import { ref, computed, watch } from 'vue'
 import { valueUpdater } from '@/lib/utils'
+import { useT } from '@/composables/useT'
 import {
   Table,
   TableBody,
@@ -51,6 +52,8 @@ const props = defineProps<{
   // Total row count for server-side pagination
   rowCount?: number
 }>()
+
+const t = useT()
 
 const sorting = ref<SortingState>(props.initialSorting ?? [])
 const columnFilters = ref<ColumnFiltersState>([])
@@ -186,7 +189,7 @@ defineExpose({ table })
           <template v-else>
             <TableRow>
               <TableCell :colspan="columns.length" class="h-24 text-center">
-                No results.
+                {{ t.shared.pagination.noResults }}
               </TableCell>
             </TableRow>
           </template>
@@ -198,13 +201,16 @@ defineExpose({ table })
     <div class="flex items-center justify-between px-2 py-4">
       <div class="text-sm text-muted-foreground">
         {{
-          props.manualPagination ? (props.rowCount ?? 0) : table.getFilteredRowModel().rows.length
+          t.shared.pagination.rowsTotal(
+            props.manualPagination
+              ? (props.rowCount ?? 0)
+              : table.getFilteredRowModel().rows.length,
+          )
         }}
-        row(s) total.
       </div>
       <div class="flex items-center space-x-6 lg:space-x-8">
         <div class="flex items-center space-x-2">
-          <p class="text-sm font-medium">Rows per page</p>
+          <p class="text-sm font-medium">{{ t.shared.pagination.rowsPerPage }}</p>
           <Select
             :model-value="`${table.getState().pagination.pageSize}`"
             @update:model-value="(value) => table.setPageSize(Number(value))"
@@ -223,8 +229,13 @@ defineExpose({ table })
             </SelectContent>
           </Select>
         </div>
-        <div class="flex w-[100px] items-center justify-center text-sm font-medium">
-          Page {{ table.getState().pagination.pageIndex + 1 }} of {{ table.getPageCount() }}
+        <div class="flex w-[150px] items-center justify-center text-sm font-medium">
+          {{
+            t.shared.pagination.pageOf(
+              table.getState().pagination.pageIndex + 1,
+              table.getPageCount(),
+            )
+          }}
         </div>
         <div class="flex items-center space-x-2">
           <Button

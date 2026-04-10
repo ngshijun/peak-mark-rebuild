@@ -28,6 +28,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
+
+const t = useT()
+const languageStore = useLanguageStore()
 
 const props = defineProps<{
   open: boolean
@@ -122,7 +127,7 @@ const handleAdd = handleSubmit(async (values) => {
       }
     }
 
-    toast.success(`${config.value.label} added successfully`)
+    toast.success(t.value.shared.curriculumAddDialog.toastAdded(config.value.label))
     emit('update:open', false)
   } finally {
     isSaving.value = false
@@ -147,17 +152,17 @@ function getItemIdKey(): keyof CurriculumIds {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Add {{ config.label }}</DialogTitle>
+        <DialogTitle>{{ t.shared.curriculumAddDialog.addTitle(config.label) }}</DialogTitle>
         <DialogDescription>{{ config.addDescription }}</DialogDescription>
       </DialogHeader>
 
       <form class="space-y-4 py-4" @submit="handleAdd">
         <!-- Grade Level Select (for subject when not in context) -->
         <div v-if="addType === 'subject' && !dialogGradeLevelId" class="space-y-2">
-          <FieldLabel>Grade Level</FieldLabel>
-          <Select v-model="dialogGradeLevelId">
+          <FieldLabel>{{ t.shared.curriculumAddDialog.gradeLevelLabel }}</FieldLabel>
+          <Select :key="languageStore.language" v-model="dialogGradeLevelId">
             <SelectTrigger>
-              <SelectValue placeholder="Select a grade level" />
+              <SelectValue :placeholder="t.shared.curriculumAddDialog.gradeLevelPlaceholder" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem
@@ -173,10 +178,10 @@ function getItemIdKey(): keyof CurriculumIds {
 
         <!-- Subject Select (for topic when not in context) -->
         <div v-if="addType === 'topic' && dialogGradeLevelId && !dialogSubjectId" class="space-y-2">
-          <FieldLabel>Subject</FieldLabel>
-          <Select v-model="dialogSubjectId">
+          <FieldLabel>{{ t.shared.curriculumAddDialog.subjectLabel }}</FieldLabel>
+          <Select :key="languageStore.language" v-model="dialogSubjectId">
             <SelectTrigger>
-              <SelectValue placeholder="Select a subject" />
+              <SelectValue :placeholder="t.shared.curriculumAddDialog.subjectPlaceholder" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem
@@ -211,7 +216,7 @@ function getItemIdKey(): keyof CurriculumIds {
 
         <!-- Cover Image (for subject/topic/subtopic) -->
         <div v-if="config.hasImage" class="space-y-2">
-          <FieldLabel>Cover Image (optional)</FieldLabel>
+          <FieldLabel>{{ t.shared.curriculumAddDialog.coverImageLabel }}</FieldLabel>
           <div v-if="imagePreview" class="relative">
             <div class="aspect-video w-full overflow-hidden rounded-lg border">
               <img :src="imagePreview" alt="Cover image preview" class="size-full object-cover" />
@@ -243,9 +248,11 @@ function getItemIdKey(): keyof CurriculumIds {
               @click="imageInputRef?.click()"
             >
               <ImagePlus class="mr-2 size-4" />
-              Add Cover Image
+              {{ t.shared.curriculumAddDialog.uploadImage }}
             </Button>
-            <p class="mt-1 text-xs text-muted-foreground">Leave empty to use a default image.</p>
+            <p class="mt-1 text-xs text-muted-foreground">
+              {{ t.shared.curriculumAddDialog.coverImageHint }}
+            </p>
           </div>
         </div>
 
@@ -256,11 +263,11 @@ function getItemIdKey(): keyof CurriculumIds {
             :disabled="isSaving"
             @click="emit('update:open', false)"
           >
-            Cancel
+            {{ t.shared.curriculumAddDialog.cancel }}
           </Button>
           <Button type="submit" :disabled="isSaving">
             <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Add
+            {{ t.shared.curriculumAddDialog.add }}
           </Button>
         </DialogFooter>
       </form>

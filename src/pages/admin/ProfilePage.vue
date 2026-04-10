@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import EditAvatarDialog from '@/components/shared/EditAvatarDialog.vue'
 import EditNameDialog from '@/components/shared/EditNameDialog.vue'
 import { Mail, Calendar, Pencil, Camera, Shield } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const authStore = useAuthStore()
 const { isSaving, userInitials, formattedDateJoined, userAvatarUrl, saveAvatar, saveName } =
   useProfileEditor()
@@ -32,8 +34,8 @@ async function handleNameSave(name: string) {
   <div class="space-y-6 p-6">
     <!-- Header -->
     <div>
-      <h1 class="text-2xl font-bold">My Profile</h1>
-      <p class="text-muted-foreground">Manage your account settings</p>
+      <h1 class="text-2xl font-bold">{{ t.admin.profile.title }}</h1>
+      <p class="text-muted-foreground">{{ t.admin.profile.subtitle }}</p>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
@@ -71,7 +73,7 @@ async function handleNameSave(name: string) {
           <div class="flex items-center justify-center">
             <Badge variant="default" class="text-sm">
               <Shield class="mr-1 size-3" />
-              Administrator
+              {{ t.admin.profile.administratorRole }}
             </Badge>
           </div>
         </CardContent>
@@ -80,8 +82,8 @@ async function handleNameSave(name: string) {
       <!-- Details Card -->
       <Card class="lg:col-span-2">
         <CardHeader>
-          <CardTitle>Account Details</CardTitle>
-          <CardDescription>Your account information</CardDescription>
+          <CardTitle>{{ t.admin.profile.accountDetails }}</CardTitle>
+          <CardDescription>{{ t.admin.profile.accountDetailsDesc }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <!-- Email -->
@@ -90,7 +92,7 @@ async function handleNameSave(name: string) {
               <Mail class="size-5 text-muted-foreground" />
             </div>
             <div class="flex-1">
-              <p class="text-sm text-muted-foreground">Email Address</p>
+              <p class="text-sm text-muted-foreground">{{ t.admin.profile.emailAddress }}</p>
               <p class="font-medium">{{ authStore.user?.email }}</p>
             </div>
           </div>
@@ -101,8 +103,8 @@ async function handleNameSave(name: string) {
               <Shield class="size-5 text-muted-foreground" />
             </div>
             <div class="flex-1">
-              <p class="text-sm text-muted-foreground">Role</p>
-              <p class="font-medium">Administrator</p>
+              <p class="text-sm text-muted-foreground">{{ t.admin.profile.role }}</p>
+              <p class="font-medium">{{ t.admin.profile.administratorRole }}</p>
             </div>
           </div>
 
@@ -112,7 +114,7 @@ async function handleNameSave(name: string) {
               <Calendar class="size-5 text-muted-foreground" />
             </div>
             <div class="flex-1">
-              <p class="text-sm text-muted-foreground">Member Since</p>
+              <p class="text-sm text-muted-foreground">{{ t.admin.profile.memberSince }}</p>
               <p class="font-medium">{{ formattedDateJoined }}</p>
             </div>
           </div>

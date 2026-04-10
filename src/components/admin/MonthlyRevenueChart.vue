@@ -12,7 +12,9 @@ import {
 } from '@/components/ui/chart'
 import { VisAxis, VisStackedBar, VisXYContainer } from '@unovis/vue'
 import { TrendingUp } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const dashboardStore = useAdminDashboardStore()
 
 // Get monthly revenue data
@@ -32,10 +34,10 @@ const chartConfig = {
   <Card class="flex h-full flex-col">
     <CardHeader class="space-y-0 pb-2">
       <div class="flex flex-row items-center justify-between">
-        <CardTitle class="text-sm font-medium">Monthly Revenue</CardTitle>
+        <CardTitle class="text-sm font-medium">{{ t.shared.monthlyRevenueChart.title }}</CardTitle>
         <TrendingUp class="size-4 text-muted-foreground" />
       </div>
-      <CardDescription>Last 12 months</CardDescription>
+      <CardDescription>{{ t.shared.monthlyRevenueChart.description }}</CardDescription>
     </CardHeader>
     <CardContent class="flex-1">
       <ChartContainer :config="chartConfig" class="h-full max-h-[280px] w-full" cursor>

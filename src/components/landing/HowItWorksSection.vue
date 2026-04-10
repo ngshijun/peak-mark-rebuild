@@ -12,17 +12,21 @@ const stepIcons = [UserPlus, Gamepad2, TrendingUp]
   <section class="border-t bg-landing-band py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
-        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.howItWorks.title }}</h2>
+        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.landing.howItWorks.title }}</h2>
         <p class="text-lg text-muted-foreground">
-          {{ t.howItWorks.subtitle }}
+          {{ t.landing.howItWorks.subtitle }}
         </p>
       </div>
 
       <div class="mx-auto grid max-w-4xl gap-8 md:grid-cols-3">
-        <div v-for="(step, index) in t.howItWorks.steps" :key="index" class="relative text-center">
+        <div
+          v-for="(step, index) in t.landing.howItWorks.steps"
+          :key="index"
+          class="relative text-center"
+        >
           <!-- Connecting line (hidden on mobile, visible on md+) -->
           <div
-            v-if="index < t.howItWorks.steps.length - 1"
+            v-if="index < t.landing.howItWorks.steps.length - 1"
             class="absolute top-8 left-[calc(50%+3rem)] hidden h-px w-[calc(100%-4rem)] border-t-2 border-dashed border-primary/30 md:block"
           />
 

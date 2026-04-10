@@ -14,6 +14,9 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Smile } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = withDefaults(defineProps<{ variant?: 'button' | 'card' }>(), { variant: 'button' })
 
@@ -34,20 +37,20 @@ const isDismissedToday = computed({
   },
 })
 
-const moods: { type: MoodType; emoji: string; label: string }[] = [
-  { type: 'sad', emoji: '😢', label: 'Sad' },
-  { type: 'neutral', emoji: '😐', label: 'Neutral' },
-  { type: 'happy', emoji: '😊', label: 'Happy' },
-]
+const moods = computed<{ type: MoodType; emoji: string; label: string }[]>(() => [
+  { type: 'sad', emoji: '😢', label: t.value.shared.dailyStatus.moodSad },
+  { type: 'neutral', emoji: '😐', label: t.value.shared.dailyStatus.moodNeutral },
+  { type: 'happy', emoji: '😊', label: t.value.shared.dailyStatus.moodHappy },
+])
 
 function getMoodEmoji(mood: MoodType | null | undefined): string {
   if (!mood) return '❓'
-  return moods.find((m) => m.type === mood)?.emoji ?? '❓'
+  return moods.value.find((m) => m.type === mood)?.emoji ?? '❓'
 }
 
 function getMoodLabel(mood: MoodType | null | undefined): string {
-  if (!mood) return 'Not set'
-  return moods.find((m) => m.type === mood)?.label ?? 'Unknown'
+  if (!mood) return t.value.shared.dailyStatus.moodNotSet
+  return moods.value.find((m) => m.type === mood)?.label ?? t.value.shared.dailyStatus.moodNotSet
 }
 
 async function selectMood(mood: MoodType) {
@@ -81,7 +84,7 @@ defineExpose({
       :class="{ 'animate-glow-border': !dashboardStore.todayStatus?.mood }"
       @click="isOpen = true"
     >
-      <span class="text-sm font-medium">Daily Status</span>
+      <span class="text-sm font-medium">{{ t.shared.dailyStatus.dailyStatusButton }}</span>
       <span class="text-lg">{{ getMoodEmoji(dashboardStore.todayStatus?.mood) }}</span>
     </button>
 
@@ -89,7 +92,7 @@ defineExpose({
     <DialogTrigger v-else as-child>
       <Card class="cursor-pointer">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">Daily Status</CardTitle>
+          <CardTitle class="text-sm font-medium">{{ t.shared.dailyStatus.title }}</CardTitle>
           <Smile class="size-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -98,7 +101,11 @@ defineExpose({
             <div>
               <p class="font-medium">{{ getMoodLabel(dashboardStore.todayStatus?.mood) }}</p>
               <p class="text-xs text-muted-foreground">
-                {{ dashboardStore.hasMoodToday ? 'Tap to change' : 'Tap to set your mood' }}
+                {{
+                  dashboardStore.hasMoodToday
+                    ? t.shared.dailyStatus.tapToChange
+                    : t.shared.dailyStatus.tapToSet
+                }}
               </p>
             </div>
           </div>
@@ -109,8 +116,8 @@ defineExpose({
     <!-- Shared dialog content -->
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>How are you feeling?</DialogTitle>
-        <DialogDescription>Select your mood for today</DialogDescription>
+        <DialogTitle>{{ t.shared.dailyStatus.howAreYouFeeling }}</DialogTitle>
+        <DialogDescription>{{ t.shared.dailyStatus.selectMoodToday }}</DialogDescription>
       </DialogHeader>
       <div class="flex justify-center gap-6 py-6">
         <Button
@@ -132,7 +139,7 @@ defineExpose({
       >
         <Checkbox id="dontShowAgain" v-model="isDismissedToday" :disabled="isSaving" />
         <label for="dontShowAgain" class="cursor-pointer select-none text-sm text-muted-foreground">
-          Don't show again today
+          {{ t.shared.dailyStatus.dontShowAgain }}
         </label>
       </div>
     </DialogContent>

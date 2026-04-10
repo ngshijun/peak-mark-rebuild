@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useT } from '@/composables/useT'
 import { getAvatarUrl } from '@/lib/storage'
 import { ChevronsUpDown, LogOut, Users } from 'lucide-vue-next'
 import {
@@ -22,6 +23,7 @@ import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const t = useT()
 
 const isStudent = computed(() => authStore.userType === 'student')
 
@@ -51,7 +53,7 @@ const userAvatar = computed(() => {
 async function handleLogout() {
   const result = await authStore.signOut()
   if (result.error) {
-    toast.error('Failed to log out')
+    toast.error(result.error)
     return
   }
   // Toast and navigation handled by App.vue auth watcher
@@ -101,12 +103,12 @@ async function handleLogout() {
             <DropdownMenuSeparator v-if="isStudent" />
             <DropdownMenuItem v-if="isStudent" @click="router.push('/student/parent')">
               <Users class="mr-2 size-4" />
-              My Parent
+              {{ t.shared.layout.sidebar.myParent }}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem @click="handleLogout">
               <LogOut class="mr-2 size-4" />
-              Log out
+              {{ t.shared.layout.sidebar.logOut }}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

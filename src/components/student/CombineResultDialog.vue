@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { usePetsStore, rarityConfig, type PetRarity, type Pet } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity, type Pet } from '@/stores/pets'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +11,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Sparkles } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -39,15 +42,15 @@ function close() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-xl">
           <span class="text-2xl">🎉</span>
-          Combination Complete!
+          {{ t.shared.combineResultDialog.title }}
         </DialogTitle>
         <DialogDescription>
           {{
             props.results.length === 1
               ? props.results[0]?.upgraded
-                ? 'Congratulations! Your pets combined into a higher rarity!'
-                : 'The combination failed, but you still got a pet back.'
-              : `You performed ${props.results.length} combinations!`
+                ? t.shared.combineResultDialog.descSingleUpgraded
+                : t.shared.combineResultDialog.descSingleFailed
+              : t.shared.combineResultDialog.descMultiple(props.results.length)
           }}
         </DialogDescription>
       </DialogHeader>
@@ -96,7 +99,7 @@ function close() {
             variant="outline"
             class="mt-2"
           >
-            {{ rarityConfig[props.results[0].resultRarity].label }}
+            {{ getRarityLabel(props.results[0].resultRarity) }}
           </Badge>
         </div>
       </div>
@@ -109,13 +112,15 @@ function close() {
             <p class="text-2xl font-bold text-green-500">
               {{ props.results.filter((r) => r.upgraded).length }}
             </p>
-            <p class="text-sm text-muted-foreground">Upgraded</p>
+            <p class="text-sm text-muted-foreground">{{ t.shared.combineResultDialog.upgraded }}</p>
           </div>
           <div>
             <p class="text-2xl font-bold text-gray-500">
               {{ props.results.filter((r) => !r.upgraded).length }}
             </p>
-            <p class="text-sm text-muted-foreground">Same Rarity</p>
+            <p class="text-sm text-muted-foreground">
+              {{ t.shared.combineResultDialog.sameRarity }}
+            </p>
           </div>
         </div>
 
@@ -157,7 +162,7 @@ function close() {
       </div>
 
       <DialogFooter>
-        <Button class="w-full" @click="close"> Close </Button>
+        <Button class="w-full" @click="close"> {{ t.shared.combineResultDialog.close }} </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

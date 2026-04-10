@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useT } from '@/composables/useT'
 import { useChildLinkStore } from '@/stores/child-link'
 import { getAvatarUrl } from '@/lib/storage'
 import { useSubscriptionStore } from '@/stores/subscription'
@@ -30,6 +31,7 @@ import { formatRelativeDate } from '@/lib/date'
 
 const childLinkStore = useChildLinkStore()
 const subscriptionStore = useSubscriptionStore()
+const t = useT()
 
 const showChildDialog = ref(false)
 const selectedChild = ref<LinkedChild | null>(null)
@@ -64,7 +66,7 @@ async function handleInviteSubmit(email: string) {
       inviteDialogRef.value?.setFieldError('email', result.error)
     } else {
       inviteSuccess.value = true
-      toast.success('Invitation sent successfully!')
+      toast.success(t.value.parent.children.toastInvitationSent)
       setTimeout(() => {
         inviteSuccess.value = false
         inviteDialogOpen.value = false
@@ -82,7 +84,7 @@ async function handleAcceptInvitation(invitationId: string) {
   if (result.error) {
     toast.error(result.error)
   } else {
-    toast.success('Child linked successfully!')
+    toast.success(t.value.parent.children.toastChildLinked)
   }
 }
 
@@ -93,7 +95,7 @@ async function handleRejectInvitation(invitationId: string) {
   if (result.error) {
     toast.error(result.error)
   } else {
-    toast.success('Invitation declined')
+    toast.success(t.value.parent.children.toastInvitationDeclined)
   }
 }
 
@@ -104,7 +106,7 @@ async function handleCancelInvitation(invitationId: string) {
   if (result.error) {
     toast.error(result.error)
   } else {
-    toast.success('Invitation cancelled')
+    toast.success(t.value.parent.children.toastInvitationCancelled)
   }
 }
 
@@ -115,7 +117,7 @@ async function handleRemoveChild(childId: string) {
   if (error) {
     toast.error(error)
   } else {
-    toast.info('Child removed')
+    toast.info(t.value.parent.children.toastChildRemoved)
   }
 }
 </script>
@@ -125,13 +127,13 @@ async function handleRemoveChild(childId: string) {
     <!-- Header with Invite Button -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Children</h1>
-        <p class="text-muted-foreground">Manage your linked children and invitations</p>
+        <h1 class="text-2xl font-bold">{{ t.parent.children.title }}</h1>
+        <p class="text-muted-foreground">{{ t.parent.children.subtitle }}</p>
       </div>
       <InviteDialog
         ref="inviteDialogRef"
         v-model:open="inviteDialogOpen"
-        entity-label="Child"
+        :entity-label="t.parent.children.entityLabel"
         :is-sending="isSending"
         :invite-success="inviteSuccess"
         :trigger-disabled="childLinkStore.isLoading"
@@ -139,7 +141,7 @@ async function handleRemoveChild(childId: string) {
         @reset="inviteSuccess = false"
       >
         <template #description>
-          Send an invitation to link a child's account. You will be able to view their progress.
+          {{ t.parent.children.inviteDialogDescription }}
         </template>
       </InviteDialog>
     </div>
@@ -155,14 +157,18 @@ async function handleRemoveChild(childId: string) {
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <Users class="size-5" />
-            Linked Children
+            {{ t.parent.children.linkedChildrenTitle }}
           </CardTitle>
         </CardHeader>
         <CardContent class="p-0">
           <div v-if="childLinkStore.linkedChildren.length === 0" class="py-8 text-center">
             <Users class="mx-auto size-12 text-muted-foreground/50" />
-            <p class="mt-2 text-sm text-muted-foreground">No linked children yet</p>
-            <p class="text-xs text-muted-foreground">Invite a child to get started</p>
+            <p class="mt-2 text-sm text-muted-foreground">
+              {{ t.parent.children.noLinkedChildren }}
+            </p>
+            <p class="text-xs text-muted-foreground">
+              {{ t.parent.children.noLinkedChildrenHint }}
+            </p>
           </div>
           <div v-else class="divide-y border-y">
             <div
@@ -179,19 +185,19 @@ async function handleRemoveChild(childId: string) {
               <div class="min-w-0 flex-1">
                 <p class="truncate font-medium">{{ child.name }}</p>
                 <p class="text-xs text-muted-foreground">
-                  {{ child.gradeLevelName ?? 'No grade set' }}
+                  {{ child.gradeLevelName ?? t.parent.children.noGradeSet }}
                 </p>
               </div>
 
               <div class="flex items-start gap-6">
                 <div class="w-12 text-center">
-                  <p class="text-xs text-muted-foreground">Level</p>
+                  <p class="text-xs text-muted-foreground">{{ t.parent.children.levelLabel }}</p>
                   <p class="flex h-6 items-center justify-center font-semibold">
                     {{ computeLevel(child.xp) }}
                   </p>
                 </div>
                 <div class="w-12 text-center">
-                  <p class="text-xs text-muted-foreground">Streak</p>
+                  <p class="text-xs text-muted-foreground">{{ t.parent.children.streakLabel }}</p>
                   <p class="flex h-6 items-center justify-center gap-1 font-semibold">
                     <img
                       v-if="child.currentStreak > 0"
@@ -204,9 +210,11 @@ async function handleRemoveChild(childId: string) {
                   </p>
                 </div>
                 <div class="w-20 text-center">
-                  <p class="text-xs text-muted-foreground">Last Active</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t.parent.children.lastActiveLabel }}
+                  </p>
                   <p class="flex h-6 items-center justify-center font-semibold">
-                    {{ formatRelativeDate(child.lastActive) }}
+                    {{ formatRelativeDate(child.lastActive, t.shared.relativeDate) }}
                   </p>
                 </div>
               </div>
@@ -224,27 +232,27 @@ async function handleRemoveChild(childId: string) {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Remove Child</AlertDialogTitle>
+                    <AlertDialogTitle>{{ t.parent.children.removeChildTitle }}</AlertDialogTitle>
                     <AlertDialogDescription v-if="hasActivePaidSubscription(child.id)">
-                      {{ child.name }} has an active paid subscription. You must cancel the
-                      subscription before unlinking this child.
+                      {{ t.parent.children.removeChildHasSub(child.name) }}
                     </AlertDialogDescription>
                     <AlertDialogDescription v-else>
-                      Are you sure you want to remove {{ child.name }} from your linked children?
-                      You will no longer be able to view their progress.
+                      {{ t.parent.children.removeChildConfirm(child.name) }}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel v-if="hasActivePaidSubscription(child.id)">
-                      Close
+                      {{ t.parent.children.removeChildClose }}
                     </AlertDialogCancel>
                     <template v-else>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{{
+                        t.parent.children.removeChildCancel
+                      }}</AlertDialogCancel>
                       <AlertDialogAction
                         class="bg-destructive text-white hover:bg-destructive/90"
                         @click="handleRemoveChild(child.id)"
                       >
-                        Remove
+                        {{ t.parent.children.removeChildAction }}
                       </AlertDialogAction>
                     </template>
                   </AlertDialogFooter>
@@ -259,8 +267,8 @@ async function handleRemoveChild(childId: string) {
         :received-invitations="childLinkStore.receivedInvitations"
         :sent-invitations="childLinkStore.sentInvitations"
         :processing-id="actionInProgress"
-        received-title="Invitations from Children"
-        sent-title="Sent Invitations"
+        :received-title="t.parent.children.receivedInvitationsTitle"
+        :sent-title="t.parent.children.sentInvitationsTitle"
         :get-display-name="(inv) => inv.studentName || inv.studentEmail"
         :get-display-email="(inv) => inv.studentEmail"
         :get-sent-email="(inv) => inv.studentEmail"

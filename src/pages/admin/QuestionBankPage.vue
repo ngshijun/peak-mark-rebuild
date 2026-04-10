@@ -21,7 +21,9 @@ import {
 } from '@/components/admin'
 import { toast } from 'vue-sonner'
 import { generateQuestionTemplate, exportQuestionsToExcel } from '@/lib/excel/questionExcel'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const questionsStore = useQuestionsStore()
 const curriculumStore = useCurriculumStore()
 
@@ -74,7 +76,7 @@ async function handleDelete() {
       toast.error(result.error)
       return
     }
-    toast.success('Question deleted successfully')
+    toast.success(t.value.admin.questionBank.toastQuestionDeleted)
     showDeleteDialog.value = false
     selectedQuestion.value = null
   } finally {
@@ -94,7 +96,7 @@ async function handleEditSave() {
 
 async function handleBulkUploadComplete() {
   await questionsStore.fetchQuestionBankPage()
-  toast.success('Questions uploaded successfully')
+  toast.success(t.value.admin.questionBank.toastBulkUploaded)
 }
 
 async function downloadTemplate() {
@@ -103,10 +105,10 @@ async function downloadTemplate() {
       await curriculumStore.fetchCurriculum()
     }
     await generateQuestionTemplate(curriculumStore.gradeLevels)
-    toast.info('Template downloaded')
+    toast.info(t.value.admin.questionBank.toastTemplateDownloaded)
   } catch (error) {
     console.error('Error downloading template:', error)
-    toast.error('Failed to download template')
+    toast.error(t.value.admin.questionBank.toastTemplateFailed)
   }
 }
 
@@ -129,7 +131,7 @@ const exportSummary = computed(() => {
 
 function openExportDialog() {
   if (totalFilteredCount.value === 0) {
-    toast.warning('No questions to export')
+    toast.warning(t.value.admin.questionBank.toastNoQuestionsToExport)
     return
   }
   showExportDialog.value = true
@@ -165,10 +167,10 @@ async function confirmExport() {
         return null
       }
     })
-    toast.info(`Exported ${allQuestions.length} questions`)
+    toast.info(t.value.admin.questionBank.toastExported(allQuestions.length))
   } catch (error) {
     console.error('Error exporting questions:', error)
-    toast.error('Failed to export questions')
+    toast.error(t.value.admin.questionBank.toastExportFailed)
   } finally {
     isExporting.value = false
   }
@@ -179,8 +181,8 @@ async function confirmExport() {
   <div class="p-6">
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Question Bank</h1>
-        <p class="text-muted-foreground">Manage your question library.</p>
+        <h1 class="text-2xl font-bold">{{ t.admin.questionBank.title }}</h1>
+        <p class="text-muted-foreground">{{ t.admin.questionBank.subtitle }}</p>
       </div>
       <div class="flex gap-2">
         <Button
@@ -189,7 +191,7 @@ async function confirmExport() {
           @click="downloadTemplate"
         >
           <Download class="mr-2 size-4" />
-          Template
+          {{ t.admin.questionBank.templateBtn }}
         </Button>
         <Button
           variant="outline"
@@ -198,7 +200,7 @@ async function confirmExport() {
         >
           <Loader2 v-if="isExporting" class="mr-2 size-4 animate-spin" />
           <FileDown v-else class="mr-2 size-4" />
-          Export
+          {{ t.admin.questionBank.exportBtn }}
         </Button>
         <Button
           variant="outline"
@@ -206,11 +208,11 @@ async function confirmExport() {
           @click="showBulkUploadDialog = true"
         >
           <Upload class="mr-2 size-4" />
-          Bulk Upload
+          {{ t.admin.questionBank.bulkUploadBtn }}
         </Button>
         <Button :disabled="questionsStore.serverIsLoading" @click="openAddDialog">
           <Plus class="mr-2 size-4" />
-          Add Question
+          {{ t.admin.questionBank.addQuestionBtn }}
         </Button>
       </div>
     </div>
@@ -253,9 +255,9 @@ async function confirmExport() {
     <Dialog v-model:open="showDeleteDialog">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete Question</DialogTitle>
+          <DialogTitle>{{ t.admin.questionBank.deleteQuestionTitle }}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this question? This action cannot be undone.
+            {{ t.admin.questionBank.deleteQuestionDesc }}
           </DialogDescription>
         </DialogHeader>
 
@@ -264,12 +266,12 @@ async function confirmExport() {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" :disabled="isDeleting" @click="showDeleteDialog = false"
-            >Cancel</Button
-          >
+          <Button variant="outline" :disabled="isDeleting" @click="showDeleteDialog = false">{{
+            t.admin.questionBank.cancel
+          }}</Button>
           <Button variant="destructive" :disabled="isDeleting" @click="handleDelete">
             <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
-            Delete
+            {{ t.admin.questionBank.delete }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -279,29 +281,31 @@ async function confirmExport() {
     <Dialog v-model:open="showExportDialog">
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Export Questions</DialogTitle>
+          <DialogTitle>{{ t.admin.questionBank.exportTitle }}</DialogTitle>
           <DialogDescription>
-            You are about to export the following questions to an Excel file.
+            {{ t.admin.questionBank.exportDesc }}
           </DialogDescription>
         </DialogHeader>
 
         <div class="space-y-3 py-4">
           <div class="rounded-lg border bg-muted/50 p-3">
-            <p class="text-sm font-medium">Filters Applied:</p>
+            <p class="text-sm font-medium">{{ t.admin.questionBank.filtersApplied }}</p>
             <ul class="mt-1 list-inside list-disc text-sm text-muted-foreground">
               <li v-for="filter in exportSummary.filters" :key="filter">{{ filter }}</li>
             </ul>
           </div>
           <p class="text-sm">
-            <span class="font-medium">{{ exportSummary.count }}</span> question(s) will be exported.
+            {{ t.admin.questionBank.exportCount(exportSummary.count) }}
           </p>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="showExportDialog = false">Cancel</Button>
+          <Button variant="outline" @click="showExportDialog = false">{{
+            t.admin.questionBank.cancel
+          }}</Button>
           <Button @click="confirmExport">
             <FileDown class="mr-2 size-4" />
-            Export
+            {{ t.admin.questionBank.exportConfirm }}
           </Button>
         </DialogFooter>
       </DialogContent>

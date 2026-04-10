@@ -9,6 +9,7 @@ import {
   type StudentSubscriptionStatus,
 } from '@/stores/practice'
 import { usePracticeProgress } from '@/composables/usePracticeProgress'
+import { useT } from '@/composables/useT'
 import { Loader2, Clock, CircleCheck, GraduationCap } from 'lucide-vue-next'
 import {
   AlertDialog,
@@ -37,6 +38,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const curriculumStore = useCurriculumStore()
 const practiceStore = usePracticeStore()
+const t = useT()
 const {
   isSubTopicFullyPracticed,
   getTopicProgress,
@@ -134,8 +136,8 @@ function selectSubTopic(subTopicId: string) {
   if (sessionLimitStatus.value && !sessionLimitStatus.value.canStartSession) {
     toast.warning(
       subscriptionStatus.value?.tier === 'pro' || subscriptionStatus.value?.tier === 'max'
-        ? `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Come back tomorrow!`
-        : `You have reached your daily session limit (${sessionLimitStatus.value.sessionLimit} sessions). Upgrade your plan for more sessions!`,
+        ? t.value.student.practice.toastLimitReachedPro(sessionLimitStatus.value.sessionLimit)
+        : t.value.student.practice.toastLimitReachedFree(sessionLimitStatus.value.sessionLimit),
     )
     return
   }
@@ -178,14 +180,14 @@ async function confirmStartSession() {
     <!-- Header -->
     <div class="mb-6 flex items-start justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold">Practice</h1>
+        <h1 class="text-2xl font-bold">{{ t.student.practice.title }}</h1>
         <p class="text-muted-foreground">
           {{
             selectedTopic
-              ? 'Select a sub-topic to start practicing'
+              ? t.student.practice.subtitleSubTopic
               : selectedSubject
-                ? 'Select a topic to continue'
-                : 'Select a subject to start practicing'
+                ? t.student.practice.subtitleTopic
+                : t.student.practice.subtitleSubject
           }}
         </p>
         <!-- Breadcrumb Navigation -->
@@ -230,8 +232,12 @@ async function confirmStartSession() {
         class="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
       >
         <span :class="sessionLimitStatus.remainingSessions <= 1 ? 'text-yellow-600' : ''">
-          {{ sessionLimitStatus.remainingSessions }} of
-          {{ sessionLimitStatus.sessionLimit }} sessions remaining
+          {{
+            t.student.practice.sessionsRemaining(
+              sessionLimitStatus.remainingSessions,
+              sessionLimitStatus.sessionLimit,
+            )
+          }}
         </span>
       </div>
     </div>
@@ -252,11 +258,13 @@ async function confirmStartSession() {
         >
           <GraduationCap class="size-7 text-blue-500" />
         </div>
-        <h3 class="text-lg font-semibold">Grade Level Not Set</h3>
+        <h3 class="text-lg font-semibold">{{ t.student.practice.gradeLevelNotSet }}</h3>
         <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-          Please set your grade level in your profile to start practicing.
+          {{ t.student.practice.gradeLevelNotSetDesc }}
         </p>
-        <Button class="mt-4" @click="router.push('/student/profile')">Go to Profile</Button>
+        <Button class="mt-4" @click="router.push('/student/profile')">{{
+          t.student.practice.goToProfile
+        }}</Button>
       </CardContent>
     </Card>
 
@@ -272,13 +280,13 @@ async function confirmStartSession() {
           >
             <Clock class="size-7 text-amber-500" />
           </div>
-          <h3 class="text-lg font-semibold">Daily Limit Reached</h3>
+          <h3 class="text-lg font-semibold">{{ t.student.practice.dailyLimitReached }}</h3>
           <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            You have used all {{ sessionLimitStatus.sessionLimit }} sessions for today. Come back
-            tomorrow<template
+            {{ t.student.practice.dailyLimitReachedDesc(sessionLimitStatus.sessionLimit)
+            }}<template
               v-if="subscriptionStatus?.tier !== 'pro' && subscriptionStatus?.tier !== 'max'"
             >
-              or ask your parent to upgrade your subscription for more sessions</template
+              {{ t.student.practice.dailyLimitUpgradeHint }}</template
             >.
           </p>
         </CardContent>
@@ -319,8 +327,12 @@ async function confirmStartSession() {
                   isSubjectFullyPracticed(subject) ? 'text-green-600' : 'text-muted-foreground'
                 "
               >
-                {{ getSubjectProgress(subject).completed }}/{{ getSubjectProgress(subject).total }}
-                {{ getSubjectProgress(subject).total === 1 ? 'topic' : 'topics' }} completed
+                {{
+                  t.student.practice.topicCompleted(
+                    getSubjectProgress(subject).completed,
+                    getSubjectProgress(subject).total,
+                  )
+                }}
               </p>
               <Progress
                 :model-value="
@@ -337,7 +349,7 @@ async function confirmStartSession() {
         </div>
 
         <div v-if="availableSubjects.length === 0" class="py-12 text-center">
-          <p class="text-muted-foreground">No subjects available for your grade level.</p>
+          <p class="text-muted-foreground">{{ t.student.practice.noSubjects }}</p>
         </div>
       </div>
 
@@ -371,8 +383,12 @@ async function confirmStartSession() {
                 class="text-sm"
                 :class="isTopicFullyPracticed(topic) ? 'text-green-600' : 'text-muted-foreground'"
               >
-                {{ getTopicProgress(topic).completed }}/{{ getTopicProgress(topic).total }}
-                {{ getTopicProgress(topic).total === 1 ? 'sub-topic' : 'sub-topics' }} completed
+                {{
+                  t.student.practice.subTopicCompleted(
+                    getTopicProgress(topic).completed,
+                    getTopicProgress(topic).total,
+                  )
+                }}
               </p>
               <Progress
                 :model-value="
@@ -388,7 +404,7 @@ async function confirmStartSession() {
         </div>
 
         <div v-if="selectedSubject.topics.length === 0" class="py-12 text-center">
-          <p class="text-muted-foreground">No topics available for this subject.</p>
+          <p class="text-muted-foreground">{{ t.student.practice.noTopics }}</p>
         </div>
       </div>
 
@@ -433,10 +449,12 @@ async function confirmStartSession() {
                     : 'text-muted-foreground'
                 "
               >
-                {{ practiceStore.getSubTopicAnsweredCount(subTopic.id) }}/{{
-                  subTopic.questionCount
+                {{
+                  t.student.practice.questionsCompleted(
+                    practiceStore.getSubTopicAnsweredCount(subTopic.id),
+                    subTopic.questionCount,
+                  )
                 }}
-                {{ subTopic.questionCount === 1 ? 'question' : 'questions' }} practiced
               </p>
               <Progress
                 :model-value="
@@ -454,7 +472,7 @@ async function confirmStartSession() {
         </div>
 
         <div v-if="selectedTopic.subTopics.length === 0" class="py-12 text-center">
-          <p class="text-muted-foreground">No sub-topics available for this topic.</p>
+          <p class="text-muted-foreground">{{ t.student.practice.noSubTopics }}</p>
         </div>
       </div>
     </template>
@@ -466,7 +484,7 @@ async function confirmStartSession() {
     >
       <div class="flex flex-col items-center gap-4">
         <Loader2 class="size-12 animate-spin text-primary" />
-        <p class="text-lg font-medium">Starting practice session...</p>
+        <p class="text-lg font-medium">{{ t.student.practice.startingSession }}</p>
       </div>
     </div>
 
@@ -474,16 +492,16 @@ async function confirmStartSession() {
     <AlertDialog v-model:open="showConfirmDialog">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Start Practice Session?</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.student.practice.startSession }}</AlertDialogTitle>
           <AlertDialogDescription>
-            You are about to start a practice session for
-            <span class="font-medium text-foreground">{{ pendingSubTopic?.name }}</span
-            >. This will use 1 of your daily sessions.
+            {{ t.student.practice.startSessionDesc(pendingSubTopic?.name ?? '') }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction @click="confirmStartSession">Start Session</AlertDialogAction>
+          <AlertDialogCancel>{{ t.student.practice.cancel }}</AlertDialogCancel>
+          <AlertDialogAction @click="confirmStartSession">{{
+            t.student.practice.startSessionConfirm
+          }}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

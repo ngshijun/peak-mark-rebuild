@@ -6,6 +6,7 @@ import { usePracticeHistoryStore } from '@/stores/practice-history'
 import type { PracticeSession } from '@/lib/practiceHelpers'
 import type { StudentSubscriptionStatus } from '@/stores/student-subscription'
 import { useStudentDashboardStore } from '@/stores/student-dashboard'
+import { useT } from '@/composables/useT'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import { computeScorePercent } from '@/lib/questionHelpers'
 import SessionResultContent from '@/components/session/SessionResultContent.vue'
@@ -28,6 +29,7 @@ const router = useRouter()
 const practiceStore = usePracticeStore()
 const historyStore = usePracticeHistoryStore()
 const dashboardStore = useStudentDashboardStore()
+const t = useT()
 
 const sessionId = computed(() => route.params.sessionId as string)
 const session = ref<PracticeSession | null>(null)
@@ -118,12 +120,12 @@ async function generateAiSummary() {
       <div class="mb-6">
         <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
           <ArrowLeft class="mr-2 size-4" />
-          Back
+          {{ t.student.sessionResult.back }}
         </Button>
 
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 class="text-2xl font-bold">Session Results</h1>
+            <h1 class="text-2xl font-bold">{{ t.student.sessionResult.title }}</h1>
             <p class="text-muted-foreground">
               {{ session.subjectName }} - {{ session.topicName }} | {{ session.gradeLevelName }}
             </p>
@@ -131,11 +133,15 @@ async function generateAiSummary() {
           <div class="flex items-center gap-4 text-sm">
             <div class="flex items-center gap-1.5 text-purple-600">
               <Star class="size-4" />
-              <span class="font-medium">+{{ session.xpEarned ?? 0 }} XP</span>
+              <span class="font-medium">{{
+                t.student.sessionResult.xpEarned(session.xpEarned ?? 0)
+              }}</span>
             </div>
             <div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
               <CirclePoundSterling class="size-4 text-amber-600 dark:text-amber-400" />
-              <span class="font-medium">+{{ session.coinsEarned ?? 0 }} Coins</span>
+              <span class="font-medium">{{
+                t.student.sessionResult.coinsEarned(session.coinsEarned ?? 0)
+              }}</span>
             </div>
           </div>
         </div>
@@ -147,7 +153,7 @@ async function generateAiSummary() {
         :questions="session.questions"
         :answers="session.answers"
         :is-locked="subscriptionRequired"
-        answer-label="Your"
+        answer-label="self"
       >
         <template #ai-summary>
           <Card
@@ -159,7 +165,7 @@ async function generateAiSummary() {
               >
                 <div class="flex items-center gap-2">
                   <BotMessageSquare class="size-4" />
-                  AI Summary
+                  {{ t.student.sessionResult.aiSummaryTitle }}
                 </div>
                 <Button
                   v-if="
@@ -173,7 +179,11 @@ async function generateAiSummary() {
                   @click="generateAiSummary"
                 >
                   <RefreshCw class="mr-1 size-3" />
-                  {{ aiSummaryStatus === 'failed' ? 'Retry' : 'Generate Summary' }}
+                  {{
+                    aiSummaryStatus === 'failed'
+                      ? t.student.sessionResult.aiSummaryRetry
+                      : t.student.sessionResult.aiSummaryGenerate
+                  }}
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -183,17 +193,14 @@ async function generateAiSummary() {
                 class="flex items-center gap-3 text-sm text-muted-foreground"
               >
                 <Crown class="size-5 text-amber-500" />
-                <span
-                  >Upgrade to <strong>Pro</strong> to unlock AI-powered feedback for each
-                  session.</span
-                >
+                <span>{{ t.student.sessionResult.aiSummaryUpgradeHint }}</span>
               </div>
               <div
                 v-else-if="aiSummaryStatus === 'loading'"
                 class="flex items-center gap-2 text-sm text-muted-foreground"
               >
                 <Loader2 class="size-4 animate-spin" />
-                Generating summary...
+                {{ t.student.sessionResult.aiSummaryGenerating }}
               </div>
               <div
                 v-else-if="session.aiSummary"
@@ -205,10 +212,10 @@ async function generateAiSummary() {
                 class="flex items-center gap-2 text-sm text-muted-foreground"
               >
                 <AlertCircle class="size-4 text-red-500" />
-                Failed to generate summary. Click "Retry" to try again.
+                {{ t.student.sessionResult.aiSummaryFailed }}
               </div>
               <div v-else class="text-sm text-muted-foreground">
-                No summary available for this session.
+                {{ t.student.sessionResult.aiSummaryEmpty }}
               </div>
             </CardContent>
           </Card>
@@ -217,12 +224,10 @@ async function generateAiSummary() {
         <template #locked-message>
           <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             <template v-if="!subscriptionStatus?.isLinkedToParent">
-              Link your account to a parent to unlock detailed session results. Ask your parent to
-              send you an invitation.
+              {{ t.student.sessionResult.lockedNoParent }}
             </template>
             <template v-else>
-              Detailed session results require a Plus or higher subscription. Ask your parent to
-              upgrade your plan.
+              {{ t.student.sessionResult.lockedNoSubscription }}
             </template>
           </p>
           <Button
@@ -231,7 +236,7 @@ async function generateAiSummary() {
             @click="router.push('/student/family')"
           >
             <Users class="mr-2 size-4" />
-            Link to Parent
+            {{ t.student.sessionResult.linkToParent }}
           </Button>
         </template>
       </SessionResultContent>
@@ -239,8 +244,10 @@ async function generateAiSummary() {
 
     <!-- Empty State -->
     <div v-else class="py-12 text-center">
-      <p class="text-muted-foreground">Session not found</p>
-      <Button class="mt-4" @click="goToHistory">Go to Statistics</Button>
+      <p class="text-muted-foreground">{{ t.student.sessionResult.sessionNotFound }}</p>
+      <Button class="mt-4" @click="goToHistory">{{
+        t.student.sessionResult.goToStatistics
+      }}</Button>
     </div>
   </div>
 </template>

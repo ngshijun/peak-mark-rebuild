@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity } from '@/stores/pets'
 import type { StudentOwnedPet } from '@/stores/admin-student-engagement'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useT } from '@/composables/useT'
 
 const props = defineProps<{
   ownedPets: StudentOwnedPet[]
   selectedPetId: string | null
   totalPets: number
 }>()
+
+const t = useT()
 
 const petsStore = usePetsStore()
 
@@ -50,7 +53,7 @@ function getPetImagePath(pet: StudentOwnedPet): string {
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <p class="text-sm text-muted-foreground">
-        {{ ownedPets.length }} / {{ totalPets }} pets collected
+        {{ t.shared.studentPetCollectionTab.petsCollected(ownedPets.length, totalPets) }}
       </p>
     </div>
 
@@ -58,7 +61,7 @@ function getPetImagePath(pet: StudentOwnedPet): string {
       <CardHeader class="pb-3">
         <div class="flex items-center justify-between">
           <CardTitle class="flex items-center gap-2 text-base" :class="rarityConfig[rarity].color">
-            {{ rarityConfig[rarity].label }}
+            {{ getRarityLabel(rarity) }}
           </CardTitle>
           <Badge variant="outline" :class="rarityConfig[rarity].color">
             {{ petCollectionStats[rarity].owned }} / {{ petCollectionStats[rarity].total }}

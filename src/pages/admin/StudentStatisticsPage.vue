@@ -31,7 +31,9 @@ import {
   CreditCard,
   PawPrint,
 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const route = useRoute()
 const router = useRouter()
 const adminStudentsStore = useAdminStudentsStore()
@@ -63,7 +65,7 @@ onMounted(async () => {
     }
   } catch (err) {
     console.error('Failed to load statistics:', err)
-    toast.error('Failed to load statistics')
+    toast.error(t.value.admin.studentStatistics.toastLoadFailed)
   }
 })
 
@@ -149,7 +151,7 @@ const displayedSessions = computed(() => {
   return recentSessions.value
 })
 
-const columns = createPracticeHistoryColumns<StudentPracticeSession>()
+const columns = computed(() => createPracticeHistoryColumns<StudentPracticeSession>())
 
 function handleRowClick(row: StudentPracticeSession) {
   if (row.status === 'completed') {
@@ -176,11 +178,11 @@ const totalPets = computed(() => petsStore.allPets.length)
     <div>
       <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
         <ArrowLeft class="mr-2 size-4" />
-        Back to Students
+        {{ t.admin.studentStatistics.backToStudents }}
       </Button>
 
-      <h1 class="text-2xl font-bold">Student Statistics</h1>
-      <p class="text-muted-foreground">View practice history and performance</p>
+      <h1 class="text-2xl font-bold">{{ t.admin.studentStatistics.title }}</h1>
+      <p class="text-muted-foreground">{{ t.admin.studentStatistics.subtitle }}</p>
     </div>
 
     <!-- Loading State -->
@@ -193,23 +195,23 @@ const totalPets = computed(() => petsStore.allPets.length)
       <TabsList class="w-full">
         <TabsTrigger value="info">
           <User class="mr-1.5 size-4" />
-          Student Info
+          {{ t.admin.studentStatistics.tabInfo }}
         </TabsTrigger>
         <TabsTrigger value="practice">
           <History class="mr-1.5 size-4" />
-          Practice History
+          {{ t.admin.studentStatistics.tabPractice }}
         </TabsTrigger>
         <TabsTrigger v-if="engagement?.subscription" value="subscription">
           <CreditCard class="mr-1.5 size-4" />
-          Subscription
+          {{ t.admin.studentStatistics.tabSubscription }}
         </TabsTrigger>
         <TabsTrigger v-if="engagement" value="pets">
           <PawPrint class="mr-1.5 size-4" />
-          Pets ({{ totalOwnedPets }}/{{ totalPets }})
+          {{ t.admin.studentStatistics.tabPets(totalOwnedPets, totalPets) }}
         </TabsTrigger>
         <TabsTrigger v-if="engagement" value="mood">
           <Calendar class="mr-1.5 size-4" />
-          Daily Status
+          {{ t.admin.studentStatistics.tabDailyStatus }}
         </TabsTrigger>
       </TabsList>
 
@@ -255,9 +257,9 @@ const totalPets = computed(() => petsStore.allPets.length)
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <History class="size-5" />
-                Practice History
+                {{ t.admin.studentStatistics.practiceHistoryTitle }}
               </CardTitle>
-              <CardDescription>View all practice sessions and scores.</CardDescription>
+              <CardDescription>{{ t.admin.studentStatistics.practiceHistoryDesc }}</CardDescription>
             </CardHeader>
             <CardContent>
               <DataTable
@@ -274,7 +276,7 @@ const totalPets = computed(() => petsStore.allPets.length)
               <div v-else class="py-12 text-center">
                 <BookOpen class="mx-auto size-12 text-muted-foreground/50" />
                 <p class="mt-2 text-muted-foreground">
-                  No practice sessions found for the selected filters.
+                  {{ t.admin.studentStatistics.noSessionsFound }}
                 </p>
               </div>
             </CardContent>

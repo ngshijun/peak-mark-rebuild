@@ -8,6 +8,7 @@ import CurriculumEditNameDialog from '@/components/admin/CurriculumEditNameDialo
 import CurriculumLevelPanel from '@/components/admin/CurriculumLevelPanel.vue'
 import { Plus, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/composables/useT'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,6 +18,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
+const t = useT()
 const curriculumStore = useCurriculumStore()
 
 // Navigation state (from store for persistence)
@@ -60,15 +62,15 @@ const currentAddType = computed<'grade' | 'subject' | 'topic' | 'subtopic'>(() =
 const addButtonLabel = computed(() => {
   switch (currentAddType.value) {
     case 'grade':
-      return 'Add Grade Level'
+      return t.value.admin.curriculum.addGradeLevel
     case 'subject':
-      return 'Add Subject'
+      return t.value.admin.curriculum.addSubject
     case 'topic':
-      return 'Add Topic'
+      return t.value.admin.curriculum.addTopic
     case 'subtopic':
-      return 'Add Sub-Topic'
+      return t.value.admin.curriculum.addSubTopic
     default:
-      return 'Add'
+      return t.value.shared.actions.add
   }
 })
 
@@ -237,8 +239,8 @@ function openEditNameDialog(
     <!-- Header -->
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Curriculum</h1>
-        <p class="text-muted-foreground">Manage grade levels, subjects, topics, and sub-topics</p>
+        <h1 class="text-2xl font-bold">{{ t.admin.curriculum.title }}</h1>
+        <p class="text-muted-foreground">{{ t.admin.curriculum.subtitle }}</p>
       </div>
       <!-- Dynamic Add Button -->
       <Button :disabled="curriculumStore.isLoading" @click="openAddDialog(currentAddType)">
@@ -252,9 +254,9 @@ function openEditNameDialog(
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink v-if="selectedGradeLevel" as-child>
-            <button @click="goBackToGradeLevels">Grade Levels</button>
+            <button @click="goBackToGradeLevels">{{ t.admin.curriculum.gradeLevels }}</button>
           </BreadcrumbLink>
-          <BreadcrumbPage v-else>Grade Levels</BreadcrumbPage>
+          <BreadcrumbPage v-else>{{ t.admin.curriculum.gradeLevels }}</BreadcrumbPage>
         </BreadcrumbItem>
         <template v-if="selectedGradeLevel">
           <BreadcrumbSeparator />
@@ -293,12 +295,10 @@ function openEditNameDialog(
       v-else-if="!selectedGradeLevel"
       :items="curriculumStore.gradeLevels"
       clickable
-      :get-description="
-        (g) => `${g.subjects.length} ${g.subjects.length === 1 ? 'subject' : 'subjects'}`
-      "
-      empty-title="No grade levels yet"
-      empty-description="Get started by adding your first grade level."
-      add-label="Add Grade Level"
+      :get-description="(g) => t.admin.curriculum.subjectCount(g.subjects.length)"
+      :empty-title="t.admin.curriculum.noGradeLevels"
+      :empty-description="t.admin.curriculum.noGradeLevelsDesc"
+      :add-label="t.admin.curriculum.addGradeLevel"
       @select="(g) => selectGradeLevel(g.id)"
       @edit-name="(g) => openEditNameDialog('grade', g.name, g.id)"
       @delete="(g) => openDeleteDialog('grade', g.name, g.id)"
@@ -312,10 +312,10 @@ function openEditNameDialog(
       clickable
       has-image
       :get-cover-image-url="(s) => (s.coverImagePath ? getImageUrl(s.coverImagePath) : null)"
-      :get-description="(s) => `${s.topics.length} ${s.topics.length === 1 ? 'topic' : 'topics'}`"
-      empty-title="No subjects yet"
-      :empty-description="`Add subjects to ${selectedGradeLevel.name}.`"
-      add-label="Add Subject"
+      :get-description="(s) => t.admin.curriculum.topicCount(s.topics.length)"
+      :empty-title="t.admin.curriculum.noSubjects"
+      :empty-description="t.admin.curriculum.noSubjectsDesc(selectedGradeLevel.name)"
+      :add-label="t.admin.curriculum.addSubject"
       @select="(s) => selectSubject(s.id)"
       @edit-name="(s) => openEditNameDialog('subject', s.name, selectedGradeLevel!.id, s.id)"
       @edit-image="
@@ -341,12 +341,10 @@ function openEditNameDialog(
       clickable
       has-image
       :get-cover-image-url="(t) => (t.coverImagePath ? getImageUrl(t.coverImagePath) : null)"
-      :get-description="
-        (t) => `${t.subTopics.length} ${t.subTopics.length === 1 ? 'sub-topic' : 'sub-topics'}`
-      "
-      empty-title="No topics yet"
-      :empty-description="`Add topics to ${selectedSubject.name}.`"
-      add-label="Add Topic"
+      :get-description="(topic) => t.admin.curriculum.subTopicCount(topic.subTopics.length)"
+      :empty-title="t.admin.curriculum.noTopics"
+      :empty-description="t.admin.curriculum.noTopicsDesc(selectedSubject.name)"
+      :add-label="t.admin.curriculum.addTopic"
       @select="(t) => selectTopic(t.id)"
       @edit-name="
         (t) =>
@@ -377,10 +375,10 @@ function openEditNameDialog(
       :items="selectedTopic.subTopics"
       has-image
       :get-cover-image-url="(st) => (st.coverImagePath ? getImageUrl(st.coverImagePath) : null)"
-      :get-description="() => 'Sub-Topic'"
-      empty-title="No sub-topics yet"
-      :empty-description="`Add sub-topics to ${selectedTopic.name}.`"
-      add-label="Add Sub-Topic"
+      :get-description="() => t.admin.curriculum.subTopicLabel"
+      :empty-title="t.admin.curriculum.noSubTopics"
+      :empty-description="t.admin.curriculum.noSubTopicsDesc(selectedTopic.name)"
+      :add-label="t.admin.curriculum.addSubTopic"
       @edit-name="
         (st) =>
           openEditNameDialog(

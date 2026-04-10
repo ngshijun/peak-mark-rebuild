@@ -14,6 +14,7 @@ import { useLeaderboardStore } from '@/stores/leaderboard'
 import { useFriendsStore } from '@/stores/friends'
 import { useFeedbackStore } from '@/stores/feedback'
 import { useAuthStore } from '@/stores/auth'
+import { useT } from '@/composables/useT'
 import type { NavItem } from '@/types'
 
 import { computed } from 'vue'
@@ -33,6 +34,44 @@ const leaderboardStore = useLeaderboardStore()
 const friendsStore = useFriendsStore()
 const feedbackStore = useFeedbackStore()
 const authStore = useAuthStore()
+const t = useT()
+
+// Map nav paths to locale keys
+const pathToNavKey: Record<string, string> = {
+  '/admin/dashboard': 'dashboard',
+  '/admin/announcements': 'announcements',
+  '/admin/curriculum': 'curriculum',
+  '/admin/question-bank': 'questionBank',
+  '/admin/question-statistics': 'questionStatistics',
+  '/admin/question-feedback': 'questionFeedback',
+  '/admin/students': 'students',
+  '/admin/payment-history': 'paymentHistory',
+  '/admin/leaderboard': 'leaderboard',
+  '/admin/pets': 'pets',
+  '/student/dashboard': 'dashboard',
+  '/student/announcements': 'announcements',
+  '/student/practice': 'practice',
+  '/student/statistics': 'statistics',
+  '/student/leaderboard': 'leaderboard',
+  '/student/friends': 'friends',
+  '/student/my-pet': 'myPet',
+  '/student/collections': 'collections',
+  '/parent/dashboard': 'dashboard',
+  '/parent/announcements': 'announcements',
+  '/parent/children': 'children',
+  '/parent/statistics': 'statistics',
+  '/parent/subscription': 'subscription',
+  '/parent/contact': 'contactUs',
+}
+
+function getNavTitle(item: NavItem): string {
+  const key = pathToNavKey[item.path]
+  if (!key) return item.title
+  const userType = authStore.userType
+  if (!userType) return item.title
+  const navSection = t.value.shared.layout.sidebar.nav[userType] as Record<string, string>
+  return navSection[key] ?? item.title
+}
 
 function shouldShowBadge(item: NavItem): boolean {
   if (
@@ -73,7 +112,7 @@ function getBadgeText(item: NavItem): string {
 
 <template>
   <SidebarGroup data-tour="sidebar-nav">
-    <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+    <SidebarGroupLabel>{{ t.shared.layout.sidebar.navigation }}</SidebarGroupLabel>
     <SidebarGroupContent>
       <SidebarMenu>
         <SidebarMenuItem v-for="item in mainItems" :key="item.path">
@@ -81,7 +120,7 @@ function getBadgeText(item: NavItem): string {
             <RouterLink :to="item.path" class="flex items-center justify-between w-full">
               <div class="flex items-center gap-2">
                 <component :is="item.icon" class="size-4" />
-                <span>{{ item.title }}</span>
+                <span>{{ getNavTitle(item) }}</span>
               </div>
               <Badge
                 v-if="shouldShowBadge(item)"
@@ -99,7 +138,7 @@ function getBadgeText(item: NavItem): string {
               <RouterLink :to="item.path" class="flex items-center justify-between w-full">
                 <div class="flex items-center gap-2">
                   <component :is="item.icon" class="size-4" />
-                  <span>{{ item.title }}</span>
+                  <span>{{ getNavTitle(item) }}</span>
                 </div>
               </RouterLink>
             </SidebarMenuButton>

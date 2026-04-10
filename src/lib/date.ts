@@ -182,13 +182,26 @@ export function formatLongDateTime(dateString: string | null | undefined): strin
   })
 }
 
+export interface RelativeDateLabels {
+  today: string
+  yesterday: string
+  daysAgo: (n: number) => string
+  weeksAgo: (n: number) => string
+  never: string
+}
+
 /**
  * Formats a date string as a relative date.
  * Examples: "Today", "Yesterday", "3d ago", "2w ago", falls back to formatDate.
- * Returns 'Never' for null/undefined input.
+ * Returns 'Never' (or locale equivalent) for null/undefined input.
+ * Pass a `labels` object to localise the output strings.
  */
-export function formatRelativeDate(dateString: string | null | undefined): string {
-  if (!dateString) return 'Never'
+export function formatRelativeDate(
+  dateString: string | null | undefined,
+  labels?: RelativeDateLabels,
+): string {
+  const never = labels?.never ?? 'Never'
+  if (!dateString) return never
   const date = new Date(dateString)
   const now = new Date()
 
@@ -197,7 +210,7 @@ export function formatRelativeDate(dateString: string | null | undefined): strin
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
 
-  if (isToday) return 'Today'
+  if (isToday) return labels?.today ?? 'Today'
 
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
@@ -206,13 +219,14 @@ export function formatRelativeDate(dateString: string | null | undefined): strin
     date.getMonth() === yesterday.getMonth() &&
     date.getDate() === yesterday.getDate()
 
-  if (isYesterday) return 'Yesterday'
+  if (isYesterday) return labels?.yesterday ?? 'Yesterday'
 
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+  if (diffDays < 7) return labels ? labels.daysAgo(diffDays) : `${diffDays}d ago`
+  if (diffDays < 30)
+    return labels ? labels.weeksAgo(Math.floor(diffDays / 7)) : `${Math.floor(diffDays / 7)}w ago`
   return formatDate(dateString)
 }
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, type PetRarity, type Pet } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity, type Pet } from '@/stores/pets'
 import { usePetsLoader } from '@/composables/usePetsLoader'
+import { useT } from '@/composables/useT'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import PetDetailDialog from '@/components/student/PetDetailDialog.vue'
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
 const { isLoading } = usePetsLoader()
+const t = useT()
 
 const rarityOrder: PetRarity[] = ['legendary', 'epic', 'rare', 'common']
 
@@ -84,23 +86,23 @@ function closeCombineResult() {
     <template v-else>
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold">Collections</h1>
-          <p class="text-muted-foreground">View all available pets and track your collection</p>
+          <h1 class="text-2xl font-bold">{{ t.student.collections.title }}</h1>
+          <p class="text-muted-foreground">{{ t.student.collections.subtitle }}</p>
         </div>
         <div class="flex items-center gap-4">
           <Button variant="outline" as-child data-tour="unlock-new-pets">
             <RouterLink to="/student/gacha">
               <Sparkles class="mr-2 size-4" />
-              Unlock New Pets
+              {{ t.student.collections.unlockNewPets }}
             </RouterLink>
           </Button>
           <Button @click="showCombineDialog = true">
             <Combine class="mr-2 size-4" />
-            Combine Pets
+            {{ t.student.collections.combinePets }}
           </Button>
           <div class="text-right">
             <p class="text-2xl font-bold">{{ petsStore.totalOwned }} / {{ petsStore.totalPets }}</p>
-            <p class="text-sm text-muted-foreground">Pets Collected</p>
+            <p class="text-sm text-muted-foreground">{{ t.student.collections.petsCollected }}</p>
           </div>
         </div>
       </div>
@@ -114,14 +116,16 @@ function closeCombineResult() {
                 class="flex items-center gap-2 text-base"
                 :class="rarityConfig[rarity].color"
               >
-                {{ rarityConfig[rarity].label }}
+                {{ getRarityLabel(rarity) }}
               </CardTitle>
               <Badge variant="outline" :class="rarityConfig[rarity].color">
                 {{ petsStore.collectionStats[rarity].owned }} /
                 {{ petsStore.collectionStats[rarity].total }}
               </Badge>
             </div>
-            <CardDescription>{{ rarityConfig[rarity].chance }}% drop rate</CardDescription>
+            <CardDescription>{{
+              t.student.collections.dropRate(rarityConfig[rarity].chance)
+            }}</CardDescription>
           </CardHeader>
           <CardContent>
             <div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">

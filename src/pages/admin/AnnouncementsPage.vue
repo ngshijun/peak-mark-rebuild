@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { useAnnouncementsStore, audienceConfig, type Announcement } from '@/stores/announcements'
+import { useAnnouncementsStore, getAudienceConfig, type Announcement } from '@/stores/announcements'
 import {
   Search,
   Plus,
@@ -37,7 +37,9 @@ import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDet
 import AnnouncementFormDialog from '@/components/admin/AnnouncementFormDialog.vue'
 import { toast } from 'vue-sonner'
 import { formatDate, formatTimeAgo } from '@/lib/date'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const announcementsStore = useAnnouncementsStore()
 
 // Fetch announcements on mount
@@ -56,7 +58,7 @@ const filteredAnnouncements = computed(() => {
     (a) =>
       a.title.toLowerCase().includes(query) ||
       a.content.toLowerCase().includes(query) ||
-      audienceConfig[a.targetAudience].label.toLowerCase().includes(query),
+      getAudienceConfig()[a.targetAudience].label.toLowerCase().includes(query),
   )
 })
 
@@ -98,7 +100,11 @@ async function handleTogglePin(announcement: Announcement) {
       toast.error(error)
     } else {
       // After toggle, isPinned reflects the NEW state
-      toast.success(announcement.isPinned ? 'Announcement pinned' : 'Announcement unpinned')
+      toast.success(
+        announcement.isPinned
+          ? t.value.admin.announcements.toastPinned
+          : t.value.admin.announcements.toastUnpinned,
+      )
     }
   } finally {
     togglingPinId.value = null
@@ -124,7 +130,7 @@ async function confirmDelete() {
     if (error) {
       toast.error(error)
     } else {
-      toast.success('Announcement deleted successfully')
+      toast.success(t.value.admin.announcements.toastDeleted)
       // Refresh announcements list after delete
       await announcementsStore.fetchAnnouncements()
     }
@@ -139,7 +145,7 @@ async function confirmDelete() {
 const columns: ColumnDef<Announcement>[] = [
   {
     accessorKey: 'title',
-    header: 'Title',
+    header: () => t.value.admin.announcements.titleCol,
     cell: ({ row }) => {
       return h('div', { class: 'max-w-[200px] font-medium truncate flex items-center gap-1.5' }, [
         row.original.isPinned ? h(Pin, { class: 'size-3.5 text-primary shrink-0' }) : null,
@@ -149,7 +155,7 @@ const columns: ColumnDef<Announcement>[] = [
   },
   {
     accessorKey: 'content',
-    header: 'Content',
+    header: () => t.value.admin.announcements.contentCol,
     cell: ({ row }) => {
       const content = row.original.content
       return h(
@@ -161,10 +167,10 @@ const columns: ColumnDef<Announcement>[] = [
   },
   {
     accessorKey: 'targetAudience',
-    header: 'Audience',
+    header: () => t.value.admin.announcements.audienceCol,
     cell: ({ row }) => {
       const audience = row.original.targetAudience
-      const config = audienceConfig[audience]
+      const config = getAudienceConfig()[audience]
       return h(
         Badge,
         { variant: 'secondary', class: `${config.bgColor} ${config.color}` },
@@ -174,7 +180,7 @@ const columns: ColumnDef<Announcement>[] = [
   },
   {
     accessorKey: 'imagePath',
-    header: 'Image',
+    header: () => t.value.admin.announcements.imageCol,
     cell: ({ row }) => {
       const imagePath = row.original.imagePath
       if (!imagePath) {
@@ -189,11 +195,15 @@ const columns: ColumnDef<Announcement>[] = [
   },
   {
     accessorKey: 'expiresAt',
-    header: 'Expires',
+    header: () => t.value.admin.announcements.expiresCol,
     cell: ({ row }) => {
       const expiresAt = row.original.expiresAt
       if (!expiresAt) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, 'Never')
+        return h(
+          'span',
+          { class: 'text-muted-foreground text-sm' },
+          t.value.admin.announcements.never,
+        )
       }
       const isExpired = new Date(expiresAt) < new Date()
       return h(
@@ -212,7 +222,7 @@ const columns: ColumnDef<Announcement>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Created', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.announcements.createdCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -262,7 +272,9 @@ const columns: ColumnDef<Announcement>[] = [
                     : announcement.isPinned
                       ? h(PinOff, { class: 'mr-2 size-4' })
                       : h(Pin, { class: 'mr-2 size-4' }),
-                  announcement.isPinned ? 'Unpin' : 'Pin',
+                  announcement.isPinned
+                    ? t.value.admin.announcements.unpin
+                    : t.value.admin.announcements.pin,
                 ],
               ),
               h(
@@ -273,7 +285,7 @@ const columns: ColumnDef<Announcement>[] = [
                     openEditDialog(announcement)
                   },
                 },
-                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit'],
+                () => [h(Pencil, { class: 'mr-2 size-4' }), t.value.admin.announcements.edit],
               ),
               h(
                 DropdownMenuItem,
@@ -284,7 +296,7 @@ const columns: ColumnDef<Announcement>[] = [
                     openDeleteDialog(announcement)
                   },
                 },
-                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete'],
+                () => [h(Trash2, { class: 'mr-2 size-4' }), t.value.admin.announcements.delete],
               ),
             ]),
           ],
@@ -299,14 +311,12 @@ const columns: ColumnDef<Announcement>[] = [
   <div class="p-6">
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Announcements</h1>
-        <p class="text-muted-foreground">
-          Create and manage announcements for students and parents.
-        </p>
+        <h1 class="text-2xl font-bold">{{ t.admin.announcements.title }}</h1>
+        <p class="text-muted-foreground">{{ t.admin.announcements.subtitle }}</p>
       </div>
       <Button :disabled="announcementsStore.isLoading" @click="openAddDialog">
         <Plus class="mr-2 size-4" />
-        Add Announcement
+        {{ t.admin.announcements.addAnnouncementBtn }}
       </Button>
     </div>
 
@@ -322,7 +332,7 @@ const columns: ColumnDef<Announcement>[] = [
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             :model-value="announcementsStore.adminAnnouncementsFilters.search"
-            placeholder="Search announcements..."
+            :placeholder="t.admin.announcements.searchPlaceholder"
             class="pl-9"
             @update:model-value="announcementsStore.setAdminAnnouncementsSearch(String($event))"
           />
@@ -339,7 +349,7 @@ const columns: ColumnDef<Announcement>[] = [
         "
         class="py-12 text-center"
       >
-        <p class="text-muted-foreground">No announcements yet. Create your first announcement!</p>
+        <p class="text-muted-foreground">{{ t.admin.announcements.noAnnouncements }}</p>
       </div>
     </template>
 
@@ -360,21 +370,22 @@ const columns: ColumnDef<Announcement>[] = [
     <AlertDialog v-model:open="showDeleteDialog">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Announcement</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.admin.announcements.deleteTitle }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{{ deletingAnnouncement?.title }}"? This action cannot
-            be undone.
+            {{ t.admin.announcements.deleteDesc(deletingAnnouncement?.title ?? '') }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
+          <AlertDialogCancel :disabled="isDeleting">{{
+            t.shared.actions.cancel
+          }}</AlertDialogCancel>
           <AlertDialogAction
             class="bg-destructive text-white hover:bg-destructive/90"
             :disabled="isDeleting"
             @click="confirmDelete"
           >
             <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
-            Delete
+            {{ t.shared.actions.delete }}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

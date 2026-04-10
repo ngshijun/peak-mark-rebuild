@@ -28,9 +28,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'vue-sonner'
 import { QuestionPreviewDialog, QuestionEditDialog } from '@/components/admin'
+import { useT } from '@/composables/useT'
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
+const t = useT()
 const feedbackStore = useFeedbackStore()
 const questionsStore = useQuestionsStore()
 
@@ -42,39 +44,41 @@ const previewFeedback = ref<QuestionFeedback | null>(null)
 const editingQuestion = ref<Question | null>(null)
 
 // Category config with colors
-const categoryConfig: Record<FeedbackCategory, { label: string; color: string; bgColor: string }> =
-  {
+const categoryConfig = computed(() => {
+  const labels = t.value.admin.questionFeedback
+  return {
     question_error: {
-      label: 'Question Error',
+      label: labels.categoryQuestionError,
       color: 'text-red-700 dark:text-red-300',
       bgColor: 'bg-red-100 dark:bg-red-900/50',
     },
     image_error: {
-      label: 'Image Error',
+      label: labels.categoryImageError,
       color: 'text-orange-700 dark:text-orange-300',
       bgColor: 'bg-orange-100 dark:bg-orange-900/50',
     },
     option_error: {
-      label: 'Option Error',
+      label: labels.categoryOptionError,
       color: 'text-yellow-700 dark:text-yellow-300',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900/50',
     },
     answer_error: {
-      label: 'Answer Error',
+      label: labels.categoryAnswerError,
       color: 'text-red-700 dark:text-red-300',
       bgColor: 'bg-red-100 dark:bg-red-900/50',
     },
     explanation_error: {
-      label: 'Explanation Error',
+      label: labels.categoryExplanationError,
       color: 'text-purple-700 dark:text-purple-300',
       bgColor: 'bg-purple-100 dark:bg-purple-900/50',
     },
     other: {
-      label: 'Other',
+      label: labels.categoryOther,
       color: 'text-gray-700 dark:text-gray-300',
       bgColor: 'bg-gray-100 dark:bg-gray-800',
     },
-  }
+  } satisfies Record<FeedbackCategory, { label: string; color: string; bgColor: string }>
+})
 
 // Fetch feedbacks on mount (question text is already joined in the feedback query)
 // Full question data is fetched on-demand when preview/edit is needed
@@ -91,7 +95,7 @@ const filteredFeedbacks = computed(() => {
     (f) =>
       f.question.toLowerCase().includes(query) ||
       (f.comments?.toLowerCase().includes(query) ?? false) ||
-      categoryConfig[f.category].label.toLowerCase().includes(query),
+      categoryConfig.value[f.category].label.toLowerCase().includes(query),
   )
 })
 
@@ -121,8 +125,8 @@ async function openEditDialog(feedback: QuestionFeedback, event: Event) {
       editingQuestion.value = question
       showEditDialog.value = true
     } else {
-      toast.error('Question not found', {
-        description: 'The question may have been deleted.',
+      toast.error(t.value.admin.questionFeedback.toastQuestionNotFound, {
+        description: t.value.admin.questionFeedback.toastQuestionDeleted,
       })
     }
   } finally {
@@ -155,8 +159,8 @@ async function handleRowClick(feedback: QuestionFeedback) {
       previewFeedback.value = feedback
       showPreviewDialog.value = true
     } else {
-      toast.error('Question not found', {
-        description: 'The question may have been deleted.',
+      toast.error(t.value.admin.questionFeedback.toastQuestionNotFound, {
+        description: t.value.admin.questionFeedback.toastQuestionDeleted,
       })
     }
   } finally {
@@ -173,7 +177,7 @@ async function confirmDelete() {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success('Feedback deleted successfully')
+      toast.success(t.value.admin.questionFeedback.toastDeleted)
     }
   } finally {
     isDeleting.value = false
@@ -186,7 +190,7 @@ async function confirmDelete() {
 const columns: ColumnDef<QuestionFeedback>[] = [
   {
     accessorKey: 'question',
-    header: 'Question',
+    header: () => t.value.admin.questionFeedback.questionCol,
     cell: ({ row }) => {
       return h(
         'div',
@@ -200,10 +204,10 @@ const columns: ColumnDef<QuestionFeedback>[] = [
   },
   {
     accessorKey: 'category',
-    header: 'Category',
+    header: () => t.value.admin.questionFeedback.categoryCol,
     cell: ({ row }) => {
       const category = row.original.category
-      const config = categoryConfig[category]
+      const config = categoryConfig.value[category]
       return h(
         Badge,
         { variant: 'secondary', class: `${config.bgColor} ${config.color}` },
@@ -213,16 +217,20 @@ const columns: ColumnDef<QuestionFeedback>[] = [
   },
   {
     accessorKey: 'comments',
-    header: 'Comments',
+    header: () => t.value.admin.questionFeedback.commentsCol,
     cell: ({ row }) => {
       return h('div', { class: 'max-w-[20rem] truncate text-sm' }, row.original.comments || '-')
     },
   },
   {
     accessorKey: 'reportedByName',
-    header: 'Reported By',
+    header: () => t.value.admin.questionFeedback.reportedByCol,
     cell: ({ row }) => {
-      return h('div', { class: 'text-sm' }, row.original.reportedByName || 'Unknown')
+      return h(
+        'div',
+        { class: 'text-sm' },
+        row.original.reportedByName || t.value.admin.questionFeedback.unknown,
+      )
     },
   },
   {
@@ -234,7 +242,10 @@ const columns: ColumnDef<QuestionFeedback>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Time Reported', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [
+          t.value.admin.questionFeedback.timeReportedCol,
+          h(ArrowUpDown, { class: 'ml-2 size-4' }),
+        ],
       )
     },
     cell: ({ row }) => {
@@ -273,7 +284,10 @@ const columns: ColumnDef<QuestionFeedback>[] = [
                 {
                   onClick: (event: Event) => openEditDialog(feedback, event),
                 },
-                () => [h(Pencil, { class: 'mr-2 size-4' }), 'Edit Question'],
+                () => [
+                  h(Pencil, { class: 'mr-2 size-4' }),
+                  t.value.admin.questionFeedback.editQuestion,
+                ],
               ),
               h(
                 DropdownMenuItem,
@@ -281,7 +295,10 @@ const columns: ColumnDef<QuestionFeedback>[] = [
                   class: 'text-destructive focus:text-destructive',
                   onClick: (event: Event) => openDeleteDialog(feedback, event),
                 },
-                () => [h(Trash2, { class: 'mr-2 size-4' }), 'Delete Feedback'],
+                () => [
+                  h(Trash2, { class: 'mr-2 size-4' }),
+                  t.value.admin.questionFeedback.deleteFeedback,
+                ],
               ),
             ]),
           ],
@@ -295,8 +312,8 @@ const columns: ColumnDef<QuestionFeedback>[] = [
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold">Question Feedback</h1>
-      <p class="text-muted-foreground">Review and manage feedback reports from users.</p>
+      <h1 class="text-2xl font-bold">{{ t.admin.questionFeedback.title }}</h1>
+      <p class="text-muted-foreground">{{ t.admin.questionFeedback.subtitle }}</p>
     </div>
 
     <!-- Loading State -->
@@ -311,7 +328,7 @@ const columns: ColumnDef<QuestionFeedback>[] = [
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             :model-value="questionsStore.questionFeedbackFilters.search"
-            placeholder="Search feedback..."
+            :placeholder="t.admin.questionFeedback.searchPlaceholder"
             class="pl-9"
             @update:model-value="questionsStore.setQuestionFeedbackSearch(String($event))"
           />
@@ -348,20 +365,22 @@ const columns: ColumnDef<QuestionFeedback>[] = [
     <AlertDialog v-model:open="showDeleteDialog">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Feedback</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.admin.questionFeedback.deleteFeedbackTitle }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this feedback? This action cannot be undone.
+            {{ t.admin.questionFeedback.deleteFeedbackDesc }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
+          <AlertDialogCancel :disabled="isDeleting">{{
+            t.shared.actions.cancel
+          }}</AlertDialogCancel>
           <AlertDialogAction
             class="bg-destructive text-white hover:bg-destructive/90"
             :disabled="isDeleting"
             @click="confirmDelete"
           >
             <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
-            Delete
+            {{ t.shared.actions.delete }}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
