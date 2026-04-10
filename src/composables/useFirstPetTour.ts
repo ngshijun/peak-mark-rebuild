@@ -5,6 +5,7 @@ import { usePetsStore } from '@/stores/pets'
 import { useTour } from './useTour'
 import { loadDriver } from './tour/loadDriver'
 import { toast } from 'vue-sonner'
+import { useLanguageStore } from '@/stores/language'
 
 const WAIT_TIMEOUT_MS = 30_000
 
@@ -98,7 +99,8 @@ export function useFirstPetTour() {
     fn().catch((err) => {
       console.error('First pet tour step failed:', err)
       destroyTour()
-      toast.error('The onboarding tour ran into an issue. Please try again later.')
+      const languageStore = useLanguageStore()
+      toast.error(languageStore.t.shared.toasts.tourError)
     })
   }
 

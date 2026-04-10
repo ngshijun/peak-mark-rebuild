@@ -11,6 +11,171 @@ export default {
   },
   toasts: {
     languageSaveFailed: 'Failed to save language preference',
+    avatarUpdated: 'Avatar updated successfully',
+    nameUpdated: 'Name updated successfully',
+    copiedToClipboard: 'Copied to clipboard!',
+    failedToShare: 'Failed to share',
+    linkCopied: 'Link copied!',
+    failedToCopyLink: 'Failed to copy link',
+    pullFailed: 'Pull failed',
+    tourError: 'The onboarding tour ran into an issue. Please try again later.',
+  },
+  tours: {
+    mainTour: {
+      student: {
+        step1: {
+          title: 'XP & Level',
+          description:
+            'This is your experience bar. Earn XP by completing practice sessions to level up!',
+        },
+        step2: {
+          title: 'Navigation Menu',
+          description:
+            'This is your navigation menu. Use it to access all the features of the app.',
+        },
+        step3: {
+          title: 'Announcements',
+          description: 'Stay updated with the latest news and announcements.',
+        },
+        step4: {
+          title: 'Practice',
+          description:
+            'Start practice sessions here. Choose your subject and topic, then answer questions to earn XP and coins.',
+        },
+        step5: {
+          title: 'Statistics',
+          description: 'View your learning progress, accuracy rates, and session history.',
+        },
+        step6: {
+          title: 'Leaderboard',
+          description:
+            'Compete with other students! Climb the leaderboard by earning XP through practice.',
+        },
+        step7: {
+          title: 'Pets & Collections',
+          description: 'Manage your pets, feed them to evolve, and browse your full collection.',
+        },
+        step8: {
+          title: 'Coins & Food',
+          description:
+            'These are your coins and food. Earn coins by completing practice sessions, and use them to collect pets!',
+        },
+        step9: {
+          title: 'Daily Spin & Mood',
+          description:
+            'Spin the wheel for daily rewards and set your mood to let your parents know how you feel!',
+        },
+        step10: {
+          title: 'Your Pet Companion',
+          description:
+            'This is your pet! Collect pets through the gacha, feed them to evolve, and set your favourite as your companion.',
+        },
+        step11: {
+          title: 'Your Progress',
+          description:
+            'See your top subject and daily practice streak here. Practice every day to keep your streak going!',
+        },
+        step12: {
+          title: 'Your Profile',
+          description:
+            'Access your profile and manage your parent here. You can restart this tour anytime from your Profile page.',
+        },
+      },
+      parent: {
+        step1: {
+          title: 'Navigation Menu',
+          description:
+            'This is your navigation menu. Use it to access all the features of the app.',
+        },
+        step2: {
+          title: 'Announcements',
+          description: 'Stay updated with the latest news and announcements.',
+        },
+        step3: {
+          title: 'Children',
+          description:
+            "Link and manage your children here. Send an invitation code to connect with your child's account.",
+        },
+        step4: {
+          title: 'Statistics',
+          description:
+            "Track your children's learning progress, accuracy rates, and practice history.",
+        },
+        step5: {
+          title: 'Subscription',
+          description:
+            'Manage your subscription plan here. Upgrade to unlock more daily practice sessions for your children.',
+        },
+        step6: {
+          title: 'Contact Us',
+          description: 'Have questions or need help? Reach out to us anytime.',
+        },
+        step7: {
+          title: 'Switch Children',
+          description:
+            'If you have multiple children linked, use this dropdown to switch between them.',
+        },
+        step8: {
+          title: 'Daily Status & Sessions',
+          description: "See your child's daily mood and practice session history at a glance.",
+        },
+        step9: {
+          title: 'Your Profile',
+          description:
+            'Access your profile here. You can restart this tour anytime from your Profile page.',
+        },
+      },
+    },
+    firstPetTour: {
+      step1: {
+        title: "Let's Get Your First Pet!",
+        description: 'Every student gets a free starter pet. Tap "Collections" to start!',
+      },
+      step2: {
+        title: 'Unlock New Pets',
+        description:
+          'This is where you can spend coins to collect pets. Tap "Unlock New Pets" to visit the gacha machine!',
+      },
+      step3: {
+        title: 'Draw Your Free Pet!',
+        description: 'This is the gacha machine! Tap the button to draw your free starter pet!',
+      },
+      step4: {
+        title: 'Congratulations!',
+        description: 'You got your first pet — Cloud Bunny!',
+        nextBtnText: 'Nice!',
+      },
+      step5: {
+        title: 'Continue Your Journey!',
+        description: 'Tap "Close" to continue.',
+      },
+      step6: {
+        title: 'Meet Your New Friend!',
+        description: 'Your Cloud Bunny is waiting! Tap "Collections" to see your new pet.',
+      },
+      step7: {
+        title: 'Your Cloud Bunny!',
+        description: 'Tap Cloud Bunny to view its details and set it as your companion!',
+      },
+      step8: {
+        title: 'Select Your Companion!',
+        description: 'Tap "Select as My Pet" to set Cloud Bunny as your companion!',
+      },
+      step9: {
+        title: 'Well Done!',
+        description: 'Cloud Bunny is now your companion! Tap the X to close.',
+      },
+      step10: {
+        title: 'Head Home!',
+        description: 'Tap "Dashboard" to see your pet on the home page!',
+      },
+      step11: {
+        title: 'Your Pet is Here!',
+        description:
+          'Cloud Bunny is now your companion! Earn coins through practice to collect more pets. Enjoy your journey!',
+        nextBtnText: 'Got it!',
+      },
+    },
   },
   actions: {
     save: 'Save',

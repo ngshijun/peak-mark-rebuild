@@ -11,6 +11,154 @@ export default {
   },
   toasts: {
     languageSaveFailed: '保存语言偏好失败',
+    avatarUpdated: '头像已成功更新',
+    nameUpdated: '名字已成功更新',
+    copiedToClipboard: '已复制到剪贴板！',
+    failedToShare: '分享失败',
+    linkCopied: '链接已复制！',
+    failedToCopyLink: '复制链接失败',
+    pullFailed: '抽取失败',
+    tourError: '引导教程出现问题，请稍后再试。',
+  },
+  tours: {
+    mainTour: {
+      student: {
+        step1: {
+          title: '经验值与等级',
+          description: '这是你的经验条。完成练习可获得经验值，经验值累积后可升级！',
+        },
+        step2: {
+          title: '导航菜单',
+          description: '这是你的导航菜单，使用它可访问应用的所有功能。',
+        },
+        step3: {
+          title: '公告',
+          description: '在这里获取最新消息与公告。',
+        },
+        step4: {
+          title: '练习',
+          description: '在这里开始练习。选择科目与主题，然后回答题目来赚取经验值和金币。',
+        },
+        step5: {
+          title: '统计',
+          description: '查看你的学习进度、正确率及练习历史。',
+        },
+        step6: {
+          title: '排行榜',
+          description: '与其他同学竞争！通过练习赚取经验值，攀登排行榜！',
+        },
+        step7: {
+          title: '宠物与收藏',
+          description: '管理你的宠物、喂食让它们进化，并浏览你的完整收藏。',
+        },
+        step8: {
+          title: '金币与食物',
+          description: '这是你的金币和食物。完成练习可赚取金币，金币可用来收集宠物！',
+        },
+        step9: {
+          title: '每日转盘与心情',
+          description: '转动转盘获取每日奖励，并设置心情让父母了解你的状态！',
+        },
+        step10: {
+          title: '你的宠物伙伴',
+          description: '这是你的宠物！通过抽奖收集宠物，喂食让它们进化，并将你最喜欢的设为伙伴。',
+        },
+        step11: {
+          title: '你的进度',
+          description: '在这里查看你最擅长的科目和每日练习连续天数。每天坚持练习，保持连续记录！',
+        },
+        step12: {
+          title: '你的个人资料',
+          description: '在这里访问个人资料并管理父母联系。你可以随时从个人资料页面重新开始此教程。',
+        },
+      },
+      parent: {
+        step1: {
+          title: '导航菜单',
+          description: '这是你的导航菜单，使用它可访问应用的所有功能。',
+        },
+        step2: {
+          title: '公告',
+          description: '在这里获取最新消息与公告。',
+        },
+        step3: {
+          title: '孩子',
+          description: '在这里关联和管理你的孩子。发送邀请码以连接孩子的账号。',
+        },
+        step4: {
+          title: '统计',
+          description: '追踪孩子的学习进度、正确率及练习历史。',
+        },
+        step5: {
+          title: '订阅',
+          description: '在这里管理你的订阅方案。升级以为孩子解锁更多每日练习次数。',
+        },
+        step6: {
+          title: '联系我们',
+          description: '有疑问或需要帮助？随时联系我们。',
+        },
+        step7: {
+          title: '切换孩子',
+          description: '如果关联了多个孩子，可使用此下拉菜单在他们之间切换。',
+        },
+        step8: {
+          title: '每日状态与练习',
+          description: '一目了然地查看孩子的每日心情和练习历史。',
+        },
+        step9: {
+          title: '你的个人资料',
+          description: '在这里访问个人资料。你可以随时从个人资料页面重新开始此教程。',
+        },
+      },
+    },
+    firstPetTour: {
+      step1: {
+        title: '来领取你的第一只宠物吧！',
+        description: '每位学生都可免费获得一只初始宠物。点击"收藏"开始！',
+      },
+      step2: {
+        title: '解锁新宠物',
+        description: '在这里可以花费金币来收集宠物。点击"解锁新宠物"前往扭蛋机！',
+      },
+      step3: {
+        title: '抽取你的免费宠物！',
+        description: '这是扭蛋机！点击按钮来抽取你的免费初始宠物！',
+      },
+      step4: {
+        title: '恭喜！',
+        description: '你获得了第一只宠物——云朵兔！',
+        nextBtnText: '太棒了！',
+      },
+      step5: {
+        title: '继续你的旅程！',
+        description: '点击"关闭"继续。',
+      },
+      step6: {
+        title: '迎接你的新朋友！',
+        description: '云朵兔在等你！点击"收藏"查看你的新宠物。',
+      },
+      step7: {
+        title: '你的云朵兔！',
+        description: '点击云朵兔查看详情，并将它设为你的伙伴！',
+      },
+      step8: {
+        title: '选择你的伙伴！',
+        description: '点击"选为我的宠物"将云朵兔设为你的伙伴！',
+      },
+      step9: {
+        title: '做得好！',
+        description: '云朵兔现在是你的伙伴了！点击 X 关闭。',
+      },
+      step10: {
+        title: '回到主页！',
+        description: '点击"仪表板"在主页上查看你的宠物！',
+      },
+      step11: {
+        title: '你的宠物在这里！',
+        description: '云朵兔现在是你的伙伴了！通过练习赚取金币来收集更多宠物。祝你旅途愉快！',
+        nextBtnText: '明白了！',
+      },
+    },
   },
   actions: {
     save: '保存',

@@ -1,4 +1,5 @@
 import { toast } from 'vue-sonner'
+import { useLanguageStore } from '@/stores/language'
 
 interface ShareOptions {
   title: string
@@ -16,20 +17,22 @@ export function useShare() {
       }
     }
 
+    const languageStore = useLanguageStore()
     try {
       await navigator.clipboard.writeText(text)
-      toast.success('Copied to clipboard!')
+      toast.success(languageStore.t.shared.toasts.copiedToClipboard)
     } catch {
-      toast.error('Failed to share')
+      toast.error(languageStore.t.shared.toasts.failedToShare)
     }
   }
 
   async function copyLink(text: string) {
+    const languageStore = useLanguageStore()
     try {
       await navigator.clipboard.writeText(text)
-      toast.success('Link copied!')
+      toast.success(languageStore.t.shared.toasts.linkCopied)
     } catch {
-      toast.error('Failed to copy link')
+      toast.error(languageStore.t.shared.toasts.failedToCopyLink)
     }
   }
 

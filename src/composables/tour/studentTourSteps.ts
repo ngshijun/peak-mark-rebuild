@@ -1,13 +1,16 @@
 import type { DriveStep } from 'driver.js'
+import { useLanguageStore } from '@/stores/language'
 
 export function getStudentTourSteps(): DriveStep[] {
+  const { t } = useLanguageStore()
+  const steps = t.shared.tours.mainTour.student
+
   return [
     {
       element: '[data-tour="sidebar-xp"]',
       popover: {
-        title: 'XP & Level',
-        description:
-          'This is your experience bar. Earn XP by completing practice sessions to level up!',
+        title: steps.step1.title,
+        description: steps.step1.description,
         side: 'right',
         align: 'center',
       },
@@ -15,8 +18,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="sidebar-nav"]',
       popover: {
-        title: 'Navigation Menu',
-        description: 'This is your navigation menu. Use it to access all the features of the app.',
+        title: steps.step2.title,
+        description: steps.step2.description,
         side: 'right',
         align: 'start',
       },
@@ -24,8 +27,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: 'a[href="/student/announcements"]',
       popover: {
-        title: 'Announcements',
-        description: 'Stay updated with the latest news and announcements.',
+        title: steps.step3.title,
+        description: steps.step3.description,
         side: 'right',
         align: 'center',
       },
@@ -33,9 +36,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: 'a[href="/student/practice"]',
       popover: {
-        title: 'Practice',
-        description:
-          'Start practice sessions here. Choose your subject and topic, then answer questions to earn XP and coins.',
+        title: steps.step4.title,
+        description: steps.step4.description,
         side: 'right',
         align: 'center',
       },
@@ -43,8 +45,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: 'a[href="/student/statistics"]',
       popover: {
-        title: 'Statistics',
-        description: 'View your learning progress, accuracy rates, and session history.',
+        title: steps.step5.title,
+        description: steps.step5.description,
         side: 'right',
         align: 'center',
       },
@@ -52,9 +54,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: 'a[href="/student/leaderboard"]',
       popover: {
-        title: 'Leaderboard',
-        description:
-          'Compete with other students! Climb the leaderboard by earning XP through practice.',
+        title: steps.step6.title,
+        description: steps.step6.description,
         side: 'right',
         align: 'center',
       },
@@ -62,8 +63,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="sidebar-pets"]',
       popover: {
-        title: 'Pets & Collections',
-        description: 'Manage your pets, feed them to evolve, and browse your full collection.',
+        title: steps.step7.title,
+        description: steps.step7.description,
         side: 'right',
         align: 'center',
       },
@@ -71,9 +72,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="student-currency"]',
       popover: {
-        title: 'Coins & Food',
-        description:
-          'These are your coins and food. Earn coins by completing practice sessions, and use them to collect pets!',
+        title: steps.step8.title,
+        description: steps.step8.description,
         side: 'bottom',
         align: 'end',
       },
@@ -81,9 +81,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="dashboard-daily"]',
       popover: {
-        title: 'Daily Spin & Mood',
-        description:
-          'Spin the wheel for daily rewards and set your mood to let your parents know how you feel!',
+        title: steps.step9.title,
+        description: steps.step9.description,
         side: 'bottom',
         align: 'end',
       },
@@ -91,9 +90,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="dashboard-pet"]',
       popover: {
-        title: 'Your Pet Companion',
-        description:
-          'This is your pet! Collect pets through the gacha, feed them to evolve, and set your favourite as your companion.',
+        title: steps.step10.title,
+        description: steps.step10.description,
         side: 'right',
         align: 'center',
       },
@@ -101,9 +99,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="dashboard-stats"]',
       popover: {
-        title: 'Your Progress',
-        description:
-          'See your top subject and daily practice streak here. Practice every day to keep your streak going!',
+        title: steps.step11.title,
+        description: steps.step11.description,
         side: 'left',
         align: 'center',
       },
@@ -111,9 +108,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="sidebar-profile"]',
       popover: {
-        title: 'Your Profile',
-        description:
-          'Access your profile and manage your parent here. You can restart this tour anytime from your Profile page.',
+        title: steps.step12.title,
+        description: steps.step12.description,
         side: 'right',
         align: 'end',
       },
