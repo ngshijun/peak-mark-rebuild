@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Megaphone, ChevronRight, Pin } from 'lucide-vue-next'
-import { useAnnouncementsStore, audienceConfig, type Announcement } from '@/stores/announcements'
+import { useAnnouncementsStore, getAudienceConfig, type Announcement } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
 import { formatTimeAgoCompact } from '@/lib/date'
 import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDetailDialog.vue'
@@ -60,9 +60,9 @@ function goToAnnouncementsPage() {
                 <Badge
                   variant="outline"
                   class="text-xs"
-                  :class="audienceConfig[announcement.targetAudience].color"
+                  :class="getAudienceConfig()[announcement.targetAudience].color"
                 >
-                  {{ audienceConfig[announcement.targetAudience].label }}
+                  {{ getAudienceConfig()[announcement.targetAudience].label }}
                 </Badge>
                 <span class="text-xs text-muted-foreground">
                   {{ formatTimeAgoCompact(announcement.createdAt) }}

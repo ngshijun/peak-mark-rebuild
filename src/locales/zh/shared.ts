@@ -264,6 +264,7 @@ export default {
     requestSent: '请求已发送',
     acceptRequest: '接受请求',
     addFriend: '添加好友',
+    weekDayLabels: ['一', '二', '三', '四', '五', '六', '日'],
   },
   combineResultDialog: {
     title: '合成完成！',
@@ -489,6 +490,10 @@ export default {
   childSessionChart: {
     title: '已完成练习',
     description: '过去 30 天的每日练习',
+    sessionsLabel: '练习次数',
+  },
+  childMoodCalendar: {
+    title: (name: string) => `${name}的每日状态`,
   },
   upgradePreviewDialog: {
     upgrade: '升级',
@@ -877,6 +882,13 @@ export default {
     petsCollected: (owned: number, total: number) => `已收集 ${owned} / ${total} 只宠物`,
   },
   announcementCard: {},
+  announcements: {
+    audience: {
+      all: '所有用户',
+      studentsOnly: '仅学生',
+      parentsOnly: '仅家长',
+    },
+  },
   pages: {
     announcements: {
       title: '公告',

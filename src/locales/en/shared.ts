@@ -281,6 +281,7 @@ export default {
     requestSent: 'Request Sent',
     acceptRequest: 'Accept Request',
     addFriend: 'Add Friend',
+    weekDayLabels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
   },
   combineResultDialog: {
     title: 'Combination Complete!',
@@ -512,6 +513,10 @@ export default {
   childSessionChart: {
     title: 'Sessions Completed',
     description: 'Daily sessions over the last 30 days',
+    sessionsLabel: 'Sessions',
+  },
+  childMoodCalendar: {
+    title: (name: string) => `${name}'s Daily Status`,
   },
   upgradePreviewDialog: {
     upgrade: 'Upgrade',
@@ -902,6 +907,13 @@ export default {
     petsCollected: (owned: number, total: number) => `${owned} / ${total} pets collected`,
   },
   announcementCard: {},
+  announcements: {
+    audience: {
+      all: 'All Users',
+      studentsOnly: 'Students Only',
+      parentsOnly: 'Parents Only',
+    },
+  },
   pages: {
     announcements: {
       title: 'Announcements',

@@ -3,7 +3,7 @@ import { ref, watch, nextTick } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import {
   useAnnouncementsStore,
-  audienceConfig,
+  getAudienceConfig,
   type Announcement,
   type AnnouncementAudience,
 } from '@/stores/announcements'
@@ -233,7 +233,7 @@ const handleSave = handleSubmit(async (values) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem
-                    v-for="(config, audience) in audienceConfig"
+                    v-for="(config, audience) in getAudienceConfig()"
                     :key="audience"
                     :value="audience"
                   >

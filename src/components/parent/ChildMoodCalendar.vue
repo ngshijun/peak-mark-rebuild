@@ -4,12 +4,14 @@ import { useChildStatisticsStore, type ChildDailyStatus } from '@/stores/child-s
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from 'lucide-vue-next'
 import StatusCalendar, { type StatusEntry } from '@/components/shared/StatusCalendar.vue'
+import { useT } from '@/composables/useT'
 
 const props = defineProps<{
   childId: string
   childName: string
 }>()
 
+const t = useT()
 const childStatisticsStore = useChildStatisticsStore()
 const calendarRef = ref<InstanceType<typeof StatusCalendar> | null>(null)
 
@@ -43,7 +45,9 @@ onMounted(() => fetchStatuses())
 <template>
   <Card class="h-full">
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm font-medium">{{ childName }}'s Daily Status</CardTitle>
+      <CardTitle class="text-sm font-medium">{{
+        t.shared.childMoodCalendar.title(childName)
+      }}</CardTitle>
       <Calendar class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>

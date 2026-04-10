@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, h, onMounted } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { useAnnouncementsStore, audienceConfig, type Announcement } from '@/stores/announcements'
+import { useAnnouncementsStore, getAudienceConfig, type Announcement } from '@/stores/announcements'
 import {
   Search,
   Plus,
@@ -58,7 +58,7 @@ const filteredAnnouncements = computed(() => {
     (a) =>
       a.title.toLowerCase().includes(query) ||
       a.content.toLowerCase().includes(query) ||
-      audienceConfig[a.targetAudience].label.toLowerCase().includes(query),
+      getAudienceConfig()[a.targetAudience].label.toLowerCase().includes(query),
   )
 })
 
@@ -170,7 +170,7 @@ const columns: ColumnDef<Announcement>[] = [
     header: () => t.value.admin.announcements.audienceCol,
     cell: ({ row }) => {
       const audience = row.original.targetAudience
-      const config = audienceConfig[audience]
+      const config = getAudienceConfig()[audience]
       return h(
         Badge,
         { variant: 'secondary', class: `${config.bgColor} ${config.color}` },
