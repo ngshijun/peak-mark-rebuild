@@ -4,6 +4,7 @@ import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { usePracticeStore } from '@/stores/practice'
 import { useQuestionsStore } from '@/stores/questions'
 import { useQuestionShuffle } from '@/composables/useQuestionShuffle'
+import { useT } from '@/composables/useT'
 import { ChevronRight, Flag } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ const router = useRouter()
 const route = useRoute()
 const practiceStore = usePracticeStore()
 const questionsStore = useQuestionsStore()
+const t = useT()
 
 const selectedOptionIds = ref<Set<string>>(new Set())
 const textAnswer = ref('')
@@ -66,7 +68,7 @@ onMounted(async () => {
 
       if (result.error || !result.session) {
         // Failed to resume - replace so back button doesn't loop to this dead URL
-        toast.error('Failed to resume session')
+        toast.error(t.value.student.practiceQuiz.toastResumeError)
         router.replace('/student/practice')
         return
       }
@@ -163,10 +165,10 @@ async function nextQuestion() {
 async function finishQuiz() {
   const result = await practiceStore.completeSession()
   if (result.session) {
-    toast.success('Quiz completed!')
+    toast.success(t.value.student.practiceQuiz.toastCompleted)
     router.replace(`/student/session/${result.session.id}`)
   } else if (result.error) {
-    toast.error('Failed to complete quiz')
+    toast.error(t.value.student.practiceQuiz.toastCompleteFailed)
   }
 }
 
@@ -231,7 +233,7 @@ onBeforeRouteLeave((to) => {
       <div
         class="mb-4 size-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
       ></div>
-      <p class="text-muted-foreground">Resuming your session...</p>
+      <p class="text-muted-foreground">{{ t.student.practiceQuiz.resumingSession }}</p>
     </div>
 
     <template v-else>
@@ -244,11 +246,17 @@ onBeforeRouteLeave((to) => {
               {{ practiceStore.currentSession?.topicName }}
             </h1>
             <p class="text-sm text-muted-foreground">
-              Question {{ practiceStore.currentQuestionNumber }} of
-              {{ practiceStore.totalQuestions }}
+              {{
+                t.student.practiceQuiz.questionOf(
+                  practiceStore.currentQuestionNumber,
+                  practiceStore.totalQuestions,
+                )
+              }}
             </p>
           </div>
-          <Button variant="outline" size="sm" @click="showExitDialog = true"> Exit Quiz </Button>
+          <Button variant="outline" size="sm" @click="showExitDialog = true">
+            {{ t.student.practiceQuiz.exitQuiz }}
+          </Button>
         </div>
         <Progress :model-value="progress" class="h-2" />
       </div>
@@ -264,10 +272,10 @@ onBeforeRouteLeave((to) => {
               <Badge variant="secondary" class="shrink-0">
                 {{
                   currentQuestion.type === 'mcq'
-                    ? 'Multiple Choice'
+                    ? t.student.practiceQuiz.multipleChoice
                     : currentQuestion.type === 'mrq'
-                      ? 'Multiple Response'
-                      : 'Short Answer'
+                      ? t.student.practiceQuiz.multipleResponse
+                      : t.student.practiceQuiz.shortAnswer
                 }}
               </Badge>
             </div>
@@ -314,9 +322,11 @@ onBeforeRouteLeave((to) => {
               v-if="isAnswered"
               class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20"
             >
-              <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Explanation</p>
+              <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                {{ t.student.practiceQuiz.explanation }}
+              </p>
               <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
-                {{ currentQuestion.explanation || 'No explanation available for this question.' }}
+                {{ currentQuestion.explanation || t.student.practiceQuiz.noExplanation }}
               </p>
             </div>
           </CardContent>
@@ -328,7 +338,7 @@ onBeforeRouteLeave((to) => {
               @click="showFeedbackDialog = true"
             >
               <Flag class="size-3.5" />
-              Report an issue
+              {{ t.student.practiceQuiz.reportIssue }}
             </button>
 
             <div class="ml-auto flex gap-2">
@@ -339,19 +349,21 @@ onBeforeRouteLeave((to) => {
                 "
                 @click="submitAnswer"
               >
-                Submit Answer
+                {{ t.student.practiceQuiz.submitAnswer }}
               </Button>
 
               <template v-if="isAnswered">
                 <Button v-if="!isLastQuestion" @click="nextQuestion">
-                  Next
+                  {{ t.student.practiceQuiz.next }}
                   <ChevronRight class="ml-2 size-4" />
                 </Button>
 
-                <Button v-else-if="allQuestionsAnswered" @click="finishQuiz"> Finish Quiz </Button>
+                <Button v-else-if="allQuestionsAnswered" @click="finishQuiz">
+                  {{ t.student.practiceQuiz.finishQuiz }}
+                </Button>
 
                 <Button v-else @click="nextQuestion">
-                  Next
+                  {{ t.student.practiceQuiz.next }}
                   <ChevronRight class="ml-2 size-4" />
                 </Button>
               </template>
@@ -386,14 +398,18 @@ onBeforeRouteLeave((to) => {
     <AlertDialog v-model:open="showExitDialog">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Exit Quiz?</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.student.practiceQuiz.exitDialog.title }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to exit? Your progress is saved and you can continue later.
+            {{ t.student.practiceQuiz.exitDialog.description }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="pendingNavigation = null">Continue Quiz</AlertDialogCancel>
-          <AlertDialogAction @click="exitQuiz">Exit</AlertDialogAction>
+          <AlertDialogCancel @click="pendingNavigation = null">{{
+            t.student.practiceQuiz.exitDialog.continueQuiz
+          }}</AlertDialogCancel>
+          <AlertDialogAction @click="exitQuiz">{{
+            t.student.practiceQuiz.exitDialog.exit
+          }}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -8,6 +8,7 @@ import {
   type WeeklyReward,
 } from '@/stores/leaderboard'
 import { useCurriculumStore } from '@/stores/curriculum'
+import { useT } from '@/composables/useT'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -36,6 +37,7 @@ import StudentProfileDialog from '@/components/student/StudentProfileDialog.vue'
 
 const leaderboardStore = useLeaderboardStore()
 const curriculumStore = useCurriculumStore()
+const t = useT()
 
 const ALL_VALUE = '__all__'
 const selectedGradeLevel = ref<string>(ALL_VALUE)
@@ -122,7 +124,7 @@ onMounted(async () => {
     ])
   } catch (err) {
     console.error('Failed to load leaderboard:', err)
-    toast.error('Failed to load leaderboard')
+    toast.error(t.value.student.leaderboard.toastLoadFailed)
   }
 
   checkWeeklyReward()
@@ -133,8 +135,8 @@ onMounted(async () => {
   <div class="space-y-6 p-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Leaderboard</h1>
-        <p class="text-muted-foreground">Top students with the highest XP</p>
+        <h1 class="text-2xl font-bold">{{ t.student.leaderboard.title }}</h1>
+        <p class="text-muted-foreground">{{ t.student.leaderboard.subtitle }}</p>
       </div>
 
       <!-- Grade Level Filter (all-time only) -->
@@ -144,10 +146,10 @@ onMounted(async () => {
         :disabled="leaderboardStore.isLoading"
       >
         <SelectTrigger class="w-[180px]">
-          <SelectValue placeholder="All Grade Levels" />
+          <SelectValue :placeholder="t.student.leaderboard.allGradeLevels" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Grade Levels</SelectItem>
+          <SelectItem :value="ALL_VALUE">{{ t.student.leaderboard.allGradeLevels }}</SelectItem>
           <SelectItem
             v-for="gradeLevel in curriculumStore.gradeLevels"
             :key="gradeLevel.id"
@@ -162,8 +164,8 @@ onMounted(async () => {
     <!-- Tabs -->
     <Tabs v-model="activeTab" class="w-full">
       <TabsList class="grid w-full grid-cols-2">
-        <TabsTrigger value="all-time">All-Time</TabsTrigger>
-        <TabsTrigger value="weekly"> Weekly Competition </TabsTrigger>
+        <TabsTrigger value="all-time">{{ t.student.leaderboard.tabAllTime }}</TabsTrigger>
+        <TabsTrigger value="weekly"> {{ t.student.leaderboard.tabWeekly }} </TabsTrigger>
       </TabsList>
 
       <!-- All-Time Tab -->
@@ -176,7 +178,7 @@ onMounted(async () => {
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
               <Trophy class="size-5 text-yellow-500" />
-              Top 20 Students
+              {{ t.student.leaderboard.top20 }}
               <Badge v-if="selectedGradeLevel !== ALL_VALUE" variant="secondary" class="ml-2">
                 {{
                   curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel)?.name ?? ''
@@ -188,13 +190,13 @@ onMounted(async () => {
             <LeaderboardTable
               :entries="leaderboardStore.students"
               :current-student-entry="currentStudentInfo"
-              empty-message="No students found for this grade level."
+              :empty-message="t.student.leaderboard.noStudentsGrade"
               @row-click="handleRowClick"
             >
               <template #stats="{ entry }">
                 <div class="flex items-center gap-6">
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">Streak</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.streak }}</p>
                     <p class="flex items-center justify-center gap-1 font-semibold">
                       <img
                         v-if="(entry as LeaderboardStudent).currentStreak > 0"
@@ -207,11 +209,11 @@ onMounted(async () => {
                     </p>
                   </div>
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">Level</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as LeaderboardStudent).level }}</p>
                   </div>
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">XP</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.xp }}</p>
                     <p class="font-semibold">
                       {{ (entry as LeaderboardStudent).xp.toLocaleString() }}
                     </p>
@@ -221,7 +223,7 @@ onMounted(async () => {
               <template #current-student-stats="{ entry }">
                 <div class="flex items-center gap-6">
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">Streak</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.streak }}</p>
                     <p class="flex items-center justify-center gap-1 font-semibold">
                       <img
                         v-if="(entry as LeaderboardStudent).currentStreak > 0"
@@ -234,11 +236,11 @@ onMounted(async () => {
                     </p>
                   </div>
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">Level</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as LeaderboardStudent).level }}</p>
                   </div>
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">XP</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.xp }}</p>
                     <p class="font-semibold">
                       {{ (entry as LeaderboardStudent).xp.toLocaleString() }}
                     </p>
@@ -263,19 +265,19 @@ onMounted(async () => {
             <X class="size-4" />
             <span class="sr-only">Dismiss</span>
           </button>
-          <h3 class="mb-3 pr-6 font-bold">How It Works</h3>
+          <h3 class="mb-3 pr-6 font-bold">{{ t.student.leaderboard.howItWorks }}</h3>
           <div class="grid gap-2 text-sm sm:grid-cols-3">
             <div class="flex items-center gap-2">
               <Swords class="size-4 shrink-0 text-purple-500" />
-              <span>Earn XP to climb the ranks</span>
+              <span>{{ t.student.leaderboard.howItWorksEarnXp }}</span>
             </div>
             <div class="flex items-center gap-2">
               <CirclePoundSterling class="size-4 shrink-0 text-amber-500" />
-              <span>Top 10 win coin rewards</span>
+              <span>{{ t.student.leaderboard.howItWorksCoinRewards }}</span>
             </div>
             <div class="flex items-center gap-2">
               <CalendarSync class="size-4 shrink-0 text-blue-500" />
-              <span>Resets every Monday</span>
+              <span>{{ t.student.leaderboard.howItWorksResets }}</span>
             </div>
           </div>
         </div>
@@ -288,7 +290,7 @@ onMounted(async () => {
           <CardHeader>
             <CardTitle class="flex flex-wrap items-center gap-2">
               <Trophy class="size-5 text-yellow-500" />
-              Weekly Top 20
+              {{ t.student.leaderboard.weeklyTop20 }}
               <Badge v-if="selectedGradeLevel !== ALL_VALUE" variant="secondary">
                 {{
                   curriculumStore.gradeLevels.find((g) => g.id === selectedGradeLevel)?.name ?? ''
@@ -296,7 +298,11 @@ onMounted(async () => {
               </Badge>
               <Badge variant="outline" class="ml-auto gap-1">
                 <CalendarClock class="size-3" />
-                {{ countdown === 'Ending...' ? countdown : `Ends in ${countdown}` }}
+                {{
+                  countdown === 'Ending...'
+                    ? t.student.leaderboard.ending
+                    : t.student.leaderboard.endsIn(countdown)
+                }}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -304,7 +310,7 @@ onMounted(async () => {
             <LeaderboardTable
               :entries="leaderboardStore.weeklyStudents"
               :current-student-entry="currentWeeklyStudentInfo"
-              empty-message="No students have earned XP this week yet."
+              :empty-message="t.student.leaderboard.noStudentsWeekly"
               @row-click="handleRowClick"
             >
               <template #stats="{ entry }">
@@ -313,7 +319,7 @@ onMounted(async () => {
                     v-if="getWeeklyReward((entry as WeeklyLeaderboardStudent).rank)"
                     class="w-12 text-center"
                   >
-                    <p class="text-sm text-muted-foreground">Reward</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.reward }}</p>
                     <p
                       class="flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
                     >
@@ -323,11 +329,13 @@ onMounted(async () => {
                   </div>
                   <div v-else class="w-12" />
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">Level</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as WeeklyLeaderboardStudent).level }}</p>
                   </div>
                   <div class="w-16 text-center">
-                    <p class="text-sm text-muted-foreground">XP</p>
+                    <p class="text-sm text-muted-foreground">
+                      {{ t.student.leaderboard.weeklyXp }}
+                    </p>
                     <p class="font-semibold">
                       {{ (entry as WeeklyLeaderboardStudent).weeklyXp.toLocaleString() }}
                     </p>
@@ -340,7 +348,7 @@ onMounted(async () => {
                     v-if="getWeeklyReward((entry as WeeklyLeaderboardStudent).rank)"
                     class="w-12 text-center"
                   >
-                    <p class="text-sm text-muted-foreground">Reward</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.reward }}</p>
                     <p
                       class="flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400"
                     >
@@ -350,11 +358,13 @@ onMounted(async () => {
                   </div>
                   <div v-else class="w-12" />
                   <div class="w-12 text-center">
-                    <p class="text-sm text-muted-foreground">Level</p>
+                    <p class="text-sm text-muted-foreground">{{ t.student.leaderboard.level }}</p>
                     <p class="font-semibold">{{ (entry as WeeklyLeaderboardStudent).level }}</p>
                   </div>
                   <div class="w-16 text-center">
-                    <p class="text-sm text-muted-foreground">XP</p>
+                    <p class="text-sm text-muted-foreground">
+                      {{ t.student.leaderboard.weeklyXp }}
+                    </p>
                     <p class="font-semibold">
                       {{ (entry as WeeklyLeaderboardStudent).weeklyXp.toLocaleString() }}
                     </p>

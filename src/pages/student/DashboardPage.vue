@@ -6,6 +6,7 @@ import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { usePetsStore } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
 import { isFirstPetTourActive } from '@/composables/useFirstPetTour'
+import { useT } from '@/composables/useT'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DailyStatus from '@/components/dashboard/DailyStatus.vue'
@@ -28,6 +29,7 @@ const dashboardStore = useStudentDashboardStore()
 const practiceStore = usePracticeHistoryStore()
 const petsStore = usePetsStore()
 const authStore = useAuthStore()
+const t = useT()
 
 const isLoading = ref(true)
 const dailyStatusButtonRef = ref<InstanceType<typeof DailyStatus> | null>(null)
@@ -69,7 +71,7 @@ async function loadDashboardData() {
     ])
   } catch (err) {
     console.error('Failed to load dashboard data:', err)
-    toast.error('Failed to load dashboard data')
+    toast.error(t.value.student.dashboard.toastLoadFailed)
   } finally {
     isLoading.value = false
   }
@@ -102,8 +104,8 @@ watch(isLoading, async (loading) => {
     <!-- Header -->
     <div class="mb-6 flex items-start justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Dashboard</h1>
-        <p class="text-muted-foreground">Here's your daily overview</p>
+        <h1 class="text-2xl font-bold">{{ t.student.dashboard.title }}</h1>
+        <p class="text-muted-foreground">{{ t.student.dashboard.subtitle }}</p>
       </div>
       <div v-if="!isLoading" data-tour="dashboard-daily" class="flex items-center gap-2">
         <SpinWheelCard />

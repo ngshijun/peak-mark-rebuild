@@ -3,20 +3,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { useFriendsStore } from '@/stores/friends'
 import { useLocalStorage } from '@vueuse/core'
+import { useT } from '@/composables/useT'
 import { CirclePoundSterling, Handshake, Heart, TrendingDown, X } from 'lucide-vue-next'
 import FriendList from '@/components/student/friends/FriendList.vue'
 import FriendRequests from '@/components/student/friends/FriendRequests.vue'
 import AddFriend from '@/components/student/friends/AddFriend.vue'
 
 const friendsStore = useFriendsStore()
+const t = useT()
 const bannerDismissed = useLocalStorage('friends_how_it_works_dismissed', false)
 </script>
 
 <template>
   <div class="space-y-6 p-6">
     <div>
-      <h1 class="text-2xl font-bold">Friends</h1>
-      <p class="text-muted-foreground">Manage your friends and send daily coins</p>
+      <h1 class="text-2xl font-bold">{{ t.student.friends.title }}</h1>
+      <p class="text-muted-foreground">{{ t.student.friends.subtitle }}</p>
     </div>
 
     <div
@@ -30,23 +32,23 @@ const bannerDismissed = useLocalStorage('friends_how_it_works_dismissed', false)
         <X class="size-4" />
         <span class="sr-only">Dismiss</span>
       </button>
-      <h3 class="mb-3 pr-6 font-bold">How It Works</h3>
+      <h3 class="mb-3 pr-6 font-bold">{{ t.student.friends.howItWorks }}</h3>
       <div class="grid gap-2 text-sm sm:grid-cols-2">
         <div class="flex items-center gap-2">
           <CirclePoundSterling class="size-4 shrink-0 text-amber-500" />
-          <span>Send 5 free coins to each friend daily</span>
+          <span>{{ t.student.friends.howItWorksSendCoins }}</span>
         </div>
         <div class="flex items-center gap-2">
           <Heart class="size-4 shrink-0 text-pink-500" />
-          <span>Both send coins on the same day to grow closeness</span>
+          <span>{{ t.student.friends.howItWorksGrowCloseness }}</span>
         </div>
         <div class="flex items-center gap-2">
           <Handshake class="size-4 shrink-0 text-purple-500" />
-          <span>Closeness builds your friendship level</span>
+          <span>{{ t.student.friends.howItWorksBuilds }}</span>
         </div>
         <div class="flex items-center gap-2">
           <TrendingDown class="size-4 shrink-0 text-rose-500" />
-          <span>Closeness slowly decreases if you stop sending</span>
+          <span>{{ t.student.friends.howItWorksDecreases }}</span>
         </div>
       </div>
     </div>
@@ -54,13 +56,13 @@ const bannerDismissed = useLocalStorage('friends_how_it_works_dismissed', false)
     <Tabs default-value="friends">
       <TabsList class="w-full">
         <TabsTrigger value="friends" class="flex-1 gap-1.5">
-          My Friends
+          {{ t.student.friends.tabFriends }}
           <Badge variant="secondary" class="ml-1 size-5 justify-center rounded-full p-0 text-xs">
             {{ friendsStore.friendCount }}
           </Badge>
         </TabsTrigger>
         <TabsTrigger value="requests" class="flex-1 gap-1.5">
-          Requests
+          {{ t.student.friends.tabRequests }}
           <Badge
             v-if="friendsStore.pendingRequestCount > 0"
             variant="default"
@@ -69,7 +71,7 @@ const bannerDismissed = useLocalStorage('friends_how_it_works_dismissed', false)
             {{ friendsStore.pendingRequestCount }}
           </Badge>
         </TabsTrigger>
-        <TabsTrigger value="add" class="flex-1">Add Friend</TabsTrigger>
+        <TabsTrigger value="add" class="flex-1">{{ t.student.friends.tabAdd }}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="friends">

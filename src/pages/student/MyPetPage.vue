@@ -6,6 +6,7 @@ import { usePetsStore, rarityConfig } from '@/stores/pets'
 import { usePetsLoader } from '@/composables/usePetsLoader'
 import { usePetConversation } from '@/composables/usePetConversation'
 import { usePetAnimation } from '@/composables/usePetAnimation'
+import { useT } from '@/composables/useT'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
 const { isLoading } = usePetsLoader()
+const t = useT()
 
 const selectedPet = computed(() => petsStore.selectedPet)
 const selectedOwnedPet = computed(() => petsStore.selectedOwnedPet)
@@ -55,17 +57,17 @@ async function feedPet() {
   if (anim.isFeeding.value || !selectedOwnedPet.value) return
 
   if (evolutionProgress.value?.isMaxTier) {
-    toast.info('Your pet is already at max tier!')
+    toast.info(t.value.student.myPet.toastMaxTier)
     return
   }
 
   if (evolutionProgress.value?.canEvolve) {
-    toast.info('Your pet is ready to evolve! Click the Evolve button.')
+    toast.info(t.value.student.myPet.toastReadyToEvolve)
     return
   }
 
   if (currentFood.value <= 0) {
-    toast.warning('No food available!')
+    toast.warning(t.value.student.myPet.toastNoFood)
     triggerMessage('hungry')
     return
   }
@@ -79,7 +81,7 @@ async function feedPet() {
   } else {
     triggerMessage('feeding')
     if (result.canEvolve) {
-      toast.success('Your pet is ready to evolve!')
+      toast.success(t.value.student.myPet.toastEvolveReady)
     }
   }
 }
@@ -88,7 +90,7 @@ async function evolvePet() {
   if (anim.isEvolving.value || !selectedOwnedPet.value) return
 
   if (!evolutionProgress.value?.canEvolve) {
-    toast.warning('Not enough food fed to evolve!')
+    toast.warning(t.value.student.myPet.toastNotEnoughFood)
     return
   }
 
@@ -99,7 +101,7 @@ async function evolvePet() {
   if (result.error !== null) {
     toast.error(result.error)
   } else {
-    toast.success(`Your pet evolved to Tier ${result.newTier}!`)
+    toast.success(t.value.student.myPet.toastEvolveSuccess(result.newTier))
   }
 
   await petsStore.fetchOwnedPets()
@@ -119,7 +121,7 @@ async function handleExchangeFood(amount: number) {
   }
 
   await authStore.refreshProfile()
-  toast.success(`Exchanged ${amount * FOOD_PRICE} coins for ${amount} food!`)
+  toast.success(t.value.student.myPet.toastExchangeSuccess(amount, FOOD_PRICE))
   showFoodExchangeDialog.value = false
   foodExchangeRef.value?.handleDone()
 }
@@ -129,16 +131,7 @@ function goToCollections() {
 }
 
 function getTierLabel(tier: number): string {
-  switch (tier) {
-    case 1:
-      return 'Tier 1'
-    case 2:
-      return 'Tier 2'
-    case 3:
-      return 'Tier 3 (Max)'
-    default:
-      return `Tier ${tier}`
-  }
+  return t.value.student.myPet.tierLabel(tier)
 }
 </script>
 
@@ -153,17 +146,17 @@ function getTierLabel(tier: number): string {
       <!-- Header with Gacha and Buy Food Buttons -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold">My Pet</h1>
-          <p class="text-muted-foreground">Take care of your pet companion</p>
+          <h1 class="text-2xl font-bold">{{ t.student.myPet.title }}</h1>
+          <p class="text-muted-foreground">{{ t.student.myPet.subtitle }}</p>
         </div>
         <div class="flex items-center gap-2">
           <Button variant="outline" @click="router.push('/student/gacha')">
             <Sparkles class="mr-2 size-4" />
-            Unlock New Pets
+            {{ t.student.myPet.unlockNewPets }}
           </Button>
           <Button @click="showFoodExchangeDialog = true">
             <ShoppingCart class="mr-2 size-4" />
-            Buy Food
+            {{ t.student.myPet.buyFood }}
           </Button>
         </div>
       </div>
@@ -176,15 +169,15 @@ function getTierLabel(tier: number): string {
           >
             <Heart class="size-12 text-purple-400" />
           </div>
-          <h2 class="text-xl font-semibold">No Pet Selected</h2>
+          <h2 class="text-xl font-semibold">{{ t.student.myPet.noPetTitle }}</h2>
           <p class="mt-2 text-muted-foreground">
-            Select a pet from your collection to display it here!
+            {{ t.student.myPet.noPetDesc }}
           </p>
           <Button
             class="mt-4 bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600"
             @click="goToCollections"
           >
-            Go to Collections
+            {{ t.student.myPet.goToCollections }}
           </Button>
         </CardContent>
       </Card>
@@ -215,7 +208,7 @@ function getTierLabel(tier: number): string {
                   size="sm"
                   class="dark:bg-input/50"
                   @click="goToCollections"
-                  >Change Pet</Button
+                  >{{ t.student.myPet.changePet }}</Button
                 >
               </div>
             </CardHeader>
@@ -365,7 +358,7 @@ function getTierLabel(tier: number): string {
                   @click="onPetClick"
                 >
                   <Hand class="mr-2 size-5" />
-                  Pet
+                  {{ t.student.myPet.petButton }}
                   <Heart class="ml-2 size-4 fill-pink-400 text-pink-400" />
                 </Button>
                 <Button
@@ -381,7 +374,7 @@ function getTierLabel(tier: number): string {
                   @click="feedPet"
                 >
                   <Apple class="mr-2 size-5" />
-                  Feed
+                  {{ t.student.myPet.feedButton }}
                   <span class="ml-2 text-xs opacity-70">({{ currentFood }})</span>
                 </Button>
               </div>
