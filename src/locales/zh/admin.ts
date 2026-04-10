@@ -1,8 +1,8 @@
 export default {
   dashboard: {
-    title: '控制台',
+    title: '主页',
     subtitle: '平台数据概览。',
-    toastLoadFailed: '加载控制台数据失败',
+    toastLoadFailed: '加载主页数据失败',
     revenueThisMonth: '本月收入',
     fromLastMonth: '较上月',
     totalUsers: '用户总数',

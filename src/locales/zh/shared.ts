@@ -158,7 +158,7 @@ export default {
       },
       step10: {
         title: '回到主页！',
-        description: '点击"仪表板"在主页上查看你的宠物！',
+        description: '点击"主页"在主页上查看你的宠物！',
       },
       step11: {
         title: '你的宠物在这里！',
@@ -202,6 +202,26 @@ export default {
     allTopics: '所有主题',
     allSubTopics: '所有子主题',
     hideInProgress: '隐藏进行中',
+    dateRangeOptions: {
+      today: '今天',
+      last7Days: '近7天',
+      last30Days: '近30天',
+      allTime: '所有时间',
+    },
+    status: {
+      completed: '已完成',
+      inProgress: '进行中',
+    },
+    practiceHistoryColumns: {
+      grade: '年级',
+      subject: '科目',
+      topic: '课题',
+      subTopic: '子课题',
+      completedAt: '完成时间',
+      status: '状态',
+      score: '分数',
+      duration: '时长',
+    },
   },
   statsSummaryCards: {
     averageScore: '平均分',
@@ -896,7 +916,7 @@ export default {
       logOut: '退出登录',
       nav: {
         admin: {
-          dashboard: '仪表盘',
+          dashboard: '主页',
           announcements: '公告',
           curriculum: '课程',
           questionBank: '题库',
@@ -908,7 +928,7 @@ export default {
           pets: '宠物',
         },
         student: {
-          dashboard: '仪表盘',
+          dashboard: '主页',
           announcements: '公告',
           practice: '练习',
           statistics: '统计',
@@ -918,7 +938,7 @@ export default {
           collections: '收藏',
         },
         parent: {
-          dashboard: '仪表盘',
+          dashboard: '主页',
           announcements: '公告',
           children: '孩子',
           statistics: '统计',

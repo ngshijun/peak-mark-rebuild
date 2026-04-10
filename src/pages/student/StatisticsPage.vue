@@ -121,7 +121,7 @@ const displayedHistory = computed(() => {
 const { averageScore, totalSessions, totalStudyTime, subTopicsPracticed } =
   useStatisticsSummary(historyData)
 
-const columns = createPracticeHistoryColumns<HistoryRow>()
+const columns = computed(() => createPracticeHistoryColumns<HistoryRow>())
 
 const showResumeDialog = ref(false)
 const pendingResumeSession = ref<HistoryRow | null>(null)

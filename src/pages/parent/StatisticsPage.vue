@@ -146,7 +146,7 @@ const displayedSessions = computed(() => {
   return recentSessions.value
 })
 
-const columns = createPracticeHistoryColumns<ChildPracticeSession>()
+const columns = computed(() => createPracticeHistoryColumns<ChildPracticeSession>())
 
 function handleRowClick(row: ChildPracticeSession) {
   if (row.status === 'completed') {

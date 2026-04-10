@@ -1,6 +1,6 @@
 export default {
   dashboard: {
-    title: '仪表板',
+    title: '主页',
     subtitle: '监控您孩子的学习进度',
     toastLoadFailed: '加载孩子数据失败',
     selectChildPlaceholder: '选择孩子',
@@ -9,7 +9,7 @@ export default {
   },
 
   children: {
-    title: '我的孩子',
+    title: '孩子',
     subtitle: '管理已关联的孩子及邀请',
     entityLabel: '孩子',
     inviteDialogDescription: '发送邀请以关联孩子的账户，关联后您将能查看他们的学习进度。',
@@ -79,7 +79,7 @@ export default {
   },
 
   statistics: {
-    title: '学习统计',
+    title: '统计',
     subtitle: '查看您孩子的学习进度',
     toastLoadFailed: '加载统计数据失败',
     selectChildPlaceholder: '选择孩子',
@@ -91,7 +91,7 @@ export default {
   },
 
   subscription: {
-    title: '订阅管理',
+    title: '订阅',
     subtitle: '管理您孩子的订阅套餐',
     manageBilling: '管理账单',
     noLinkedChildrenTitle: '尚未关联孩子',

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowUpDown } from 'lucide-vue-next'
 import type { DateRangeFilter } from '@/lib/sessionFilters'
+import { useLanguageStore } from '@/stores/language'
 
 export const ALL_VALUE = '__all__'
 
@@ -13,25 +14,33 @@ export function resolveFilterValue(value: string): string | undefined {
   return value === ALL_VALUE ? undefined : value
 }
 
-export const statusConfig = {
-  completed: {
-    label: 'Completed',
-    bgColor: 'bg-green-100 dark:bg-green-950/30',
-    color: 'text-green-700 dark:text-green-400',
-  },
-  in_progress: {
-    label: 'In Progress',
-    bgColor: 'bg-amber-100 dark:bg-amber-950/30',
-    color: 'text-amber-700 dark:text-amber-400',
-  },
-} as const
+export function getStatusConfig() {
+  const store = useLanguageStore()
+  const labels = store.t.shared.statsFilterBar.status
+  return {
+    completed: {
+      label: labels.completed,
+      bgColor: 'bg-green-100 dark:bg-green-950/30',
+      color: 'text-green-700 dark:text-green-400',
+    },
+    in_progress: {
+      label: labels.inProgress,
+      bgColor: 'bg-amber-100 dark:bg-amber-950/30',
+      color: 'text-amber-700 dark:text-amber-400',
+    },
+  }
+}
 
-export const dateRangeOptions: { value: DateRangeFilter; label: string }[] = [
-  { value: 'today', label: 'Today' },
-  { value: 'last7days', label: 'Last 7 Days' },
-  { value: 'last30days', label: 'Last 30 Days' },
-  { value: 'alltime', label: 'All Time' },
-]
+export function getDateRangeOptions(): { value: DateRangeFilter; label: string }[] {
+  const store = useLanguageStore()
+  const labels = store.t.shared.statsFilterBar.dateRangeOptions
+  return [
+    { value: 'today', label: labels.today },
+    { value: 'last7days', label: labels.last7Days },
+    { value: 'last30days', label: labels.last30Days },
+    { value: 'alltime', label: labels.allTime },
+  ]
+}
 
 export interface PracticeSessionRow {
   completedAt: string | null
@@ -47,6 +56,9 @@ export interface PracticeSessionRow {
 }
 
 export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): ColumnDef<T>[] {
+  const store = useLanguageStore()
+  const headers = store.t.shared.statsFilterBar.practiceHistoryColumns
+
   return [
     {
       accessorKey: 'completedAt',
@@ -57,7 +69,7 @@ export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): Co
             variant: 'ghost',
             onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
           },
-          () => ['Completed At', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+          () => [headers.completedAt, h(ArrowUpDown, { class: 'ml-2 size-4' })],
         )
       },
       cell: ({ row }) => {
@@ -78,22 +90,22 @@ export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): Co
     },
     {
       accessorKey: 'gradeLevelName',
-      header: 'Grade',
+      header: headers.grade,
       cell: ({ row }) => h('div', {}, row.original.gradeLevelName),
     },
     {
       accessorKey: 'subjectName',
-      header: 'Subject',
+      header: headers.subject,
       cell: ({ row }) => h('div', { class: 'font-medium' }, row.original.subjectName),
     },
     {
       accessorKey: 'topicName',
-      header: 'Topic',
+      header: headers.topic,
       cell: ({ row }) => h('div', {}, row.original.topicName),
     },
     {
       accessorKey: 'subTopicName',
-      header: 'Sub-Topic',
+      header: headers.subTopic,
       cell: ({ row }) => h('div', {}, row.original.subTopicName),
     },
     {
@@ -105,12 +117,12 @@ export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): Co
             variant: 'ghost',
             onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
           },
-          () => ['Status', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+          () => [headers.status, h(ArrowUpDown, { class: 'ml-2 size-4' })],
         )
       },
       cell: ({ row }) => {
         const status = row.original.status
-        const config = statusConfig[status]
+        const config = getStatusConfig()[status]
         return h(
           Badge,
           {
@@ -130,7 +142,7 @@ export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): Co
             variant: 'ghost',
             onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
           },
-          () => ['Score', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+          () => [headers.score, h(ArrowUpDown, { class: 'ml-2 size-4' })],
         )
       },
       cell: ({ row }) => {
@@ -157,7 +169,7 @@ export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): Co
             variant: 'ghost',
             onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
           },
-          () => ['Duration', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+          () => [headers.duration, h(ArrowUpDown, { class: 'ml-2 size-4' })],
         )
       },
       cell: ({ row }) => {

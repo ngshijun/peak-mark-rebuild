@@ -1,8 +1,8 @@
 export default {
   dashboard: {
-    title: '仪表板',
+    title: '主页',
     subtitle: '这是您今天的学习概览',
-    toastLoadFailed: '加载仪表板数据失败',
+    toastLoadFailed: '加载主页数据失败',
   },
   practice: {
     title: '练习',

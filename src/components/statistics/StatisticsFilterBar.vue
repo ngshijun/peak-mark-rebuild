@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { DateRangeFilter } from '@/lib/sessionFilters'
-import { ALL_VALUE, dateRangeOptions } from '@/lib/statisticsColumns'
+import { ALL_VALUE, getDateRangeOptions } from '@/lib/statisticsColumns'
 import {
   Select,
   SelectContent,
@@ -13,6 +14,7 @@ import { Calendar } from 'lucide-vue-next'
 import { useT } from '@/composables/useT'
 
 const t = useT()
+const dateRangeOptions = computed(() => getDateRangeOptions())
 
 defineProps<{
   dateRange: DateRangeFilter
