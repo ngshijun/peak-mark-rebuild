@@ -66,6 +66,15 @@ async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
       hasCompletedTour: profile.has_completed_tour ?? false,
     }
 
+    // Hydrate UI language from profile (profile wins on login).
+    // Dynamic import of language store avoids a circular dependency
+    // (language store imports auth store in setLanguage — see Task 5).
+    if (profile.ui_language === 'en' || profile.ui_language === 'zh') {
+      const { useLanguageStore } = await import('@/stores/language')
+      const languageStore = useLanguageStore()
+      await languageStore.setLanguage(profile.ui_language)
+    }
+
     // Fetch type-specific profile
     if (profile.user_type === 'student') {
       const { data: studentProfile } = await supabase
