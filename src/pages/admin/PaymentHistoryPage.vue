@@ -11,7 +11,9 @@ import { DataTable } from '@/components/ui/data-table'
 import { toast } from 'vue-sonner'
 import { formatDateTime } from '@/lib/date'
 import { tierConfig } from '@/lib/tierConfig'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const router = useRouter()
 const store = useAdminPaymentHistoryStore()
 
@@ -34,7 +36,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Date', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.paymentHistory.dateCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -50,7 +52,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Student', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.paymentHistory.studentCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -74,7 +76,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
   },
   {
     accessorKey: 'parentName',
-    header: 'Parent',
+    header: () => t.value.admin.paymentHistory.parentCol,
     cell: ({ row }) => {
       return h('div', {}, row.original.parentName ?? '-')
     },
@@ -88,7 +90,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Amount', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.paymentHistory.amountCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -99,7 +101,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
   },
   {
     accessorKey: 'tier',
-    header: 'Tier',
+    header: () => t.value.admin.paymentHistory.tierCol,
     cell: ({ row }) => {
       const tier = row.original.tier
       if (!tier) {
@@ -115,7 +117,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: () => t.value.admin.paymentHistory.statusCol,
     cell: ({ row }) => {
       const status = row.original.status
       const isSuccess = status === 'succeeded'
@@ -133,7 +135,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
   },
   {
     accessorKey: 'description',
-    header: 'Description',
+    header: () => t.value.admin.paymentHistory.descriptionCol,
     cell: ({ row }) => {
       return h('div', { class: 'text-muted-foreground' }, row.original.description ?? '-')
     },
@@ -144,8 +146,8 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold">Payment History</h1>
-      <p class="text-muted-foreground">View all payment transactions across students.</p>
+      <h1 class="text-2xl font-bold">{{ t.admin.paymentHistory.title }}</h1>
+      <p class="text-muted-foreground">{{ t.admin.paymentHistory.subtitle }}</p>
     </div>
 
     <!-- Loading State -->
@@ -160,7 +162,7 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             :model-value="store.filters.search"
-            placeholder="Search by student, parent, description, or status..."
+            :placeholder="t.admin.paymentHistory.searchPlaceholder"
             class="pl-9"
             @update:model-value="store.setSearch(String($event))"
           />
@@ -170,12 +172,12 @@ const columns: ColumnDef<AdminPaymentEntry>[] = [
       <!-- Empty State -->
       <div v-if="store.filteredPayments.length === 0" class="py-16 text-center">
         <CreditCard class="mx-auto size-16 text-muted-foreground/50" />
-        <h2 class="mt-4 text-lg font-semibold">No Payments Found</h2>
+        <h2 class="mt-4 text-lg font-semibold">{{ t.admin.paymentHistory.noPaymentsFound }}</h2>
         <p class="mt-2 text-muted-foreground">
           {{
             store.filters.search
-              ? 'No payments match your search criteria.'
-              : 'No payment transactions have been recorded yet.'
+              ? t.admin.paymentHistory.noPaymentsMatchSearch
+              : t.admin.paymentHistory.noPaymentsRecorded
           }}
         </p>
       </div>

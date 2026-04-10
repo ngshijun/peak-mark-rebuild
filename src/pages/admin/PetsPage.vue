@@ -21,7 +21,9 @@ import {
 import PetFormDialog from '@/components/admin/PetFormDialog.vue'
 import PetPreviewDialog from '@/components/admin/PetPreviewDialog.vue'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const petsStore = usePetsStore()
 const adminPetsStore = useAdminPetsStore()
 
@@ -91,7 +93,7 @@ async function confirmDelete() {
     if (error) {
       toast.error(error)
     } else {
-      toast.success('Pet deleted successfully')
+      toast.success(t.value.admin.pets.toastDeleted)
       await petsStore.fetchAllPets()
     }
   } finally {
@@ -112,12 +114,12 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
   <div class="p-6">
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Pets</h1>
-        <p class="text-muted-foreground">Manage gacha pets and their rarities.</p>
+        <h1 class="text-2xl font-bold">{{ t.admin.pets.title }}</h1>
+        <p class="text-muted-foreground">{{ t.admin.pets.subtitle }}</p>
       </div>
       <Button :disabled="petsStore.isLoading" @click="openAddDialog">
         <Plus class="mr-2 size-4" />
-        Add Pet
+        {{ t.admin.pets.addPetBtn }}
       </Button>
     </div>
 
@@ -133,7 +135,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             :model-value="adminPetsStore.adminPetsFilters.search"
-            placeholder="Search pets..."
+            :placeholder="t.admin.pets.searchPlaceholder"
             class="pl-9"
             @update:model-value="adminPetsStore.setAdminPetsSearch(String($event))"
           />
@@ -144,7 +146,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
       <Tabs default-value="all">
         <TabsList>
           <TabsTrigger value="all">
-            All
+            {{ t.admin.pets.allTab }}
             <span class="ml-1 text-xs text-muted-foreground"> ({{ allFilteredPets.length }}) </span>
           </TabsTrigger>
           <TabsTrigger v-for="rarity in rarities" :key="rarity" :value="rarity">
@@ -211,7 +213,7 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
             </Card>
           </div>
           <div v-else class="py-12 text-center">
-            <p class="text-muted-foreground">No pets yet. Add your first pet!</p>
+            <p class="text-muted-foreground">{{ t.admin.pets.noPetsAll }}</p>
           </div>
         </TabsContent>
 
@@ -273,8 +275,8 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
             <p class="text-muted-foreground">
               {{
                 adminPetsStore.adminPetsFilters.search
-                  ? 'No matching pets.'
-                  : 'No pets in this rarity yet.'
+                  ? t.admin.pets.noPetsSearch
+                  : t.admin.pets.noPetsRarity
               }}
             </p>
           </div>
@@ -292,21 +294,22 @@ function getPetTierImage(pet: Pet, tier: 1 | 2 | 3) {
     <AlertDialog v-model:open="showDeleteDialog">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Pet</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.admin.pets.deleteTitle }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{{ deletingPet?.name }}"? This will also remove it from
-            all student collections.
+            {{ t.admin.pets.deleteDesc(deletingPet?.name ?? '') }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
+          <AlertDialogCancel :disabled="isDeleting">{{
+            t.shared.actions.cancel
+          }}</AlertDialogCancel>
           <AlertDialogAction
             class="bg-destructive text-white hover:bg-destructive/90"
             :disabled="isDeleting"
             @click="confirmDelete"
           >
             <Loader2 v-if="isDeleting" class="mr-2 size-4 animate-spin" />
-            Delete
+            {{ t.shared.actions.delete }}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

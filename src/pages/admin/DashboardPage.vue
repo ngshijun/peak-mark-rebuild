@@ -4,6 +4,9 @@ import { useAdminDashboardStore } from '@/stores/admin-dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Users, Activity, BookOpen, Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const MonthlyRevenueChart = defineAsyncComponent(
   () => import('@/components/admin/MonthlyRevenueChart.vue'),
@@ -22,7 +25,7 @@ onMounted(async () => {
     await dashboardStore.fetchStats()
   } catch (err) {
     console.error('Failed to load dashboard data:', err)
-    toast.error('Failed to load dashboard data')
+    toast.error(t.value.admin.dashboard.toastLoadFailed)
   }
 })
 </script>
@@ -30,8 +33,8 @@ onMounted(async () => {
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold">Dashboard</h1>
-      <p class="text-muted-foreground">Overview of your platform metrics.</p>
+      <h1 class="text-2xl font-bold">{{ t.admin.dashboard.title }}</h1>
+      <p class="text-muted-foreground">{{ t.admin.dashboard.subtitle }}</p>
     </div>
 
     <!-- Loading State -->
@@ -45,7 +48,9 @@ onMounted(async () => {
         <!-- Revenue Card -->
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Revenue This Month</CardTitle>
+            <CardTitle class="text-sm font-medium">{{
+              t.admin.dashboard.revenueThisMonth
+            }}</CardTitle>
             <DollarSign class="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -69,7 +74,7 @@ onMounted(async () => {
               >
                 {{ dashboardStore.stats.revenue.change }}
               </span>
-              from last month
+              {{ t.admin.dashboard.fromLastMonth }}
             </p>
           </CardContent>
         </Card>
@@ -77,15 +82,19 @@ onMounted(async () => {
         <!-- Total Users Card -->
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle class="text-sm font-medium">{{ t.admin.dashboard.totalUsers }}</CardTitle>
             <Users class="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">{{ dashboardStore.stats.users.total }}</div>
             <p class="text-xs text-muted-foreground">
-              {{ dashboardStore.stats.users.students }} students,
-              {{ dashboardStore.stats.users.parents }} parents,
-              {{ dashboardStore.stats.users.admins }} admins
+              {{
+                t.admin.dashboard.userBreakdown(
+                  dashboardStore.stats.users.students,
+                  dashboardStore.stats.users.parents,
+                  dashboardStore.stats.users.admins,
+                )
+              }}
             </p>
           </CardContent>
         </Card>
@@ -93,24 +102,32 @@ onMounted(async () => {
         <!-- Active Students Today Card -->
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Active Students Today</CardTitle>
+            <CardTitle class="text-sm font-medium">{{
+              t.admin.dashboard.activeStudentsToday
+            }}</CardTitle>
             <Activity class="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">{{ dashboardStore.stats.activeStudentsToday }}</div>
-            <p class="text-xs text-muted-foreground">Students logged in today</p>
+            <p class="text-xs text-muted-foreground">
+              {{ t.admin.dashboard.studentsLoggedInToday }}
+            </p>
           </CardContent>
         </Card>
 
         <!-- Practice Sessions Today Card -->
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">Practice Sessions Today</CardTitle>
+            <CardTitle class="text-sm font-medium">{{
+              t.admin.dashboard.practiceSessionsToday
+            }}</CardTitle>
             <BookOpen class="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">{{ dashboardStore.stats.practiceSessionsToday }}</div>
-            <p class="text-xs text-muted-foreground">Sessions started today</p>
+            <p class="text-xs text-muted-foreground">
+              {{ t.admin.dashboard.sessionsStartedToday }}
+            </p>
           </CardContent>
         </Card>
       </div>

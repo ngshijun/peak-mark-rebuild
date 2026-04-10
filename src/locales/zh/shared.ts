@@ -699,6 +699,16 @@ export default {
     petsCollected: (owned: number, total: number) => `已收集 ${owned} / ${total} 只宠物`,
   },
   announcementCard: {},
+  pages: {
+    announcements: {
+      title: '公告',
+      subtitle: '了解最新动态与消息。',
+      markAllAsRead: '全部标为已读',
+      noAnnouncements: '暂无公告，请稍后再来！',
+      toastMarkAllReadFailed: (error: string) => error,
+      toastMarkedAllRead: '所有公告已标为已读',
+    },
+  },
   layout: {
     greetings: {
       morning: '早上好',

@@ -707,6 +707,16 @@ export default {
     petsCollected: (owned: number, total: number) => `${owned} / ${total} pets collected`,
   },
   announcementCard: {},
+  pages: {
+    announcements: {
+      title: 'Announcements',
+      subtitle: 'Stay updated with the latest news and updates.',
+      markAllAsRead: 'Mark all as read',
+      noAnnouncements: 'No announcements yet. Check back later!',
+      toastMarkAllReadFailed: (error: string) => error,
+      toastMarkedAllRead: 'All announcements marked as read',
+    },
+  },
   layout: {
     greetings: {
       morning: 'Good morning',

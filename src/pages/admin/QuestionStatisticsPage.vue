@@ -16,7 +16,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { QuestionPreviewDialog } from '@/components/admin'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const questionsStore = useQuestionsStore()
 
 // Fetch statistics on mount
@@ -35,7 +37,7 @@ async function refreshStatistics(): Promise<void> {
       toast.error(error)
       return
     }
-    toast.success('Statistics refreshed successfully')
+    toast.success(t.value.admin.questionStatistics.toastRefreshed)
   } finally {
     isRefreshing.value = false
   }
@@ -132,7 +134,7 @@ function getProgressColor(rate: number): string {
 const columns: ColumnDef<QuestionWithStats>[] = [
   {
     accessorKey: 'question',
-    header: 'Question',
+    header: () => t.value.admin.questionStatistics.questionCol,
     cell: ({ row }) => {
       const question = row.original.question
       return h(
@@ -144,7 +146,7 @@ const columns: ColumnDef<QuestionWithStats>[] = [
   },
   {
     accessorKey: 'type',
-    header: 'Type',
+    header: () => t.value.admin.questionStatistics.typeCol,
     cell: ({ row }) => {
       const type = row.original.type
       const config: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -174,19 +176,19 @@ const columns: ColumnDef<QuestionWithStats>[] = [
   },
   {
     accessorKey: 'gradeLevelName',
-    header: 'Grade Level',
+    header: () => t.value.admin.questionStatistics.gradeLevelCol,
   },
   {
     accessorKey: 'subjectName',
-    header: 'Subject',
+    header: () => t.value.admin.questionStatistics.subjectCol,
   },
   {
     accessorKey: 'topicName',
-    header: 'Topic',
+    header: () => t.value.admin.questionStatistics.topicCol,
   },
   {
     accessorKey: 'subTopicName',
-    header: 'Sub-Topic',
+    header: () => t.value.admin.questionStatistics.subTopicCol,
   },
   {
     id: 'attempts',
@@ -198,7 +200,10 @@ const columns: ColumnDef<QuestionWithStats>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Attempts', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [
+          t.value.admin.questionStatistics.attemptsCol,
+          h(ArrowUpDown, { class: 'ml-2 size-4' }),
+        ],
       )
     },
     cell: ({ row }) => {
@@ -216,7 +221,10 @@ const columns: ColumnDef<QuestionWithStats>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Correctness Rate', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [
+          t.value.admin.questionStatistics.correctnessRateCol,
+          h(ArrowUpDown, { class: 'ml-2 size-4' }),
+        ],
       )
     },
     cell: ({ row }) => {
@@ -242,7 +250,10 @@ const columns: ColumnDef<QuestionWithStats>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Avg. Time', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [
+          t.value.admin.questionStatistics.avgTimeCol,
+          h(ArrowUpDown, { class: 'ml-2 size-4' }),
+        ],
       )
     },
     cell: ({ row }) => {
@@ -265,12 +276,16 @@ function handleRowClick(question: QuestionWithStats) {
   <div class="p-6">
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Question Statistics</h1>
-        <p class="text-muted-foreground">View performance metrics for all questions.</p>
+        <h1 class="text-2xl font-bold">{{ t.admin.questionStatistics.title }}</h1>
+        <p class="text-muted-foreground">{{ t.admin.questionStatistics.subtitle }}</p>
       </div>
       <Button variant="outline" :disabled="isRefreshing" @click="refreshStatistics">
         <RefreshCw :class="['size-4 mr-2', { 'animate-spin': isRefreshing }]" />
-        {{ isRefreshing ? 'Refreshing...' : 'Refresh Statistics' }}
+        {{
+          isRefreshing
+            ? t.admin.questionStatistics.refreshingBtn
+            : t.admin.questionStatistics.refreshBtn
+        }}
       </Button>
     </div>
 
@@ -281,7 +296,7 @@ function handleRowClick(question: QuestionWithStats) {
         <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           :model-value="questionsStore.questionStatisticsFilters.search"
-          placeholder="Search questions..."
+          :placeholder="t.admin.questionStatistics.searchPlaceholder"
           class="pl-9"
           @update:model-value="questionsStore.setQuestionStatisticsSearch(String($event))"
         />
@@ -293,10 +308,10 @@ function handleRowClick(question: QuestionWithStats) {
         @update:model-value="questionsStore.setQuestionStatisticsGradeLevel(String($event))"
       >
         <SelectTrigger class="w-[130px]">
-          <SelectValue placeholder="All Grades" />
+          <SelectValue :placeholder="t.admin.questionStatistics.allGrades" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Grades</SelectItem>
+          <SelectItem :value="ALL_VALUE">{{ t.admin.questionStatistics.allGrades }}</SelectItem>
           <SelectItem v-for="grade in availableGradeLevels" :key="grade" :value="grade">
             {{ grade }}
           </SelectItem>
@@ -310,10 +325,10 @@ function handleRowClick(question: QuestionWithStats) {
         @update:model-value="questionsStore.setQuestionStatisticsSubject(String($event))"
       >
         <SelectTrigger class="w-[140px]">
-          <SelectValue placeholder="All Subjects" />
+          <SelectValue :placeholder="t.admin.questionStatistics.allSubjects" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
+          <SelectItem :value="ALL_VALUE">{{ t.admin.questionStatistics.allSubjects }}</SelectItem>
           <SelectItem v-for="subject in availableSubjects" :key="subject" :value="subject">
             {{ subject }}
           </SelectItem>
@@ -327,10 +342,10 @@ function handleRowClick(question: QuestionWithStats) {
         @update:model-value="questionsStore.setQuestionStatisticsTopic(String($event))"
       >
         <SelectTrigger class="w-[140px]">
-          <SelectValue placeholder="All Topics" />
+          <SelectValue :placeholder="t.admin.questionStatistics.allTopics" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
+          <SelectItem :value="ALL_VALUE">{{ t.admin.questionStatistics.allTopics }}</SelectItem>
           <SelectItem v-for="topic in availableTopics" :key="topic" :value="topic">
             {{ topic }}
           </SelectItem>
@@ -344,10 +359,10 @@ function handleRowClick(question: QuestionWithStats) {
         @update:model-value="questionsStore.setQuestionStatisticsSubTopic(String($event))"
       >
         <SelectTrigger class="w-[140px]">
-          <SelectValue placeholder="All Sub-Topics" />
+          <SelectValue :placeholder="t.admin.questionStatistics.allSubTopics" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="ALL_VALUE">All Sub-Topics</SelectItem>
+          <SelectItem :value="ALL_VALUE">{{ t.admin.questionStatistics.allSubTopics }}</SelectItem>
           <SelectItem v-for="subTopic in availableSubTopics" :key="subTopic" :value="subTopic">
             {{ subTopic }}
           </SelectItem>

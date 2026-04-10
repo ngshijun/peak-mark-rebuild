@@ -12,6 +12,9 @@ import SessionResultContent from '@/components/session/SessionResultContent.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Loader2, BotMessageSquare } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const route = useRoute()
 const router = useRouter()
@@ -77,10 +80,10 @@ function goBack() {
       <div class="mb-6">
         <Button variant="ghost" size="sm" class="mb-4" @click="goBack">
           <ArrowLeft class="mr-2 size-4" />
-          Back to Statistics
+          {{ t.admin.studentSessionResult.backToStatistics }}
         </Button>
 
-        <h1 class="text-2xl font-bold">Session Results</h1>
+        <h1 class="text-2xl font-bold">{{ t.admin.studentSessionResult.title }}</h1>
         <p v-if="student" class="text-muted-foreground">
           {{ student.name }} - {{ session.subjectName }} - {{ session.topicName }} |
           {{ session.gradeLevelName }}
@@ -105,7 +108,7 @@ function goBack() {
                 class="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300"
               >
                 <BotMessageSquare class="size-4" />
-                AI Summary
+                {{ t.admin.studentSessionResult.aiSummary }}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -121,8 +124,8 @@ function goBack() {
 
     <!-- Empty State -->
     <div v-else-if="!isLoading" class="py-12 text-center">
-      <p class="text-muted-foreground">Session not found</p>
-      <Button class="mt-4" @click="goBack">Go Back</Button>
+      <p class="text-muted-foreground">{{ t.admin.studentSessionResult.sessionNotFound }}</p>
+      <Button class="mt-4" @click="goBack">{{ t.admin.studentSessionResult.goBack }}</Button>
     </div>
   </div>
 </template>
