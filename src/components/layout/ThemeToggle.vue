@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { useThemeStore } from '@/stores/theme'
-import { Sun, Moon, Monitor } from 'lucide-vue-next'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Sun, Moon } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useT } from '@/composables/useT'
 
@@ -15,28 +9,9 @@ const t = useT()
 </script>
 
 <template>
-  <DropdownMenu>
-    <DropdownMenuTrigger as-child>
-      <Button variant="ghost" size="icon" class="size-8">
-        <Sun v-if="themeStore.theme === 'light'" class="size-4" />
-        <Moon v-else-if="themeStore.theme === 'dark'" class="size-4" />
-        <Monitor v-else class="size-4" />
-        <span class="sr-only">{{ t.shared.layout.toggleTheme }}</span>
-      </Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end">
-      <DropdownMenuItem @click="themeStore.setTheme('light')">
-        <Sun class="mr-2 size-4" />
-        {{ t.shared.layout.themeLight }}
-      </DropdownMenuItem>
-      <DropdownMenuItem @click="themeStore.setTheme('dark')">
-        <Moon class="mr-2 size-4" />
-        {{ t.shared.layout.themeDark }}
-      </DropdownMenuItem>
-      <DropdownMenuItem @click="themeStore.setTheme('system')">
-        <Monitor class="mr-2 size-4" />
-        {{ t.shared.layout.themeSystem }}
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
+  <Button variant="ghost" size="icon" class="size-8" @click="themeStore.toggleTheme()">
+    <Sun v-if="themeStore.theme === 'light'" class="size-4" />
+    <Moon v-else class="size-4" />
+    <span class="sr-only">{{ t.shared.layout.toggleTheme }}</span>
+  </Button>
 </template>
