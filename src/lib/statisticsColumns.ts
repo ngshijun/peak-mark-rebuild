@@ -58,6 +58,7 @@ export interface PracticeSessionRow {
 export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): ColumnDef<T>[] {
   const store = useLanguageStore()
   const headers = store.t.shared.statsFilterBar.practiceHistoryColumns
+  const statusLabels = getStatusConfig()
 
   return [
     {
@@ -122,7 +123,7 @@ export function createPracticeHistoryColumns<T extends PracticeSessionRow>(): Co
       },
       cell: ({ row }) => {
         const status = row.original.status
-        const config = getStatusConfig()[status]
+        const config = statusLabels[status]
         return h(
           Badge,
           {

@@ -213,7 +213,7 @@ export default {
   },
   cta: {
     title: '准备好让学习变有趣了吗？',
-    subtitle: '今天就加入 Clavis。免费方案开始——无需信用卡',
+    subtitle: '今天就加入 Clavis。从免费方案开始——无需信用卡',
     getStarted: '免费开始',
     haveAccount: '我已有账号',
   },

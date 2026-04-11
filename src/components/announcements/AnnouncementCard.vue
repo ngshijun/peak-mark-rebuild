@@ -5,6 +5,9 @@ import { Pin } from 'lucide-vue-next'
 import type { Announcement } from '@/stores/announcements'
 import { getAudienceConfig } from '@/stores/announcements'
 import { formatTimeAgo } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 defineProps<{
   announcement: Announcement
@@ -50,7 +53,7 @@ const emit = defineEmits<{
     <CardContent :class="compact ? 'p-3 pt-0' : ''">
       <!-- Time ago -->
       <p class="text-xs text-muted-foreground">
-        {{ formatTimeAgo(announcement.createdAt) }}
+        {{ formatTimeAgo(announcement.createdAt, t.shared.timeAgo) }}
       </p>
     </CardContent>
   </Card>

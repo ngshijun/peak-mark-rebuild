@@ -1043,6 +1043,18 @@ export default {
     weeksAgo: (n: number) => `${n}w ago`,
     never: 'Never',
   },
+  timeAgo: {
+    justNow: 'just now',
+    minutesAgo: (n: number) => `${n} minute${n === 1 ? '' : 's'} ago`,
+    hoursAgo: (n: number) => `${n} hour${n === 1 ? '' : 's'} ago`,
+    daysAgo: (n: number) => `${n} day${n === 1 ? '' : 's'} ago`,
+  },
+  timeAgoCompact: {
+    justNow: 'just now',
+    minutesAgo: (n: number) => `${n}m ago`,
+    hoursAgo: (n: number) => `${n}h ago`,
+    daysAgo: (n: number) => `${n}d ago`,
+  },
   pagination: {
     rowsTotal: (count: number) => `${count} row(s) total.`,
     rowsPerPage: 'Rows per page',

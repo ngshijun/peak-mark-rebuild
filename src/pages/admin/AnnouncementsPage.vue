@@ -229,7 +229,7 @@ const columns: ColumnDef<Announcement>[] = [
       return h(
         'span',
         { class: 'text-sm text-muted-foreground' },
-        formatTimeAgo(row.original.createdAt),
+        formatTimeAgo(row.original.createdAt, t.value.shared.timeAgo),
       )
     },
   },

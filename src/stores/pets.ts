@@ -88,17 +88,9 @@ export const rarityConfig: Record<
   },
 }
 
-/**
- * Returns the locale-aware display label for a pet rarity.
- * Falls back to the English label when the language store is not available.
- */
+/** Returns the locale-aware display label for a pet rarity. */
 export function getRarityLabel(rarity: PetRarity): string {
-  try {
-    const labels = useLanguageStore().t.shared.petTiers
-    return labels[rarity]
-  } catch {
-    return rarityConfig[rarity].label
-  }
+  return useLanguageStore().t.shared.petTiers[rarity]
 }
 
 export const usePetsStore = defineStore('pets', () => {

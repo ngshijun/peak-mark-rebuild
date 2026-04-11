@@ -65,7 +65,7 @@ function goToAnnouncementsPage() {
                   {{ getAudienceConfig()[announcement.targetAudience].label }}
                 </Badge>
                 <span class="text-xs text-muted-foreground">
-                  {{ formatTimeAgoCompact(announcement.createdAt) }}
+                  {{ formatTimeAgoCompact(announcement.createdAt, t.shared.timeAgoCompact) }}
                 </span>
               </div>
             </div>
