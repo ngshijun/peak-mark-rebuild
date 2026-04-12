@@ -75,7 +75,7 @@ export default {
     aiSummaryEmpty: 'No summary available for this session.',
     aiSummaryUpgradeHint: 'Upgrade to Pro to unlock AI-powered feedback for each session.',
     lockedNoParent:
-      'Link your account to a parent to unlock detailed session results. Ask your parent to send you an invitation.',
+      'Detailed session results require a linked parent with a Plus or higher subscription. Start by linking to a parent — invite them, or ask them to send you an invitation.',
     lockedNoSubscription:
       'Detailed session results require a Plus or higher subscription. Ask your parent to upgrade your plan.',
     linkToParent: 'Link to Parent',

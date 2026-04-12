@@ -192,7 +192,7 @@ const questionsStore = useQuestionsStore()
             variant="outline"
             class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
           >
-            Your answer
+            {{ t.shared.questionOptionsList.yourAnswer }}
           </Badge>
         </div>
         <!-- MCQ: Correct but NOT selected (show correct answer) -->
@@ -210,7 +210,7 @@ const questionsStore = useQuestionsStore()
             variant="outline"
             class="border-green-500 text-xs text-green-600 dark:border-green-600 dark:text-green-400"
           >
-            Correct answer
+            {{ t.shared.questionOptionsList.correctAnswer }}
           </Badge>
         </div>
         <!-- MRQ: Correct but NOT selected (missed - show as error) -->
@@ -228,7 +228,7 @@ const questionsStore = useQuestionsStore()
             variant="outline"
             class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
           >
-            Correct answer
+            {{ t.shared.questionOptionsList.correctAnswer }}
           </Badge>
         </div>
         <!-- Incorrect and selected -->
@@ -241,7 +241,7 @@ const questionsStore = useQuestionsStore()
             variant="outline"
             class="border-red-500 text-xs text-red-600 dark:border-red-600 dark:text-red-400"
           >
-            Your answer
+            {{ t.shared.questionOptionsList.yourAnswer }}
           </Badge>
         </div>
       </div>
