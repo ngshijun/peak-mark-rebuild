@@ -24,6 +24,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -67,6 +68,7 @@
   --accent-foreground: oklch(0.35 0.15 310);
   /* Destructive: Coral red #EF4444 */
   --destructive: oklch(0.637 0.237 25);
+  --destructive-hover: oklch(0.535 0.225 25);
   /* Borders and inputs */
   --border: oklch(0.9 0.02 280);
   --input: oklch(0.92 0.015 280);
@@ -113,6 +115,7 @@
   --accent-foreground: oklch(0.9 0.03 290);
   /* Destructive: Brighter red for visibility */
   --destructive: oklch(0.65 0.22 25);
+  --destructive-hover: oklch(0.74 0.22 25);
   /* Borders and inputs */
   --border: oklch(0.34 0.008 260);
   --input: oklch(0.4 0.01 260);

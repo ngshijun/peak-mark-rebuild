@@ -97,7 +97,7 @@ async function confirmDelete() {
       <AlertDialogFooter>
         <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
         <AlertDialogAction
-          class="bg-destructive text-white hover:bg-destructive/90"
+          variant="destructive"
           :disabled="isDeleting || confirmInput !== itemName"
           @click="confirmDelete"
         >
