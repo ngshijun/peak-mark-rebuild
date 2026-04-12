@@ -248,10 +248,7 @@ async function handleRemoveChild(childId: string) {
                       <AlertDialogCancel>{{
                         t.parent.children.removeChildCancel
                       }}</AlertDialogCancel>
-                      <AlertDialogAction
-                        class="bg-destructive text-white hover:bg-destructive/90"
-                        @click="handleRemoveChild(child.id)"
-                      >
+                      <AlertDialogAction variant="destructive" @click="handleRemoveChild(child.id)">
                         {{ t.parent.children.removeChildAction }}
                       </AlertDialogAction>
                     </template>

@@ -166,10 +166,7 @@ const emit = defineEmits<{
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>{{ t.shared.invitationCards.keep }}</AlertDialogCancel>
-                  <AlertDialogAction
-                    class="bg-destructive text-white hover:bg-destructive/90"
-                    @click="emit('cancel', invitation.id)"
-                  >
+                  <AlertDialogAction variant="destructive" @click="emit('cancel', invitation.id)">
                     {{ t.shared.invitationCards.cancelInvitation }}
                   </AlertDialogAction>
                 </AlertDialogFooter>

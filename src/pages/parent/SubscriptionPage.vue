@@ -459,10 +459,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                   <AlertDialogCancel>{{
                     t.parent.subscription.keepSubscription
                   }}</AlertDialogCancel>
-                  <AlertDialogAction
-                    class="bg-destructive text-white hover:bg-destructive/90"
-                    @click="handleCancel"
-                  >
+                  <AlertDialogAction variant="destructive" @click="handleCancel">
                     {{ t.parent.subscription.cancelSubscriptionButton }}
                   </AlertDialogAction>
                 </AlertDialogFooter>

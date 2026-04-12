@@ -19,13 +19,21 @@ import { useT } from '@/composables/useT'
 const friendsStore = useFriendsStore()
 const t = useT()
 const sendingTo = ref<string | null>(null)
+// Decoupled from removeDialogOpen: AlertDialogAction auto-fires update:open(false)
+// on click, which would null this out before @confirm reads it.
 const removingFriend = ref<{ friendshipId: string; name: string } | null>(null)
+const removeDialogOpen = ref(false)
 const showProfileDialog = ref(false)
 const selectedFriend = ref<Friend | null>(null)
 
 function handleFriendClick(friend: Friend) {
   selectedFriend.value = friend
   showProfileDialog.value = true
+}
+
+function handleRemoveClick(friend: Friend) {
+  removingFriend.value = { friendshipId: friend.friendshipId, name: friend.name }
+  removeDialogOpen.value = true
 }
 
 async function handleSendCoins(friendshipId: string, friendName: string) {
@@ -140,11 +148,7 @@ async function handleRemove() {
               {{ t.shared.friendList.send }}
             </Button>
 
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              @click="removingFriend = { friendshipId: friend.friendshipId, name: friend.name }"
-            >
+            <Button size="icon-sm" variant="ghost" @click="handleRemoveClick(friend)">
               <UserMinus class="size-4" />
             </Button>
           </div>
@@ -156,13 +160,8 @@ async function handleRemove() {
   <FriendProfileDialog v-model:open="showProfileDialog" :friend="selectedFriend" />
 
   <RemoveFriendDialog
-    :open="removingFriend !== null"
+    v-model:open="removeDialogOpen"
     :friend-name="removingFriend?.name ?? ''"
-    @update:open="
-      (val: boolean) => {
-        if (!val) removingFriend = null
-      }
-    "
     @confirm="handleRemove"
   />
 </template>
