@@ -435,10 +435,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                  <AlertDialogAction
-                    class="bg-destructive text-white hover:bg-destructive/90"
-                    @click="handleCancel"
-                  >
+                  <AlertDialogAction variant="destructive" @click="handleCancel">
                     Cancel Subscription
                   </AlertDialogAction>
                 </AlertDialogFooter>

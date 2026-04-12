@@ -156,10 +156,7 @@ const emit = defineEmits<{
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep</AlertDialogCancel>
-                  <AlertDialogAction
-                    class="bg-destructive text-white hover:bg-destructive/90"
-                    @click="emit('cancel', invitation.id)"
-                  >
+                  <AlertDialogAction variant="destructive" @click="emit('cancel', invitation.id)">
                     Cancel Invitation
                   </AlertDialogAction>
                 </AlertDialogFooter>
