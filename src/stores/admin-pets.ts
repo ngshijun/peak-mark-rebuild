@@ -37,7 +37,7 @@ export const useAdminPetsStore = defineStore('adminPets', () => {
         .single()
 
       if (insertError) {
-        return { pet: null, error: handleError(insertError, 'Failed to create pet.') }
+        return { pet: null, error: handleError(insertError, 'failedCreatePet') }
       }
 
       const newPet: Pet = {
@@ -55,7 +55,7 @@ export const useAdminPetsStore = defineStore('adminPets', () => {
       petsStore.allPets.push(newPet)
       return { pet: newPet, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to create pet.')
+      const message = handleError(err, 'failedCreatePet')
       return { pet: null, error: message }
     }
   }
@@ -87,7 +87,7 @@ export const useAdminPetsStore = defineStore('adminPets', () => {
         .single()
 
       if (updateError) {
-        return { error: handleError(updateError, 'Failed to update pet.') }
+        return { error: handleError(updateError, 'failedUpdatePet') }
       }
 
       // Update local state in shared store
@@ -108,7 +108,7 @@ export const useAdminPetsStore = defineStore('adminPets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to update pet.')
+      const message = handleError(err, 'failedUpdatePet')
       return { error: message }
     }
   }
@@ -119,7 +119,7 @@ export const useAdminPetsStore = defineStore('adminPets', () => {
       const { error: deleteError } = await supabase.from('pets').delete().eq('id', petId)
 
       if (deleteError) {
-        return { error: handleError(deleteError, 'Failed to delete pet.') }
+        return { error: handleError(deleteError, 'failedDeletePet') }
       }
 
       // Remove from shared store
@@ -131,7 +131,7 @@ export const useAdminPetsStore = defineStore('adminPets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to delete pet.')
+      const message = handleError(err, 'failedDeletePet')
       return { error: message }
     }
   }

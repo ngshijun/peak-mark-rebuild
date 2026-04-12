@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { useLanguageStore } from './language'
 import type { Database } from '@/types/database.types'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { getStorageImageUrl } from '@/lib/storage'
 
 export type PetRarity = Database['public']['Enums']['pet_rarity']
@@ -133,7 +133,7 @@ export const usePetsStore = defineStore('pets', () => {
         .order('name')
 
       if (fetchError) {
-        const message = handleError(fetchError, 'Failed to fetch pets.')
+        const message = handleError(fetchError, 'failedFetchPets')
         error.value = message
         return { error: message }
       }
@@ -151,7 +151,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch pets.')
+      const message = handleError(err, 'failedFetchPets')
       error.value = message
       return { error: message }
     } finally {
@@ -163,7 +163,7 @@ export const usePetsStore = defineStore('pets', () => {
   async function fetchOwnedPets(): Promise<{ error: string | null }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     try {
@@ -173,7 +173,7 @@ export const usePetsStore = defineStore('pets', () => {
         .eq('student_id', studentId)
 
       if (fetchError) {
-        return { error: handleError(fetchError, 'Failed to fetch owned pets.') }
+        return { error: handleError(fetchError, 'failedFetchOwnedPets') }
       }
 
       ownedPets.value = (data || []).map((op) => ({
@@ -189,7 +189,7 @@ export const usePetsStore = defineStore('pets', () => {
       ownedPetsLoaded.value = true
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch owned pets.')
+      const message = handleError(err, 'failedFetchOwnedPets')
       return { error: message }
     }
   }
@@ -292,7 +292,7 @@ export const usePetsStore = defineStore('pets', () => {
   async function addPet(petId: string): Promise<{ error: string | null }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     try {
@@ -307,7 +307,7 @@ export const usePetsStore = defineStore('pets', () => {
           .eq('id', existing.id)
 
         if (updateError) {
-          return { error: handleError(updateError, 'Failed to add pet.') }
+          return { error: handleError(updateError, 'failedAddPet') }
         }
 
         existing.count++
@@ -324,7 +324,7 @@ export const usePetsStore = defineStore('pets', () => {
           .single()
 
         if (insertError) {
-          return { error: handleError(insertError, 'Failed to add pet.') }
+          return { error: handleError(insertError, 'failedAddPet') }
         }
 
         ownedPets.value.push({
@@ -340,7 +340,7 @@ export const usePetsStore = defineStore('pets', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to add pet.')
+      const message = handleError(err, 'failedAddPet')
       return { error: message }
     }
   }
@@ -382,7 +382,7 @@ export const usePetsStore = defineStore('pets', () => {
   // Select a pet (must be owned)
   async function selectPet(petId: string): Promise<{ error: string | null }> {
     if (!isPetOwned(petId)) {
-      return { error: 'Pet not owned' }
+      return { error: errorMessages().petNotOwned }
     }
 
     const result = await authStore.setSelectedPet(petId)
@@ -404,7 +404,7 @@ export const usePetsStore = defineStore('pets', () => {
   > {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     try {
@@ -415,7 +415,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { error: handleError(rpcError, 'Failed to feed pet.') }
+        return { error: handleError(rpcError, 'failedFeedPet') }
       }
 
       const result = data as {
@@ -427,7 +427,7 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       if (!result.success) {
-        return { error: result.error ?? 'Failed to feed pet.' }
+        return { error: result.error ?? errorMessages().failedFeedPet }
       }
 
       // Update local state with fallback refresh on error
@@ -451,7 +451,7 @@ export const usePetsStore = defineStore('pets', () => {
         canEvolve: result.can_evolve ?? false,
       }
     } catch (err) {
-      const message = handleError(err, 'Failed to feed pet.')
+      const message = handleError(err, 'failedFeedPet')
       return { error: message }
     }
   }
@@ -462,7 +462,7 @@ export const usePetsStore = defineStore('pets', () => {
   ): Promise<{ error: null; newTier: number } | { error: string }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     try {
@@ -472,7 +472,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { error: handleError(rpcError, 'Failed to evolve pet.') }
+        return { error: handleError(rpcError, 'failedEvolvePet') }
       }
 
       const result = data as {
@@ -483,7 +483,7 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       if (!result.success) {
-        return { error: result.error ?? 'Failed to evolve pet.' }
+        return { error: result.error ?? errorMessages().failedEvolvePet }
       }
 
       // Update local state with fallback refresh on error
@@ -503,7 +503,7 @@ export const usePetsStore = defineStore('pets', () => {
         newTier: result.new_tier ?? 0,
       }
     } catch (err) {
-      const message = handleError(err, 'Failed to evolve pet.')
+      const message = handleError(err, 'failedEvolvePet')
       return { error: message }
     }
   }
@@ -541,11 +541,11 @@ export const usePetsStore = defineStore('pets', () => {
   > {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     if (ownedPetIds.length !== 4) {
-      return { error: 'Must select exactly 4 pets' }
+      return { error: errorMessages().selectExactlyFourPets }
     }
 
     try {
@@ -555,7 +555,7 @@ export const usePetsStore = defineStore('pets', () => {
       })
 
       if (rpcError) {
-        return { error: handleError(rpcError, 'Failed to combine pets.') }
+        return { error: handleError(rpcError, 'failedCombinePets') }
       }
 
       const result = data as {
@@ -567,7 +567,7 @@ export const usePetsStore = defineStore('pets', () => {
       }
 
       if (!result.success) {
-        return { error: result.error ?? 'Failed to combine pets.' }
+        return { error: result.error ?? errorMessages().failedCombinePets }
       }
 
       // Refresh owned pets to reflect changes
@@ -580,7 +580,7 @@ export const usePetsStore = defineStore('pets', () => {
         resultRarity: result.result_rarity ?? 'common',
       }
     } catch (err) {
-      const message = handleError(err, 'Failed to combine pets.')
+      const message = handleError(err, 'failedCombinePets')
       return { error: message }
     }
   }
@@ -590,11 +590,11 @@ export const usePetsStore = defineStore('pets', () => {
     try {
       const { data: petId, error: rpcError } = await supabase.rpc('gacha_pull')
       if (rpcError) {
-        return { petId: null, error: handleError(rpcError, 'Pull failed') }
+        return { petId: null, error: handleError(rpcError, 'pullFailed') }
       }
       return { petId: petId ?? null, error: null }
     } catch (err) {
-      return { petId: null, error: handleError(err, 'Pull failed') }
+      return { petId: null, error: handleError(err, 'pullFailed') }
     }
   }
 
@@ -603,11 +603,11 @@ export const usePetsStore = defineStore('pets', () => {
     try {
       const { data: petIds, error: rpcError } = await supabase.rpc('gacha_multi_pull')
       if (rpcError) {
-        return { petIds: null, error: handleError(rpcError, 'Pull failed') }
+        return { petIds: null, error: handleError(rpcError, 'pullFailed') }
       }
       return { petIds: petIds ?? null, error: null }
     } catch (err) {
-      return { petIds: null, error: handleError(err, 'Pull failed') }
+      return { petIds: null, error: handleError(err, 'pullFailed') }
     }
   }
 
@@ -616,11 +616,11 @@ export const usePetsStore = defineStore('pets', () => {
     try {
       const { data: petId, error: rpcError } = await supabase.rpc('initial_pet_draw')
       if (rpcError) {
-        return { petId: null, error: handleError(rpcError, 'Initial draw failed') }
+        return { petId: null, error: handleError(rpcError, 'initialDrawFailed') }
       }
       return { petId: petId ?? null, error: null }
     } catch (err) {
-      return { petId: null, error: handleError(err, 'Initial draw failed') }
+      return { petId: null, error: handleError(err, 'initialDrawFailed') }
     }
   }
 
@@ -632,13 +632,13 @@ export const usePetsStore = defineStore('pets', () => {
       })
       if (rpcError) {
         const message = rpcError.message.includes('Insufficient')
-          ? 'Not enough coins!'
-          : handleError(rpcError, 'Failed to exchange coins for food')
+          ? errorMessages().notEnoughCoins
+          : handleError(rpcError, 'failedExchangeCoinsForFood')
         return { error: message }
       }
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to exchange coins for food') }
+      return { error: handleError(err, 'failedExchangeCoinsForFood') }
     }
   }
 

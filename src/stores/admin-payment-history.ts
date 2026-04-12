@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
@@ -44,7 +44,7 @@ export const useAdminPaymentHistoryStore = defineStore('adminPaymentHistory', ()
    */
   async function fetchPayments(): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isAdmin) {
-      return { error: 'Not authenticated as admin' }
+      return { error: errorMessages().notAuthenticatedAsAdmin }
     }
 
     isLoading.value = true
@@ -109,7 +109,7 @@ export const useAdminPaymentHistoryStore = defineStore('adminPaymentHistory', ()
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch payment history.')
+      const message = handleError(err, 'failedFetchPaymentHistory')
       error.value = message
       return { error: message }
     } finally {

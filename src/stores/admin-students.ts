@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
@@ -46,7 +46,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
    */
   async function fetchAllStudents(): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isAdmin) {
-      return { error: 'Not authenticated as admin' }
+      return { error: errorMessages().notAuthenticatedAsAdmin }
     }
 
     isLoadingStudents.value = true
@@ -160,7 +160,7 @@ export const useAdminStudentsStore = defineStore('adminStudents', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch students.')
+      const message = handleError(err, 'failedFetchStudents')
       studentsError.value = message
       return { error: message }
     } finally {

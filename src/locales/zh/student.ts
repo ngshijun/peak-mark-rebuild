@@ -69,8 +69,8 @@ export default {
     aiSummaryEmpty: '此次练习暂无总结。',
     aiSummaryUpgradeHint: '升级至 Pro 版，解锁每次练习的 AI 反馈功能。',
     lockedNoParent:
-      '查看详细练习结果需要家长账号及 Plus 或以上订阅。请先绑定家长账号——邀请你的家长，或请家长向你发送邀请。',
-    lockedNoSubscription: '详细练习结果需要 Plus 或以上订阅。请家长升级你的订阅方案。',
+      '查看详细练习结果需要家长账号及订阅 Plus 或以上方案。请先绑定家长账号——邀请你的家长，或请家长向你发送邀请。',
+    lockedNoSubscription: '详细练习结果需要订阅 Plus 或以上方案。请家长升级你的订阅方案。',
     linkToParent: '绑定家长',
     sessionNotFound: '未找到练习记录',
     goToStatistics: '前往学习概况',

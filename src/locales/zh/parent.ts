@@ -72,7 +72,7 @@ export default {
     aiSummaryTitle: 'AI 总结',
     upgradeToProHint: (tier: string) => `升级至 ${tier} 方案，即可解锁每次练习后的 AI 反馈。`,
     noAiSummary: '本次练习暂无 AI 总结。',
-    lockedMessage: '查看详细练习结果需要 Plus 或更高方案，升级后可查看每道题目及答案。',
+    lockedMessage: '查看详细练习结果需要订阅 Plus 或以上方案，升级后可查看每道题目及答案。',
     upgradePlan: '升级方案',
     sessionNotFound: '未找到该练习记录',
     goBack: '返回',

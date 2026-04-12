@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { uploadStorageFile, createBucketImageHelpers } from '@/lib/storage'
 
 export interface SubTopic {
@@ -242,7 +242,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       buildLookupMaps()
     } catch (err) {
       console.error('Error fetching curriculum:', err)
-      error.value = handleError(err, 'Failed to fetch curriculum.')
+      error.value = handleError(err, 'failedFetchCurriculum')
     } finally {
       isLoading.value = false
     }
@@ -284,7 +284,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding grade level:', err)
-      const message = handleError(err, 'Failed to add grade level.')
+      const message = handleError(err, 'failedAddGradeLevel')
       return { success: false, error: message }
     }
   }
@@ -313,7 +313,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating grade level:', err)
-      const message = handleError(err, 'Failed to update grade level.')
+      const message = handleError(err, 'failedUpdateGradeLevel')
       return { success: false, error: message }
     }
   }
@@ -338,7 +338,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting grade level:', err)
-      const message = handleError(err, 'Failed to delete grade level.')
+      const message = handleError(err, 'failedDeleteGradeLevel')
       return { success: false, error: message }
     }
   }
@@ -354,7 +354,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
     try {
       const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
       if (!gradeLevel) {
-        return { success: false, error: 'Grade level not found' }
+        return { success: false, error: errorMessages().gradeLevelNotFound }
       }
 
       // Get max display order for this grade level
@@ -390,7 +390,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding subject:', err)
-      const message = handleError(err, 'Failed to add subject.')
+      const message = handleError(err, 'failedAddSubject')
       return { success: false, error: message }
     }
   }
@@ -426,7 +426,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating subject:', err)
-      const message = handleError(err, 'Failed to update subject.')
+      const message = handleError(err, 'failedUpdateSubject')
       return { success: false, error: message }
     }
   }
@@ -468,7 +468,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting subject:', err)
-      const message = handleError(err, 'Failed to delete subject.')
+      const message = handleError(err, 'failedDeleteSubject')
       return { success: false, error: message }
     }
   }
@@ -486,7 +486,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       const gradeLevel = gradeLevels.value.find((g) => g.id === gradeLevelId)
       const subject = gradeLevel?.subjects.find((s) => s.id === subjectId)
       if (!subject) {
-        return { success: false, error: 'Subject not found' }
+        return { success: false, error: errorMessages().subjectNotFound }
       }
 
       // Get max display order for this subject
@@ -525,7 +525,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding topic:', err)
-      const message = handleError(err, 'Failed to add topic.')
+      const message = handleError(err, 'failedAddTopic')
       return { success: false, error: message }
     }
   }
@@ -563,7 +563,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating topic:', err)
-      const message = handleError(err, 'Failed to update topic.')
+      const message = handleError(err, 'failedUpdateTopic')
       return { success: false, error: message }
     }
   }
@@ -608,7 +608,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting topic:', err)
-      const message = handleError(err, 'Failed to delete topic.')
+      const message = handleError(err, 'failedDeleteTopic')
       return { success: false, error: message }
     }
   }
@@ -628,7 +628,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       const subject = gradeLevel?.subjects.find((s) => s.id === subjectId)
       const topic = subject?.topics.find((t) => t.id === topicId)
       if (!topic) {
-        return { success: false, error: 'Topic not found' }
+        return { success: false, error: errorMessages().topicNotFound }
       }
 
       // Get max display order for this topic
@@ -672,7 +672,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null, id: data.id }
     } catch (err) {
       console.error('Error adding sub_topic:', err)
-      const message = handleError(err, 'Failed to add sub-topic.')
+      const message = handleError(err, 'failedAddSubTopic')
       return { success: false, error: message }
     }
   }
@@ -712,7 +712,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error updating sub_topic:', err)
-      const message = handleError(err, 'Failed to update sub-topic.')
+      const message = handleError(err, 'failedUpdateSubTopic')
       return { success: false, error: message }
     }
   }
@@ -761,7 +761,7 @@ export const useCurriculumStore = defineStore('curriculum', () => {
       return { success: true, error: null }
     } catch (err) {
       console.error('Error deleting sub_topic:', err)
-      const message = handleError(err, 'Failed to delete sub-topic.')
+      const message = handleError(err, 'failedDeleteSubTopic')
       return { success: false, error: message }
     }
   }

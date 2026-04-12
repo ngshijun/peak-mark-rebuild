@@ -4,8 +4,8 @@ import { supabase, clearSupabaseAuth } from '@/lib/supabaseClient'
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { resetAllStores } from '@/lib/piniaResetPlugin'
 import type { Database } from '@/types/database.types'
-import { handleError } from '@/lib/errors'
-import { translateAuthError } from '@/lib/authErrors'
+import { handleError, errorMessages } from '@/lib/errors'
+import { handleAuthError } from '@/lib/authErrors'
 import { XP_PER_LEVEL, computeLevel } from '@/lib/xp'
 import { optimizeImage } from '@/lib/imageOptimizer'
 
@@ -130,7 +130,7 @@ async function ensureProfileExists(user: SupabaseUser): Promise<{ error: string 
 
     // If there was an error other than "not found", return it
     if (checkError) {
-      return { error: handleError(checkError, 'An unexpected error occurred.') }
+      return { error: handleError(checkError, 'unknown') }
     }
 
     // Profile doesn't exist, create it atomically using RPC function
@@ -151,12 +151,12 @@ async function ensureProfileExists(user: SupabaseUser): Promise<{ error: string 
     })
 
     if (rpcError) {
-      return { error: handleError(rpcError, 'An unexpected error occurred.') }
+      return { error: handleError(rpcError, 'unknown') }
     }
 
     return { error: null }
   } catch (err) {
-    const message = handleError(err, 'An unexpected error occurred.')
+    const message = handleError(err, 'unknown')
     return { error: message }
   }
 }
@@ -301,9 +301,7 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (signUpError) {
-        const message =
-          translateAuthError(signUpError) ||
-          handleError(signUpError, 'An unexpected error occurred.')
+        const message = handleAuthError(signUpError)
         return { user: null, error: message }
       }
 
@@ -312,13 +310,13 @@ export const useAuthStore = defineStore('auth', () => {
       if (data.user && data.user.identities?.length === 0) {
         return {
           user: null,
-          error: 'An account with this email already exists. Please login instead.',
+          error: errorMessages().authAccountExists,
         }
       }
 
       return { user: data.user, error: null }
     } catch (err) {
-      const message = handleError(err, 'An unexpected error occurred.')
+      const message = handleError(err, 'unknown')
       return { user: null, error: message }
     } finally {
       isLoading.value = false
@@ -337,9 +335,7 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (signInError) {
-        const message =
-          translateAuthError(signInError) ||
-          handleError(signInError, 'An unexpected error occurred.')
+        const message = handleAuthError(signInError)
         return {
           user: null,
           session: null,
@@ -360,7 +356,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { user: data.user, session: data.session, error: null }
     } catch (err) {
-      const message = handleError(err, 'An unexpected error occurred.')
+      const message = handleError(err, 'unknown')
       return { user: null, session: null, error: message }
     } finally {
       isLoading.value = false
@@ -391,7 +387,7 @@ export const useAuthStore = defineStore('auth', () => {
           signOutError.status === 401
 
         if (!isSessionGone) {
-          const msg = handleError(signOutError, 'An unexpected error occurred.')
+          const msg = handleError(signOutError, 'unknown')
           // Still clear local state even on unexpected errors
           user.value = null
           return { error: msg }
@@ -422,7 +418,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'An unexpected error occurred.')
+      const message = handleError(err, 'unknown')
       user.value = null
       return { error: message }
     } finally {
@@ -449,15 +445,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (resetError) {
         return {
-          error:
-            translateAuthError(resetError) ||
-            handleError(resetError, 'An unexpected error occurred.'),
+          error: handleAuthError(resetError),
         }
       }
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'An unexpected error occurred.') }
+      return { error: handleError(err, 'unknown') }
     }
   }
 
@@ -473,15 +467,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (resendError) {
         return {
-          error:
-            translateAuthError(resendError) ||
-            handleError(resendError, 'An unexpected error occurred.'),
+          error: handleAuthError(resendError),
         }
       }
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'An unexpected error occurred.') }
+      return { error: handleError(err, 'unknown') }
     }
   }
 
@@ -496,15 +488,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (updateError) {
         return {
-          error:
-            translateAuthError(updateError) ||
-            handleError(updateError, 'An unexpected error occurred.'),
+          error: handleAuthError(updateError),
         }
       }
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'An unexpected error occurred.') }
+      return { error: handleError(err, 'unknown') }
     }
   }
 
@@ -532,12 +522,12 @@ export const useAuthStore = defineStore('auth', () => {
    * Update user's name
    */
   async function updateName(name: string) {
-    if (!user.value) return { error: 'Not authenticated' }
+    if (!user.value) return { error: errorMessages().notAuthenticated }
 
     const { error } = await supabase.from('profiles').update({ name }).eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update name.') }
+      return { error: handleError(error, 'failedUpdateName') }
     }
 
     user.value.name = name
@@ -548,7 +538,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Update user's date of birth
    */
   async function updateDateOfBirth(dateOfBirth: string | null) {
-    if (!user.value) return { error: 'Not authenticated' }
+    if (!user.value) return { error: errorMessages().notAuthenticated }
 
     const { error } = await supabase
       .from('profiles')
@@ -556,7 +546,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update date of birth.') }
+      return { error: handleError(error, 'failedUpdateDateOfBirth') }
     }
 
     user.value.dateOfBirth = dateOfBirth
@@ -567,7 +557,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Update user's avatar path in database
    */
   async function updateAvatar(avatarPath: string) {
-    if (!user.value) return { error: 'Not authenticated' }
+    if (!user.value) return { error: errorMessages().notAuthenticated }
 
     const { error } = await supabase
       .from('profiles')
@@ -575,7 +565,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update avatar.') }
+      return { error: handleError(error, 'failedUpdateAvatar') }
     }
 
     user.value.avatarPath = avatarPath
@@ -586,7 +576,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Upload avatar image to storage and update profile
    */
   async function uploadAvatar(file: File): Promise<{ path: string | null; error: string | null }> {
-    if (!user.value) return { path: null, error: 'Not authenticated' }
+    if (!user.value) return { path: null, error: errorMessages().notAuthenticated }
 
     try {
       const oldAvatarPath = user.value.avatarPath
@@ -617,7 +607,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { path: filePath, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to upload avatar.')
+      const message = handleError(err, 'failedUploadAvatar')
       return { path: null, error: message }
     }
   }
@@ -628,7 +618,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function uploadAvatarFromUrl(
     avatarUrl: string,
   ): Promise<{ path: string | null; error: string | null }> {
-    if (!user.value) return { path: null, error: 'Not authenticated' }
+    if (!user.value) return { path: null, error: errorMessages().notAuthenticated }
 
     try {
       const oldAvatarPath = user.value.avatarPath
@@ -636,7 +626,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Fetch the image from the URL
       const response = await fetch(avatarUrl)
       if (!response.ok) {
-        throw new Error('Failed to fetch avatar from URL')
+        throw new Error(errorMessages().failedFetchAvatar)
       }
 
       const blob = await response.blob()
@@ -672,7 +662,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { path: filePath, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to upload avatar.')
+      const message = handleError(err, 'failedUploadAvatar')
       return { path: null, error: message }
     }
   }
@@ -682,7 +672,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function updateGradeLevel(gradeLevelId: string) {
     if (!user.value || user.value.userType !== 'student') {
-      return { error: 'Not a student' }
+      return { error: errorMessages().notAStudent }
     }
 
     const { error } = await supabase
@@ -691,7 +681,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update grade level.') }
+      return { error: handleError(error, 'failedUpdateGradeLevel') }
     }
 
     if (user.value.studentProfile) {
@@ -702,7 +692,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function updateSchool(schoolId: string | null) {
     if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return { error: 'Not a student' }
+      return { error: errorMessages().notAStudent }
     }
 
     const { error } = await supabase
@@ -711,7 +701,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update school.') }
+      return { error: handleError(error, 'failedUpdateSchool') }
     }
 
     user.value.studentProfile.schoolId = schoolId
@@ -732,7 +722,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function updatePreferredLanguage(language: 'en' | 'zh') {
     if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return { error: 'Not a student' }
+      return { error: errorMessages().notAStudent }
     }
 
     const { error } = await supabase
@@ -741,7 +731,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update language preference.') }
+      return { error: handleError(error, 'failedUpdateLanguage') }
     }
 
     user.value.studentProfile.preferredLanguage = language
@@ -752,7 +742,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Mark the guided tour as completed (or reset it)
    */
   async function setTourCompleted(completed: boolean) {
-    if (!user.value) return { error: 'Not authenticated' }
+    if (!user.value) return { error: errorMessages().notAuthenticated }
 
     const { error } = await supabase
       .from('profiles')
@@ -760,7 +750,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update tour status.') }
+      return { error: handleError(error, 'failedUpdateTour') }
     }
 
     user.value.hasCompletedTour = completed
@@ -772,7 +762,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function setSelectedPet(petId: string | null) {
     if (!user.value || user.value.userType !== 'student' || !user.value.studentProfile) {
-      return { error: 'Not a student' }
+      return { error: errorMessages().notAStudent }
     }
 
     const { error } = await supabase
@@ -781,7 +771,7 @@ export const useAuthStore = defineStore('auth', () => {
       .eq('id', user.value.id)
 
     if (error) {
-      return { error: handleError(error, 'Failed to update selected pet.') }
+      return { error: handleError(error, 'failedUpdateSelectedPet') }
     }
 
     user.value.studentProfile.selectedPetId = petId

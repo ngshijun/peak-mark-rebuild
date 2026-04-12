@@ -306,7 +306,7 @@ export const useQuestionsStore = defineStore('questions', () => {
       serverTotalCount.value = count ?? 0
     } catch (err) {
       if (version !== fetchVersion) return
-      error.value = handleError(err, 'Failed to fetch questions.')
+      error.value = handleError(err, 'failedFetchQuestions')
     } finally {
       if (version === fetchVersion) {
         serverIsLoading.value = false
@@ -392,7 +392,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       questions.value = allRows.map((row) => rowToQuestion(row, curriculumStore))
     } catch (err) {
-      error.value = handleError(err, 'Failed to fetch questions.')
+      error.value = handleError(err, 'failedFetchQuestions')
     } finally {
       isLoading.value = false
     }
@@ -418,7 +418,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) {
-        return { questions: [], error: handleError(fetchError, 'Failed to fetch questions.') }
+        return { questions: [], error: handleError(fetchError, 'failedFetchQuestions') }
       }
 
       return {
@@ -426,7 +426,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         error: null,
       }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch questions.')
+      const message = handleError(err, 'failedFetchQuestions')
       return { questions: [], error: message }
     }
   }
@@ -490,7 +490,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { error: null, id: data.id }
     } catch (err) {
-      const message = handleError(err, 'Failed to add question.')
+      const message = handleError(err, 'failedAddQuestion')
       return { error: message }
     }
   }
@@ -553,7 +553,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to update question.')
+      const message = handleError(err, 'failedUpdateQuestion')
       return { error: message }
     }
   }
@@ -572,7 +572,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to delete question.')
+      const message = handleError(err, 'failedDeleteQuestion')
       return { error: message }
     }
   }
@@ -597,7 +597,7 @@ export const useQuestionsStore = defineStore('questions', () => {
         .single()
 
       if (fetchError) {
-        return { error: handleError(fetchError, 'Failed to fetch question.') }
+        return { error: handleError(fetchError, 'failedFetchQuestion') }
       }
 
       if (data) {
@@ -613,7 +613,7 @@ export const useQuestionsStore = defineStore('questions', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch question.')
+      const message = handleError(err, 'failedFetchQuestion')
       return { error: message }
     }
   }
@@ -688,7 +688,7 @@ export const useQuestionsStore = defineStore('questions', () => {
       await fetchQuestionStatistics()
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to refresh statistics') }
+      return { error: handleError(err, 'failedRefreshStatistics') }
     }
   }
 

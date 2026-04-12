@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from '@/stores/auth'
-import { handleError } from '@/lib/errors'
+import { errorMessages, handleError } from '@/lib/errors'
 import { mapInvitationRows, type ParentStudentInvitation } from '@/lib/invitations'
 import type { Database } from '@/types/database.types'
 
@@ -34,6 +34,14 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
   const receiveDirection = role === 'student' ? 'parent_to_student' : ('student_to_parent' as const)
   const roleCheck = role === 'student' ? () => authStore.isStudent : () => authStore.isParent
 
+  // Error keys vary by role; resolved at error time so language switches take effect
+  const notAuthenticatedKey =
+    role === 'student' ? 'notAuthenticatedAsStudent' : 'notAuthenticatedAsParent'
+  const noAccountKey =
+    targetType === 'parent' ? 'noParentAccountForEmail' : 'noStudentAccountForEmail'
+  const wrongAccountTypeKey =
+    targetType === 'parent' ? 'emailNotParentAccount' : 'emailNotStudentAccount'
+
   const invitations = ref<ParentStudentInvitation[]>([])
 
   const receivedInvitations = computed(() => {
@@ -62,7 +70,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
 
   async function fetchInvitations(): Promise<{ error: string | null }> {
     if (!authStore.user || !roleCheck()) {
-      return { error: `Not authenticated as ${role}` }
+      return { error: errorMessages()[notAuthenticatedKey] }
     }
 
     try {
@@ -79,7 +87,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to load invitations.') }
+      return { error: handleError(err, 'failedLoadInvitations') }
     }
   }
 
@@ -87,7 +95,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
     targetEmail: string,
   ): Promise<{ success?: boolean; invitation?: ParentStudentInvitation; error?: string }> {
     if (!authStore.user || !roleCheck()) {
-      return { error: `Not authenticated as ${role}` }
+      return { error: errorMessages()[notAuthenticatedKey] }
     }
 
     // Run hook validation
@@ -102,7 +110,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
         inv[targetEmailKey].toLowerCase() === targetEmail.toLowerCase() && inv.status === 'pending',
     )
     if (existingInvitation) {
-      return { error: 'An invitation is already pending for this email' }
+      return { error: errorMessages().invitationAlreadyPending }
     }
 
     try {
@@ -114,11 +122,11 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
         .single()
 
       if (lookupError || !targetProfile) {
-        return { error: `No ${targetType} account found with this email address` }
+        return { error: errorMessages()[noAccountKey] }
       }
 
       if (targetProfile.user_type !== targetType) {
-        return { error: `This email is not associated with a ${targetType} account` }
+        return { error: errorMessages()[wrongAccountTypeKey] }
       }
 
       const insertData =
@@ -166,7 +174,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
 
       return { success: true, invitation }
     } catch (err) {
-      return { error: handleError(err, 'Failed to send invitation. Please try again.') }
+      return { error: handleError(err, 'failedSendInvitation') }
     }
   }
 
@@ -174,12 +182,12 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
     invitationId: string,
   ): Promise<{ success?: boolean; error?: string }> {
     if (!authStore.user || !roleCheck()) {
-      return { error: `Not authenticated as ${role}` }
+      return { error: errorMessages()[notAuthenticatedKey] }
     }
 
     const invitation = invitations.value.find((inv) => inv.id === invitationId)
     if (!invitation) {
-      return { error: 'Invitation not found' }
+      return { error: errorMessages().invitationNotFound }
     }
 
     // Run hook validation
@@ -210,7 +218,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
 
       return { success: true }
     } catch (err: unknown) {
-      return { error: handleError(err, 'Failed to accept invitation. Please try again.') }
+      return { error: handleError(err, 'failedAcceptInvitation') }
     }
   }
 
@@ -218,7 +226,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
     invitationId: string,
   ): Promise<{ success?: boolean; error?: string }> {
     if (!authStore.user || !roleCheck()) {
-      return { error: `Not authenticated as ${role}` }
+      return { error: errorMessages()[notAuthenticatedKey] }
     }
 
     try {
@@ -241,7 +249,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
 
       return { success: true }
     } catch (err) {
-      return { error: handleError(err, 'Failed to decline invitation. Please try again.') }
+      return { error: handleError(err, 'failedDeclineInvitation') }
     }
   }
 
@@ -249,7 +257,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
     invitationId: string,
   ): Promise<{ success?: boolean; error?: string }> {
     if (!authStore.user || !roleCheck()) {
-      return { error: `Not authenticated as ${role}` }
+      return { error: errorMessages()[notAuthenticatedKey] }
     }
 
     try {
@@ -272,7 +280,7 @@ export function useInvitations(role: InvitationRole, hooks?: InvitationHooks) {
 
       return { success: true }
     } catch (err) {
-      return { error: handleError(err, 'Failed to cancel invitation. Please try again.') }
+      return { error: handleError(err, 'failedCancelInvitation') }
     }
   }
 

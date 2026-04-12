@@ -1,5 +1,6 @@
 import type { AuthError } from '@supabase/supabase-js'
 import { useLanguageStore } from '@/stores/language'
+import { handleError } from '@/lib/errors'
 
 const codeToKey = {
   invalid_credentials: 'invalidCredentials',
@@ -25,4 +26,16 @@ export function translateAuthError(error: AuthError | null): string {
   const store = useLanguageStore()
   const key = codeToKey[error.code as keyof typeof codeToKey]
   return key ? store.t.shared.authErrors[key] : error.message
+}
+
+/**
+ * Convenience wrapper: try the locale-mapped auth message first,
+ * then fall back to the generic handleError pipeline.
+ */
+export function handleAuthError(error: AuthError | unknown): string {
+  if (error && typeof error === 'object' && 'code' in error) {
+    const translated = translateAuthError(error as AuthError)
+    if (translated) return translated
+  }
+  return handleError(error, 'unknown')
 }

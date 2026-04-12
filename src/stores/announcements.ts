@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { uploadStorageFile, deleteStorageFile, createBucketImageHelpers } from '@/lib/storage'
 import type { Database } from '@/types/database.types'
 import { useLanguageStore } from '@/stores/language'
@@ -125,7 +125,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch announcements.')
+      const message = handleError(err, 'failedFetchAnnouncements')
       error.value = message
       return { error: message }
     } finally {
@@ -185,7 +185,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to mark as read.') }
+      return { error: handleError(err, 'failedMarkAsRead') }
     }
   }
 
@@ -221,7 +221,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to mark all as read.') }
+      return { error: handleError(err, 'failedMarkAllAsRead') }
     }
   }
 
@@ -276,7 +276,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     } catch (err) {
       return {
         announcement: null,
-        error: handleError(err, 'Failed to create announcement.'),
+        error: handleError(err, 'failedCreateAnnouncement'),
       }
     }
   }
@@ -329,7 +329,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to update announcement.') }
+      return { error: handleError(err, 'failedUpdateAnnouncement') }
     }
   }
 
@@ -337,7 +337,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
   async function togglePin(id: string): Promise<{ error: string | null }> {
     const announcement = announcements.value.find((a) => a.id === id)
     if (!announcement) {
-      return { error: 'Announcement not found' }
+      return { error: errorMessages().announcementNotFound }
     }
 
     const newPinnedStatus = !announcement.isPinned
@@ -363,7 +363,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to toggle pin status.') }
+      return { error: handleError(err, 'failedTogglePin') }
     }
   }
 
@@ -382,7 +382,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to delete announcement.') }
+      return { error: handleError(err, 'failedDeleteAnnouncement') }
     }
   }
 

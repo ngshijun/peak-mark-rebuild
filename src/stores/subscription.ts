@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 
 export type SubscriptionTier = Database['public']['Enums']['subscription_tier']
 type SubscriptionPlanRow = Database['public']['Tables']['subscription_plans']['Row']
@@ -144,7 +144,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { error: null }
     } catch (err) {
       console.error('Error fetching subscription plans:', err)
-      const message = handleError(err, 'Failed to fetch plans.')
+      const message = handleError(err, 'failedFetchPlans')
       return { error: message }
     }
   }
@@ -157,7 +157,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     force = false,
   ): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
+      return { error: errorMessages().notAuthenticatedAsParent }
     }
 
     // Use provided childIds, or fall back to IDs from existing subscriptions (for internal re-fetches)
@@ -235,7 +235,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       return { error: null }
     } catch (err) {
       console.error('Error fetching children subscriptions:', err)
-      const message = handleError(err, 'Failed to fetch subscriptions.')
+      const message = handleError(err, 'failedFetchSubscriptions')
       error.value = message
       return { error: message }
     } finally {
@@ -279,17 +279,17 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     tier: SubscriptionTier,
   ): Promise<{ url: string | null; error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { url: null, error: 'Not authenticated as parent' }
+      return { url: null, error: errorMessages().notAuthenticatedAsParent }
     }
 
     if (tier === 'core') {
-      return { url: null, error: 'Cannot checkout for basic tier' }
+      return { url: null, error: errorMessages().cannotCheckoutBasicTier }
     }
 
     // Get price ID for tier
     const plan = plans.value.find((p) => p.id === tier)
     if (!plan?.stripePriceId) {
-      return { url: null, error: 'Plan not configured for payments' }
+      return { url: null, error: errorMessages().planNotConfiguredForPayments }
     }
 
     isProcessingPayment.value = true
@@ -312,7 +312,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       return { url: data.url, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to create checkout.')
+      const message = handleError(err, 'failedCreateCheckout')
       paymentError.value = message
       return { url: null, error: message }
     } finally {
@@ -336,7 +336,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       return { url: data.url, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to open billing portal.')
+      const message = handleError(err, 'failedOpenBillingPortal')
       return { url: null, error: message }
     }
   }
@@ -367,7 +367,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       await fetchChildrenSubscriptions()
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to sync subscription.')
+      const message = handleError(err, 'failedSyncSubscription')
       paymentError.value = message
       return { error: message }
     } finally {
@@ -383,12 +383,12 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     newTier: SubscriptionTier,
   ): Promise<{ preview: UpgradePreview | null; error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { preview: null, error: 'Not authenticated as parent' }
+      return { preview: null, error: errorMessages().notAuthenticatedAsParent }
     }
 
     const plan = plans.value.find((p) => p.id === newTier)
     if (!plan?.stripePriceId) {
-      return { preview: null, error: 'Plan not configured for payments' }
+      return { preview: null, error: errorMessages().planNotConfiguredForPayments }
     }
 
     try {
@@ -404,7 +404,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
       return { preview: data as UpgradePreview, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to preview upgrade.')
+      const message = handleError(err, 'failedPreviewUpgrade')
       return { preview: null, error: message }
     }
   }
@@ -431,7 +431,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
 
     const plan = plans.value.find((p) => p.id === newTier)
     if (!plan?.stripePriceId) {
-      return { error: 'Plan not configured for payments' }
+      return { error: errorMessages().planNotConfiguredForPayments }
     }
 
     isProcessingPayment.value = true
@@ -466,7 +466,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         message: data.message,
       }
     } catch (err) {
-      const message = handleError(err, 'Failed to modify subscription.')
+      const message = handleError(err, 'failedModifySubscription')
       paymentError.value = message
       return { error: message }
     } finally {
@@ -501,7 +501,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       await fetchChildrenSubscriptions()
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to cancel subscription.')
+      const message = handleError(err, 'failedCancelSubscription')
       paymentError.value = message
       return { error: message }
     } finally {

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import { useSubscriptionStore } from './subscription'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 
 import { useInvitations } from '@/composables/useInvitations'
 
@@ -31,7 +31,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
   const inv = useInvitations('parent', {
     canSend: (email) =>
       linkedChildren.value.some((c) => c.email.toLowerCase() === email.toLowerCase())
-        ? 'This child is already linked to your account'
+        ? errorMessages().childAlreadyLinked
         : null,
     onAccepted: (result) => {
       linkedChildren.value.push({
@@ -54,7 +54,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
    */
   async function fetchLinkedChildren(): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
+      return { error: errorMessages().notAuthenticatedAsParent }
     }
 
     isLoading.value = true
@@ -126,7 +126,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to load linked children.')
+      const message = handleError(err, 'failedLoadChildren')
       error.value = message
       return { error: message }
     } finally {
@@ -161,17 +161,14 @@ export const useChildLinkStore = defineStore('childLink', () => {
    */
   async function removeLinkedChild(childId: string): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
+      return { error: errorMessages().notAuthenticatedAsParent }
     }
 
     // Pre-check: block unlink if child has an active paid subscription
     // Instantiate lazily inside function body to avoid circular init (subscription <-> child-link)
     const subscription = useSubscriptionStore().getChildSubscription(childId)
     if (subscription.isActive && subscription.tier !== 'core') {
-      return {
-        error:
-          'Cannot unlink while an active paid subscription exists. Please cancel the subscription first.',
-      }
+      return { error: errorMessages().cannotUnlinkActiveSubParent }
     }
 
     try {
@@ -191,7 +188,7 @@ export const useChildLinkStore = defineStore('childLink', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to remove child. Please try again.') }
+      return { error: handleError(err, 'failedRemoveChild') }
     }
   }
 

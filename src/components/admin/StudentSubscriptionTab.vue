@@ -188,7 +188,11 @@ defineProps<{
                         : 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
                     "
                   >
-                    {{ payment.status }}
+                    {{
+                      t.shared.paymentStatus[
+                        payment.status as keyof typeof t.shared.paymentStatus
+                      ] ?? payment.status
+                    }}
                   </Badge>
                 </td>
                 <td class="px-4 py-2 text-muted-foreground">
