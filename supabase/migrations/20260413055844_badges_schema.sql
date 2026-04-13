@@ -74,6 +74,10 @@ create index student_badges_unseen_idx
   on public.student_badges(student_id)
   where seen_at is null;
 
+-- Covering index for the badge_id FK (speeds up cascading deletes when a
+-- badge is removed from the catalog).
+create index student_badges_badge_id_idx on public.student_badges(badge_id);
+
 -- FUNCTION: check_trigger_eligibility ---------------------------------------
 -- Pure read-only eligibility check. Returns boolean. The `else raise` branch
 -- is CRITICAL: without it, a missing arm would return NULL, which would
@@ -975,18 +979,18 @@ using (true);
 -- STUDENT_BADGES: owner + linked parents can read; owner can mark as seen.
 -- No INSERT or DELETE policies — awarding via security definer functions,
 -- deletion via ON DELETE CASCADE.
+--
+-- A single merged SELECT policy (own OR linked child) keeps the
+-- per-query RLS overhead to one predicate instead of two (avoids the
+-- "multiple permissive policies" advisor warning).
 alter table public.student_badges enable row level security;
 
-create policy "student_badges_read_own"
-on public.student_badges for select
-to authenticated
-using (student_id = (select auth.uid()));
-
-create policy "student_badges_read_linked_children"
+create policy "student_badges_read_own_or_linked"
 on public.student_badges for select
 to authenticated
 using (
-  student_id in (
+  student_id = (select auth.uid())
+  or student_id in (
     select student_id from public.parent_student_links
     where parent_id = (select auth.uid())
   )
