@@ -14,6 +14,7 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function setTheme(newTheme: Theme) {
+    if (theme.value === newTheme) return
     theme.value = newTheme
     localStorage.setItem('theme', newTheme)
     applyTheme(newTheme === 'dark')

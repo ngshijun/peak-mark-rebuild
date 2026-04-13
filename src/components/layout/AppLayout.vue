@@ -41,7 +41,8 @@ const languageStore = useLanguageStore()
 const { showWelcomeDialog, promptTour, startTour, skipTour } = useTour()
 const { watchAndStart: watchAndStartFirstPetTour } = useFirstPetTour()
 
-// Preferences dialog state (shown once per device before any onboarding)
+const PREFERENCES_STORAGE_KEY = 'preferences_confirmed'
+
 const showPreferencesDialog = ref(false)
 
 // Grade selection dialog state
@@ -78,9 +79,8 @@ function startFirstPetTourWatcher() {
   }
 }
 
-// Gate onboarding on a one-time preferences confirmation, then continue
 onMounted(async () => {
-  if (localStorage.getItem('preferences_confirmed') !== 'true') {
+  if (localStorage.getItem(PREFERENCES_STORAGE_KEY) !== 'true') {
     showPreferencesDialog.value = true
     return
   }
@@ -97,7 +97,7 @@ async function beginPostPreferencesFlow() {
 }
 
 async function handlePreferencesConfirmed() {
-  localStorage.setItem('preferences_confirmed', 'true')
+  localStorage.setItem(PREFERENCES_STORAGE_KEY, 'true')
   showPreferencesDialog.value = false
   await beginPostPreferencesFlow()
 }

@@ -13,6 +13,7 @@ export const useLanguageStore = defineStore('language', () => {
   const t = computed(() => locales[language.value])
 
   function setLanguage(lang: Language) {
+    if (language.value === lang) return
     language.value = lang
     localStorage.setItem('language', lang)
   }
