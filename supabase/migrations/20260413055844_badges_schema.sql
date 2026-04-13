@@ -830,3 +830,183 @@ begin
   );
 end;
 $$;
+
+-- gacha_multi_pull: uuid[] → jsonb (wraps pet_ids + newly_unlocked_badges)
+create or replace function public.gacha_multi_pull()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+  v_current_coins integer;
+  v_cost constant integer := 900;
+  v_result uuid[] := '{}';
+  v_pet_id uuid;
+  v_random_value float;
+  v_rarity pet_rarity;
+  i integer;
+  v_new_badges jsonb;
+begin
+  v_student_id := (select auth.uid());
+  if v_student_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select coins into v_current_coins from student_profiles where id = v_student_id;
+  if v_current_coins is null then
+    raise exception 'Student profile not found';
+  end if;
+  if v_current_coins < v_cost then
+    raise exception 'Insufficient coins';
+  end if;
+
+  -- Deduct coins (900 for 10x = 10% discount)
+  update student_profiles set coins = coins - v_cost where id = v_student_id;
+
+  -- Pull 10 pets
+  for i in 1..10 loop
+    v_random_value := random();
+    if v_random_value < 0.01 then
+      v_rarity := 'legendary';
+    elsif v_random_value < 0.10 then
+      v_rarity := 'epic';
+    elsif v_random_value < 0.40 then
+      v_rarity := 'rare';
+    else
+      v_rarity := 'common';
+    end if;
+
+    select id into v_pet_id from pets where rarity = v_rarity order by random() limit 1;
+    v_result := v_result || v_pet_id;
+
+    insert into owned_pets (student_id, pet_id, count)
+    values (v_student_id, v_pet_id, 1)
+    on conflict (student_id, pet_id) do update set
+      count = owned_pets.count + 1,
+      updated_at = now();
+  end loop;
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(v_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', v_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object(
+    'pet_ids', to_jsonb(v_result),
+    'newly_unlocked_badges', v_new_badges
+  );
+end;
+$$;
+
+-- initial_pet_draw: uuid → jsonb (wraps pet_id + newly_unlocked_badges)
+create or replace function public.initial_pet_draw()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+  v_pet_id uuid;
+  v_new_badges jsonb;
+begin
+  v_student_id := (select auth.uid());
+  if v_student_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  if not exists (select 1 from student_profiles where id = v_student_id) then
+    raise exception 'Student profile not found';
+  end if;
+
+  -- Look up Cloud Bunny by name (avoids hardcoded UUID across environments)
+  select id into v_pet_id from pets where name = 'Cloud Bunny' limit 1;
+  if v_pet_id is null then
+    raise exception 'Starter pet not found';
+  end if;
+
+  -- Insert Cloud Bunny (UPSERT — truly idempotent, no error on retry)
+  insert into owned_pets (student_id, pet_id, count, tier, food_fed)
+  values (v_student_id, v_pet_id, 1, 1, 0)
+  on conflict (student_id, pet_id) do nothing;
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(v_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', v_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object(
+    'pet_id', v_pet_id,
+    'newly_unlocked_badges', v_new_badges
+  );
+end;
+$$;
+
+-- record_spin_reward: void → jsonb (just newly_unlocked_badges; no other output)
+create or replace function public.record_spin_reward(
+  p_daily_status_id uuid,
+  p_student_id uuid,
+  p_reward integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_has_spun boolean;
+  v_new_badges jsonb;
+begin
+  -- Validate reward is one of the valid spin wheel amounts
+  if p_reward not in (5, 10, 15) then
+    raise exception 'Invalid reward amount. Must be 5, 10, or 15.';
+  end if;
+
+  -- Check if already spun today
+  select has_spun into v_has_spun
+  from daily_statuses
+  where id = p_daily_status_id and student_id = p_student_id;
+
+  if v_has_spun is null then
+    raise exception 'Daily status not found for student';
+  end if;
+
+  if v_has_spun = true then
+    raise exception 'Already spun today';
+  end if;
+
+  -- Step 1: Update daily status with spin info
+  update daily_statuses
+  set
+    has_spun = true,
+    spin_reward = p_reward
+  where id = p_daily_status_id
+    and student_id = p_student_id;
+
+  -- Step 2: Credit coins to student profile
+  update student_profiles
+  set coins = coins + p_reward
+  where id = p_student_id;
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(p_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', p_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object('newly_unlocked_badges', v_new_badges);
+end;
+$$;
