@@ -904,54 +904,6 @@ begin
 end;
 $$;
 
--- initial_pet_draw: uuid → jsonb (wraps pet_id + newly_unlocked_badges)
-create or replace function public.initial_pet_draw()
-returns jsonb
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_student_id uuid;
-  v_pet_id uuid;
-  v_new_badges jsonb;
-begin
-  v_student_id := (select auth.uid());
-  if v_student_id is null then
-    raise exception 'Not authenticated';
-  end if;
-
-  if not exists (select 1 from student_profiles where id = v_student_id) then
-    raise exception 'Student profile not found';
-  end if;
-
-  -- Look up Cloud Bunny by name (avoids hardcoded UUID across environments)
-  select id into v_pet_id from pets where name = 'Cloud Bunny' limit 1;
-  if v_pet_id is null then
-    raise exception 'Starter pet not found';
-  end if;
-
-  -- Insert Cloud Bunny (UPSERT — truly idempotent, no error on retry)
-  insert into owned_pets (student_id, pet_id, count, tier, food_fed)
-  values (v_student_id, v_pet_id, 1, 1, 0)
-  on conflict (student_id, pet_id) do nothing;
-
-  -- NEW: defensive badge check
-  begin
-    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
-    from public.check_and_award_badges(v_student_id) b;
-  exception when others then
-    raise warning 'badge check failed for student %: %', v_student_id, sqlerrm;
-    v_new_badges := '[]'::jsonb;
-  end;
-
-  return jsonb_build_object(
-    'pet_id', v_pet_id,
-    'newly_unlocked_badges', v_new_badges
-  );
-end;
-$$;
-
 -- record_spin_reward: void → jsonb (just newly_unlocked_badges; no other output)
 create or replace function public.record_spin_reward(
   p_daily_status_id uuid,
