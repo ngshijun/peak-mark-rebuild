@@ -164,3 +164,81 @@ begin
   end;
 end;
 $$;
+
+-- FUNCTION: check_and_award_badges ------------------------------------------
+-- The orchestrator. Called from hot-path RPCs. Iterates active badges, skips
+-- already-owned and tier-gated, checks eligibility, atomically inserts unlock
+-- + awards coins, returns the newly-unlocked badge rows.
+
+create or replace function public.check_and_award_badges(p_student_id uuid)
+returns setof public.badges
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  b public.badges%rowtype;
+  student_tier public.subscription_tier;
+begin
+  select subscription_tier into student_tier
+  from public.student_profiles where id = p_student_id;
+
+  if student_tier is null then
+    return;  -- student not found; no-op
+  end if;
+
+  for b in
+    select * from public.badges
+    where is_active
+    order by created_at
+  loop
+    -- skip already-owned
+    if exists (
+      select 1 from public.student_badges
+      where student_id = p_student_id and badge_id = b.id
+    ) then
+      continue;
+    end if;
+
+    -- skip tier-gated (direct enum comparison: core < plus < pro < max)
+    if student_tier < b.required_tier then
+      continue;
+    end if;
+
+    -- check eligibility
+    if not public.check_trigger_eligibility(p_student_id, b.trigger_type, b.trigger_params) then
+      continue;
+    end if;
+
+    -- award: insert unlock (idempotent) + credit coins + yield the row
+    insert into public.student_badges (student_id, badge_id)
+    values (p_student_id, b.id)
+    on conflict do nothing;
+
+    if b.coin_reward > 0 then
+      update public.student_profiles
+      set coins = coalesce(coins, 0) + b.coin_reward
+      where id = p_student_id;
+    end if;
+
+    return next b;
+  end loop;
+  return;
+end;
+$$;
+
+-- FUNCTION: check_and_award_badges_client_facing ----------------------------
+-- Thin wrapper for the 1x gacha_pull flow which is client-assembled. Uses
+-- auth.uid() internally so clients cannot pass arbitrary student IDs. Returns
+-- setof badges for the client to enqueue as celebrations.
+
+create or replace function public.check_and_award_badges_client_facing()
+returns setof public.badges
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return query select * from public.check_and_award_badges((select auth.uid()));
+end;
+$$;
