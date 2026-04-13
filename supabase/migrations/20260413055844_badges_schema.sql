@@ -441,9 +441,20 @@ $$;
 
 -- ============================================================================
 -- Updated existing RPCs with badge check hook
+--
+-- The 6 pet/spin RPCs below change return type (json/uuid/uuid[]/void → jsonb),
+-- which CREATE OR REPLACE cannot do. We DROP + CREATE each. DROP also drops
+-- grants, so GRANT EXECUTE is re-added at the end of this section.
 -- ============================================================================
 
--- complete_practice_session: also updates max_streak and returns newly_unlocked_badges
+drop function if exists public.combine_pets(uuid, uuid[]) cascade;
+drop function if exists public.evolve_pet(uuid, uuid) cascade;
+drop function if exists public.feed_pet_for_evolution(uuid, uuid, integer) cascade;
+drop function if exists public.gacha_multi_pull() cascade;
+drop function if exists public.gacha_pull() cascade;
+drop function if exists public.record_spin_reward(uuid, uuid, integer) cascade;
+
+-- complete_practice_session: same return type (jsonb), no drop needed
 create or replace function public.complete_practice_session(p_session_id uuid)
 returns jsonb
 language plpgsql
@@ -1061,3 +1072,23 @@ begin
   );
 end;
 $$;
+
+-- ============================================================================
+-- Grants
+--
+-- Re-grant the 6 RPCs we DROPped above (DROP dropped their grants).
+-- Also grant EXECUTE on the new client-facing functions for authenticated role.
+-- The internal-only functions (check_trigger_eligibility, check_and_award_badges,
+-- backfill_badge_for_all_eligible) run under SECURITY DEFINER ownership, so
+-- callers never need direct EXECUTE.
+-- ============================================================================
+
+grant all on function public.combine_pets(uuid, uuid[]) to anon, authenticated, service_role;
+grant all on function public.evolve_pet(uuid, uuid) to anon, authenticated, service_role;
+grant all on function public.feed_pet_for_evolution(uuid, uuid, integer) to anon, authenticated, service_role;
+grant all on function public.gacha_multi_pull() to anon, authenticated, service_role;
+grant all on function public.gacha_pull() to anon, authenticated, service_role;
+grant all on function public.record_spin_reward(uuid, uuid, integer) to anon, authenticated, service_role;
+
+grant execute on function public.get_student_badge_progress(uuid) to authenticated;
+grant execute on function public.get_child_badge_summary(uuid) to authenticated;
