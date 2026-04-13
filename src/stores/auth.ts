@@ -31,6 +31,7 @@ export interface AuthUser {
     schoolId: string | null
     schoolName: string | null
     friendCode: string
+    subscriptionTier: Database['public']['Enums']['subscription_tier']
   }
   // Parent-specific fields
   parentProfile?: {
@@ -86,6 +87,7 @@ async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
           schoolId: studentProfile.school_id,
           schoolName: (studentProfile.schools as { name: string } | null)?.name ?? null,
           friendCode: studentProfile.friend_code,
+          subscriptionTier: studentProfile.subscription_tier,
         }
       }
     } else if (profile.user_type === 'parent') {
