@@ -266,9 +266,12 @@ begin
     select * from public.badges where is_active
   loop
     -- skip already-owned
+    -- Use a table alias (sb) to disambiguate `badge_id` from the RETURNS TABLE
+    -- OUT parameter of the same name — otherwise PL/pgSQL resolves it as the
+    -- variable and Postgres raises "column reference badge_id is ambiguous".
     if exists (
-      select 1 from public.student_badges
-      where student_id = p_student_id and badge_id = b.id
+      select 1 from public.student_badges sb
+      where sb.student_id = p_student_id and sb.badge_id = b.id
     ) then
       continue;
     end if;
