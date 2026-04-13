@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useT } from '@/composables/useT'
 import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent } from '@/components/ui/card'
-import { Lock } from 'lucide-vue-next'
+import { Lock, Coins } from 'lucide-vue-next'
 import type { Badge, BadgeProgress } from '@/stores/badges'
 import type { Database } from '@/types/database.types'
 
@@ -108,6 +108,14 @@ const badgeStrings = computed(() => {
       <img :src="badge.icon_path" :alt="badgeStrings.name" class="size-16" />
       <p class="font-semibold text-sm">{{ badgeStrings.name }}</p>
       <p class="text-xs text-muted-foreground">{{ badgeStrings.description }}</p>
+
+      <div
+        v-if="badge.coin_reward > 0"
+        class="flex items-center gap-1 text-xs font-medium text-yellow-600"
+      >
+        <Coins class="size-3.5" />
+        <span>{{ t.student.achievements.coinReward(badge.coin_reward) }}</span>
+      </div>
 
       <!-- Tier-gated lock overlay -->
       <div

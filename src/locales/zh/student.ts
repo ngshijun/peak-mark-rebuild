@@ -251,6 +251,7 @@ export default {
     },
     lockedText: '尚未获得',
     progressText: (current: number, target: number) => `${current} / ${target}`,
+    coinReward: (amount: number) => `+${amount} 金币`,
     requiresPlus: '需要 Plus',
     requiresPro: '需要 Pro',
     requiresMax: '需要 Max',

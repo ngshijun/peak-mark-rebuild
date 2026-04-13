@@ -260,6 +260,7 @@ export default {
     },
     lockedText: 'Not yet earned',
     progressText: (current: number, target: number) => `${current} / ${target}`,
+    coinReward: (amount: number) => `+${amount} coins`,
     requiresPlus: 'Requires Plus',
     requiresPro: 'Requires Pro',
     requiresMax: 'Requires Max',
