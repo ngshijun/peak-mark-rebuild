@@ -68,7 +68,7 @@ export default {
     failedResumeSession: '恢复练习失败。',
     failedGenerateSummary: '生成 AI 总结失败。',
     failedFetchSession: '加载练习记录失败。',
-    failedFetchSessionHistory: '加载练习历史失败。',
+    failedFetchSessionHistory: '加载练习记录失败。',
     // Invitations / linking (shared)
     failedLoadInvitations: '加载邀请失败。',
     failedSendInvitation: '发送邀请失败，请重试。',
@@ -221,42 +221,22 @@ export default {
           description: '这是你的导航菜单，使用它可访问应用的所有功能。',
         },
         step3: {
-          title: '公告',
-          description: '在这里获取最新消息与公告。',
-        },
-        step4: {
-          title: '练习',
-          description: '在这里开始练习。选择科目与课题，然后回答题目来赚取经验值和金币。',
-        },
-        step5: {
-          title: '学习概况',
-          description: '查看你的学习进度、正确率及练习历史。',
-        },
-        step6: {
-          title: '排行榜',
-          description: '与其他同学竞争！通过练习赚取经验值，攀登排行榜！',
-        },
-        step7: {
-          title: '宠物与收藏',
-          description: '管理你的宠物、喂食让它们进化，并浏览你的完整收藏。',
-        },
-        step8: {
           title: '金币与食物',
           description: '这是你的金币和食物。完成练习可赚取金币，金币可用来收集宠物！',
         },
-        step9: {
+        step4: {
           title: '每日转盘与心情',
           description: '转动转盘获取每日奖励，并设置心情让父母了解你的状态！',
         },
-        step10: {
+        step5: {
           title: '你的宠物伙伴',
           description: '这是你的宠物！通过抽奖收集宠物，喂食让它们进化，并将你最喜欢的设为伙伴。',
         },
-        step11: {
+        step6: {
           title: '你的进度',
           description: '在这里查看你最擅长的科目和每日练习连续天数。每天坚持练习，保持连续记录！',
         },
-        step12: {
+        step7: {
           title: '你的个人资料',
           description: '在这里访问个人资料并管理父母联系。你可以随时从个人资料页面重新开始此教程。',
         },
@@ -267,34 +247,14 @@ export default {
           description: '这是您的导航菜单，使用它可访问应用的所有功能。',
         },
         step2: {
-          title: '公告',
-          description: '在这里获取最新消息与公告。',
-        },
-        step3: {
-          title: '孩子',
-          description: '在这里绑定和管理您的孩子。发送邀请码以连接孩子的账号。',
-        },
-        step4: {
-          title: '学习概况',
-          description: '追踪孩子的学习进度、正确率及练习历史。',
-        },
-        step5: {
-          title: '订阅',
-          description: '在这里管理您的订阅方案。升级以为孩子解锁更多每日练习次数。',
-        },
-        step6: {
-          title: '联系我们',
-          description: '有疑问或需要帮助？随时联系我们。',
-        },
-        step7: {
           title: '切换孩子',
           description: '如果绑定了多个孩子，可使用此下拉菜单在他们之间切换。',
         },
-        step8: {
+        step3: {
           title: '每日状态与练习',
-          description: '一目了然地查看孩子的每日心情和练习历史。',
+          description: '一目了然地查看孩子的每日心情和练习记录。',
         },
-        step9: {
+        step4: {
           title: '您的个人资料',
           description: '在这里访问个人资料。您可以随时从个人资料页面重新开始此教程。',
         },
@@ -1123,6 +1083,15 @@ export default {
       continueButton: '继续',
       toastNoGrade: '请选择你的年级',
       toastSuccess: '年级已成功设置',
+    },
+    preferencesDialog: {
+      title: '欢迎',
+      description: '请选择语言和主题以开始使用。之后可在右上角随时切换。',
+      languageLabel: '语言',
+      themeLabel: '主题',
+      lightOption: '浅色',
+      darkOption: '深色',
+      continueButton: '继续',
     },
     welcomeTourDialog: {
       title: '欢迎使用 Clavis！',

@@ -25,25 +25,25 @@ export function getStudentTourSteps(): DriveStep[] {
       },
     },
     {
-      element: 'a[href="/student/announcements"]',
+      element: '[data-tour="student-currency"]',
       popover: {
         title: steps.step3.title,
         description: steps.step3.description,
-        side: 'right',
-        align: 'center',
+        side: 'bottom',
+        align: 'end',
       },
     },
     {
-      element: 'a[href="/student/practice"]',
+      element: '[data-tour="dashboard-daily"]',
       popover: {
         title: steps.step4.title,
         description: steps.step4.description,
-        side: 'right',
-        align: 'center',
+        side: 'bottom',
+        align: 'end',
       },
     },
     {
-      element: 'a[href="/student/statistics"]',
+      element: '[data-tour="dashboard-pet"]',
       popover: {
         title: steps.step5.title,
         description: steps.step5.description,
@@ -52,55 +52,10 @@ export function getStudentTourSteps(): DriveStep[] {
       },
     },
     {
-      element: 'a[href="/student/leaderboard"]',
+      element: '[data-tour="dashboard-stats"]',
       popover: {
         title: steps.step6.title,
         description: steps.step6.description,
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="sidebar-pets"]',
-      popover: {
-        title: steps.step7.title,
-        description: steps.step7.description,
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="student-currency"]',
-      popover: {
-        title: steps.step8.title,
-        description: steps.step8.description,
-        side: 'bottom',
-        align: 'end',
-      },
-    },
-    {
-      element: '[data-tour="dashboard-daily"]',
-      popover: {
-        title: steps.step9.title,
-        description: steps.step9.description,
-        side: 'bottom',
-        align: 'end',
-      },
-    },
-    {
-      element: '[data-tour="dashboard-pet"]',
-      popover: {
-        title: steps.step10.title,
-        description: steps.step10.description,
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="dashboard-stats"]',
-      popover: {
-        title: steps.step11.title,
-        description: steps.step11.description,
         side: 'left',
         align: 'center',
       },
@@ -108,8 +63,8 @@ export function getStudentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="sidebar-profile"]',
       popover: {
-        title: steps.step12.title,
-        description: steps.step12.description,
+        title: steps.step7.title,
+        description: steps.step7.description,
         side: 'right',
         align: 'end',
       },

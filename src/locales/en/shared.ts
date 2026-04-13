@@ -226,48 +226,26 @@ export default {
             'This is your navigation menu. Use it to access all the features of the app.',
         },
         step3: {
-          title: 'Announcements',
-          description: 'Stay updated with the latest news and announcements.',
-        },
-        step4: {
-          title: 'Practice',
-          description:
-            'Start practice sessions here. Choose your subject and topic, then answer questions to earn XP and coins.',
-        },
-        step5: {
-          title: 'Statistics',
-          description: 'View your learning progress, accuracy rates, and session history.',
-        },
-        step6: {
-          title: 'Leaderboard',
-          description:
-            'Compete with other students! Climb the leaderboard by earning XP through practice.',
-        },
-        step7: {
-          title: 'Pets & Collections',
-          description: 'Manage your pets, feed them to evolve, and browse your full collection.',
-        },
-        step8: {
           title: 'Coins & Food',
           description:
             'These are your coins and food. Earn coins by completing practice sessions, and use them to collect pets!',
         },
-        step9: {
+        step4: {
           title: 'Daily Spin & Mood',
           description:
             'Spin the wheel for daily rewards and set your mood to let your parents know how you feel!',
         },
-        step10: {
+        step5: {
           title: 'Your Pet Companion',
           description:
             'This is your pet! Collect pets through the gacha, feed them to evolve, and set your favourite as your companion.',
         },
-        step11: {
+        step6: {
           title: 'Your Progress',
           description:
             'See your top subject and daily practice streak here. Practice every day to keep your streak going!',
         },
-        step12: {
+        step7: {
           title: 'Your Profile',
           description:
             'Access your profile and manage your parent here. You can restart this tour anytime from your Profile page.',
@@ -280,38 +258,15 @@ export default {
             'This is your navigation menu. Use it to access all the features of the app.',
         },
         step2: {
-          title: 'Announcements',
-          description: 'Stay updated with the latest news and announcements.',
-        },
-        step3: {
-          title: 'Children',
-          description:
-            "Link and manage your children here. Send an invitation code to connect with your child's account.",
-        },
-        step4: {
-          title: 'Statistics',
-          description:
-            "Track your children's learning progress, accuracy rates, and practice history.",
-        },
-        step5: {
-          title: 'Subscription',
-          description:
-            'Manage your subscription plan here. Upgrade to unlock more daily practice sessions for your children.',
-        },
-        step6: {
-          title: 'Contact Us',
-          description: 'Have questions or need help? Reach out to us anytime.',
-        },
-        step7: {
           title: 'Switch Children',
           description:
             'If you have multiple children linked, use this dropdown to switch between them.',
         },
-        step8: {
+        step3: {
           title: 'Daily Status & Sessions',
           description: "See your child's daily mood and practice session history at a glance.",
         },
-        step9: {
+        step4: {
           title: 'Your Profile',
           description:
             'Access your profile here. You can restart this tour anytime from your Profile page.',
@@ -1152,6 +1107,16 @@ export default {
       continueButton: 'Continue',
       toastNoGrade: 'Please select your grade level',
       toastSuccess: 'Grade level set successfully',
+    },
+    preferencesDialog: {
+      title: 'Welcome',
+      description:
+        'Pick your language and theme to get started. You can change these anytime from the top-right corner.',
+      languageLabel: 'Language',
+      themeLabel: 'Theme',
+      lightOption: 'Light',
+      darkOption: 'Dark',
+      continueButton: 'Continue',
     },
     welcomeTourDialog: {
       title: 'Welcome to Clavis!',

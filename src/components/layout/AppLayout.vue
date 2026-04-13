@@ -30,6 +30,7 @@ import { useT } from '@/composables/useT'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import LanguageToggle from './LanguageToggle.vue'
+import PreferencesDialog from './PreferencesDialog.vue'
 import { useLanguageStore } from '@/stores/language'
 const LevelUpDialog = defineAsyncComponent(() => import('./LevelUpDialog.vue'))
 const authStore = useAuthStore()
@@ -40,12 +41,15 @@ const languageStore = useLanguageStore()
 const { showWelcomeDialog, promptTour, startTour, skipTour } = useTour()
 const { watchAndStart: watchAndStartFirstPetTour } = useFirstPetTour()
 
+// Preferences dialog state (shown once per device before any onboarding)
+const showPreferencesDialog = ref(false)
+
 // Grade selection dialog state
 const showGradeDialog = ref(false)
 const selectedGradeId = ref<string>('')
 const isSaving = ref(false)
 
-// Sequenced onboarding: grade dialog → nav tour → first pet tour
+// Sequenced onboarding: preferences dialog → grade dialog (students) → nav tour → first pet tour
 // Each step must complete before the next begins.
 function startOnboarding() {
   promptTour()
@@ -74,15 +78,29 @@ function startFirstPetTourWatcher() {
   }
 }
 
-// Check if student needs to set grade on mount
+// Gate onboarding on a one-time preferences confirmation, then continue
 onMounted(async () => {
+  if (localStorage.getItem('preferences_confirmed') !== 'true') {
+    showPreferencesDialog.value = true
+    return
+  }
+  await beginPostPreferencesFlow()
+})
+
+async function beginPostPreferencesFlow() {
   if (authStore.isStudent && !authStore.studentProfile?.gradeLevelId) {
     await curriculumStore.fetchCurriculum()
     showGradeDialog.value = true
   } else {
     startOnboarding()
   }
-})
+}
+
+async function handlePreferencesConfirmed() {
+  localStorage.setItem('preferences_confirmed', 'true')
+  showPreferencesDialog.value = false
+  await beginPostPreferencesFlow()
+}
 
 // After grade dialog closes, start the rest of onboarding
 watch(showGradeDialog, (open) => {
@@ -192,6 +210,9 @@ const greeting = computed(() => {
 
     <!-- Level Up Dialog (global, triggers on any XP gain that crosses a level boundary) -->
     <LevelUpDialog />
+
+    <!-- Preferences Dialog (shown once per device before any onboarding) -->
+    <PreferencesDialog :open="showPreferencesDialog" @confirm="handlePreferencesConfirmed" />
 
     <!-- Grade Selection Dialog (for students without grade set) -->
     <AlertDialog :open="showGradeDialog">

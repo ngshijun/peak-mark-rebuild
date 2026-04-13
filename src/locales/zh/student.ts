@@ -77,11 +77,11 @@ export default {
   },
   statistics: {
     title: '学习概况',
-    subtitle: '查看你的学习进度和练习历史',
-    practiceHistoryTitle: '练习历史',
+    subtitle: '查看你的学习进度和练习记录',
+    practiceHistoryTitle: '练习记录',
     practiceHistoryDesc: '查看你过去的练习记录和分数',
     noSessions: '所选筛选条件下暂无练习记录。',
-    toastLoadFailed: '加载练习历史失败',
+    toastLoadFailed: '加载练习记录失败',
     resumeDialog: {
       title: '继续练习？',
       inProgress: (subTopicName: string, subjectName: string) =>
