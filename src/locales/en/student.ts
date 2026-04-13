@@ -247,6 +247,7 @@ export default {
   achievements: {
     title: 'Achievements',
     subtitle: 'Track your badges and see what you can earn next',
+    badgesEarned: 'Badges earned',
     closestToUnlock: 'Closest to Unlock',
     allBadges: 'All Badges',
     tierSections: {

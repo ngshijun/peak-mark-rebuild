@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useT } from '@/composables/useT'
 import { useBadgesStore } from '@/stores/badges'
 import { Loader2 } from 'lucide-vue-next'
@@ -8,6 +8,9 @@ import BadgeGridByTier from '@/components/student/BadgeGridByTier.vue'
 
 const t = useT()
 const badgesStore = useBadgesStore()
+
+const totalBadges = computed(() => badgesStore.catalog.length)
+const unlockedCount = computed(() => badgesStore.unlocked.length)
 
 onMounted(async () => {
   if (!badgesStore.hasLoaded) {
@@ -28,17 +31,20 @@ onMounted(async () => {
     </div>
 
     <template v-else>
-      <div>
-        <h1 class="text-2xl font-bold">{{ t.student.achievements.title }}</h1>
-        <p class="text-muted-foreground">{{ t.student.achievements.subtitle }}</p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">{{ t.student.achievements.title }}</h1>
+          <p class="text-muted-foreground">{{ t.student.achievements.subtitle }}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-2xl font-bold">{{ unlockedCount }} / {{ totalBadges }}</p>
+          <p class="text-sm text-muted-foreground">{{ t.student.achievements.badgesEarned }}</p>
+        </div>
       </div>
 
       <ClosestToUnlockSection />
 
-      <div>
-        <h2 class="text-lg font-semibold mb-3">{{ t.student.achievements.allBadges }}</h2>
-        <BadgeGridByTier />
-      </div>
+      <BadgeGridByTier />
     </template>
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useT } from '@/composables/useT'
 import { useBadgesStore } from '@/stores/badges'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import BadgeCard from '@/components/student/BadgeCard.vue'
 
 const t = useT()
@@ -25,23 +26,23 @@ const hasAnyProgress = computed(() => top3WithBadges.value.length > 0)
 </script>
 
 <template>
-  <section>
-    <h2 class="text-lg font-semibold mb-3">
-      {{ t.student.achievements.closestToUnlock }}
-    </h2>
-
-    <div v-if="hasAnyProgress" class="grid gap-3 grid-cols-1 sm:grid-cols-3">
-      <BadgeCard
-        v-for="entry in top3WithBadges"
-        :key="entry.badge.id"
-        :badge="entry.badge"
-        :unlocked="false"
-        :progress="entry.progress"
-      />
-    </div>
-
-    <p v-else class="text-sm text-muted-foreground">
-      {{ t.student.achievements.emptyState }}
-    </p>
-  </section>
+  <Card>
+    <CardHeader class="pb-3">
+      <CardTitle class="text-base">{{ t.student.achievements.closestToUnlock }}</CardTitle>
+      <CardDescription v-if="!hasAnyProgress">
+        {{ t.student.achievements.emptyState }}
+      </CardDescription>
+    </CardHeader>
+    <CardContent v-if="hasAnyProgress">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <BadgeCard
+          v-for="entry in top3WithBadges"
+          :key="entry.badge.id"
+          :badge="entry.badge"
+          :unlocked="false"
+          :progress="entry.progress"
+        />
+      </div>
+    </CardContent>
+  </Card>
 </template>

@@ -26,6 +26,59 @@ export const TIER_ORDER: BadgeTier[] = [
   'grandmaster',
 ]
 
+export const tierConfig: Record<
+  BadgeTier,
+  {
+    color: string
+    bgColor: string
+    borderColor: string
+    textColor: string
+  }
+> = {
+  bronze: {
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+    borderColor: 'border-amber-300 dark:border-amber-800',
+    textColor: 'text-amber-800 dark:text-amber-200',
+  },
+  silver: {
+    color: 'text-slate-500',
+    bgColor: 'bg-slate-50 dark:bg-slate-900/30',
+    borderColor: 'border-slate-300 dark:border-slate-700',
+    textColor: 'text-slate-700 dark:text-slate-200',
+  },
+  gold: {
+    color: 'text-yellow-500',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+    borderColor: 'border-yellow-300 dark:border-yellow-800',
+    textColor: 'text-yellow-800 dark:text-yellow-200',
+  },
+  platinum: {
+    color: 'text-sky-500',
+    bgColor: 'bg-sky-50 dark:bg-sky-900/20',
+    borderColor: 'border-sky-300 dark:border-sky-800',
+    textColor: 'text-sky-800 dark:text-sky-200',
+  },
+  diamond: {
+    color: 'text-cyan-500',
+    bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+    borderColor: 'border-cyan-300 dark:border-cyan-800',
+    textColor: 'text-cyan-800 dark:text-cyan-200',
+  },
+  master: {
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+    borderColor: 'border-purple-300 dark:border-purple-800',
+    textColor: 'text-purple-800 dark:text-purple-200',
+  },
+  grandmaster: {
+    color: 'text-rose-500',
+    bgColor: 'bg-rose-50 dark:bg-rose-900/20',
+    borderColor: 'border-rose-300 dark:border-rose-800',
+    textColor: 'text-rose-800 dark:text-rose-200',
+  },
+}
+
 export const useBadgesStore = defineStore('badges', () => {
   const catalog = shallowRef<Badge[]>([])
   const unlocked = ref<StudentBadge[]>([])

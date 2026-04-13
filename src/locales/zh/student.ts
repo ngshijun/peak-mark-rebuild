@@ -238,6 +238,7 @@ export default {
   achievements: {
     title: '成就',
     subtitle: '追踪你的徽章，查看下一个能解锁的目标',
+    badgesEarned: '已获得徽章',
     closestToUnlock: '即将解锁',
     allBadges: '所有徽章',
     tierSections: {
