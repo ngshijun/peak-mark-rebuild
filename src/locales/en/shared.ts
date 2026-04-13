@@ -1161,6 +1161,7 @@ export default {
           friends: 'Friends',
           myPet: 'My Pet',
           collections: 'Collections',
+          achievements: 'Achievements',
         },
         parent: {
           dashboard: 'Dashboard',
