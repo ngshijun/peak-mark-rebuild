@@ -30,6 +30,7 @@ onMounted(async () => {
     <template v-else>
       <div>
         <h1 class="text-2xl font-bold">{{ t.student.achievements.title }}</h1>
+        <p class="text-muted-foreground">{{ t.student.achievements.subtitle }}</p>
       </div>
 
       <ClosestToUnlockSection />
