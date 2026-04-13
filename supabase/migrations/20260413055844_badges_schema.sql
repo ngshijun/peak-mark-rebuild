@@ -1010,3 +1010,42 @@ begin
   return jsonb_build_object('newly_unlocked_badges', v_new_badges);
 end;
 $$;
+
+-- ============================================================================
+-- Row Level Security policies
+-- ============================================================================
+
+-- BADGES: catalog is read-only for all authenticated users. Mutations via
+-- migrations only (service role bypasses RLS).
+alter table public.badges enable row level security;
+
+create policy "badges_read_all_authenticated"
+on public.badges for select
+to authenticated
+using (true);
+
+-- STUDENT_BADGES: owner + linked parents can read; owner can mark as seen.
+-- No INSERT or DELETE policies — awarding via security definer functions,
+-- deletion via ON DELETE CASCADE.
+alter table public.student_badges enable row level security;
+
+create policy "student_badges_read_own"
+on public.student_badges for select
+to authenticated
+using (student_id = (select auth.uid()));
+
+create policy "student_badges_read_linked_children"
+on public.student_badges for select
+to authenticated
+using (
+  student_id in (
+    select student_id from public.parent_student_links
+    where parent_id = (select auth.uid())
+  )
+);
+
+create policy "student_badges_update_seen_own"
+on public.student_badges for update
+to authenticated
+using (student_id = (select auth.uid()))
+with check (student_id = (select auth.uid()));
