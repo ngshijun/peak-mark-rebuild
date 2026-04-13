@@ -93,6 +93,15 @@ export function getRarityLabel(rarity: PetRarity): string {
   return useLanguageStore().t.shared.petTiers[rarity]
 }
 
+type BadgeRow = Database['public']['Tables']['badges']['Row']
+type RpcResponseWithBadges<T> = T & { newly_unlocked_badges?: BadgeRow[] }
+
+async function enqueueIfPresent(badges: BadgeRow[] | undefined) {
+  if (!badges || badges.length === 0) return
+  const { useBadgesStore } = await import('@/stores/badges')
+  useBadgesStore().handleNewlyUnlocked(badges)
+}
+
 export const usePetsStore = defineStore('pets', () => {
   const authStore = useAuthStore()
 
@@ -418,13 +427,13 @@ export const usePetsStore = defineStore('pets', () => {
         return { error: handleError(rpcError, 'failedFeedPet') }
       }
 
-      const result = data as {
+      const result = data as RpcResponseWithBadges<{
         success: boolean
         error?: string
         food_fed?: number
         required_food?: number
         can_evolve?: boolean
-      }
+      }>
 
       if (!result.success) {
         return { error: result.error ?? errorMessages().failedFeedPet }
@@ -443,6 +452,8 @@ export const usePetsStore = defineStore('pets', () => {
 
       // Refresh auth store to get updated food count
       await authStore.refreshProfile()
+
+      await enqueueIfPresent(result.newly_unlocked_badges)
 
       return {
         error: null,
@@ -475,12 +486,12 @@ export const usePetsStore = defineStore('pets', () => {
         return { error: handleError(rpcError, 'failedEvolvePet') }
       }
 
-      const result = data as {
+      const result = data as RpcResponseWithBadges<{
         success: boolean
         error?: string
         new_tier?: number
         pet_id?: string
-      }
+      }>
 
       if (!result.success) {
         return { error: result.error ?? errorMessages().failedEvolvePet }
@@ -497,6 +508,8 @@ export const usePetsStore = defineStore('pets', () => {
         console.error('Local state update failed after evolving, re-fetching:', err)
         await fetchOwnedPets()
       }
+
+      await enqueueIfPresent(result.newly_unlocked_badges)
 
       return {
         error: null,
@@ -558,13 +571,13 @@ export const usePetsStore = defineStore('pets', () => {
         return { error: handleError(rpcError, 'failedCombinePets') }
       }
 
-      const result = data as {
+      const result = data as RpcResponseWithBadges<{
         success: boolean
         error?: string
         upgraded?: boolean
         result_pet_id?: string
         result_rarity?: PetRarity
-      }
+      }>
 
       if (!result.success) {
         return { error: result.error ?? errorMessages().failedCombinePets }
@@ -572,6 +585,8 @@ export const usePetsStore = defineStore('pets', () => {
 
       // Refresh owned pets to reflect changes
       await fetchOwnedPets()
+
+      await enqueueIfPresent(result.newly_unlocked_badges)
 
       return {
         error: null,
@@ -585,27 +600,31 @@ export const usePetsStore = defineStore('pets', () => {
     }
   }
 
-  // Gacha single pull (server-side RPC)
+  // Gacha single pull (server-side RPC with badge hook)
   async function gachaPull(): Promise<{ petId: string | null; error: string | null }> {
     try {
-      const { data: petId, error: rpcError } = await supabase.rpc('gacha_pull')
+      const { data, error: rpcError } = await supabase.rpc('gacha_pull')
       if (rpcError) {
         return { petId: null, error: handleError(rpcError, 'pullFailed') }
       }
-      return { petId: petId ?? null, error: null }
+      const result = data as RpcResponseWithBadges<{ pet_id?: string }>
+      await enqueueIfPresent(result?.newly_unlocked_badges)
+      return { petId: result?.pet_id ?? null, error: null }
     } catch (err) {
       return { petId: null, error: handleError(err, 'pullFailed') }
     }
   }
 
-  // Gacha multi pull (10x, server-side RPC)
+  // Gacha multi pull (10x, server-side RPC with badge hook)
   async function gachaMultiPull(): Promise<{ petIds: string[] | null; error: string | null }> {
     try {
-      const { data: petIds, error: rpcError } = await supabase.rpc('gacha_multi_pull')
+      const { data, error: rpcError } = await supabase.rpc('gacha_multi_pull')
       if (rpcError) {
         return { petIds: null, error: handleError(rpcError, 'pullFailed') }
       }
-      return { petIds: petIds ?? null, error: null }
+      const result = data as RpcResponseWithBadges<{ pet_ids?: string[] }>
+      await enqueueIfPresent(result?.newly_unlocked_badges)
+      return { petIds: result?.pet_ids ?? null, error: null }
     } catch (err) {
       return { petIds: null, error: handleError(err, 'pullFailed') }
     }
