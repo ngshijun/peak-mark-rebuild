@@ -102,7 +102,10 @@ begin
       >= (p_params->>'threshold')::int
 
     when 'total_questions_answered' then
-      (select count(*) from public.practice_answers where student_id = p_student_id)
+      (select count(*)
+       from public.practice_answers pa
+       join public.practice_sessions ps on ps.id = pa.session_id
+       where ps.student_id = p_student_id)
       >= (p_params->>'threshold')::int
 
     when 'total_days_practiced' then
