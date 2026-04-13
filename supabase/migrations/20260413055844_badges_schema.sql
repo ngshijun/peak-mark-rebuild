@@ -546,3 +546,287 @@ begin
   );
 end;
 $$;
+
+-- combine_pets: json → jsonb, + badge check after successful combine
+create or replace function public.combine_pets(p_student_id uuid, p_owned_pet_ids uuid[])
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_rarity public.pet_rarity;
+  v_next_rarity public.pet_rarity;
+  v_success boolean;
+  v_success_rate numeric;
+  v_result_rarity public.pet_rarity;
+  v_result_pet_id uuid;
+  v_unique_id uuid;
+  v_required_count integer;
+  v_actual_count integer;
+  v_actual_rarity public.pet_rarity;
+  v_new_badges jsonb;
+begin
+  -- Validate exactly 4 pets in array
+  if array_length(p_owned_pet_ids, 1) is null or array_length(p_owned_pet_ids, 1) != 4 then
+    return jsonb_build_object('success', false, 'error', 'Must select exactly 4 pets');
+  end if;
+
+  -- Get rarity of first pet
+  select p.rarity into v_rarity
+  from public.owned_pets op
+  join public.pets p on p.id = op.pet_id
+  where op.id = p_owned_pet_ids[1] and op.student_id = p_student_id;
+
+  if v_rarity is null then
+    return jsonb_build_object('success', false, 'error', 'Pet not found or not owned');
+  end if;
+
+  if v_rarity = 'legendary' then
+    return jsonb_build_object('success', false, 'error', 'Cannot combine legendary pets');
+  end if;
+
+  -- Validate each unique owned_pet_id
+  for v_unique_id in select distinct unnest(p_owned_pet_ids)
+  loop
+    select count(*) into v_required_count
+    from unnest(p_owned_pet_ids) as id
+    where id = v_unique_id;
+
+    select op.count, p.rarity into v_actual_count, v_actual_rarity
+    from public.owned_pets op
+    join public.pets p on p.id = op.pet_id
+    where op.id = v_unique_id and op.student_id = p_student_id;
+
+    if v_actual_count is null then
+      return jsonb_build_object('success', false, 'error', 'Pet not found or not owned');
+    end if;
+
+    if v_actual_rarity != v_rarity then
+      return jsonb_build_object('success', false, 'error', 'All pets must be same rarity');
+    end if;
+
+    if v_actual_count < v_required_count then
+      return jsonb_build_object('success', false, 'error', 'Not enough of this pet to combine');
+    end if;
+  end loop;
+
+  -- Determine next rarity and success rate
+  v_next_rarity := case v_rarity
+    when 'common' then 'rare'::public.pet_rarity
+    when 'rare' then 'epic'::public.pet_rarity
+    when 'epic' then 'legendary'::public.pet_rarity
+  end;
+
+  v_success_rate := case v_rarity
+    when 'common' then 0.50
+    when 'rare' then 0.35
+    when 'epic' then 0.25
+    else 0
+  end;
+
+  v_success := random() < v_success_rate;
+  v_result_rarity := case when v_success then v_next_rarity else v_rarity end;
+
+  select id into v_result_pet_id
+  from public.pets
+  where rarity = v_result_rarity
+  order by random()
+  limit 1;
+
+  if v_result_pet_id is null then
+    return jsonb_build_object('success', false, 'error', 'No pets available for result rarity');
+  end if;
+
+  -- Consume the 4 input pets
+  for v_unique_id in select distinct unnest(p_owned_pet_ids)
+  loop
+    select count(*) into v_required_count
+    from unnest(p_owned_pet_ids) as id
+    where id = v_unique_id;
+
+    select count into v_actual_count
+    from public.owned_pets
+    where id = v_unique_id;
+
+    if v_actual_count > v_required_count then
+      update public.owned_pets set count = count - v_required_count where id = v_unique_id;
+    else
+      delete from public.owned_pets where id = v_unique_id;
+    end if;
+  end loop;
+
+  -- Add result pet at tier 1
+  insert into public.owned_pets (student_id, pet_id, tier, count)
+  values (p_student_id, v_result_pet_id, 1, 1)
+  on conflict (student_id, pet_id)
+  do update set count = public.owned_pets.count + 1;
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(p_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', p_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object(
+    'success', true,
+    'upgraded', v_success,
+    'result_pet_id', v_result_pet_id,
+    'result_rarity', v_result_rarity,
+    'newly_unlocked_badges', v_new_badges
+  );
+end;
+$$;
+
+-- evolve_pet: json → jsonb, + badge check after successful evolve
+create or replace function public.evolve_pet(p_owned_pet_id uuid, p_student_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owned_pet record;
+  v_current_tier integer;
+  v_food_fed integer;
+  v_required_food integer;
+  v_new_tier integer;
+  v_new_badges jsonb;
+begin
+  -- Get the owned pet
+  select * into v_owned_pet
+  from public.owned_pets
+  where id = p_owned_pet_id and student_id = p_student_id;
+
+  if v_owned_pet is null then
+    return jsonb_build_object('success', false, 'error', 'Pet not found');
+  end if;
+
+  v_current_tier := v_owned_pet.tier;
+  v_food_fed := v_owned_pet.food_fed;
+
+  if v_current_tier >= 3 then
+    return jsonb_build_object('success', false, 'error', 'Pet is already at max tier');
+  end if;
+
+  if v_current_tier = 1 then
+    v_required_food := 10;
+  else
+    v_required_food := 25;
+  end if;
+
+  if v_food_fed < v_required_food then
+    return jsonb_build_object(
+      'success', false,
+      'error', 'Not enough food fed',
+      'current', v_food_fed,
+      'required', v_required_food
+    );
+  end if;
+
+  v_new_tier := v_current_tier + 1;
+
+  update public.owned_pets
+  set
+    tier = v_new_tier,
+    food_fed = 0
+  where id = p_owned_pet_id;
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(p_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', p_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object(
+    'success', true,
+    'new_tier', v_new_tier,
+    'pet_id', v_owned_pet.pet_id,
+    'newly_unlocked_badges', v_new_badges
+  );
+end;
+$$;
+
+-- feed_pet_for_evolution: json → jsonb, + badge check after successful feed
+create or replace function public.feed_pet_for_evolution(
+  p_owned_pet_id uuid,
+  p_student_id uuid,
+  p_food_amount integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_owned_pet record;
+  v_student_food integer;
+  v_new_food_fed integer;
+  v_required_food integer;
+  v_can_evolve boolean;
+  v_new_badges jsonb;
+begin
+  select * into v_owned_pet
+  from public.owned_pets
+  where id = p_owned_pet_id and student_id = p_student_id;
+
+  if v_owned_pet is null then
+    return jsonb_build_object('success', false, 'error', 'Pet not found');
+  end if;
+
+  if v_owned_pet.tier >= 3 then
+    return jsonb_build_object('success', false, 'error', 'Pet is already at max tier');
+  end if;
+
+  select food into v_student_food
+  from public.student_profiles
+  where id = p_student_id;
+
+  if v_student_food is null or v_student_food < p_food_amount then
+    return jsonb_build_object('success', false, 'error', 'Not enough food');
+  end if;
+
+  -- Deduct food from student
+  update public.student_profiles
+  set food = food - p_food_amount
+  where id = p_student_id;
+
+  -- Add food to pet
+  v_new_food_fed := v_owned_pet.food_fed + p_food_amount;
+
+  update public.owned_pets
+  set food_fed = v_new_food_fed
+  where id = p_owned_pet_id;
+
+  if v_owned_pet.tier = 1 then
+    v_required_food := 10;
+  else
+    v_required_food := 25;
+  end if;
+
+  v_can_evolve := v_new_food_fed >= v_required_food;
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(p_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', p_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object(
+    'success', true,
+    'food_fed', v_new_food_fed,
+    'required_food', v_required_food,
+    'can_evolve', v_can_evolve,
+    'newly_unlocked_badges', v_new_badges
+  );
+end;
+$$;
