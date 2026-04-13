@@ -227,22 +227,6 @@ begin
 end;
 $$;
 
--- FUNCTION: check_and_award_badges_client_facing ----------------------------
--- Thin wrapper for the 1x gacha_pull flow which is client-assembled. Uses
--- auth.uid() internally so clients cannot pass arbitrary student IDs. Returns
--- setof badges for the client to enqueue as celebrations.
-
-create or replace function public.check_and_award_badges_client_facing()
-returns setof public.badges
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  return query select * from public.check_and_award_badges((select auth.uid()));
-end;
-$$;
-
 -- FUNCTION: get_student_badge_progress --------------------------------------
 -- Returns (badge_id, current_value, target_value, progress_pct) for all
 -- unearned, non-tier-gated badges. Called on AchievementsPage mount. Client
