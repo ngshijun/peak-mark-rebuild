@@ -430,3 +430,26 @@ begin
   return awarded;
 end;
 $$;
+
+-- FUNCTION: get_child_badge_summary -----------------------------------------
+-- Returns (lifetime, this_week) badge counts for a given child. Used by the
+-- parent StatisticsPage card. RLS is enforced at the student_badges read
+-- policy level (parent can read badges of linked children).
+
+create or replace function public.get_child_badge_summary(p_child_id uuid)
+returns table (
+  lifetime integer,
+  this_week integer
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    (select count(*)::int from public.student_badges
+     where student_id = p_child_id) as lifetime,
+    (select count(*)::int from public.student_badges
+     where student_id = p_child_id
+       and unlocked_at >= date_trunc('week', now())) as this_week;
+$$;
