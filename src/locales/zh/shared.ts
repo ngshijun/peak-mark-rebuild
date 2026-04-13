@@ -1127,6 +1127,7 @@ export default {
           friends: '好友',
           myPet: '我的宠物',
           collections: '收藏',
+          achievements: '成就',
         },
         parent: {
           dashboard: '主页',
