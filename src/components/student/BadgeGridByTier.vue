@@ -63,7 +63,7 @@ function unlockedCountFor(tier: BadgeTier): number {
           </div>
         </CardHeader>
         <CardContent>
-          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
             <BadgeCard
               v-for="badge in groupedByTier[tier]"
               :key="badge.id"

@@ -3,7 +3,6 @@ import { computed, onMounted } from 'vue'
 import { useT } from '@/composables/useT'
 import { useBadgesStore } from '@/stores/badges'
 import { Loader2 } from 'lucide-vue-next'
-import ClosestToUnlockSection from '@/components/student/ClosestToUnlockSection.vue'
 import BadgeGridByTier from '@/components/student/BadgeGridByTier.vue'
 
 const t = useT()
@@ -41,8 +40,6 @@ onMounted(async () => {
           <p class="text-sm text-muted-foreground">{{ t.student.achievements.badgesEarned }}</p>
         </div>
       </div>
-
-      <ClosestToUnlockSection />
 
       <BadgeGridByTier />
     </template>

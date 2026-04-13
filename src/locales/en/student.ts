@@ -248,8 +248,6 @@ export default {
     title: 'Achievements',
     subtitle: 'Track your badges and see what you can earn next',
     badgesEarned: 'Badges earned',
-    closestToUnlock: 'Closest to Unlock',
-    allBadges: 'All Badges',
     tierSections: {
       bronze: 'Bronze',
       silver: 'Silver',
@@ -259,16 +257,9 @@ export default {
       master: 'Master',
       grandmaster: 'Grandmaster',
     },
-    lockedText: 'Not yet earned',
-    progressText: (current: number, target: number) => `${current} / ${target}`,
-    coinReward: (amount: number) => `+${amount} coins`,
     requiresPlus: 'Requires Plus',
     requiresPro: 'Requires Pro',
     requiresMax: 'Requires Max',
-    askParentTooltip: 'Ask a parent to unlock this badge',
-    unlockedAgo: (when: string) => `Unlocked ${when}`,
-    emptyState: 'Keep practicing to unlock your first badge',
-    allEarnedState: "You've earned every badge. We're in awe.",
   },
 
   badges: {

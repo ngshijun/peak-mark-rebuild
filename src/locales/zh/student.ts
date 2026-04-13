@@ -239,8 +239,6 @@ export default {
     title: '成就',
     subtitle: '追踪你的徽章，查看下一个能解锁的目标',
     badgesEarned: '已获得徽章',
-    closestToUnlock: '即将解锁',
-    allBadges: '所有徽章',
     tierSections: {
       bronze: '青铜',
       silver: '白银',
@@ -250,16 +248,9 @@ export default {
       master: '大师',
       grandmaster: '宗师',
     },
-    lockedText: '尚未获得',
-    progressText: (current: number, target: number) => `${current} / ${target}`,
-    coinReward: (amount: number) => `+${amount} 金币`,
     requiresPlus: '需要 Plus',
     requiresPro: '需要 Pro',
     requiresMax: '需要 Max',
-    askParentTooltip: '请家长升级订阅以解锁此徽章',
-    unlockedAgo: (when: string) => `获得于 ${when}`,
-    emptyState: '继续练习,解锁您的第一枚徽章',
-    allEarnedState: '您已获得所有徽章。令人惊叹。',
   },
 
   badges: {

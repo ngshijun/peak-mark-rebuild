@@ -33,49 +33,65 @@ export const tierConfig: Record<
     bgColor: string
     borderColor: string
     textColor: string
+    mutedBgColor: string
+    mutedBorderColor: string
   }
 > = {
   bronze: {
     color: 'text-amber-700',
-    bgColor: 'bg-amber-50 dark:bg-amber-900/20',
-    borderColor: 'border-amber-300 dark:border-amber-800',
-    textColor: 'text-amber-800 dark:text-amber-200',
+    bgColor: 'bg-amber-100 dark:bg-amber-900/40',
+    borderColor: 'border-amber-400 dark:border-amber-700',
+    textColor: 'text-amber-900 dark:text-amber-100',
+    mutedBgColor: 'bg-amber-50 dark:bg-amber-950/30',
+    mutedBorderColor: 'border-amber-200 dark:border-amber-900',
   },
   silver: {
     color: 'text-slate-500',
-    bgColor: 'bg-slate-50 dark:bg-slate-900/30',
-    borderColor: 'border-slate-300 dark:border-slate-700',
-    textColor: 'text-slate-700 dark:text-slate-200',
+    bgColor: 'bg-slate-200 dark:bg-slate-700/50',
+    borderColor: 'border-slate-400 dark:border-slate-500',
+    textColor: 'text-slate-800 dark:text-slate-100',
+    mutedBgColor: 'bg-slate-100 dark:bg-slate-800/40',
+    mutedBorderColor: 'border-slate-300 dark:border-slate-700',
   },
   gold: {
     color: 'text-yellow-500',
-    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-    borderColor: 'border-yellow-300 dark:border-yellow-800',
-    textColor: 'text-yellow-800 dark:text-yellow-200',
+    bgColor: 'bg-yellow-100 dark:bg-yellow-900/40',
+    borderColor: 'border-yellow-400 dark:border-yellow-700',
+    textColor: 'text-yellow-900 dark:text-yellow-100',
+    mutedBgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
+    mutedBorderColor: 'border-yellow-200 dark:border-yellow-900',
   },
   platinum: {
     color: 'text-sky-500',
-    bgColor: 'bg-sky-50 dark:bg-sky-900/20',
-    borderColor: 'border-sky-300 dark:border-sky-800',
-    textColor: 'text-sky-800 dark:text-sky-200',
+    bgColor: 'bg-sky-100 dark:bg-sky-900/40',
+    borderColor: 'border-sky-400 dark:border-sky-700',
+    textColor: 'text-sky-900 dark:text-sky-100',
+    mutedBgColor: 'bg-sky-50 dark:bg-sky-950/30',
+    mutedBorderColor: 'border-sky-200 dark:border-sky-900',
   },
   diamond: {
     color: 'text-cyan-500',
-    bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
-    borderColor: 'border-cyan-300 dark:border-cyan-800',
-    textColor: 'text-cyan-800 dark:text-cyan-200',
+    bgColor: 'bg-cyan-100 dark:bg-cyan-900/40',
+    borderColor: 'border-cyan-400 dark:border-cyan-700',
+    textColor: 'text-cyan-900 dark:text-cyan-100',
+    mutedBgColor: 'bg-cyan-50 dark:bg-cyan-950/30',
+    mutedBorderColor: 'border-cyan-200 dark:border-cyan-900',
   },
   master: {
     color: 'text-purple-500',
-    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-    borderColor: 'border-purple-300 dark:border-purple-800',
-    textColor: 'text-purple-800 dark:text-purple-200',
+    bgColor: 'bg-purple-100 dark:bg-purple-900/40',
+    borderColor: 'border-purple-400 dark:border-purple-700',
+    textColor: 'text-purple-900 dark:text-purple-100',
+    mutedBgColor: 'bg-purple-50 dark:bg-purple-950/30',
+    mutedBorderColor: 'border-purple-200 dark:border-purple-900',
   },
   grandmaster: {
     color: 'text-rose-500',
-    bgColor: 'bg-rose-50 dark:bg-rose-900/20',
-    borderColor: 'border-rose-300 dark:border-rose-800',
-    textColor: 'text-rose-800 dark:text-rose-200',
+    bgColor: 'bg-rose-100 dark:bg-rose-900/40',
+    borderColor: 'border-rose-400 dark:border-rose-700',
+    textColor: 'text-rose-900 dark:text-rose-100',
+    mutedBgColor: 'bg-rose-50 dark:bg-rose-950/30',
+    mutedBorderColor: 'border-rose-200 dark:border-rose-900',
   },
 }
 

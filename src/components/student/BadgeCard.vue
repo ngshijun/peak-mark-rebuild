@@ -73,10 +73,11 @@ const badgeStrings = computed(() => {
   <div
     class="relative flex flex-col items-center rounded-lg border px-2 pb-2 pt-3 transition-all"
     :class="[
-      state === 'unlocked' || state === 'locked-progress'
+      state === 'unlocked'
         ? [cfg.bgColor, cfg.borderColor]
-        : 'border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-muted',
+        : [cfg.mutedBgColor, cfg.mutedBorderColor],
     ]"
+    :title="badgeStrings.description"
   >
     <!-- Badge icon -->
     <div class="flex aspect-square w-full items-center justify-center">
@@ -85,52 +86,36 @@ const badgeStrings = computed(() => {
         :alt="badgeStrings.name"
         loading="lazy"
         class="size-full object-contain"
-        :class="{ 'brightness-0 opacity-20': state !== 'unlocked' }"
+        :class="{ 'brightness-0 opacity-30': state !== 'unlocked' }"
       />
     </div>
 
     <!-- Name -->
     <p
       class="mt-1 text-center text-xs font-medium leading-tight"
-      :class="state === 'unlocked' ? cfg.textColor : 'text-gray-400 dark:text-gray-600'"
+      :class="state === 'unlocked' ? cfg.textColor : 'text-muted-foreground'"
     >
       {{ badgeStrings.name }}
-    </p>
-
-    <!-- Description -->
-    <p
-      v-if="badgeStrings.description"
-      class="mt-0.5 text-center text-[10px] leading-tight text-muted-foreground line-clamp-2"
-    >
-      {{ badgeStrings.description }}
     </p>
 
     <!-- Coin reward -->
     <div
       v-if="badge.coin_reward > 0"
-      class="mt-1 flex items-center gap-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+      class="mt-0.5 flex items-center gap-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
     >
       <CirclePoundSterling class="size-3" />
-      <span>{{ t.student.achievements.coinReward(badge.coin_reward) }}</span>
+      <span>+{{ badge.coin_reward }}</span>
     </div>
 
     <!-- Progress bar (locked-progress state) -->
-    <div v-if="state === 'locked-progress' && progress" class="mt-1.5 w-full space-y-0.5">
-      <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+    <div v-if="state === 'locked-progress' && progress" class="mt-1 w-full">
+      <div class="h-1 overflow-hidden rounded-full bg-muted">
         <div
           class="h-full bg-primary transition-all"
           :style="{ width: `${progress.progress_pct}%` }"
         />
       </div>
-      <p class="text-center text-[10px] text-muted-foreground">
-        {{ t.student.achievements.progressText(progress.current_value, progress.target_value) }}
-      </p>
     </div>
-
-    <!-- Locked (no progress data available) -->
-    <p v-if="state === 'locked'" class="mt-1 text-center text-[10px] text-muted-foreground">
-      {{ t.student.achievements.lockedText }}
-    </p>
 
     <!-- Tier-gated overlay -->
     <div
@@ -139,12 +124,6 @@ const badgeStrings = computed(() => {
     >
       <Lock class="size-5 text-muted-foreground" />
       <p class="text-[10px] font-medium">{{ requiredTierLabel }}</p>
-      <p
-        class="max-w-[8rem] text-center text-[9px] text-muted-foreground"
-        :title="t.student.achievements.askParentTooltip"
-      >
-        {{ t.student.achievements.askParentTooltip }}
-      </p>
     </div>
   </div>
 </template>
