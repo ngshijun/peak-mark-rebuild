@@ -242,3 +242,130 @@ begin
   return query select * from public.check_and_award_badges((select auth.uid()));
 end;
 $$;
+
+-- FUNCTION: get_student_badge_progress --------------------------------------
+-- Returns (badge_id, current_value, target_value, progress_pct) for all
+-- unearned, non-tier-gated badges. Called on AchievementsPage mount. Client
+-- sorts client-side and takes top 3 for ClosestToUnlockSection.
+
+create or replace function public.get_student_badge_progress(p_student_id uuid)
+returns table (
+  badge_id uuid,
+  current_value numeric,
+  target_value numeric,
+  progress_pct numeric
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  b public.badges%rowtype;
+  student_tier public.subscription_tier;
+  cur numeric;
+  tgt numeric;
+begin
+  select subscription_tier into student_tier
+  from public.student_profiles where id = p_student_id;
+
+  if student_tier is null then
+    return;
+  end if;
+
+  for b in
+    select * from public.badges where is_active
+  loop
+    -- skip already-owned
+    if exists (
+      select 1 from public.student_badges
+      where student_id = p_student_id and badge_id = b.id
+    ) then
+      continue;
+    end if;
+
+    -- skip tier-gated (the widget hides these from free users)
+    if student_tier < b.required_tier then
+      continue;
+    end if;
+
+    -- compute current / target per trigger_type
+    case b.trigger_type
+      when 'total_sessions_completed' then
+        cur := (select count(*) from public.practice_sessions
+                where student_id = p_student_id and completed_at is not null);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'total_xp_earned' then
+        cur := coalesce((select xp from public.student_profiles
+                         where id = p_student_id), 0);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'total_questions_answered' then
+        cur := (select count(*)
+                from public.practice_answers pa
+                join public.practice_sessions ps on ps.id = pa.session_id
+                where ps.student_id = p_student_id);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'total_days_practiced' then
+        cur := (select count(*) from public.daily_statuses
+                where student_id = p_student_id and has_practiced = true);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'current_streak' then
+        cur := (select current_streak from public.student_profiles
+                where id = p_student_id);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'max_streak_ever' then
+        cur := (select max_streak from public.student_profiles
+                where id = p_student_id);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'perfect_sessions_count' then
+        cur := (select count(*) from public.practice_sessions
+                where student_id = p_student_id
+                  and completed_at is not null
+                  and correct_count is not null
+                  and correct_count = total_questions);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'unique_pets_owned' then
+        cur := (select count(distinct pet_id) from public.owned_pets
+                where student_id = p_student_id);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      when 'pet_max_tier_reached' then
+        cur := case when exists (
+          select 1 from public.owned_pets
+          where student_id = p_student_id and tier = 3
+        ) then 1 else 0 end;
+        tgt := 1;
+
+      when 'pets_of_rarity_count' then
+        cur := (select count(*) from public.owned_pets op
+                join public.pets p on p.id = op.pet_id
+                where op.student_id = p_student_id
+                  and p.rarity = (b.trigger_params->>'rarity')::pet_rarity);
+        tgt := (b.trigger_params->>'threshold')::numeric;
+
+      -- subject_accuracy_threshold: omitted from progress widget because
+      -- it's not a simple 1D threshold (two axes: sample size + percentage).
+      -- Clients won't see these in the Closest-to-unlock section.
+      else
+        continue;
+    end case;
+
+    badge_id := b.id;
+    current_value := cur;
+    target_value := tgt;
+    progress_pct := case
+      when tgt > 0 then least(100, (cur * 100.0 / tgt))
+      else 0
+    end;
+    return next;
+  end loop;
+  return;
+end;
+$$;
