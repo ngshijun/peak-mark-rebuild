@@ -1001,3 +1001,78 @@ on public.student_badges for update
 to authenticated
 using (student_id = (select auth.uid()))
 with check (student_id = (select auth.uid()));
+
+-- ============================================================================
+-- gacha_pull: retroactive hook (1x pull, server-side badge check)
+-- uuid → jsonb to stay consistent with gacha_multi_pull and other pet RPCs.
+-- ============================================================================
+
+create or replace function public.gacha_pull()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+  v_current_coins integer;
+  v_cost constant integer := 100;
+  v_random_value float;
+  v_selected_pet_id uuid;
+  v_rarity pet_rarity;
+  v_new_badges jsonb;
+begin
+  v_student_id := (select auth.uid());
+  if v_student_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  -- Check coins
+  select coins into v_current_coins from student_profiles where id = v_student_id;
+  if v_current_coins is null then
+    raise exception 'Student profile not found';
+  end if;
+  if v_current_coins < v_cost then
+    raise exception 'Insufficient coins';
+  end if;
+
+  -- Deduct coins
+  update student_profiles set coins = coins - v_cost where id = v_student_id;
+
+  -- Determine rarity (60% common, 30% rare, 9% epic, 1% legendary)
+  v_random_value := random();
+  if v_random_value < 0.01 then
+    v_rarity := 'legendary';
+  elsif v_random_value < 0.10 then
+    v_rarity := 'epic';
+  elsif v_random_value < 0.40 then
+    v_rarity := 'rare';
+  else
+    v_rarity := 'common';
+  end if;
+
+  -- Select random pet of that rarity
+  select id into v_selected_pet_id from pets where rarity = v_rarity order by random() limit 1;
+
+  -- Add to owned pets (or increment count)
+  insert into owned_pets (student_id, pet_id, count)
+  values (v_student_id, v_selected_pet_id, 1)
+  on conflict (student_id, pet_id) do update set
+    count = owned_pets.count + 1,
+    updated_at = now();
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(v_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', v_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object(
+    'pet_id', v_selected_pet_id,
+    'newly_unlocked_badges', v_new_badges
+  );
+end;
+$$;
