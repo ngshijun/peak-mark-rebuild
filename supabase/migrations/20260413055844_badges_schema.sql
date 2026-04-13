@@ -369,3 +369,64 @@ begin
   return;
 end;
 $$;
+
+-- FUNCTION: backfill_badge_for_all_eligible ---------------------------------
+-- Called from seed migrations after inserting new badges. Iterates all
+-- students, checks eligibility, inserts unlocks + awards coins. Silent
+-- (no celebration events). Idempotent via on conflict do nothing.
+-- Returns the number of students newly unlocked.
+
+create or replace function public.backfill_badge_for_all_eligible(p_badge_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  b public.badges%rowtype;
+  sp record;
+  awarded int := 0;
+  student_tier public.subscription_tier;
+begin
+  select * into b from public.badges where id = p_badge_id and is_active;
+  if not found then
+    return 0;
+  end if;
+
+  for sp in select id from public.student_profiles loop
+    -- skip already-owned
+    if exists (
+      select 1 from public.student_badges
+      where student_id = sp.id and badge_id = b.id
+    ) then
+      continue;
+    end if;
+
+    -- skip tier-gated
+    select subscription_tier into student_tier
+    from public.student_profiles where id = sp.id;
+    if student_tier < b.required_tier then
+      continue;
+    end if;
+
+    -- eligibility
+    if not public.check_trigger_eligibility(sp.id, b.trigger_type, b.trigger_params) then
+      continue;
+    end if;
+
+    insert into public.student_badges (student_id, badge_id)
+    values (sp.id, b.id)
+    on conflict do nothing;
+
+    if b.coin_reward > 0 then
+      update public.student_profiles
+      set coins = coalesce(coins, 0) + b.coin_reward
+      where id = sp.id;
+    end if;
+
+    awarded := awarded + 1;
+  end loop;
+
+  return awarded;
+end;
+$$;
