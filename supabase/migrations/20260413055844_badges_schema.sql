@@ -453,3 +453,96 @@ as $$
      where student_id = p_child_id
        and unlocked_at >= date_trunc('week', now())) as this_week;
 $$;
+
+-- ============================================================================
+-- Updated existing RPCs with badge check hook
+-- ============================================================================
+
+-- complete_practice_session: also updates max_streak and returns newly_unlocked_badges
+create or replace function public.complete_practice_session(p_session_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+  v_completed_at timestamptz;
+  v_correct_count integer;
+  v_total_time_seconds integer;
+  v_base_xp constant integer := 25;
+  v_bonus_xp_per_correct constant integer := 15;
+  v_base_coins constant integer := 10;
+  v_bonus_coins_per_correct constant integer := 5;
+  v_total_xp integer;
+  v_total_coins integer;
+  v_new_badges jsonb;
+begin
+  -- Check if session exists and is not already completed
+  select student_id, completed_at
+  into v_student_id, v_completed_at
+  from practice_sessions
+  where id = p_session_id;
+
+  if v_student_id is null then
+    raise exception 'Session not found: %', p_session_id;
+  end if;
+
+  if v_completed_at is not null then
+    raise exception 'Session already completed: %', p_session_id;
+  end if;
+
+  -- Count correct answers from actual answer records (not client-supplied)
+  select
+    count(*) filter (where is_correct = true),
+    coalesce(sum(time_spent_seconds), 0)
+  into v_correct_count, v_total_time_seconds
+  from practice_answers
+  where session_id = p_session_id;
+
+  -- Calculate rewards server-side
+  v_total_xp := v_base_xp + (v_correct_count * v_bonus_xp_per_correct);
+  v_total_coins := v_base_coins + (v_correct_count * v_bonus_coins_per_correct);
+
+  -- Update the practice session with completion data
+  -- Setting completed_at fires the auto_mark_practiced_on_complete trigger,
+  -- which upserts daily_statuses with the correct local timezone date
+  -- and cascades to update the student's streak
+  update practice_sessions
+  set
+    completed_at = now(),
+    total_time_seconds = v_total_time_seconds,
+    correct_count = v_correct_count,
+    xp_earned = v_total_xp,
+    coins_earned = v_total_coins
+  where id = p_session_id;
+
+  -- Award XP and coins to the student
+  update student_profiles
+  set
+    xp = xp + v_total_xp,
+    coins = coins + v_total_coins
+  where id = v_student_id;
+
+  -- NEW: update max_streak (for max_streak_ever badge trigger)
+  update public.student_profiles
+  set max_streak = greatest(max_streak, current_streak)
+  where id = v_student_id;
+
+  -- NEW: defensive badge check
+  begin
+    select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) into v_new_badges
+    from public.check_and_award_badges(v_student_id) b;
+  exception when others then
+    raise warning 'badge check failed for student %: %', v_student_id, sqlerrm;
+    v_new_badges := '[]'::jsonb;
+  end;
+
+  return jsonb_build_object(
+    'xp_earned', v_total_xp,
+    'coins_earned', v_total_coins,
+    'correct_count', v_correct_count,
+    'newly_unlocked_badges', v_new_badges
+  );
+end;
+$$;
