@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useT } from '@/composables/useT'
 import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent } from '@/components/ui/card'
-import { Lock, Coins } from 'lucide-vue-next'
+import { Lock, CirclePoundSterling } from 'lucide-vue-next'
 import type { Badge, BadgeProgress } from '@/stores/badges'
 import type { Database } from '@/types/database.types'
 
@@ -111,9 +111,9 @@ const badgeStrings = computed(() => {
 
       <div
         v-if="badge.coin_reward > 0"
-        class="flex items-center gap-1 text-xs font-medium text-yellow-600"
+        class="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400"
       >
-        <Coins class="size-3.5" />
+        <CirclePoundSterling class="size-3.5" />
         <span>{{ t.student.achievements.coinReward(badge.coin_reward) }}</span>
       </div>
 

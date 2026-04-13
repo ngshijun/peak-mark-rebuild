@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Share2, Link, Coins } from 'lucide-vue-next'
+import { Share2, Link, CirclePoundSterling } from 'lucide-vue-next'
 
 const celebrationQueue = useCelebrationQueue()
 const t = useT()
@@ -121,7 +121,7 @@ function dismiss() {
             v-if="currentBadge.coin_reward > 0"
             class="flex items-center gap-1 text-sm text-yellow-600"
           >
-            <Coins class="size-4" />
+            <CirclePoundSterling class="size-4" />
             <span>{{ t.student.badgeUnlockDialog.coinReward(currentBadge.coin_reward) }}</span>
           </div>
         </div>
