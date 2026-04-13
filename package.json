@@ -25,7 +25,8 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
-    "test:stripe": "tsx scripts/test-stripe.ts"
+    "test:stripe": "tsx scripts/test-stripe.ts",
+    "badges:check": "tsx scripts/badges-check.ts"
   },
   "dependencies": {
     "@internationalized/date": "^3.11.0",
