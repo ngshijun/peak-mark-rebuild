@@ -184,13 +184,6 @@ export const useAuthStore = defineStore('auth', () => {
     return null
   })
 
-  // Level-up tracking: set when refreshProfile() detects a level increase
-  const levelUpInfo = ref<{ oldLevel: number; newLevel: number } | null>(null)
-
-  function clearLevelUp() {
-    levelUpInfo.value = null
-  }
-
   const currentLevel = computed(() => {
     if (!studentProfile.value) return 1
     return computeLevel(studentProfile.value.xp)
@@ -510,10 +503,11 @@ export const useAuthStore = defineStore('auth', () => {
     if (profile) {
       user.value = profile
 
-      // Detect level-up after profile refresh
+      // Detect level-up after profile refresh and enqueue for celebration
       const newLevel = currentLevel.value
       if (newLevel > oldLevel) {
-        levelUpInfo.value = { oldLevel, newLevel }
+        const { useCelebrationQueue } = await import('@/composables/useCelebrationQueue')
+        useCelebrationQueue().enqueue([{ type: 'levelUp', oldLevel, newLevel }])
       }
     }
   }
@@ -795,9 +789,6 @@ export const useAuthStore = defineStore('auth', () => {
     currentLevelXp,
     xpToNextLevel,
     xpProgress,
-    levelUpInfo,
-    clearLevelUp,
-
     // Actions
     initialize,
     signUp,
