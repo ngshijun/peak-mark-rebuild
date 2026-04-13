@@ -111,11 +111,14 @@ export const useBadgesStore = defineStore('badges', () => {
     if (!authStore.user) return
 
     const now = new Date().toISOString()
+    // Collect any badges not already in the catalog cache, then reassign
+    // catalog in one shot — shallowRef only tracks .value replacement, not
+    // in-place mutations like .push().
+    const unfamiliar = badges.filter((b) => !catalogById.value.has(b.id))
+    if (unfamiliar.length > 0) {
+      catalog.value = [...catalog.value, ...unfamiliar]
+    }
     for (const b of badges) {
-      // Update catalog cache if unfamiliar (defensive — should already be there)
-      if (!catalogById.value.has(b.id)) {
-        catalog.value.push(b)
-      }
       // Insert into local unlocked list (unseen — dialog is the "seeing")
       unlocked.value.push({
         student_id: authStore.user.id,
