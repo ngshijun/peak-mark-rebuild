@@ -618,7 +618,7 @@ export default {
     dailyStatusButton: '每日状态',
   },
   spinWheelCard: {
-    dailySpin: '每日抽奖',
+    dailySpin: '每日转盘',
     title: '每日转盘',
     alreadySpun: '你今天已经转过了！',
     spinToWin: '转动转盘赢取金币！',
