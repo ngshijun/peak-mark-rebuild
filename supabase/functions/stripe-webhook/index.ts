@@ -8,31 +8,67 @@ import {
 import type Stripe from 'stripe'
 
 /**
- * Atomically claim a webhook event for processing (INSERT-first idempotency).
- * Returns: 'claimed' (proceed), 'duplicate' (skip, return 200), 'error' (return 500)
+ * Stripe webhook handler — single entry point for all Stripe → Clavis data sync.
+ *
+ * ## Idempotency model
+ *
+ * Stripe delivers webhooks at-least-once. To prevent duplicate processing:
+ *
+ * 1. After a handler completes successfully, we insert `event.id` into
+ *    `processed_webhook_events` (COMMIT pattern). Next time Stripe retries
+ *    the same `event.id` — whether via automatic retry or Dashboard "Resend" —
+ *    we see the row and skip.
+ *
+ * 2. If the handler throws, we don't insert. Stripe retries; on the next
+ *    delivery we run the handler again from scratch.
+ *
+ * 3. Domain handlers are designed to be naturally idempotent via state-based
+ *    upserts (keyed on `stripe_subscription_id` / `stripe_invoice_id`), so
+ *    running them twice is data-safe.
+ *
+ * Per Stripe's official best practices (docs.stripe.com/webhooks/best-practices):
+ * > "You can guard against duplicated event receipts by logging the event IDs
+ * >  you've processed, and then not processing already-logged events."
+ *
+ * ## Operational replay procedure
+ *
+ * If you ever need to replay a past event to fix drifted data:
+ *
+ *   1. Find the event in Stripe Dashboard → Developers → Events
+ *   2. Delete its log row:
+ *        DELETE FROM processed_webhook_events WHERE event_id = 'evt_xxx';
+ *   3. Click "Resend" on the event in Stripe Dashboard
+ *
+ * The handler will re-run with current code. Only do this when you understand
+ * what the handler will do — state is overwritten, not merged.
  */
-async function tryClaimEvent(eventId: string, eventType: string): Promise<'claimed' | 'duplicate' | 'error'> {
+
+async function isEventProcessed(eventId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('processed_webhook_events')
+    .select('event_id')
+    .eq('event_id', eventId)
+    .maybeSingle()
+  if (error) {
+    console.error('Error checking processed event:', error)
+    throw error
+  }
+  return data !== null
+}
+
+async function markEventProcessed(eventId: string, eventType: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from('processed_webhook_events')
     .insert({ event_id: eventId, event_type: eventType })
   if (error) {
-    if (error.code === '23505') return 'duplicate'
-    console.error('Error claiming event:', error)
-    return 'error'
-  }
-  return 'claimed'
-}
-
-/**
- * Release a claimed event so it can be retried on next webhook delivery.
- */
-async function releaseEvent(eventId: string): Promise<void> {
-  const { error } = await supabaseAdmin
-    .from('processed_webhook_events')
-    .delete()
-    .eq('event_id', eventId)
-  if (error) {
-    console.error(`Failed to release event ${eventId}:`, error)
+    // Race: another concurrent delivery committed first. Safe — both ran
+    // idempotent handlers. Log and move on.
+    if (error.code === '23505') {
+      console.log(`Event ${eventId} already committed by concurrent delivery`)
+      return
+    }
+    console.error('Error marking event processed:', error)
+    throw error
   }
 }
 
@@ -49,57 +85,51 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Webhook event: ${event.type}, ID: ${event.id}`)
 
-    // Atomic idempotency: claim the event before processing
-    const claimResult = await tryClaimEvent(event.id, event.type)
-    if (claimResult === 'duplicate') {
-      console.log(`Event ${event.id} already claimed, skipping`)
+    // Fast-path retry dedup — skip if we already committed this event
+    if (await isEventProcessed(event.id)) {
+      console.log(`Event ${event.id} already processed, skipping`)
       return new Response(JSON.stringify({ received: true }), {
         headers: { 'Content-Type': 'application/json' },
       })
     }
-    if (claimResult === 'error') {
-      return new Response('Database error', { status: 500 })
+
+    // Dispatch to domain handler
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)
+        break
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdate(event.data.object as Stripe.Subscription)
+        break
+
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription)
+        break
+
+      case 'invoice.paid':
+        await handleInvoicePaid(event.data.object as Stripe.Invoice)
+        break
+
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.Invoice)
+        break
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`)
     }
 
-    try {
-      switch (event.type) {
-        case 'checkout.session.completed':
-          await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)
-          break
-
-        case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-          await handleSubscriptionUpdate(event.data.object as Stripe.Subscription)
-          break
-
-        case 'customer.subscription.deleted':
-          await handleSubscriptionDeleted(event.data.object as Stripe.Subscription)
-          break
-
-        case 'invoice.paid':
-          await handleInvoicePaid(event.data.object as Stripe.Invoice)
-          break
-
-        case 'invoice.payment_failed':
-          await handlePaymentFailed(event.data.object as Stripe.Invoice)
-          break
-
-        default:
-          console.log(`Unhandled event type: ${event.type}`)
-      }
-    } catch (handlerError) {
-      // Handler failed — release the claim so Stripe can retry
-      console.error(`Handler failed for event ${event.id}:`, handlerError)
-      await releaseEvent(event.id)
-      return new Response('Handler failed', { status: 500 })
-    }
+    // Commit the event as processed AFTER the handler succeeds.
+    // If the handler threw, we never get here — Stripe will retry.
+    await markEventProcessed(event.id, event.type)
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Webhook error:', error)
-    return new Response('Webhook processing failed', { status: 400 })
+    return new Response('Webhook processing failed', { status: 500 })
   }
 })
 
@@ -129,6 +159,10 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  // Stale-replay safety: syncSubscriptionDeletion updates WHERE stripe_subscription_id = :id.
+  // If the customer has since re-subscribed, the row holds a newer subscription ID and the
+  // update is a no-op — the stale event can't clobber the new subscription. Don't refactor
+  // this to update by student_id without adding an explicit monotonic guard.
   const result = await syncSubscriptionDeletion(subscription.id, supabaseAdmin)
   if (!result.success) {
     throw new Error(`Deletion sync failed: ${result.error}`)
@@ -149,16 +183,13 @@ function extractSubscriptionId(raw: string | Stripe.Subscription | null | undefi
  * `invoice.parent.subscription_details.subscription`.
  */
 function extractInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
-  // Primary: invoice.parent.subscription_details.subscription (Clover-era)
   const fromParent = extractSubscriptionId(invoice.parent?.subscription_details?.subscription)
   if (fromParent) return fromParent
 
-  // Fallback: line item's parent.subscription_item_details.subscription
   const lineItem = invoice.lines?.data?.[0]
   const fromLineItem = extractSubscriptionId(lineItem?.parent?.subscription_item_details?.subscription)
   if (fromLineItem) return fromLineItem
 
-  // Last resort: line item's top-level subscription field (may exist in some versions)
   return extractSubscriptionId(lineItem?.subscription)
 }
 
@@ -228,8 +259,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const paidAtTs = invoice.status_transitions?.paid_at ?? invoice.created
   const paidAt = new Date(paidAtTs * 1000).toISOString()
 
-  // Upsert (not insert) so Stripe webhook retries and manual event replays
-  // are idempotent. Row reflects the latest Stripe event for this invoice.
+  // Upsert (not insert) so Stripe retries and manual replays converge on the
+  // same row. Also handles failed-then-paid transitions where the failed row
+  // is rewritten to succeeded on the follow-up invoice.paid event.
   const { error } = await supabaseAdmin.from('payment_history').upsert(
     {
       parent_id: parentId,
@@ -267,8 +299,6 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 
   const failedAt = new Date(invoice.created * 1000).toISOString()
 
-  // Upsert (not insert) so Stripe webhook retries and manual event replays
-  // are idempotent. Row reflects the latest Stripe event for this invoice.
   const { error } = await supabaseAdmin.from('payment_history').upsert(
     {
       parent_id: parentId,
