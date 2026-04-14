@@ -223,22 +223,32 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     console.warn(`No plan found for price ${priceId}, tier will be null`)
   }
 
-  // Record payment
-  const { error } = await supabaseAdmin.from('payment_history').insert({
-    parent_id: parentId,
-    student_id: studentId,
-    stripe_invoice_id: invoice.id,
-    stripe_subscription_id: subscriptionId,
-    amount_cents: invoice.amount_paid,
-    currency: invoice.currency,
-    status: 'succeeded',
-    tier: plan?.id || null,
-    description: invoice.lines?.data?.[0]?.description || 'Subscription payment',
-    metadata: {
-      invoice_number: invoice.number,
-      billing_reason: invoice.billing_reason,
+  // Use Stripe's authoritative payment timestamp instead of DB-default now(),
+  // so the displayed payment date matches the Stripe event (not webhook insert lag)
+  const paidAtTs = invoice.status_transitions?.paid_at ?? invoice.created
+  const paidAt = new Date(paidAtTs * 1000).toISOString()
+
+  // Upsert (not insert) so Stripe webhook retries and manual event replays
+  // are idempotent. Row reflects the latest Stripe event for this invoice.
+  const { error } = await supabaseAdmin.from('payment_history').upsert(
+    {
+      parent_id: parentId,
+      student_id: studentId,
+      stripe_invoice_id: invoice.id,
+      stripe_subscription_id: subscriptionId,
+      amount_cents: invoice.amount_paid,
+      currency: invoice.currency,
+      status: 'succeeded',
+      tier: plan?.id || null,
+      description: invoice.lines?.data?.[0]?.description || 'Subscription payment',
+      created_at: paidAt,
+      metadata: {
+        invoice_number: invoice.number,
+        billing_reason: invoice.billing_reason,
+      },
     },
-  })
+    { onConflict: 'stripe_invoice_id' },
+  )
 
   if (error) {
     throw new Error(`Error recording payment for invoice ${invoice.id}: ${error.message}`)
@@ -255,21 +265,28 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 
   const { parentId, studentId } = await resolveInvoiceMetadata(invoice, subscriptionId)
 
-  // Record failed payment
-  const { error } = await supabaseAdmin.from('payment_history').insert({
-    parent_id: parentId,
-    student_id: studentId,
-    stripe_invoice_id: invoice.id,
-    stripe_subscription_id: subscriptionId,
-    amount_cents: invoice.amount_due,
-    currency: invoice.currency,
-    status: 'failed',
-    description: 'Payment failed',
-    metadata: {
-      invoice_number: invoice.number,
-      attempt_count: invoice.attempt_count,
+  const failedAt = new Date(invoice.created * 1000).toISOString()
+
+  // Upsert (not insert) so Stripe webhook retries and manual event replays
+  // are idempotent. Row reflects the latest Stripe event for this invoice.
+  const { error } = await supabaseAdmin.from('payment_history').upsert(
+    {
+      parent_id: parentId,
+      student_id: studentId,
+      stripe_invoice_id: invoice.id,
+      stripe_subscription_id: subscriptionId,
+      amount_cents: invoice.amount_due,
+      currency: invoice.currency,
+      status: 'failed',
+      description: 'Payment failed',
+      created_at: failedAt,
+      metadata: {
+        invoice_number: invoice.number,
+        attempt_count: invoice.attempt_count,
+      },
     },
-  })
+    { onConflict: 'stripe_invoice_id' },
+  )
 
   if (error) {
     throw new Error(`Error recording failed payment for invoice ${invoice.id}: ${error.message}`)

@@ -50,6 +50,7 @@ export interface StudentSubscriptionDetail {
   cancelAtPeriodEnd: boolean
   scheduledTier: string | null
   scheduledChangeDate: string | null
+  stripeSubscriptionId: string | null
   paymentHistory: PaymentHistoryEntry[]
 }
 
@@ -115,7 +116,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
           supabase
             .from('child_subscriptions')
             .select(
-              'tier, is_active, stripe_status, start_date, current_period_start, current_period_end, next_billing_date, cancel_at_period_end, scheduled_tier, scheduled_change_date',
+              'tier, is_active, stripe_status, start_date, current_period_start, current_period_end, next_billing_date, cancel_at_period_end, scheduled_tier, scheduled_change_date, stripe_subscription_id',
             )
             .eq('student_id', studentId)
             .limit(1)
@@ -192,6 +193,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
             cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
             scheduledTier: sub.scheduled_tier,
             scheduledChangeDate: sub.scheduled_change_date,
+            stripeSubscriptionId: sub.stripe_subscription_id,
             paymentHistory,
           }
         : null

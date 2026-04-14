@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CreditCard } from 'lucide-vue-next'
+import { CreditCard, ExternalLink } from 'lucide-vue-next'
 
 import { tierConfig } from '@/lib/tierConfig'
 import { formatDate } from '@/lib/date'
@@ -42,16 +43,55 @@ function getSubscriptionStatusConfig(sub: {
   }
 }
 
+function formatPeriod(start: string | null, end: string | null): string {
+  if (!start || !end) return '-'
+  const s = new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const e = new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${s} – ${e}`
+}
+
+function formatNextCharge(sub: {
+  cancelAtPeriodEnd: boolean
+  nextBillingDate: string | null
+  currentPeriodEnd: string | null
+}): { primary: string; suffix: string | null } {
+  if (sub.cancelAtPeriodEnd && sub.currentPeriodEnd) {
+    return {
+      primary: '-',
+      suffix: t.value.shared.studentSubscriptionTab.cancelsOn(formatDate(sub.currentPeriodEnd)),
+    }
+  }
+  if (!sub.nextBillingDate) return { primary: '-', suffix: null }
+  return { primary: formatDate(sub.nextBillingDate), suffix: null }
+}
+
+function stripeSubscriptionUrl(id: string | null): string {
+  return id ? `https://dashboard.stripe.com/subscriptions/${id}` : '#'
+}
+
+function fullTimestampTooltip(iso: string): string {
+  const d = new Date(iso)
+  const utc = d.toISOString()
+  const myt = d.toLocaleString('en-US', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+  return `${utc} (UTC)\n${myt} (MYT)`
+}
+
 defineProps<{
   subscription: {
     isActive: boolean
     cancelAtPeriodEnd: boolean
     stripeStatus: string | null
     tier: string
-    startDate: string | null
+    currentPeriodStart: string | null
+    currentPeriodEnd: string | null
     nextBillingDate: string | null
     scheduledTier: string | null
     scheduledChangeDate: string | null
+    stripeSubscriptionId: string | null
     paymentHistory: Array<{
       id: string
       createdAt: string
@@ -68,10 +108,24 @@ defineProps<{
 <template>
   <Card>
     <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <CreditCard class="size-5" />
-        {{ t.shared.studentSubscriptionTab.title }}
-      </CardTitle>
+      <div class="flex items-center justify-between">
+        <CardTitle class="flex items-center gap-2">
+          <CreditCard class="size-5" />
+          {{ t.shared.studentSubscriptionTab.title }}
+        </CardTitle>
+        <Button
+          v-if="subscription.stripeSubscriptionId"
+          variant="outline"
+          size="sm"
+          as="a"
+          :href="stripeSubscriptionUrl(subscription.stripeSubscriptionId)"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ t.shared.studentSubscriptionTab.viewInStripe }}
+          <ExternalLink class="ml-2 size-3" />
+        </Button>
+      </div>
     </CardHeader>
     <CardContent>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -101,19 +155,25 @@ defineProps<{
 
         <div>
           <p class="text-xs text-muted-foreground">
-            {{ t.shared.studentSubscriptionTab.startDateLabel }}
+            {{ t.shared.studentSubscriptionTab.currentPeriodLabel }}
           </p>
           <p class="mt-1 font-medium">
-            {{ formatDate(subscription.startDate) }}
+            {{ formatPeriod(subscription.currentPeriodStart, subscription.currentPeriodEnd) }}
           </p>
         </div>
 
         <div>
           <p class="text-xs text-muted-foreground">
-            {{ t.shared.studentSubscriptionTab.renewalDateLabel }}
+            {{ t.shared.studentSubscriptionTab.nextChargeLabel }}
           </p>
           <p class="mt-1 font-medium">
-            {{ formatDate(subscription.nextBillingDate) }}
+            {{ formatNextCharge(subscription).primary }}
+            <span
+              v-if="formatNextCharge(subscription).suffix"
+              class="ml-1 text-xs font-normal text-muted-foreground"
+            >
+              {{ formatNextCharge(subscription).suffix }}
+            </span>
           </p>
         </div>
 
@@ -164,7 +224,9 @@ defineProps<{
                 :key="payment.id"
                 class="border-b last:border-0"
               >
-                <td class="px-4 py-2">{{ formatDate(payment.createdAt) }}</td>
+                <td class="px-4 py-2" :title="fullTimestampTooltip(payment.createdAt)">
+                  {{ formatDate(payment.createdAt) }}
+                </td>
                 <td class="px-4 py-2 font-medium">
                   {{ (payment.amountCents / 100).toFixed(2) }}
                   {{ payment.currency.toUpperCase() }}
