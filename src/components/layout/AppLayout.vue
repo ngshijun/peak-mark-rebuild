@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Loader2, CirclePoundSterling, Apple } from 'lucide-vue-next'
 import { useTour } from '@/composables/useTour'
 import { useFirstPetTour } from '@/composables/useFirstPetTour'
+import { useMoodReminder } from '@/composables/useMoodReminder'
 import { usePetsStore } from '@/stores/pets'
 import { useT } from '@/composables/useT'
 import AppSidebar from './AppSidebar.vue'
@@ -40,6 +41,7 @@ const t = useT()
 const languageStore = useLanguageStore()
 const { showWelcomeDialog, promptTour, startTour, skipTour } = useTour()
 const { watchAndStart: watchAndStartFirstPetTour } = useFirstPetTour()
+const { watchAndStart: watchAndStartMoodReminder } = useMoodReminder()
 
 const PREFERENCES_STORAGE_KEY = 'preferences_confirmed'
 
@@ -50,11 +52,13 @@ const showGradeDialog = ref(false)
 const selectedGradeId = ref<string>('')
 const isSaving = ref(false)
 
-// Sequenced onboarding: preferences dialog → grade dialog (students) → nav tour → first pet tour
-// Each step must complete before the next begins.
+// Sequenced onboarding: preferences → grade (students) → welcome tour → first pet tour → mood reminder
+// Each step must complete before the next begins. The mood reminder waits reactively
+// for the welcome tour, first pet tour, and today's dashboard data to clear before opening.
 function startOnboarding() {
   promptTour()
   startFirstPetTourWatcher()
+  if (authStore.isStudent) watchAndStartMoodReminder()
 }
 
 function startFirstPetTourWatcher() {

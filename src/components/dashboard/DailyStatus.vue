@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useLocalStorage } from '@vueuse/core'
 import { useStudentDashboardStore, type MoodType } from '@/stores/student-dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -15,27 +14,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { Smile } from 'lucide-vue-next'
 import { useT } from '@/composables/useT'
+import {
+  isMoodReminderOpen,
+  openMoodReminder,
+  useMoodReminder,
+} from '@/composables/useMoodReminder'
 
 const t = useT()
 
 const props = withDefaults(defineProps<{ variant?: 'button' | 'card' }>(), { variant: 'button' })
 
 const dashboardStore = useStudentDashboardStore()
-const isOpen = ref(false)
+const { isDismissedToday } = useMoodReminder()
 const isSaving = ref(false)
-const showDontShowAgain = ref(false)
-
-// LocalStorage key for "don't show again today"
-const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
-
-// Persistent dismissed date — computed wraps as a boolean toggle
-const dismissedDate = useLocalStorage(MOOD_REMINDER_DISMISSED_KEY, '')
-const isDismissedToday = computed({
-  get: () => dismissedDate.value === dashboardStore.getTodayString(),
-  set: (val) => {
-    dismissedDate.value = val ? dashboardStore.getTodayString() : ''
-  },
-})
 
 const moods = computed<{ type: MoodType; emoji: string; label: string }[]>(() => [
   { type: 'sad', emoji: '😢', label: t.value.shared.dailyStatus.moodSad },
@@ -57,32 +48,21 @@ async function selectMood(mood: MoodType) {
   isSaving.value = true
   try {
     await dashboardStore.setMood(mood)
-    isOpen.value = false
+    isMoodReminderOpen.value = false
   } finally {
     isSaving.value = false
   }
 }
-
-// Open dialog programmatically (called from parent)
-function openDialog(withDontShowAgain = false) {
-  showDontShowAgain.value = withDontShowAgain
-  isOpen.value = true
-}
-
-// Expose for parent component
-defineExpose({
-  openDialog,
-})
 </script>
 
 <template>
-  <Dialog v-model:open="isOpen">
+  <Dialog v-model:open="isMoodReminderOpen">
     <!-- Button variant -->
     <button
       v-if="props.variant === 'button'"
       class="flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 shadow-sm transition-colors hover:bg-accent"
       :class="{ 'animate-glow-border': !dashboardStore.todayStatus?.mood }"
-      @click="isOpen = true"
+      @click="openMoodReminder()"
     >
       <span class="text-sm font-medium">{{ t.shared.dailyStatus.dailyStatusButton }}</span>
       <span class="text-lg">{{ getMoodEmoji(dashboardStore.todayStatus?.mood) }}</span>
@@ -133,10 +113,7 @@ defineExpose({
           <span class="text-sm font-medium">{{ mood.label }}</span>
         </Button>
       </div>
-      <div
-        v-if="showDontShowAgain || !dashboardStore.hasMoodToday"
-        class="flex items-center gap-2 border-t pt-4"
-      >
+      <div v-if="!dashboardStore.hasMoodToday" class="flex items-center gap-2 border-t pt-4">
         <Checkbox id="dontShowAgain" v-model="isDismissedToday" :disabled="isSaving" />
         <label for="dontShowAgain" class="cursor-pointer select-none text-sm text-muted-foreground">
           {{ t.shared.dailyStatus.dontShowAgain }}
