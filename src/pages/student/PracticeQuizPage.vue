@@ -5,10 +5,11 @@ import { usePracticeStore } from '@/stores/practice'
 import { useQuestionsStore } from '@/stores/questions'
 import { useQuestionShuffle } from '@/composables/useQuestionShuffle'
 import { useT } from '@/composables/useT'
+import { parseSimpleMarkdown } from '@/lib/utils'
 import { ChevronRight, Flag } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -266,9 +267,10 @@ onBeforeRouteLeave((to) => {
         <Card>
           <CardHeader>
             <div class="flex items-start justify-between gap-4">
-              <CardTitle class="text-lg whitespace-pre-line">{{
-                currentQuestion.question
-              }}</CardTitle>
+              <div
+                class="text-lg font-semibold leading-relaxed"
+                v-html="parseSimpleMarkdown(currentQuestion.question)"
+              />
               <Badge variant="secondary" class="shrink-0">
                 {{
                   currentQuestion.type === 'mcq'
@@ -325,8 +327,13 @@ onBeforeRouteLeave((to) => {
               <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
                 {{ t.student.practiceQuiz.explanation }}
               </p>
-              <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
-                {{ currentQuestion.explanation || t.student.practiceQuiz.noExplanation }}
+              <div
+                v-if="currentQuestion.explanation"
+                class="mt-1 text-sm leading-relaxed text-amber-700 dark:text-amber-300"
+                v-html="parseSimpleMarkdown(currentQuestion.explanation)"
+              />
+              <p v-else class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                {{ t.student.practiceQuiz.noExplanation }}
               </p>
             </div>
           </CardContent>

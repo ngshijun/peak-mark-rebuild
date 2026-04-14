@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatDuration } from '@/lib/date'
+import { parseSimpleMarkdown } from '@/lib/utils'
 import {
   type SessionAnswer,
   wasOptionSelected,
@@ -119,7 +120,7 @@ const deletedAnswerWasText = computed(() =>
 
       <!-- Question Text -->
       <template v-else>
-        <p class="text-sm whitespace-pre-line">{{ question.question }}</p>
+        <div class="text-sm leading-relaxed" v-html="parseSimpleMarkdown(question.question)" />
 
         <!-- Question Image -->
         <img
@@ -249,8 +250,13 @@ const deletedAnswerWasText = computed(() =>
           <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
             {{ t.shared.sessionQuestionCard.explanation }}
           </p>
-          <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
-            {{ question.explanation || t.shared.sessionQuestionCard.noExplanation }}
+          <div
+            v-if="question.explanation"
+            class="mt-1 text-sm leading-relaxed text-amber-700 dark:text-amber-300"
+            v-html="parseSimpleMarkdown(question.explanation)"
+          />
+          <p v-else class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+            {{ t.shared.sessionQuestionCard.noExplanation }}
           </p>
         </div>
       </template>

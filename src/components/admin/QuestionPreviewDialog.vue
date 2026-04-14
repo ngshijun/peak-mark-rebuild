@@ -3,6 +3,7 @@ import type { Question } from '@/stores/questions'
 import { useQuestionsStore } from '@/stores/questions'
 import type { QuestionFeedback } from '@/stores/feedback'
 import type { Database } from '@/types/database.types'
+import { parseSimpleMarkdown } from '@/lib/utils'
 import { CheckCircle2, AlertTriangle } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -115,7 +116,10 @@ function getCategoryVariant(
         <!-- Question Text -->
         <div class="space-y-2">
           <h3 class="font-semibold">{{ t.shared.questionPreviewDialog.questionText }}</h3>
-          <p class="text-foreground whitespace-pre-line">{{ question.question }}</p>
+          <div
+            class="text-foreground leading-relaxed"
+            v-html="parseSimpleMarkdown(question.question)"
+          />
         </div>
 
         <!-- Question Image -->
@@ -182,9 +186,10 @@ function getCategoryVariant(
           <div
             class="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/20"
           >
-            <p class="text-sm text-amber-700 dark:text-amber-300">
-              {{ question.explanation }}
-            </p>
+            <div
+              class="text-sm leading-relaxed text-amber-700 dark:text-amber-300"
+              v-html="parseSimpleMarkdown(question.explanation)"
+            />
           </div>
         </div>
 
