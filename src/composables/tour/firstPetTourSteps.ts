@@ -1,4 +1,5 @@
 import type { DriveStep } from 'driver.js'
+import { useLanguageStore } from '@/stores/language'
 
 export interface FirstPetTourCallbacks {
   /** Step 1: User clicks Collections sidebar link */
@@ -26,6 +27,9 @@ export interface FirstPetTourCallbacks {
 }
 
 export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveStep[] {
+  const { t } = useLanguageStore()
+  const steps = t.shared.tours.firstPetTour
+
   return [
     {
       element: 'a[href="/student/collections"]',
@@ -33,8 +37,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onCollectionsStepReady()
       },
       popover: {
-        title: "Let's Get Your First Pet!",
-        description: 'Every student gets a free starter pet. Tap "Collections" to start!',
+        title: steps.step1.title,
+        description: steps.step1.description,
         side: 'right',
         align: 'center',
         showButtons: [],
@@ -46,9 +50,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onUnlockPetsStepReady()
       },
       popover: {
-        title: 'Unlock New Pets',
-        description:
-          'This is where you can spend coins to collect pets. Tap "Unlock New Pets" to visit the gacha machine!',
+        title: steps.step2.title,
+        description: steps.step2.description,
         side: 'bottom',
         align: 'center',
         showButtons: [],
@@ -60,8 +63,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onPullStepReady()
       },
       popover: {
-        title: 'Draw Your Free Pet!',
-        description: 'This is the gacha machine! Tap the button to draw your free starter pet!',
+        title: steps.step3.title,
+        description: steps.step3.description,
         side: 'bottom',
         align: 'center',
         showButtons: [],
@@ -71,12 +74,12 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
       element: '[data-tour="gacha-result-pet"]',
       disableActiveInteraction: true,
       popover: {
-        title: 'Congratulations!',
-        description: 'You got your first pet — Cloud Bunny!',
+        title: steps.step4.title,
+        description: steps.step4.description,
         side: 'right',
         align: 'center',
         showButtons: ['next'],
-        nextBtnText: 'Nice!',
+        nextBtnText: steps.step4.nextBtnText,
         onNextClick: () => {
           callbacks.onPetRevealStepReady()
         },
@@ -88,8 +91,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onCloseResultStepReady()
       },
       popover: {
-        title: 'Continue Your Journey!',
-        description: 'Tap "Close" to continue.',
+        title: steps.step5.title,
+        description: steps.step5.description,
         side: 'right',
         align: 'center',
         showButtons: [],
@@ -101,8 +104,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onBackToCollectionsStepReady()
       },
       popover: {
-        title: 'Meet Your New Friend!',
-        description: 'Your Cloud Bunny is waiting! Tap "Collections" to see your new pet.',
+        title: steps.step6.title,
+        description: steps.step6.description,
         side: 'right',
         align: 'center',
         showButtons: [],
@@ -114,8 +117,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onPetCardStepReady()
       },
       popover: {
-        title: 'Your Cloud Bunny!',
-        description: 'Tap Cloud Bunny to view its details and set it as your companion!',
+        title: steps.step7.title,
+        description: steps.step7.description,
         side: 'right',
         align: 'center',
         showButtons: [],
@@ -127,8 +130,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onSelectCompanionStepReady()
       },
       popover: {
-        title: 'Select Your Companion!',
-        description: 'Tap "Select as My Pet" to set Cloud Bunny as your companion!',
+        title: steps.step8.title,
+        description: steps.step8.description,
         side: 'right',
         align: 'center',
         showButtons: [],
@@ -140,8 +143,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onCloseDetailStepReady()
       },
       popover: {
-        title: 'Well Done!',
-        description: 'Cloud Bunny is now your companion! Tap the X to close.',
+        title: steps.step9.title,
+        description: steps.step9.description,
         side: 'right',
         align: 'center',
         showButtons: [],
@@ -153,8 +156,8 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
         callbacks.onDashboardStepReady()
       },
       popover: {
-        title: 'Head Home!',
-        description: 'Tap "Dashboard" to see your pet on the home page!',
+        title: steps.step10.title,
+        description: steps.step10.description,
         side: 'right',
         align: 'center',
         showButtons: [],
@@ -164,13 +167,12 @@ export function getFirstPetTourSteps(callbacks: FirstPetTourCallbacks): DriveSte
       element: '[data-tour="dashboard-pet"]',
       disableActiveInteraction: true,
       popover: {
-        title: 'Your Pet is Here!',
-        description:
-          'Cloud Bunny is now your companion! Earn coins through practice to collect more pets. Enjoy your journey!',
+        title: steps.step11.title,
+        description: steps.step11.description,
         side: 'right',
         align: 'center',
         showButtons: ['next'],
-        nextBtnText: 'Got it!',
+        nextBtnText: steps.step11.nextBtnText,
         onNextClick: () => {
           callbacks.onFinalStepReady()
         },

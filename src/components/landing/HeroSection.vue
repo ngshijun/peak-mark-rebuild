@@ -15,24 +15,24 @@ const { t } = storeToRefs(useLanguageStore())
           class="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300"
         >
           <GraduationCap class="size-4" />
-          <span>{{ t.hero.badge }}</span>
+          <span>{{ t.landing.hero.badge }}</span>
         </div>
 
         <h1 class="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-          {{ t.hero.titleBefore }}
-          <span class="text-primary">{{ t.hero.titleHighlight }}</span>
+          {{ t.landing.hero.titleBefore }}
+          <span class="text-primary">{{ t.landing.hero.titleHighlight }}</span>
         </h1>
 
         <p class="mb-8 text-lg text-muted-foreground md:text-xl">
-          {{ t.hero.description }}
+          {{ t.landing.hero.description }}
         </p>
 
         <div class="flex flex-col justify-center gap-4 sm:flex-row">
           <Button size="lg" as-child>
-            <RouterLink to="/signup">{{ t.hero.getStarted }}</RouterLink>
+            <RouterLink to="/signup">{{ t.landing.hero.getStarted }}</RouterLink>
           </Button>
           <Button size="lg" variant="outline" as-child>
-            <RouterLink to="/login">{{ t.hero.haveAccount }}</RouterLink>
+            <RouterLink to="/login">{{ t.landing.hero.haveAccount }}</RouterLink>
           </Button>
         </div>
 
@@ -41,22 +41,24 @@ const { t } = storeToRefs(useLanguageStore())
           <div class="flex items-center gap-3">
             <BookOpen class="size-5 text-primary" />
             <div class="text-left">
-              <p class="text-lg font-bold leading-tight">{{ t.hero.stats.questionsValue }}</p>
-              <p class="text-xs text-muted-foreground">{{ t.hero.stats.questionsLabel }}</p>
+              <p class="text-lg font-bold leading-tight">
+                {{ t.landing.hero.stats.questionsValue }}
+              </p>
+              <p class="text-xs text-muted-foreground">{{ t.landing.hero.stats.questionsLabel }}</p>
             </div>
           </div>
           <div class="flex items-center gap-3">
             <GraduationCap class="size-5 text-primary" />
             <div class="text-left">
-              <p class="text-lg font-bold leading-tight">{{ t.hero.stats.levelsValue }}</p>
-              <p class="text-xs text-muted-foreground">{{ t.hero.stats.levelsLabel }}</p>
+              <p class="text-lg font-bold leading-tight">{{ t.landing.hero.stats.levelsValue }}</p>
+              <p class="text-xs text-muted-foreground">{{ t.landing.hero.stats.levelsLabel }}</p>
             </div>
           </div>
           <div class="flex items-center gap-3">
             <PawPrint class="size-5 text-primary" />
             <div class="text-left">
-              <p class="text-lg font-bold leading-tight">{{ t.hero.stats.petsValue }}</p>
-              <p class="text-xs text-muted-foreground">{{ t.hero.stats.petsLabel }}</p>
+              <p class="text-lg font-bold leading-tight">{{ t.landing.hero.stats.petsValue }}</p>
+              <p class="text-xs text-muted-foreground">{{ t.landing.hero.stats.petsLabel }}</p>
             </div>
           </div>
         </div>

@@ -37,12 +37,15 @@ import {
   Loader2,
   Download,
 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits<{
   'update:open': [value: boolean]
   uploaded: []
 }>()
+
+const t = useT()
 
 const curriculumStore = useCurriculumStore()
 
@@ -94,7 +97,7 @@ function handleDrop(e: DragEvent) {
     file.value = droppedFile
     processFile()
   } else {
-    toast.error('Please upload an .xlsx file')
+    toast.error(t.value.shared.questionBulkUploadDialog.toastInvalidFile)
   }
 }
 
@@ -123,7 +126,7 @@ async function processFile() {
     parseResult.value = await parseQuestionExcel(file.value)
 
     if (parseResult.value.errors.length > 0 && parseResult.value.questions.length === 0) {
-      toast.error('Failed to parse file. Please check the format.')
+      toast.error(t.value.shared.questionBulkUploadDialog.toastParseFailed)
       isLoading.value = false
       return
     }
@@ -133,7 +136,7 @@ async function processFile() {
     step.value = 'preview'
   } catch (error) {
     console.error('Error processing file:', error)
-    toast.error(`Error processing file: ${error}`)
+    toast.error(t.value.shared.questionBulkUploadDialog.toastProcessingError(error))
   } finally {
     isLoading.value = false
   }
@@ -158,7 +161,7 @@ async function executeUpload() {
     emit('uploaded')
   } catch (error) {
     console.error('Upload failed:', error)
-    toast.error(`Upload failed: ${error}`)
+    toast.error(t.value.shared.questionBulkUploadDialog.toastUploadFailed(error))
     step.value = 'preview'
   }
 }
@@ -190,10 +193,10 @@ async function downloadTemplate() {
       await curriculumStore.fetchCurriculum()
     }
     await generateQuestionTemplate(curriculumStore.gradeLevels)
-    toast.info('Template downloaded')
+    toast.info(t.value.shared.questionBulkUploadDialog.toastTemplateDownloaded)
   } catch (error) {
     console.error('Error downloading template:', error)
-    toast.error('Failed to download template')
+    toast.error(t.value.shared.questionBulkUploadDialog.toastTemplateFailed)
   }
 }
 
@@ -207,8 +210,8 @@ const progressPercent = computed(() => {
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-h-[85vh] sm:max-w-2xl overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Bulk Upload Questions</DialogTitle>
-        <DialogDescription> Upload multiple questions from an Excel file </DialogDescription>
+        <DialogTitle>{{ t.shared.questionBulkUploadDialog.title }}</DialogTitle>
+        <DialogDescription>{{ t.shared.questionBulkUploadDialog.description }}</DialogDescription>
       </DialogHeader>
 
       <!-- Step 1: Upload -->
@@ -228,9 +231,11 @@ const progressPercent = computed(() => {
         >
           <Upload class="mx-auto mb-4 size-10 text-muted-foreground" />
           <p class="mb-2 text-sm text-muted-foreground">
-            Drag and drop your Excel file here, or click to select
+            {{ t.shared.questionBulkUploadDialog.dropZoneText }}
           </p>
-          <p class="text-xs text-muted-foreground/70">Supports .xlsx files only</p>
+          <p class="text-xs text-muted-foreground/70">
+            {{ t.shared.questionBulkUploadDialog.dropZoneHint }}
+          </p>
           <input
             ref="fileInput"
             type="file"
@@ -244,14 +249,16 @@ const progressPercent = computed(() => {
         <div class="flex justify-center">
           <Button variant="link" size="sm" @click="downloadTemplate">
             <Download class="mr-2 size-4" />
-            Download Template
+            {{ t.shared.questionBulkUploadDialog.downloadTemplate }}
           </Button>
         </div>
 
         <!-- Loading state -->
         <div v-if="isLoading" class="flex items-center justify-center gap-2 py-4">
           <Loader2 class="size-5 animate-spin" />
-          <span class="text-sm text-muted-foreground">Processing file...</span>
+          <span class="text-sm text-muted-foreground">{{
+            t.shared.questionBulkUploadDialog.processingFile
+          }}</span>
         </div>
       </div>
 
@@ -272,7 +279,9 @@ const progressPercent = computed(() => {
               <CheckCircle2 class="size-5" />
               <span class="text-2xl font-bold">{{ validationResult?.valid.length || 0 }}</span>
             </div>
-            <p class="text-sm text-green-600/80">Ready to upload</p>
+            <p class="text-sm text-green-600/80">
+              {{ t.shared.questionBulkUploadDialog.readyToUpload }}
+            </p>
           </div>
           <div
             class="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950/20"
@@ -281,7 +290,9 @@ const progressPercent = computed(() => {
               <AlertTriangle class="size-5" />
               <span class="text-2xl font-bold">{{ validationResult?.duplicates.length || 0 }}</span>
             </div>
-            <p class="text-sm text-yellow-600/80">Duplicates (skipped)</p>
+            <p class="text-sm text-yellow-600/80">
+              {{ t.shared.questionBulkUploadDialog.duplicatesSkipped }}
+            </p>
           </div>
           <div
             class="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/20"
@@ -290,7 +301,7 @@ const progressPercent = computed(() => {
               <XCircle class="size-5" />
               <span class="text-2xl font-bold">{{ totalErrors }}</span>
             </div>
-            <p class="text-sm text-red-600/80">Errors</p>
+            <p class="text-sm text-red-600/80">{{ t.shared.questionBulkUploadDialog.errors }}</p>
           </div>
         </div>
 
@@ -303,7 +314,9 @@ const progressPercent = computed(() => {
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-red-600"
           >
-            <span>Parse Errors ({{ parseResult.errors.length }})</span>
+            <span>{{
+              t.shared.questionBulkUploadDialog.parseErrors(parseResult.errors.length)
+            }}</span>
             <component :is="isParseErrorsOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
@@ -313,7 +326,7 @@ const progressPercent = computed(() => {
                 :key="`${err.row}-${err.column}`"
                 class="rounded bg-red-100 p-2 text-xs dark:bg-red-900/30"
               >
-                Row {{ err.row }}, Column {{ err.column }}: {{ err.message }}
+                {{ t.shared.questionBulkUploadDialog.rowError(err.row, err.column, err.message) }}
               </div>
             </div>
           </CollapsibleContent>
@@ -328,7 +341,11 @@ const progressPercent = computed(() => {
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-red-600"
           >
-            <span>Curriculum Errors ({{ validationResult.curriculumErrors.length }})</span>
+            <span>{{
+              t.shared.questionBulkUploadDialog.curriculumErrors(
+                validationResult.curriculumErrors.length,
+              )
+            }}</span>
             <component :is="isCurriculumErrorsOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
@@ -338,7 +355,9 @@ const progressPercent = computed(() => {
                 :key="err.row"
                 class="rounded bg-red-100 p-2 text-xs dark:bg-red-900/30"
               >
-                Row {{ err.row }}: {{ err.errors.join(', ') }}
+                {{
+                  t.shared.questionBulkUploadDialog.rowErrorSimple(err.row, err.errors.join(', '))
+                }}
               </div>
             </div>
           </CollapsibleContent>
@@ -353,7 +372,9 @@ const progressPercent = computed(() => {
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-yellow-600"
           >
-            <span>Duplicates in Database ({{ validationResult.duplicates.length }})</span>
+            <span>{{
+              t.shared.questionBulkUploadDialog.duplicatesInDb(validationResult.duplicates.length)
+            }}</span>
             <component :is="isDuplicatesOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
@@ -376,16 +397,23 @@ const progressPercent = computed(() => {
         >
           <AlertTriangle class="size-4 text-yellow-600" />
           <AlertDescription class="text-yellow-700 dark:text-yellow-300">
-            {{ validationResult.withinFileDuplicates.length }} duplicate(s) found within the file.
-            Only the first occurrence of each will be uploaded.
+            {{
+              t.shared.questionBulkUploadDialog.withinFileDuplicates(
+                validationResult.withinFileDuplicates.length,
+              )
+            }}
           </AlertDescription>
         </Alert>
 
         <!-- Actions -->
         <div class="flex justify-between pt-2">
-          <Button variant="outline" @click="reset"> Back </Button>
+          <Button variant="outline" @click="reset">
+            {{ t.shared.questionBulkUploadDialog.back }}
+          </Button>
           <Button @click="executeUpload" :disabled="!canUpload">
-            Upload {{ validationResult?.valid.length || 0 }} Questions
+            {{
+              t.shared.questionBulkUploadDialog.uploadQuestions(validationResult?.valid.length || 0)
+            }}
           </Button>
         </div>
       </div>
@@ -394,14 +422,14 @@ const progressPercent = computed(() => {
       <div v-else-if="step === 'progress'" class="space-y-6 py-8">
         <div class="text-center">
           <Loader2 class="mx-auto mb-4 size-10 animate-spin text-primary" />
-          <p class="text-lg font-medium">Uploading Questions</p>
+          <p class="text-lg font-medium">{{ t.shared.questionBulkUploadDialog.uploadingTitle }}</p>
           <p class="text-sm text-muted-foreground">
-            {{ uploadProgress }} of {{ uploadTotal }} complete
+            {{ t.shared.questionBulkUploadDialog.uploadingProgress(uploadProgress, uploadTotal) }}
           </p>
         </div>
         <Progress :model-value="progressPercent" class="h-2" />
         <p class="text-center text-xs text-muted-foreground">
-          Please don't close this dialog while uploading...
+          {{ t.shared.questionBulkUploadDialog.dontCloseDialog }}
         </p>
       </div>
 
@@ -409,17 +437,21 @@ const progressPercent = computed(() => {
       <div v-else-if="step === 'complete'" class="space-y-4 py-6">
         <div class="text-center">
           <CheckCircle2 class="mx-auto mb-4 size-14 text-green-600" />
-          <p class="text-xl font-medium">Upload Complete!</p>
+          <p class="text-xl font-medium">{{ t.shared.questionBulkUploadDialog.uploadComplete }}</p>
         </div>
 
         <div class="grid grid-cols-2 gap-4 text-center">
           <div class="rounded-lg bg-green-50 p-4 dark:bg-green-950/20">
             <p class="text-3xl font-bold text-green-600">{{ uploadResult?.success || 0 }}</p>
-            <p class="text-sm text-muted-foreground">Questions Created</p>
+            <p class="text-sm text-muted-foreground">
+              {{ t.shared.questionBulkUploadDialog.questionsCreated }}
+            </p>
           </div>
           <div class="rounded-lg bg-red-50 p-4 dark:bg-red-950/20">
             <p class="text-3xl font-bold text-red-600">{{ uploadResult?.failed.length || 0 }}</p>
-            <p class="text-sm text-muted-foreground">Failed</p>
+            <p class="text-sm text-muted-foreground">
+              {{ t.shared.questionBulkUploadDialog.failed }}
+            </p>
           </div>
         </div>
 
@@ -432,7 +464,9 @@ const progressPercent = computed(() => {
           <CollapsibleTrigger
             class="flex w-full items-center justify-between p-3 text-sm font-medium text-red-600"
           >
-            <span>Failed Items ({{ uploadResult.failed.length }})</span>
+            <span>{{
+              t.shared.questionBulkUploadDialog.failedItems(uploadResult.failed.length)
+            }}</span>
             <component :is="isFailedOpen ? ChevronDown : ChevronRight" class="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent class="px-3 pb-3">
@@ -442,14 +476,14 @@ const progressPercent = computed(() => {
                 :key="fail.row"
                 class="rounded bg-red-100 p-2 text-xs dark:bg-red-900/30"
               >
-                Row {{ fail.row }}: {{ fail.error }}
+                {{ t.shared.questionBulkUploadDialog.rowErrorSimple(fail.row, fail.error) }}
               </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
 
         <div class="flex justify-center pt-2">
-          <Button @click="close">Done</Button>
+          <Button @click="close">{{ t.shared.questionBulkUploadDialog.done }}</Button>
         </div>
       </div>
     </DialogContent>

@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/dialog'
 import { Trophy, CirclePoundSterling, Share2, Link } from 'lucide-vue-next'
 import { useShare } from '@/composables/useShare'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -77,9 +80,11 @@ watch(
   >
     <DialogContent class="sm:max-w-md text-center">
       <DialogHeader class="pr-0">
-        <DialogTitle class="text-center text-xl">Weekly Competition Results</DialogTitle>
+        <DialogTitle class="text-center text-xl">{{
+          t.shared.weeklyRewardDialog.title
+        }}</DialogTitle>
         <DialogDescription class="text-center">
-          Last week's competition has ended!
+          {{ t.shared.weeklyRewardDialog.description }}
         </DialogDescription>
       </DialogHeader>
 
@@ -87,10 +92,10 @@ watch(
         <div class="flex flex-col items-center gap-2">
           <Trophy class="size-12 text-yellow-500" />
           <p class="text-2xl font-bold">
-            {{ reward.rank }}{{ getOrdinalSuffix(reward.rank) }} Place
+            {{ t.shared.weeklyRewardDialog.place(reward.rank, getOrdinalSuffix(reward.rank)) }}
           </p>
           <p class="text-sm text-muted-foreground">
-            You earned {{ reward.weeklyXp.toLocaleString() }} XP last week
+            {{ t.shared.weeklyRewardDialog.earnedXp(reward.weeklyXp) }}
           </p>
         </div>
 
@@ -99,12 +104,14 @@ watch(
         >
           <CirclePoundSterling class="size-5 text-amber-600 dark:text-amber-400" />
           <span class="text-lg font-bold text-amber-600 dark:text-amber-400">
-            +{{ reward.coinsAwarded }} Coins
+            {{ t.shared.weeklyRewardDialog.coinsAwarded(reward.coinsAwarded) }}
           </span>
         </div>
 
         <div class="flex items-center gap-2">
-          <Button class="flex-1" @click="emit('dismiss')"> Awesome! </Button>
+          <Button class="flex-1" @click="emit('dismiss')">
+            {{ t.shared.weeklyRewardDialog.awesome }}
+          </Button>
           <Button variant="outline" size="icon" @click="copyRewardLink">
             <Link class="size-4" />
           </Button>

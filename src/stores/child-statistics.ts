@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { toMYTDateString, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 import type { SubTopicHierarchy } from '@/types/supabase-helpers'
 import { type DateRangeFilter, createSessionLookupMethods } from '@/lib/sessionFilters'
@@ -91,13 +91,13 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
    */
   async function fetchChildStatistics(childId: string): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { error: 'Not authenticated as parent' }
+      return { error: errorMessages().notAuthenticatedAsParent }
     }
 
     // Check if child is linked
     const child = childLinkStore.linkedChildren.find((c) => c.id === childId)
     if (!child) {
-      return { error: 'Child not linked to your account' }
+      return { error: errorMessages().childNotLinked }
     }
 
     // Skip if cache is still valid
@@ -131,7 +131,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch statistics.')
+      const message = handleError(err, 'failedFetchStatistics')
       error.value = message
       return { error: message }
     } finally {
@@ -202,13 +202,13 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     subscriptionRequired?: boolean
   }> {
     if (!authStore.user || !authStore.isParent) {
-      return { session: null, error: 'Not authenticated as parent' }
+      return { session: null, error: errorMessages().notAuthenticatedAsParent }
     }
 
     // Verify the child is linked to this parent
     const isLinked = childLinkStore.linkedChildren.some((c) => c.id === childId)
     if (!isLinked) {
-      return { session: null, error: 'Child is not linked to your account' }
+      return { session: null, error: errorMessages().childNotLinked }
     }
 
     // Check subscription status (cached)
@@ -219,7 +219,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       if (canViewDetails) {
         // Full details: fetch session + answers + questions via shared helper
         const session = await fetchFullSessionDetails(childId, sessionId)
-        if (!session) return { session: null, error: 'Session not found' }
+        if (!session) return { session: null, error: errorMessages().sessionNotFound }
         return { session, error: null }
       }
 
@@ -258,7 +258,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         .single()
 
       if (fetchError) throw fetchError
-      if (!sessionData) return { session: null, error: 'Session not found' }
+      if (!sessionData) return { session: null, error: errorMessages().sessionNotFound }
 
       const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
       const session: ChildPracticeSessionFull = assembleSessionFull(
@@ -272,7 +272,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       return { session, error: null, subscriptionRequired: true }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch session.')
+      const message = handleError(err, 'failedFetchSession')
       return { session: null, error: message }
     }
   }
@@ -327,13 +327,13 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
     month: number, // 1-12
   ): Promise<{ statuses: ChildDailyStatus[]; error: string | null }> {
     if (!authStore.user || !authStore.isParent) {
-      return { statuses: [], error: 'Not authenticated as parent' }
+      return { statuses: [], error: errorMessages().notAuthenticatedAsParent }
     }
 
     // Verify the child is linked to this parent
     const isLinked = childLinkStore.linkedChildren.some((c) => c.id === childId)
     if (!isLinked) {
-      return { statuses: [], error: 'Child is not linked to your account' }
+      return { statuses: [], error: errorMessages().childNotLinked }
     }
 
     // Calculate date range for the month
@@ -351,7 +351,10 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
         .order('date', { ascending: true })
 
       if (fetchError) {
-        return { statuses: [], error: handleError(fetchError, 'Failed to fetch daily statuses.') }
+        return {
+          statuses: [],
+          error: handleError(fetchError, 'failedFetchDailyStatuses'),
+        }
       }
 
       const statuses: ChildDailyStatus[] = (data ?? []).map((d) => ({
@@ -363,7 +366,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
 
       return { statuses, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch daily statuses.')
+      const message = handleError(err, 'failedFetchDailyStatuses')
       return { statuses: [], error: message }
     }
   }

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useSeoMeta } from '@unhead/vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
+import { useT } from '@/composables/useT'
 import { z } from 'zod'
 import logoSvg from '@/assets/logo.svg'
 import { Loader2, ArrowLeft, CheckCircle } from 'lucide-vue-next'
@@ -13,6 +14,7 @@ import { Field, FieldLabel, FieldError } from '@/components/ui/field'
 import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
+const t = useT()
 
 useSeoMeta({
   title: 'Forgot Password',
@@ -25,7 +27,10 @@ const emailSent = ref(false)
 const sentEmail = ref('')
 
 const forgotPasswordSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Please enter a valid email'),
+  email: z
+    .string()
+    .min(1, t.value.auth.forgotPassword.validation.emailRequired)
+    .email(t.value.auth.forgotPassword.validation.emailInvalid),
 })
 
 const { handleSubmit, submitCount } = useForm({
@@ -48,10 +53,10 @@ const onSubmit = handleSubmit(async (values) => {
 
     sentEmail.value = values.email
     emailSent.value = true
-    toast.success('Password reset email sent!')
+    toast.success(t.value.auth.forgotPassword.resetSuccess)
   } catch (err) {
     console.error('Failed to send password reset email:', err)
-    toast.error('An unexpected error occurred')
+    toast.error(t.value.auth.forgotPassword.unexpectedError)
   } finally {
     isSubmitting.value = false
   }
@@ -63,12 +68,16 @@ const onSubmit = handleSubmit(async (values) => {
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
         <div class="mb-1 flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <img :src="logoSvg" :alt="t.auth.common.logoAlt" class="size-10" />
           <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
-        <CardTitle class="text-xl">Reset Password</CardTitle>
+        <CardTitle class="text-xl">{{ t.auth.forgotPassword.title }}</CardTitle>
         <CardDescription>
-          {{ emailSent ? 'Check your email' : 'Enter your email to receive a reset link' }}
+          {{
+            emailSent
+              ? t.auth.forgotPassword.descriptionSent
+              : t.auth.forgotPassword.descriptionForm
+          }}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -81,19 +90,18 @@ const onSubmit = handleSubmit(async (values) => {
               <CheckCircle class="size-8 text-green-600" />
             </div>
             <div class="text-center">
-              <p class="text-sm text-muted-foreground">We've sent a password reset link to</p>
+              <p class="text-sm text-muted-foreground">{{ t.auth.forgotPassword.sentTo }}</p>
               <p class="font-medium">{{ sentEmail }}</p>
             </div>
             <p class="text-center text-sm text-muted-foreground">
-              Please check your inbox and click the link to reset your password. The link will
-              expire in 1 hour.
+              {{ t.auth.forgotPassword.instructions }}
             </p>
           </div>
 
           <Button as-child variant="outline" class="w-full">
             <RouterLink to="/login">
               <ArrowLeft class="mr-2 size-4" />
-              Back to Login
+              {{ t.auth.forgotPassword.backToLogin }}
             </RouterLink>
           </Button>
         </div>
@@ -110,11 +118,11 @@ const onSubmit = handleSubmit(async (values) => {
               name="email"
             >
               <Field :data-invalid="!!errors.length">
-                <FieldLabel for="email">Email</FieldLabel>
+                <FieldLabel for="email">{{ t.auth.forgotPassword.emailLabel }}</FieldLabel>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  :placeholder="t.auth.forgotPassword.emailPlaceholder"
                   :disabled="isSubmitting"
                   :aria-invalid="!!errors.length"
                   v-bind="field"
@@ -125,13 +133,15 @@ const onSubmit = handleSubmit(async (values) => {
 
             <Button type="submit" class="mt-2 w-full" :disabled="isSubmitting">
               <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
-              {{ isSubmitting ? 'Sending...' : 'Send Reset Link' }}
+              {{ isSubmitting ? t.auth.forgotPassword.submitting : t.auth.forgotPassword.submit }}
             </Button>
           </form>
 
           <div class="mt-4 text-center text-sm text-muted-foreground">
-            Remember your password?
-            <RouterLink to="/login" class="text-primary hover:underline">Back to Login</RouterLink>
+            {{ t.auth.forgotPassword.rememberPassword }}
+            <RouterLink to="/login" class="text-primary hover:underline">{{
+              t.auth.forgotPassword.backToLogin
+            }}</RouterLink>
           </div>
         </template>
       </CardContent>

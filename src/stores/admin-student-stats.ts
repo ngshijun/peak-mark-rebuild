@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from './auth'
 import { useAdminStudentsStore } from './admin-students'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { type DateRangeFilter, createSessionLookupMethods } from '@/lib/sessionFilters'
 import { fetchSessionSummaries, fetchFullSessionDetails } from '@/lib/sessionFetching'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
@@ -57,7 +57,7 @@ export const useAdminStudentStatsStore = defineStore('adminStudentStats', () => 
    */
   async function fetchStudentStatistics(studentId: string): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isAdmin) {
-      return { error: 'Not authenticated as admin' }
+      return { error: errorMessages().notAuthenticatedAsAdmin }
     }
 
     // Skip if cache is still valid
@@ -95,7 +95,7 @@ export const useAdminStudentStatsStore = defineStore('adminStudentStats', () => 
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch statistics.')
+      const message = handleError(err, 'failedFetchStatistics')
       statisticsError.value = message
       return { error: message }
     } finally {
@@ -114,15 +114,15 @@ export const useAdminStudentStatsStore = defineStore('adminStudentStats', () => 
     error: string | null
   }> {
     if (!authStore.user || !authStore.isAdmin) {
-      return { session: null, error: 'Not authenticated as admin' }
+      return { session: null, error: errorMessages().notAuthenticatedAsAdmin }
     }
 
     try {
       const session = await fetchFullSessionDetails(studentId, sessionId)
-      if (!session) return { session: null, error: 'Session not found' }
+      if (!session) return { session: null, error: errorMessages().sessionNotFound }
       return { session, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch session.')
+      const message = handleError(err, 'failedFetchSession')
       return { session: null, error: message }
     }
   }

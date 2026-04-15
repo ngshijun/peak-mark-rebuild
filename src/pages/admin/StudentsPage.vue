@@ -10,9 +10,11 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { toast } from 'vue-sonner'
 import { formatDate, formatRelativeDate } from '@/lib/date'
+import { useT } from '@/composables/useT'
 
 const router = useRouter()
 const adminStudentsStore = useAdminStudentsStore()
+const t = useT()
 
 // Fetch students on mount
 onMounted(async () => {
@@ -59,7 +61,7 @@ const columns: ColumnDef<AdminStudent>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Name', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.students.nameCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -68,7 +70,7 @@ const columns: ColumnDef<AdminStudent>[] = [
   },
   {
     accessorKey: 'email',
-    header: 'Email',
+    header: () => t.value.admin.students.emailCol,
     cell: ({ row }) => {
       return h('div', { class: 'text-muted-foreground' }, row.original.email)
     },
@@ -82,7 +84,7 @@ const columns: ColumnDef<AdminStudent>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Grade', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.students.gradeCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -98,7 +100,7 @@ const columns: ColumnDef<AdminStudent>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['XP', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.students.xpCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -119,7 +121,7 @@ const columns: ColumnDef<AdminStudent>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Coins', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.students.coinsCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -133,7 +135,7 @@ const columns: ColumnDef<AdminStudent>[] = [
   },
   {
     accessorKey: 'dateOfBirth',
-    header: 'Date of Birth',
+    header: () => t.value.admin.students.dobCol,
     cell: ({ row }) => {
       return h('div', {}, formatDate(row.original.dateOfBirth))
     },
@@ -147,13 +149,13 @@ const columns: ColumnDef<AdminStudent>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Subscription', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.students.subscriptionCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
       const tier = row.original.subscriptionTier
       if (!tier) {
-        return h('div', { class: 'text-muted-foreground' }, 'None')
+        return h('div', { class: 'text-muted-foreground' }, t.value.admin.students.noneSubscription)
       }
       const config = tierConfig[tier] ?? tierConfig.core!
       return h(
@@ -165,14 +167,14 @@ const columns: ColumnDef<AdminStudent>[] = [
   },
   {
     accessorKey: 'parentName',
-    header: 'Parent Name',
+    header: () => t.value.admin.students.parentNameCol,
     cell: ({ row }) => {
       return h('div', {}, row.original.parentName ?? '-')
     },
   },
   {
     accessorKey: 'parentEmail',
-    header: 'Parent Email',
+    header: () => t.value.admin.students.parentEmailCol,
     cell: ({ row }) => {
       return h('div', { class: 'text-muted-foreground' }, row.original.parentEmail ?? '-')
     },
@@ -186,7 +188,7 @@ const columns: ColumnDef<AdminStudent>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Joined', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.students.joinedCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
@@ -202,15 +204,15 @@ const columns: ColumnDef<AdminStudent>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Last Active', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [t.value.admin.students.lastActiveCol, h(ArrowUpDown, { class: 'ml-2 size-4' })],
       )
     },
     cell: ({ row }) => {
       const lastActive = row.original.lastActive
       if (!lastActive) {
-        return h('div', { class: 'text-muted-foreground' }, 'Never')
+        return h('div', { class: 'text-muted-foreground' }, t.value.admin.students.neverActive)
       }
-      return h('div', {}, formatRelativeDate(lastActive))
+      return h('div', {}, formatRelativeDate(lastActive, t.value.shared.relativeDate))
     },
   },
 ]
@@ -223,8 +225,8 @@ function handleRowClick(student: AdminStudent) {
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold">Students</h1>
-      <p class="text-muted-foreground">View and manage all student accounts.</p>
+      <h1 class="text-2xl font-bold">{{ t.admin.students.title }}</h1>
+      <p class="text-muted-foreground">{{ t.admin.students.subtitle }}</p>
     </div>
 
     <!-- Loading State -->
@@ -239,7 +241,7 @@ function handleRowClick(student: AdminStudent) {
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             :model-value="adminStudentsStore.studentsFilters.search"
-            placeholder="Search by name, email, or parent..."
+            :placeholder="t.admin.students.searchPlaceholder"
             class="pl-9"
             @update:model-value="adminStudentsStore.setStudentsSearch(String($event))"
           />
@@ -249,12 +251,12 @@ function handleRowClick(student: AdminStudent) {
       <!-- Empty State -->
       <div v-if="adminStudentsStore.filteredStudents.length === 0" class="py-16 text-center">
         <Users class="mx-auto size-16 text-muted-foreground/50" />
-        <h2 class="mt-4 text-lg font-semibold">No Students Found</h2>
+        <h2 class="mt-4 text-lg font-semibold">{{ t.admin.students.noStudentsFound }}</h2>
         <p class="mt-2 text-muted-foreground">
           {{
             adminStudentsStore.studentsFilters.search
-              ? 'No students match your search criteria.'
-              : 'No students have registered yet.'
+              ? t.admin.students.noStudentsMatchSearch
+              : t.admin.students.noStudentsRegistered
           }}
         </p>
       </div>

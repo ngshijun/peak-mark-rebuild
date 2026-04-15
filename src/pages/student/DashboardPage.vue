@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref, watch, nextTick } from 'vue'
+import { defineAsyncComponent, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStudentDashboardStore } from '@/stores/student-dashboard'
 import { usePracticeHistoryStore } from '@/stores/practice-history'
 import { usePetsStore } from '@/stores/pets'
-import { useAuthStore } from '@/stores/auth'
-import { isFirstPetTourActive } from '@/composables/useFirstPetTour'
+import { useT } from '@/composables/useT'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DailyStatus from '@/components/dashboard/DailyStatus.vue'
@@ -27,36 +26,9 @@ const route = useRoute()
 const dashboardStore = useStudentDashboardStore()
 const practiceStore = usePracticeHistoryStore()
 const petsStore = usePetsStore()
-const authStore = useAuthStore()
+const t = useT()
 
 const isLoading = ref(true)
-const dailyStatusButtonRef = ref<InstanceType<typeof DailyStatus> | null>(null)
-
-// LocalStorage key for "don't show again today"
-const MOOD_REMINDER_DISMISSED_KEY = 'mood_reminder_dismissed_date'
-
-function shouldShowMoodReminder(): boolean {
-  // Don't show mood reminder if tour hasn't been completed (tour takes priority)
-  if (!authStore.user?.hasCompletedTour) return false
-
-  // Don't show mood reminder if first pet tour is in progress
-  if (isFirstPetTourActive.value) return false
-
-  // Don't show mood reminder if student has no pets (first pet tour takes priority)
-  if (petsStore.ownedPets.length === 0) return false
-
-  // Don't show mood reminder if grade level is not set (grade dialog takes priority)
-  if (!authStore.studentProfile?.gradeLevelId) return false
-
-  // Check if user has already set mood today
-  if (dashboardStore.hasMoodToday) return false
-
-  // Check if user dismissed the reminder today
-  const dismissedDate = localStorage.getItem(MOOD_REMINDER_DISMISSED_KEY)
-  if (dismissedDate === dashboardStore.getTodayString()) return false
-
-  return true
-}
 
 async function loadDashboardData() {
   isLoading.value = true
@@ -69,7 +41,7 @@ async function loadDashboardData() {
     ])
   } catch (err) {
     console.error('Failed to load dashboard data:', err)
-    toast.error('Failed to load dashboard data')
+    toast.error(t.value.student.dashboard.toastLoadFailed)
   } finally {
     isLoading.value = false
   }
@@ -85,16 +57,6 @@ watch(
   },
   { immediate: true },
 )
-
-// Show mood reminder dialog after loading completes
-watch(isLoading, async (loading) => {
-  if (!loading && shouldShowMoodReminder()) {
-    // Wait for Vue to finish rendering the v-else content
-    await nextTick()
-    // Open the DailyStatus dialog with "don't show again" option
-    dailyStatusButtonRef.value?.openDialog(true)
-  }
-})
 </script>
 
 <template>
@@ -102,12 +64,12 @@ watch(isLoading, async (loading) => {
     <!-- Header -->
     <div class="mb-6 flex items-start justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Dashboard</h1>
-        <p class="text-muted-foreground">Here's your daily overview</p>
+        <h1 class="text-2xl font-bold">{{ t.student.dashboard.title }}</h1>
+        <p class="text-muted-foreground">{{ t.student.dashboard.subtitle }}</p>
       </div>
       <div v-if="!isLoading" data-tour="dashboard-daily" class="flex items-center gap-2">
         <SpinWheelCard />
-        <DailyStatus ref="dailyStatusButtonRef" />
+        <DailyStatus />
       </div>
     </div>
 

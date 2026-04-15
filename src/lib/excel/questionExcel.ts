@@ -224,6 +224,12 @@ function setupQuestionsSheet(sheet: ExcelJS.Worksheet) {
     sheet.getColumn(col).numFmt = '@'
   }
 
+  // Enable line-wrapping on rich-text columns so multi-line content (Alt+Enter)
+  // and markdown-style authoring remains legible in Excel/Sheets.
+  for (const col of [COLUMNS.QUESTION_TEXT, COLUMNS.EXPLANATION]) {
+    sheet.getColumn(col).alignment = { wrapText: true, vertical: 'top' }
+  }
+
   // Hide helper columns (R, S, T)
   sheet.getColumn(HELPER_CONFIG.COLUMNS.SUBJECTS).hidden = true
   sheet.getColumn(HELPER_CONFIG.COLUMNS.TOPICS).hidden = true
@@ -637,6 +643,12 @@ export async function exportQuestionsToExcel(
   ]
   for (const col of textColumns) {
     sheet.getColumn(col).numFmt = '@'
+  }
+
+  // Wrap multi-line question text / explanation so the exported file round-trips
+  // correctly when admins reopen it in Excel/Sheets.
+  for (const col of [COLUMNS.QUESTION_TEXT, COLUMNS.EXPLANATION]) {
+    sheet.getColumn(col).alignment = { wrapText: true, vertical: 'top' }
   }
 
   // Style header

@@ -12,6 +12,9 @@ import {
 } from '@/components/ui/dialog'
 import { Loader2, ImagePlus, Dices } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const MAX_FILE_SIZE_MB = 1
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
@@ -45,7 +48,7 @@ function handleFileSelect(event: Event) {
   if (!file) return
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    toast.error(`File size must be under ${MAX_FILE_SIZE_MB}MB.`)
+    toast.error(t.value.shared.editAvatarDialog.fileTooLarge(MAX_FILE_SIZE_MB))
     target.value = ''
     return
   }
@@ -73,8 +76,8 @@ function handleSave() {
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Change Profile Picture</DialogTitle>
-        <DialogDescription> Upload an image or generate a random avatar. </DialogDescription>
+        <DialogTitle>{{ t.shared.editAvatarDialog.title }}</DialogTitle>
+        <DialogDescription> {{ t.shared.editAvatarDialog.description }} </DialogDescription>
       </DialogHeader>
       <div class="space-y-4">
         <div class="flex justify-center">
@@ -98,19 +101,21 @@ function handleSave() {
             @click="avatarInputRef?.click()"
           >
             <ImagePlus class="mr-2 size-4" />
-            Upload Image
+            {{ t.shared.editAvatarDialog.uploadImage }}
           </Button>
           <Button variant="outline" class="w-full" :disabled="isSaving" @click="generateRandom">
             <Dices class="mr-2 size-4" />
-            Random Avatar
+            {{ t.shared.editAvatarDialog.randomAvatar }}
           </Button>
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" :disabled="isSaving" @click="open = false"> Cancel </Button>
+        <Button variant="outline" :disabled="isSaving" @click="open = false">
+          {{ t.shared.editAvatarDialog.cancel }}
+        </Button>
         <Button :disabled="isSaving || !avatarPreviewUrl" @click="handleSave">
           <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-          Save
+          {{ t.shared.editAvatarDialog.save }}
         </Button>
       </DialogFooter>
     </DialogContent>

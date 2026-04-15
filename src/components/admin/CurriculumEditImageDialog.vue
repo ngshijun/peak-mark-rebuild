@@ -13,6 +13,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -87,7 +90,7 @@ async function handleSave() {
     )
 
     if (uploadResult.error || !uploadResult.path) {
-      toast.error(uploadResult.error ?? 'Failed to upload image')
+      toast.error(t.value.shared.curriculumEditImageDialog.toastError(uploadResult.error ?? ''))
       return
     }
 
@@ -101,7 +104,7 @@ async function handleSave() {
       return
     }
 
-    toast.success('Cover image updated successfully')
+    toast.success(t.value.shared.curriculumEditImageDialog.toastUpdated)
     emit('update:open', false)
   } finally {
     isSaving.value = false
@@ -119,7 +122,7 @@ async function handleRemove() {
       return
     }
 
-    toast.success('Cover image removed successfully')
+    toast.success(t.value.shared.curriculumEditImageDialog.toastRemoved)
     emit('update:open', false)
   } finally {
     isSaving.value = false
@@ -131,8 +134,10 @@ async function handleRemove() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Edit Cover Image</DialogTitle>
-        <DialogDescription> Update the cover image for "{{ itemName }}" </DialogDescription>
+        <DialogTitle>{{ t.shared.curriculumEditImageDialog.title }}</DialogTitle>
+        <DialogDescription>{{
+          t.shared.curriculumEditImageDialog.description(itemName)
+        }}</DialogDescription>
       </DialogHeader>
 
       <div class="space-y-4 py-4">
@@ -156,14 +161,18 @@ async function handleRemove() {
             @click="imageInputRef?.click()"
           >
             <ImagePlus class="mr-2 size-4" />
-            {{ imageFile ? 'Change Image' : 'Select New Image' }}
+            {{
+              imageFile
+                ? t.shared.curriculumEditImageDialog.changeImage
+                : t.shared.curriculumEditImageDialog.selectNewImage
+            }}
           </Button>
         </div>
       </div>
 
       <DialogFooter class="gap-2">
         <Button variant="outline" :disabled="isSaving" @click="emit('update:open', false)">
-          Cancel
+          {{ t.shared.curriculumEditImageDialog.cancel }}
         </Button>
         <Button
           v-if="hasCustom && !imageFile"
@@ -172,11 +181,11 @@ async function handleRemove() {
           @click="handleRemove"
         >
           <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-          Remove Image
+          {{ t.shared.curriculumEditImageDialog.removeImage }}
         </Button>
         <Button :disabled="!imageFile || isSaving" @click="handleSave">
           <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-          Save
+          {{ t.shared.curriculumEditImageDialog.save }}
         </Button>
       </DialogFooter>
     </DialogContent>

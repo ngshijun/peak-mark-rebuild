@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { toMYTDateString } from '@/lib/date'
 
 export const FRIEND_CAP = 30
@@ -74,7 +74,7 @@ export const useFriendsStore = defineStore('friends', () => {
 
   async function fetchFriends(): Promise<{ error: string | null }> {
     const userId = authStore.user?.id
-    if (!userId) return { error: 'Not authenticated' }
+    if (!userId) return { error: errorMessages().notAuthenticated }
 
     try {
       isLoading.value = true
@@ -145,7 +145,7 @@ export const useFriendsStore = defineStore('friends', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to load friends.') }
+      return { error: handleError(err, 'failedLoadFriends') }
     } finally {
       isLoading.value = false
     }
@@ -153,7 +153,7 @@ export const useFriendsStore = defineStore('friends', () => {
 
   async function fetchRequests(): Promise<{ error: string | null }> {
     const userId = authStore.user?.id
-    if (!userId) return { error: 'Not authenticated' }
+    if (!userId) return { error: errorMessages().notAuthenticated }
 
     try {
       const { data, error: fetchError } = await supabase
@@ -203,7 +203,7 @@ export const useFriendsStore = defineStore('friends', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to load friend requests.') }
+      return { error: handleError(err, 'failedLoadFriendRequests') }
     }
   }
 
@@ -216,7 +216,7 @@ export const useFriendsStore = defineStore('friends', () => {
       await fetchRequests()
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to send friend request.') }
+      return { error: handleError(err, 'failedSendFriendRequest') }
     }
   }
 
@@ -233,7 +233,12 @@ export const useFriendsStore = defineStore('friends', () => {
       await Promise.all([fetchRequests(), fetchFriends()])
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, `Failed to ${accept ? 'accept' : 'decline'} request.`) }
+      return {
+        error: handleError(
+          err,
+          accept ? 'failedAcceptFriendRequest' : 'failedDeclineFriendRequest',
+        ),
+      }
     }
   }
 
@@ -260,7 +265,7 @@ export const useFriendsStore = defineStore('friends', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to send coins.') }
+      return { error: handleError(err, 'failedSendCoins') }
     }
   }
 
@@ -274,7 +279,7 @@ export const useFriendsStore = defineStore('friends', () => {
       sentRequests.value = sentRequests.value.filter((r) => r.friendshipId !== friendshipId)
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to remove friend.') }
+      return { error: handleError(err, 'failedRemoveFriend') }
     }
   }
 

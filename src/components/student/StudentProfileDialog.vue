@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
-import { rarityConfig } from '@/stores/pets'
+import { rarityConfig, getRarityLabel } from '@/stores/pets'
 import { useAuthStore } from '@/stores/auth'
 import { useFriendsStore, FRIEND_CAP } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
@@ -26,6 +26,9 @@ import {
 import fireGif from '@/assets/icons/fire.gif'
 import { toast } from 'vue-sonner'
 import type { LeaderboardEntry } from '@/components/student/LeaderboardTable.vue'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -71,7 +74,7 @@ const friendshipStatus = computed<'none' | 'friends' | 'sent' | 'received'>(() =
 async function handleAddFriend() {
   if (!props.student?.id) return
   if (friendsStore.isFriendCapReached) {
-    toast.error(`Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to add new ones.`)
+    toast.error(t.value.shared.addFriend.toastFriendListFull(FRIEND_CAP))
     return
   }
   isActionPending.value = true
@@ -80,7 +83,7 @@ async function handleAddFriend() {
   if (error) {
     toast.error(error)
   } else {
-    toast.success(`Friend request sent to ${props.student.name}!`)
+    toast.success(t.value.shared.addFriend.toastRequestSent(props.student.name))
   }
 }
 
@@ -88,9 +91,7 @@ async function handleAcceptRequest() {
   const request = friendsStore.receivedRequests.find((r) => r.studentId === props.student?.id)
   if (!request) return
   if (friendsStore.isFriendCapReached) {
-    toast.error(
-      `Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to accept requests.`,
-    )
+    toast.error(t.value.shared.friendRequests.toastFriendListFull(FRIEND_CAP))
     return
   }
   isActionPending.value = true
@@ -99,7 +100,7 @@ async function handleAcceptRequest() {
   if (error) {
     toast.error(error)
   } else {
-    toast.success(`You and ${props.student?.name} are now friends!`)
+    toast.success(t.value.shared.friendRequests.toastAccepted(props.student?.name ?? ''))
   }
 }
 
@@ -135,7 +136,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                 <Badge variant="outline">{{ student.gradeLevelName ?? 'N/A' }}</Badge>
                 <Badge v-if="student.rank" variant="secondary" class="gap-1">
                   <Trophy class="size-3" />
-                  Rank {{ student.rank }}
+                  {{ t.shared.studentProfileDialog.rankLabel(student.rank) }}
                 </Badge>
               </div>
             </div>
@@ -160,7 +161,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                 disabled
               >
                 <Clock class="mr-1 size-4" />
-                Request Sent
+                {{ t.shared.studentProfileDialog.requestSent }}
               </Button>
               <Button
                 v-else-if="friendshipStatus === 'received'"
@@ -170,12 +171,12 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               >
                 <Check v-if="!isActionPending" class="mr-1 size-4" />
                 <Loader2 v-else class="mr-1 size-4 animate-spin" />
-                Accept Request
+                {{ t.shared.studentProfileDialog.acceptRequest }}
               </Button>
               <Button v-else size="sm" :disabled="isActionPending" @click="handleAddFriend">
                 <UserPlus v-if="!isActionPending" class="mr-1 size-4" />
                 <Loader2 v-else class="mr-1 size-4 animate-spin" />
-                Add Friend
+                {{ t.shared.studentProfileDialog.addFriend }}
               </Button>
             </div>
           </div>
@@ -190,17 +191,21 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
           <!-- Stats Row (single row at top) -->
           <div class="grid grid-cols-3 gap-3">
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">Level</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentProfileDialog.level }}</p>
               <p class="text-xl font-bold">{{ studentLevel }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
               <p class="text-xs text-muted-foreground">
-                {{ activeTab === 'weekly' ? 'Weekly XP' : 'XP' }}
+                {{
+                  activeTab === 'weekly'
+                    ? t.shared.studentProfileDialog.weeklyXp
+                    : t.shared.studentProfileDialog.xp
+                }}
               </p>
               <p class="text-xl font-bold">{{ studentXpDisplay }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">Coins</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.studentProfileDialog.coins }}</p>
               <p class="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {{ profile?.coins.toLocaleString() ?? '-' }}
               </p>
@@ -247,7 +252,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                       :class="rarityConfig[pet.rarity].color"
                       class="text-xs"
                     >
-                      {{ rarityConfig[pet.rarity].label }}
+                      {{ getRarityLabel(pet.rarity) }}
                     </Badge>
                     <Badge variant="secondary" class="text-xs">
                       <Star class="mr-0.5 size-2.5" />
@@ -266,7 +271,9 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               >
                 <PawPrint class="size-12 text-purple-400" />
               </div>
-              <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
+              <p class="text-lg font-semibold text-muted-foreground">
+                {{ t.shared.studentProfileDialog.noPetSelected }}
+              </p>
             </div>
 
             <!-- Best Subjects (top right, spans 2 cols) -->
@@ -274,7 +281,9 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               class="col-span-2 rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
             >
               <div class="mb-5 flex items-center justify-between">
-                <p class="text-xs font-medium text-muted-foreground">Top Subjects</p>
+                <p class="text-xs font-medium text-muted-foreground">
+                  {{ t.shared.studentProfileDialog.topSubjects }}
+                </p>
                 <Trophy class="size-4 text-muted-foreground" />
               </div>
               <div class="space-y-2">
@@ -307,7 +316,9 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                   </template>
                   <template v-else>
                     <div class="min-w-0 flex-1">
-                      <p class="text-sm text-muted-foreground/60">Not yet unlocked</p>
+                      <p class="text-sm text-muted-foreground/60">
+                        {{ t.shared.studentProfileDialog.notYetUnlocked }}
+                      </p>
                       <div
                         class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
                       />
@@ -322,7 +333,9 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
               class="col-span-2 rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 dark:border-orange-900/50 dark:from-orange-950/30 dark:to-amber-950/30"
             >
               <div class="mb-5 flex items-center justify-between">
-                <p class="text-xs font-medium text-muted-foreground">Practice Streak</p>
+                <p class="text-xs font-medium text-muted-foreground">
+                  {{ t.shared.studentProfileDialog.practiceStreak }}
+                </p>
                 <Flame class="size-4 text-muted-foreground" />
               </div>
               <div class="flex items-center gap-3">
@@ -333,7 +346,9 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
                 <div>
                   <p class="text-2xl font-bold">
                     {{ studentCurrentStreak }}
-                    <span class="text-sm font-normal text-muted-foreground">days</span>
+                    <span class="text-sm font-normal text-muted-foreground">{{
+                      t.shared.studentProfileDialog.days
+                    }}</span>
                   </p>
                 </div>
               </div>
@@ -375,7 +390,7 @@ const studentCurrentStreak = computed(() => (studentRecord.value?.currentStreak 
 
           <!-- Member Since -->
           <p v-if="profile?.memberSince" class="text-xs text-muted-foreground">
-            Member since {{ formatDate(profile.memberSince) }}
+            {{ t.shared.studentProfileDialog.memberSince(formatDate(profile.memberSince)) }}
           </p>
         </div>
       </template>

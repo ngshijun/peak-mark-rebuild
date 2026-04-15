@@ -14,7 +14,9 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
 
+const t = useT()
 const announcementsStore = useAnnouncementsStore()
 
 const showDetailDialog = ref(false)
@@ -56,9 +58,9 @@ async function handleMarkAllAsRead() {
   try {
     const { error } = await announcementsStore.markAllAsRead()
     if (error) {
-      toast.error(error)
+      toast.error(t.value.shared.pages.announcements.toastMarkAllReadFailed(error))
     } else {
-      toast.success('All announcements marked as read')
+      toast.success(t.value.shared.pages.announcements.toastMarkedAllRead)
     }
   } finally {
     isMarkingAllRead.value = false
@@ -70,8 +72,8 @@ async function handleMarkAllAsRead() {
   <div class="p-6">
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Announcements</h1>
-        <p class="text-muted-foreground">Stay updated with the latest news and updates.</p>
+        <h1 class="text-2xl font-bold">{{ t.shared.pages.announcements.title }}</h1>
+        <p class="text-muted-foreground">{{ t.shared.pages.announcements.subtitle }}</p>
       </div>
       <Button
         v-if="announcementsStore.unreadCount > 0"
@@ -81,7 +83,7 @@ async function handleMarkAllAsRead() {
       >
         <Loader2 v-if="isMarkingAllRead" class="mr-2 size-4 animate-spin" />
         <CheckCheck v-else class="mr-2 size-4" />
-        Mark all as read
+        {{ t.shared.pages.announcements.markAllAsRead }}
       </Button>
     </div>
 
@@ -93,7 +95,7 @@ async function handleMarkAllAsRead() {
     <template v-else>
       <!-- Empty State -->
       <div v-if="announcementsStore.announcements.length === 0" class="py-12 text-center">
-        <p class="text-muted-foreground">No announcements yet. Check back later!</p>
+        <p class="text-muted-foreground">{{ t.shared.pages.announcements.noAnnouncements }}</p>
       </div>
 
       <template v-else>

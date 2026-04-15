@@ -8,6 +8,9 @@ import SessionQuestionCard from './SessionQuestionCard.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Lock } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const questionsStore = useQuestionsStore()
 
@@ -22,7 +25,7 @@ defineProps<{
   questions: SessionQuestion[]
   answers: SessionAnswer[]
   isLocked: boolean
-  answerLabel: 'Your' | "Student's"
+  answerLabel: 'self' | 'student'
 }>()
 
 function getAnswerByIndex(answers: SessionAnswer[], index: number): SessionAnswer | undefined {
@@ -40,7 +43,7 @@ function getAnswerByIndex(answers: SessionAnswer[], index: number): SessionAnswe
   />
 
   <div v-if="completedAt" class="mb-4 text-sm text-muted-foreground">
-    Completed: {{ formatDateTime(completedAt) }}
+    {{ t.shared.sessionResultContent.completed(formatDateTime(completedAt)) }}
   </div>
 
   <!-- AI Summary (role-specific) -->
@@ -59,14 +62,16 @@ function getAnswerByIndex(answers: SessionAnswer[], index: number): SessionAnswe
       >
         <Lock class="size-7 text-purple-500" />
       </div>
-      <h3 class="text-lg font-semibold">Question Details Locked</h3>
+      <h3 class="text-lg font-semibold">
+        {{ t.shared.sessionResultContent.questionDetailsLocked }}
+      </h3>
       <slot name="locked-message" />
     </CardContent>
   </Card>
 
   <!-- Questions List -->
   <div v-else class="space-y-4">
-    <h2 class="text-lg font-semibold">Question Details</h2>
+    <h2 class="text-lg font-semibold">{{ t.shared.sessionResultContent.questionDetails }}</h2>
 
     <SessionQuestionCard
       v-for="(question, index) in questions"

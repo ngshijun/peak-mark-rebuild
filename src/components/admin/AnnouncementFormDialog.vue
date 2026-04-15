@@ -3,7 +3,7 @@ import { ref, watch, nextTick } from 'vue'
 import { useForm, Field as VeeField } from 'vee-validate'
 import {
   useAnnouncementsStore,
-  audienceConfig,
+  getAudienceConfig,
   type Announcement,
   type AnnouncementAudience,
 } from '@/stores/announcements'
@@ -29,6 +29,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
+
+const t = useT()
+const languageStore = useLanguageStore()
 
 const props = defineProps<{
   announcement?: Announcement | null
@@ -133,7 +138,7 @@ const handleSave = handleSubmit(async (values) => {
         toast.error(error)
         return
       }
-      toast.success('Announcement updated successfully')
+      toast.success(t.value.shared.announcementFormDialog.toastUpdated)
     } else {
       // Create new announcement
       const { error } = await announcementsStore.createAnnouncement({
@@ -148,7 +153,7 @@ const handleSave = handleSubmit(async (values) => {
         toast.error(error)
         return
       }
-      toast.success('Announcement created successfully')
+      toast.success(t.value.shared.announcementFormDialog.toastCreated)
     }
 
     open.value = false
@@ -163,10 +168,16 @@ const handleSave = handleSubmit(async (values) => {
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>{{ announcement ? 'Edit Announcement' : 'New Announcement' }}</DialogTitle>
+        <DialogTitle>{{
+          announcement
+            ? t.shared.announcementFormDialog.editTitle
+            : t.shared.announcementFormDialog.newTitle
+        }}</DialogTitle>
         <DialogDescription>
           {{
-            announcement ? 'Update announcement details.' : 'Create a new announcement for users.'
+            announcement
+              ? t.shared.announcementFormDialog.editDesc
+              : t.shared.announcementFormDialog.newDesc
           }}
         </DialogDescription>
       </DialogHeader>
@@ -176,11 +187,12 @@ const handleSave = handleSubmit(async (values) => {
         <VeeField v-slot="{ field, errors }" name="title">
           <Field :data-invalid="!!errors.length">
             <FieldLabel for="announcement-title"
-              >Title <span class="text-destructive">*</span></FieldLabel
+              >{{ t.shared.announcementFormDialog.titleLabel }}
+              <span class="text-destructive">*</span></FieldLabel
             >
             <Input
               id="announcement-title"
-              placeholder="Enter announcement title"
+              :placeholder="t.shared.announcementFormDialog.titlePlaceholder"
               :disabled="isSaving"
               :aria-invalid="!!errors.length"
               v-bind="field"
@@ -193,11 +205,12 @@ const handleSave = handleSubmit(async (values) => {
         <VeeField v-slot="{ field, errors }" name="content">
           <Field :data-invalid="!!errors.length">
             <FieldLabel for="announcement-content"
-              >Content <span class="text-destructive">*</span></FieldLabel
+              >{{ t.shared.announcementFormDialog.contentLabel }}
+              <span class="text-destructive">*</span></FieldLabel
             >
             <Textarea
               id="announcement-content"
-              placeholder="Enter announcement content..."
+              :placeholder="t.shared.announcementFormDialog.contentPlaceholder"
               rows="4"
               :disabled="isSaving"
               :aria-invalid="!!errors.length"
@@ -212,14 +225,22 @@ const handleSave = handleSubmit(async (values) => {
           <!-- Target Audience -->
           <VeeField v-slot="{ handleChange, value, errors }" name="targetAudience">
             <Field :data-invalid="!!errors.length">
-              <FieldLabel>Target Audience <span class="text-destructive">*</span></FieldLabel>
-              <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
+              <FieldLabel
+                >{{ t.shared.announcementFormDialog.targetAudienceLabel }}
+                <span class="text-destructive">*</span></FieldLabel
+              >
+              <Select
+                :key="languageStore.language"
+                :model-value="value"
+                :disabled="isSaving"
+                @update:model-value="handleChange"
+              >
                 <SelectTrigger class="w-full" :class="{ 'border-destructive': !!errors.length }">
-                  <SelectValue placeholder="Select audience" />
+                  <SelectValue :placeholder="t.shared.announcementFormDialog.audiencePlaceholder" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem
-                    v-for="(config, audience) in audienceConfig"
+                    v-for="(config, audience) in getAudienceConfig()"
                     :key="audience"
                     :value="audience"
                   >
@@ -234,8 +255,9 @@ const handleSave = handleSubmit(async (values) => {
           <!-- Pin to Top -->
           <VeeField v-slot="{ handleChange, value }" name="isPinned">
             <Field>
-              <FieldLabel>Pin to Top</FieldLabel>
+              <FieldLabel>{{ t.shared.announcementFormDialog.pinToTop }}</FieldLabel>
               <Select
+                :key="languageStore.language"
                 :model-value="value ? 'yes' : 'no'"
                 :disabled="isSaving"
                 @update:model-value="(val) => handleChange(val === 'yes')"
@@ -244,8 +266,8 @@ const handleSave = handleSubmit(async (values) => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">{{ t.shared.announcementFormDialog.no }}</SelectItem>
+                  <SelectItem value="yes">{{ t.shared.announcementFormDialog.yes }}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -256,7 +278,7 @@ const handleSave = handleSubmit(async (values) => {
         <div class="grid grid-cols-2 gap-4">
           <!-- Image Upload -->
           <div class="space-y-2">
-            <FieldLabel>Image (Optional)</FieldLabel>
+            <FieldLabel>{{ t.shared.announcementFormDialog.imageLabel }}</FieldLabel>
             <div v-if="formImagePath" class="relative inline-block">
               <img
                 :src="formImageFile ? formImagePath : announcementsStore.getImageUrl(formImagePath)"
@@ -290,7 +312,7 @@ const handleSave = handleSubmit(async (values) => {
                 @click="imageInputRef?.click()"
               >
                 <ImagePlus class="mr-2 size-4" />
-                Upload Image
+                {{ t.shared.announcementFormDialog.uploadImage }}
               </Button>
             </div>
           </div>
@@ -298,7 +320,7 @@ const handleSave = handleSubmit(async (values) => {
           <!-- Expiry Date -->
           <VeeField v-slot="{ field, errors, setValue }" name="expiresAt">
             <Field :data-invalid="!!errors.length">
-              <FieldLabel>Expires At (Optional)</FieldLabel>
+              <FieldLabel>{{ t.shared.announcementFormDialog.expiresAtLabel }}</FieldLabel>
               <div v-if="field.value || showExpiryInput" class="flex items-center gap-2">
                 <Input
                   id="expires-at"
@@ -332,7 +354,7 @@ const handleSave = handleSubmit(async (values) => {
                 :disabled="isSaving"
                 @click="showExpiryInput = true"
               >
-                No expiry date - click to set
+                {{ t.shared.announcementFormDialog.noExpiryDate }}
               </Button>
               <FieldError :errors="errors" />
             </Field>
@@ -341,11 +363,15 @@ const handleSave = handleSubmit(async (values) => {
 
         <DialogFooter>
           <Button type="button" variant="outline" :disabled="isSaving" @click="open = false">
-            Cancel
+            {{ t.shared.announcementFormDialog.cancel }}
           </Button>
           <Button type="submit" :disabled="isSaving">
             <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            {{ announcement ? 'Update' : 'Create' }}
+            {{
+              announcement
+                ? t.shared.announcementFormDialog.update
+                : t.shared.announcementFormDialog.create
+            }}
           </Button>
         </DialogFooter>
       </form>

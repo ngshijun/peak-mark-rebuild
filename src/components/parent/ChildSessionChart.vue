@@ -12,11 +12,13 @@ import {
 } from '@/components/ui/chart'
 import { VisAxis, VisGroupedBar, VisXYContainer } from '@unovis/vue'
 import { BarChart3 } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
 
 const props = defineProps<{
   childId: string
 }>()
 
+const t = useT()
 const childStatisticsStore = useChildStatisticsStore()
 
 // Get daily session counts for the last 30 days
@@ -24,22 +26,25 @@ const chartData = computed<DailySessionCount[]>(() => {
   return childStatisticsStore.getDailySessionCounts(props.childId, 30)
 })
 
-const chartConfig = {
-  count: {
-    label: 'Sessions',
-    color: 'var(--chart-1)',
-  },
-} satisfies ChartConfig
+const chartConfig = computed(
+  () =>
+    ({
+      count: {
+        label: t.value.shared.childSessionChart.sessionsLabel,
+        color: 'var(--chart-1)',
+      },
+    }) satisfies ChartConfig,
+)
 </script>
 
 <template>
   <Card class="flex h-full flex-col">
     <CardHeader class="space-y-0 pb-2">
       <div class="flex flex-row items-center justify-between">
-        <CardTitle class="text-sm font-medium">Sessions Completed</CardTitle>
+        <CardTitle class="text-sm font-medium">{{ t.shared.childSessionChart.title }}</CardTitle>
         <BarChart3 class="size-4 text-muted-foreground" />
       </div>
-      <CardDescription>Daily sessions over the last 30 days</CardDescription>
+      <CardDescription>{{ t.shared.childSessionChart.description }}</CardDescription>
     </CardHeader>
     <CardContent class="flex-1">
       <ChartContainer :config="chartConfig" class="h-full max-h-[280px] w-full" cursor>

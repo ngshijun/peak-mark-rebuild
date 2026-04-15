@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { getStorageImageUrl } from '@/lib/storage'
 import { toMYTDateString, getMYTDayOfWeek, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 import type { Database } from '@/types/database.types'
+import { useLanguageStore } from '@/stores/language'
 
 type PetRarity = Database['public']['Enums']['pet_rarity']
 
@@ -35,6 +36,7 @@ export interface WeekDay {
 }
 
 export function useStudentProfileDialog() {
+  const languageStore = useLanguageStore()
   const profile = ref<StudentProfileData | null>(null)
   const pet = ref<StudentPetData | null>(null)
   const bestSubjects = ref<SubjectStats[]>([])
@@ -116,7 +118,7 @@ export function useStudentProfileDialog() {
 
       // Weekly activity: build 7-day array (Mon-Sun) from active dates
       const activeDateStrs = new Set(result.weekly_activity_dates)
-      const weekDayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+      const weekDayLabels = languageStore.t.shared.studentProfileDialog.weekDayLabels
       const todayStr = toMYTDateString()
       const dayOfWeek = getMYTDayOfWeek() // 0=Sun, 1=Mon...
       const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1

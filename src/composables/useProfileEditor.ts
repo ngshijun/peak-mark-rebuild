@@ -3,9 +3,11 @@ import { useAuthStore } from '@/stores/auth'
 import { getAvatarUrl } from '@/lib/storage'
 import { formatLongDate } from '@/lib/date'
 import { toast } from 'vue-sonner'
+import { useLanguageStore } from '@/stores/language'
 
 export function useProfileEditor() {
   const authStore = useAuthStore()
+  const languageStore = useLanguageStore()
 
   const isSaving = ref(false)
 
@@ -45,7 +47,7 @@ export function useProfileEditor() {
         toast.error(result.error)
         return false
       }
-      toast.success('Avatar updated successfully')
+      toast.success(languageStore.t.shared.toasts.avatarUpdated)
       return true
     } finally {
       isSaving.value = false
@@ -60,7 +62,7 @@ export function useProfileEditor() {
         toast.error(result.error)
         return false
       }
-      toast.success('Name updated successfully')
+      toast.success(languageStore.t.shared.toasts.nameUpdated)
       return true
     } finally {
       isSaving.value = false

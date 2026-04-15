@@ -64,7 +64,7 @@ export async function uploadStorageFile(
 
     return { path: filePath, error: null }
   } catch (err) {
-    return { path: null, error: handleError(err, 'Failed to upload image.') }
+    return { path: null, error: handleError(err, 'failedUploadImage') }
   }
 }
 
@@ -80,7 +80,7 @@ export async function deleteStorageFile(
     if (deleteError) throw deleteError
     return { error: null }
   } catch (err) {
-    return { error: handleError(err, 'Failed to delete image.') }
+    return { error: handleError(err, 'failedDeleteImage') }
   }
 }
 

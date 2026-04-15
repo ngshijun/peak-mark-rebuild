@@ -25,26 +25,40 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Loader2, CirclePoundSterling, Apple } from 'lucide-vue-next'
 import { useTour } from '@/composables/useTour'
 import { useFirstPetTour } from '@/composables/useFirstPetTour'
+import { useMoodReminder } from '@/composables/useMoodReminder'
 import { usePetsStore } from '@/stores/pets'
+import { useT } from '@/composables/useT'
 import AppSidebar from './AppSidebar.vue'
 import ThemeToggle from './ThemeToggle.vue'
+import LanguageToggle from './LanguageToggle.vue'
+import PreferencesDialog from './PreferencesDialog.vue'
+import { useLanguageStore } from '@/stores/language'
 const LevelUpDialog = defineAsyncComponent(() => import('./LevelUpDialog.vue'))
 const authStore = useAuthStore()
 const curriculumStore = useCurriculumStore()
 const petsStore = usePetsStore()
+const t = useT()
+const languageStore = useLanguageStore()
 const { showWelcomeDialog, promptTour, startTour, skipTour } = useTour()
 const { watchAndStart: watchAndStartFirstPetTour } = useFirstPetTour()
+const { watchAndStart: watchAndStartMoodReminder } = useMoodReminder()
+
+const PREFERENCES_STORAGE_KEY = 'preferences_confirmed'
+
+const showPreferencesDialog = ref(false)
 
 // Grade selection dialog state
 const showGradeDialog = ref(false)
 const selectedGradeId = ref<string>('')
 const isSaving = ref(false)
 
-// Sequenced onboarding: grade dialog → nav tour → first pet tour
-// Each step must complete before the next begins.
+// Sequenced onboarding: preferences → grade (students) → welcome tour → first pet tour → mood reminder
+// Each step must complete before the next begins. The mood reminder waits reactively
+// for the welcome tour, first pet tour, and today's dashboard data to clear before opening.
 function startOnboarding() {
   promptTour()
   startFirstPetTourWatcher()
+  if (authStore.isStudent) watchAndStartMoodReminder()
 }
 
 function startFirstPetTourWatcher() {
@@ -69,15 +83,28 @@ function startFirstPetTourWatcher() {
   }
 }
 
-// Check if student needs to set grade on mount
 onMounted(async () => {
+  if (localStorage.getItem(PREFERENCES_STORAGE_KEY) !== 'true') {
+    showPreferencesDialog.value = true
+    return
+  }
+  await beginPostPreferencesFlow()
+})
+
+async function beginPostPreferencesFlow() {
   if (authStore.isStudent && !authStore.studentProfile?.gradeLevelId) {
     await curriculumStore.fetchCurriculum()
     showGradeDialog.value = true
   } else {
     startOnboarding()
   }
-})
+}
+
+async function handlePreferencesConfirmed() {
+  localStorage.setItem(PREFERENCES_STORAGE_KEY, 'true')
+  showPreferencesDialog.value = false
+  await beginPostPreferencesFlow()
+}
 
 // After grade dialog closes, start the rest of onboarding
 watch(showGradeDialog, (open) => {
@@ -88,7 +115,7 @@ watch(showGradeDialog, (open) => {
 
 async function handleSaveGrade() {
   if (!selectedGradeId.value) {
-    toast.error('Please select your grade level')
+    toast.error(t.value.shared.layout.gradeDialog.toastNoGrade)
     return
   }
 
@@ -99,7 +126,7 @@ async function handleSaveGrade() {
       toast.error(result.error)
       return
     }
-    toast.success('Grade level set successfully')
+    toast.success(t.value.shared.layout.gradeDialog.toastSuccess)
     showGradeDialog.value = false
   } finally {
     isSaving.value = false
@@ -112,18 +139,19 @@ const food = computed(() => authStore.studentProfile?.food ?? 0)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
+  const greetings = t.value.shared.layout.greetings
   let timeGreeting: string
 
   if (hour < 12) {
-    timeGreeting = 'Good morning'
+    timeGreeting = greetings.morning
   } else if (hour < 18) {
-    timeGreeting = 'Good afternoon'
+    timeGreeting = greetings.afternoon
   } else {
-    timeGreeting = 'Good evening'
+    timeGreeting = greetings.evening
   }
 
   const userName = authStore.user?.name
-  return userName ? `${timeGreeting}, ${userName}` : timeGreeting
+  return userName ? greetings.withName(timeGreeting, userName) : timeGreeting
 })
 </script>
 
@@ -175,6 +203,7 @@ const greeting = computed(() => {
               >
             </div>
           </div>
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>
@@ -186,6 +215,9 @@ const greeting = computed(() => {
     <!-- Level Up Dialog (global, triggers on any XP gain that crosses a level boundary) -->
     <LevelUpDialog />
 
+    <!-- Preferences Dialog (shown once per device before any onboarding) -->
+    <PreferencesDialog :open="showPreferencesDialog" @confirm="handlePreferencesConfirmed" />
+
     <!-- Grade Selection Dialog (for students without grade set) -->
     <AlertDialog :open="showGradeDialog">
       <AlertDialogContent
@@ -194,16 +226,19 @@ const greeting = computed(() => {
         @pointer-down-outside.prevent
       >
         <AlertDialogHeader>
-          <AlertDialogTitle>Set Your Grade Level</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.shared.layout.gradeDialog.title }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Please select your current grade level to personalize your learning experience. This
-            helps us show you the right content.
+            {{ t.shared.layout.gradeDialog.description }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div class="py-4">
-          <Select v-model="selectedGradeId" :disabled="curriculumStore.isLoading || isSaving">
+          <Select
+            :key="languageStore.language"
+            v-model="selectedGradeId"
+            :disabled="curriculumStore.isLoading || isSaving"
+          >
             <SelectTrigger class="w-full">
-              <SelectValue placeholder="Select your grade" />
+              <SelectValue :placeholder="t.shared.layout.gradeDialog.selectPlaceholder" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem
@@ -219,7 +254,7 @@ const greeting = computed(() => {
         <AlertDialogFooter>
           <Button :disabled="!selectedGradeId || isSaving" @click="handleSaveGrade">
             <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            Continue
+            {{ t.shared.layout.gradeDialog.continueButton }}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -229,14 +264,16 @@ const greeting = computed(() => {
     <AlertDialog :open="showWelcomeDialog">
       <AlertDialogContent class="sm:max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Welcome to Clavis!</AlertDialogTitle>
+          <AlertDialogTitle>{{ t.shared.layout.welcomeTourDialog.title }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Looks like this is your first time here. Would you like a quick tour of the app?
+            {{ t.shared.layout.welcomeTourDialog.description }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <Button variant="outline" @click="skipTour">Skip</Button>
-          <Button @click="startTour">Start Tour</Button>
+          <Button variant="outline" @click="skipTour">{{
+            t.shared.layout.welcomeTourDialog.skip
+          }}</Button>
+          <Button @click="startTour">{{ t.shared.layout.welcomeTourDialog.startTour }}</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

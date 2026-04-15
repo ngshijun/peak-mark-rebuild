@@ -2,6 +2,7 @@ import { ref, onScopeDispose } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePetsStore, type Pet, type PetRarity } from '@/stores/pets'
 import { toast } from 'vue-sonner'
+import { useLanguageStore } from '@/stores/language'
 
 export const SINGLE_PULL_COST = 100
 export const MULTI_PULL_COST = 900 // 10 pulls for price of 9
@@ -20,6 +21,7 @@ const rarityColors: Record<PetRarity, string> = {
 export function useGachaPull() {
   const authStore = useAuthStore()
   const petsStore = usePetsStore()
+  const languageStore = useLanguageStore()
 
   const timeouts = new Set<ReturnType<typeof setTimeout>>()
 
@@ -62,7 +64,7 @@ export function useGachaPull() {
 
     if (error || !petId) {
       isRolling.value = false
-      toast.error(error ?? 'Pull failed')
+      toast.error(error ?? languageStore.t.shared.toasts.pullFailed)
       return
     }
 
@@ -95,7 +97,7 @@ export function useGachaPull() {
 
     if (error || !petId) {
       isRolling.value = false
-      toast.error(error ?? 'Pull failed')
+      toast.error(error ?? languageStore.t.shared.toasts.pullFailed)
       return
     }
 
@@ -129,7 +131,7 @@ export function useGachaPull() {
 
     if (error || !petIds) {
       isRolling.value = false
-      toast.error(error ?? 'Pull failed')
+      toast.error(error ?? languageStore.t.shared.toasts.pullFailed)
       return
     }
 

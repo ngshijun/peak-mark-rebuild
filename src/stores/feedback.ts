@@ -49,7 +49,7 @@ export const useFeedbackStore = defineStore('feedback', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) {
-        const message = handleError(fetchError, 'Failed to fetch feedbacks.')
+        const message = handleError(fetchError, 'failedFetchFeedbacks')
         error.value = message
         return { error: message }
       }
@@ -78,7 +78,7 @@ export const useFeedbackStore = defineStore('feedback', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch feedbacks.')
+      const message = handleError(err, 'failedFetchFeedbacks')
       error.value = message
       return { error: message }
     } finally {
@@ -92,7 +92,7 @@ export const useFeedbackStore = defineStore('feedback', () => {
       const { error: deleteError } = await supabase.from('question_feedback').delete().eq('id', id)
 
       if (deleteError) {
-        return { error: handleError(deleteError, 'Failed to delete feedback.') }
+        return { error: handleError(deleteError, 'failedDeleteFeedback') }
       }
 
       // Remove from local state
@@ -103,7 +103,7 @@ export const useFeedbackStore = defineStore('feedback', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to delete feedback.')
+      const message = handleError(err, 'failedDeleteFeedback')
       return { error: message }
     }
   }
@@ -124,12 +124,12 @@ export const useFeedbackStore = defineStore('feedback', () => {
       })
 
       if (insertError) {
-        return { error: handleError(insertError, 'Failed to submit feedback.') }
+        return { error: handleError(insertError, 'failedSubmitFeedback') }
       }
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to submit feedback.')
+      const message = handleError(err, 'failedSubmitFeedback')
       return { error: message }
     }
   }

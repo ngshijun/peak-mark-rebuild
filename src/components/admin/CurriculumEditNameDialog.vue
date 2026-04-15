@@ -19,6 +19,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   open: boolean
@@ -51,7 +54,7 @@ watch(
 async function handleSave() {
   const trimmedName = nameValue.value.trim()
   if (!trimmedName) {
-    toast.error('Name cannot be empty')
+    toast.error(t.value.shared.curriculumEditNameDialog.toastEmptyName)
     return
   }
 
@@ -75,7 +78,7 @@ async function handleSave() {
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success('Name updated successfully')
+      toast.success(t.value.shared.curriculumEditNameDialog.toastUpdated)
       emit('update:open', false)
     }
   } finally {
@@ -88,8 +91,10 @@ async function handleSave() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Edit {{ config.label }} Name</DialogTitle>
-        <DialogDescription> Update the name for "{{ currentName }}" </DialogDescription>
+        <DialogTitle>{{ t.shared.curriculumEditNameDialog.title(config.label) }}</DialogTitle>
+        <DialogDescription>{{
+          t.shared.curriculumEditNameDialog.description(currentName)
+        }}</DialogDescription>
       </DialogHeader>
 
       <div class="space-y-4 py-4">
@@ -107,11 +112,11 @@ async function handleSave() {
 
       <DialogFooter>
         <Button variant="outline" :disabled="isSaving" @click="emit('update:open', false)">
-          Cancel
+          {{ t.shared.curriculumEditNameDialog.cancel }}
         </Button>
         <Button :disabled="isSaving || !nameValue.trim()" @click="handleSave">
           <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-          Save
+          {{ t.shared.curriculumEditNameDialog.save }}
         </Button>
       </DialogFooter>
     </DialogContent>

@@ -249,7 +249,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       // Check for errors
       if (usersResult.error) {
-        const message = handleError(usersResult.error, 'Failed to fetch dashboard stats.')
+        const message = handleError(usersResult.error, 'failedFetchDashboardStats')
         error.value = message
         return { error: message }
       }
@@ -379,7 +379,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch dashboard stats.')
+      const message = handleError(err, 'failedFetchDashboardStats')
       error.value = message
       return { error: message }
     } finally {

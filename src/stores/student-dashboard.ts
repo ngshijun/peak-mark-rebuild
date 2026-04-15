@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
 import type { Database } from '@/types/database.types'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { toMYTDateString } from '@/lib/date'
 
 export type MoodType = Database['public']['Enums']['mood_type']
@@ -39,7 +39,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
   async function fetchTodayStatus(): Promise<{ error: string | null }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     isLoading.value = true
@@ -56,7 +56,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
         .maybeSingle()
 
       if (fetchError) {
-        const message = handleError(fetchError, 'Failed to fetch daily status.')
+        const message = handleError(fetchError, 'failedFetchDailyStatus')
         error.value = message
         return { error: message }
       }
@@ -86,7 +86,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
           .single()
 
         if (insertError) {
-          const message = handleError(insertError, 'Failed to fetch daily status.')
+          const message = handleError(insertError, 'failedFetchDailyStatus')
           error.value = message
           return { error: message }
         }
@@ -116,7 +116,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch daily status.')
+      const message = handleError(err, 'failedFetchDailyStatus')
       error.value = message
       return { error: message }
     } finally {
@@ -134,7 +134,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
   async function setMood(mood: MoodType): Promise<{ error: string | null }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     if (!todayStatus.value) {
@@ -142,7 +142,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
 
     if (!todayStatus.value) {
-      return { error: 'Could not create daily status' }
+      return { error: errorMessages().couldNotCreateDailyStatus }
     }
 
     try {
@@ -152,13 +152,13 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
         .eq('id', todayStatus.value.id)
 
       if (updateError) {
-        return { error: handleError(updateError, 'Failed to set mood.') }
+        return { error: handleError(updateError, 'failedSetMood') }
       }
 
       todayStatus.value.mood = mood
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to set mood.')
+      const message = handleError(err, 'failedSetMood')
       return { error: message }
     }
   }
@@ -167,7 +167,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
   async function recordSpinReward(reward: number): Promise<{ error: string | null }> {
     const studentId = authStore.user?.id
     if (!studentId) {
-      return { error: 'Not logged in' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     if (!todayStatus.value) {
@@ -175,11 +175,11 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
     }
 
     if (!todayStatus.value) {
-      return { error: 'Could not create daily status' }
+      return { error: errorMessages().couldNotCreateDailyStatus }
     }
 
     if (todayStatus.value.hasSpun) {
-      return { error: 'Already spun today' }
+      return { error: errorMessages().alreadySpunToday }
     }
 
     try {
@@ -191,7 +191,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
       })
 
       if (rpcError) {
-        return { error: handleError(rpcError, 'Failed to record spin.') }
+        return { error: handleError(rpcError, 'failedRecordSpin') }
       }
 
       // Update local state
@@ -203,7 +203,7 @@ export const useStudentDashboardStore = defineStore('studentDashboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to record spin.')
+      const message = handleError(err, 'failedRecordSpin')
       return { error: message }
     }
   }

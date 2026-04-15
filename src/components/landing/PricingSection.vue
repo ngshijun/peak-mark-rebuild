@@ -15,15 +15,15 @@ const popularIndex = 2 // Pro plan
   <section class="border-t bg-landing-band py-20">
     <div class="container mx-auto px-4">
       <div class="mx-auto mb-12 max-w-2xl text-center">
-        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.pricing.title }}</h2>
+        <h2 class="mb-4 text-3xl font-bold md:text-4xl">{{ t.landing.pricing.title }}</h2>
         <p class="text-lg text-muted-foreground">
-          {{ t.pricing.subtitle }}
+          {{ t.landing.pricing.subtitle }}
         </p>
       </div>
 
       <div class="grid gap-6 md:grid-cols-3">
         <Card
-          v-for="(plan, index) in t.pricing.plans"
+          v-for="(plan, index) in t.landing.pricing.plans"
           :key="index"
           :class="[
             'relative flex flex-col bg-landing-band-alt',
@@ -31,7 +31,7 @@ const popularIndex = 2 // Pro plan
           ]"
         >
           <Badge v-if="index === popularIndex" class="absolute -top-3 left-1/2 -translate-x-1/2">
-            {{ t.pricing.mostPopular }}
+            {{ t.landing.pricing.mostPopular }}
           </Badge>
           <CardHeader>
             <CardTitle>{{ plan.name }}</CardTitle>
@@ -46,7 +46,7 @@ const popularIndex = 2 // Pro plan
                 <span
                   class="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground"
                 >
-                  {{ t.pricing.save }}{{ plan.savePercent }}
+                  {{ t.landing.pricing.save }}{{ plan.savePercent }}
                 </span>
               </div>
               <span class="text-3xl font-bold">{{ plan.price }}</span>
@@ -68,7 +68,7 @@ const popularIndex = 2 // Pro plan
               ]"
               as-child
             >
-              <RouterLink to="/signup">{{ t.pricing.getStarted }}</RouterLink>
+              <RouterLink to="/signup">{{ t.landing.pricing.getStarted }}</RouterLink>
             </Button>
           </CardContent>
         </Card>

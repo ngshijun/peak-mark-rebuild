@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { toMYTDateString, mytDateToUTCDate, utcDateToString } from '@/lib/date'
 import { useAuthStore } from './auth'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { computeLevel, XP_PER_LEVEL } from '@/lib/xp'
 
 // Cache TTL for engagement data (re-fetch when navigating back after this period)
@@ -50,6 +50,7 @@ export interface StudentSubscriptionDetail {
   cancelAtPeriodEnd: boolean
   scheduledTier: string | null
   scheduledChangeDate: string | null
+  stripeSubscriptionId: string | null
   paymentHistory: PaymentHistoryEntry[]
 }
 
@@ -76,7 +77,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
    */
   async function fetchStudentEngagement(studentId: string): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isAdmin) {
-      return { error: 'Not authenticated as admin' }
+      return { error: errorMessages().notAuthenticatedAsAdmin }
     }
 
     // Skip if cache is still valid
@@ -115,7 +116,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
           supabase
             .from('child_subscriptions')
             .select(
-              'tier, is_active, stripe_status, start_date, current_period_start, current_period_end, next_billing_date, cancel_at_period_end, scheduled_tier, scheduled_change_date',
+              'tier, is_active, stripe_status, start_date, current_period_start, current_period_end, next_billing_date, cancel_at_period_end, scheduled_tier, scheduled_change_date, stripe_subscription_id',
             )
             .eq('student_id', studentId)
             .limit(1)
@@ -192,6 +193,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
             cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
             scheduledTier: sub.scheduled_tier,
             scheduledChangeDate: sub.scheduled_change_date,
+            stripeSubscriptionId: sub.stripe_subscription_id,
             paymentHistory,
           }
         : null
@@ -214,7 +216,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch engagement data.')
+      const message = handleError(err, 'failedFetchEngagement')
       return { error: message }
     } finally {
       isLoadingEngagement.value = false
@@ -230,7 +232,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
     month: number,
   ): Promise<{ statuses: MoodEntry[]; error: string | null }> {
     if (!authStore.user || !authStore.isAdmin) {
-      return { statuses: [], error: 'Not authenticated as admin' }
+      return { statuses: [], error: errorMessages().notAuthenticatedAsAdmin }
     }
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`
@@ -247,7 +249,10 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
         .order('date', { ascending: true })
 
       if (fetchError) {
-        return { statuses: [], error: handleError(fetchError, 'Failed to fetch daily statuses.') }
+        return {
+          statuses: [],
+          error: handleError(fetchError, 'failedFetchDailyStatuses'),
+        }
       }
 
       const statuses: MoodEntry[] = (data ?? []).map((d) => ({
@@ -258,7 +263,7 @@ export const useAdminStudentEngagementStore = defineStore('adminStudentEngagemen
 
       return { statuses, error: null }
     } catch (err) {
-      return { statuses: [], error: handleError(err, 'Failed to fetch daily statuses.') }
+      return { statuses: [], error: handleError(err, 'failedFetchDailyStatuses') }
     }
   }
 

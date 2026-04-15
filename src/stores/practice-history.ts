@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { type Question, rowToQuestion } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
 import {
   type DateRangeFilter,
@@ -121,7 +121,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
    */
   async function fetchSessionHistory(force = false): Promise<{ error: string | null }> {
     if (!authStore.user) {
-      return { error: 'Not authenticated' }
+      return { error: errorMessages().notAuthenticated }
     }
 
     // Skip if cache is still valid (new sessions are added in-memory via unshift)
@@ -151,7 +151,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) {
-        const msg = handleError(fetchError, 'Failed to fetch session history.')
+        const msg = handleError(fetchError, 'failedFetchSessionHistory')
         error.value = msg
         return { error: msg }
       }
@@ -164,7 +164,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
       sessionHistoryLastFetched.value = Date.now()
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch session history.')
+      const message = handleError(err, 'failedFetchSessionHistory')
       error.value = message
       return { error: message }
     } finally {
@@ -248,7 +248,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
     try {
       // Authentication check
       if (!authStore.user) {
-        return { session: null, error: 'Authentication required' }
+        return { session: null, error: errorMessages().notAuthenticated }
       }
 
       // Ensure curriculum is loaded (uses cache)
@@ -269,20 +269,20 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
       if (sessionResult.error) {
         return {
           session: null,
-          error: handleError(sessionResult.error, 'Failed to fetch session.'),
+          error: handleError(sessionResult.error, 'failedFetchSession'),
         }
       }
       if (answersResult.error) {
         return {
           session: null,
-          error: handleError(answersResult.error, 'Failed to fetch session.'),
+          error: handleError(answersResult.error, 'failedFetchSession'),
         }
       }
 
       // SECURITY: Verify session ownership to prevent IDOR attacks
       // This is defense-in-depth alongside RLS policies
       if (sessionResult.data.student_id !== authStore.user.id) {
-        return { session: null, error: 'Unauthorized: You do not have access to this session' }
+        return { session: null, error: errorMessages().unauthorizedSessionAccess }
       }
 
       const session = rowToSession(sessionResult.data)
@@ -334,7 +334,7 @@ export const usePracticeHistoryStore = defineStore('practice-history', () => {
 
       return { session, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch session.')
+      const message = handleError(err, 'failedFetchSession')
       return { session: null, error: message }
     }
   }

@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress'
 
 import { supabase } from '@/lib/supabaseClient'
 import { computeLevel } from '@/lib/xp'
-import { rarityConfig } from '@/stores/pets'
+import { rarityConfig, getRarityLabel } from '@/stores/pets'
 import { CLOSENESS_LABELS, CLOSENESS_THRESHOLDS } from '@/stores/friends'
 import { useStudentProfileDialog } from '@/composables/useStudentProfileDialog'
 import { getInitials, getScoreBarColor, getScoreTextColor, MEDAL_EMOJIS } from '@/lib/utils'
@@ -16,6 +16,9 @@ import { formatDate, formatRelativeDate } from '@/lib/date'
 import { Loader2, Star, PawPrint, Trophy, Flame, CalendarHeart, Handshake } from 'lucide-vue-next'
 import fireGif from '@/assets/icons/fire.gif'
 import type { Friend } from '@/stores/friends'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -84,10 +87,14 @@ const xpToNextLevel = computed(() => {
                 </Badge>
                 <Badge variant="secondary" class="gap-1">
                   <CalendarHeart class="size-3" />
-                  Friends since {{ formatDate(friend.friendSince) }}
+                  {{ t.shared.friendProfileDialog.friendsSince(formatDate(friend.friendSince)) }}
                 </Badge>
                 <Badge variant="secondary" class="gap-1">
-                  Active {{ formatRelativeDate(friend.lastActive) }}
+                  {{
+                    t.shared.friendProfileDialog.active(
+                      formatRelativeDate(friend.lastActive, t.shared.relativeDate),
+                    )
+                  }}
                 </Badge>
               </div>
             </div>
@@ -105,7 +112,9 @@ const xpToNextLevel = computed(() => {
             class="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 p-4 dark:border-purple-900/50 dark:from-purple-950/30 dark:to-fuchsia-950/30"
           >
             <div class="mb-3 flex items-center justify-between">
-              <p class="text-xs font-medium text-muted-foreground">Closeness</p>
+              <p class="text-xs font-medium text-muted-foreground">
+                {{ t.shared.friendProfileDialog.closeness }}
+              </p>
               <Handshake class="size-4 text-muted-foreground" />
             </div>
             <div class="flex items-baseline gap-2">
@@ -115,40 +124,43 @@ const xpToNextLevel = computed(() => {
             <div class="mt-3">
               <Progress :model-value="closenessProgress" class="h-2" />
               <p v-if="nextLevelLabel" class="mt-1 text-xs text-muted-foreground">
-                Send coins to each other for {{ xpToNextLevel }} more days to reach
-                {{ nextLevelLabel }}
+                {{ t.shared.friendProfileDialog.sendCoinsToGrow(xpToNextLevel, nextLevelLabel) }}
               </p>
-              <p v-else class="mt-1 text-xs text-muted-foreground">Max level reached!</p>
+              <p v-else class="mt-1 text-xs text-muted-foreground">
+                {{ t.shared.friendProfileDialog.maxLevelReached }}
+              </p>
             </div>
             <p class="mt-3 text-sm">
               <span
                 v-if="friend.sentToday && friend.receivedToday"
                 class="font-medium text-green-600 dark:text-green-400"
               >
-                You both sent coins today — streak grows!
+                {{ t.shared.friendProfileDialog.bothSentCoins }}
               </span>
               <span v-else-if="friend.sentToday" class="text-muted-foreground">
-                You sent coins — waiting for {{ friend.name }}
+                {{ t.shared.friendProfileDialog.youSentCoins(friend.name) }}
               </span>
               <span v-else-if="friend.receivedToday" class="text-muted-foreground">
-                {{ friend.name }} sent coins — send back to grow your streak!
+                {{ t.shared.friendProfileDialog.theysentCoins(friend.name) }}
               </span>
-              <span v-else class="text-muted-foreground"> Neither of you sent coins today </span>
+              <span v-else class="text-muted-foreground">
+                {{ t.shared.friendProfileDialog.neitherSent }}
+              </span>
             </p>
           </div>
 
           <!-- Stats Row (matches leaderboard dialog) -->
           <div class="grid grid-cols-3 gap-3">
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">Level</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.friendProfileDialog.level }}</p>
               <p class="text-xl font-bold">{{ friendLevel }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">XP</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.friendProfileDialog.xp }}</p>
               <p class="text-xl font-bold">{{ friendXp.toLocaleString() }}</p>
             </div>
             <div class="rounded-lg border bg-muted/30 p-3 text-center">
-              <p class="text-xs text-muted-foreground">Coins</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.friendProfileDialog.coins }}</p>
               <p class="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {{ profile?.coins.toLocaleString() ?? '-' }}
               </p>
@@ -192,7 +204,7 @@ const xpToNextLevel = computed(() => {
                       :class="rarityConfig[pet.rarity].color"
                       class="text-xs"
                     >
-                      {{ rarityConfig[pet.rarity].label }}
+                      {{ getRarityLabel(pet.rarity) }}
                     </Badge>
                     <Badge variant="secondary" class="text-xs">
                       <Star class="mr-0.5 size-2.5" />
@@ -211,7 +223,9 @@ const xpToNextLevel = computed(() => {
               >
                 <PawPrint class="size-12 text-purple-400" />
               </div>
-              <p class="text-lg font-semibold text-muted-foreground">No pet selected</p>
+              <p class="text-lg font-semibold text-muted-foreground">
+                {{ t.shared.friendProfileDialog.noPetSelected }}
+              </p>
             </div>
 
             <!-- Best Subjects (top right, spans 2 cols) -->
@@ -219,7 +233,9 @@ const xpToNextLevel = computed(() => {
               class="col-span-2 rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 dark:border-sky-900/50 dark:from-sky-950/30 dark:to-blue-950/30"
             >
               <div class="mb-5 flex items-center justify-between">
-                <p class="text-xs font-medium text-muted-foreground">Top Subjects</p>
+                <p class="text-xs font-medium text-muted-foreground">
+                  {{ t.shared.friendProfileDialog.topSubjects }}
+                </p>
                 <Trophy class="size-4 text-muted-foreground" />
               </div>
               <div class="space-y-2">
@@ -252,7 +268,9 @@ const xpToNextLevel = computed(() => {
                   </template>
                   <template v-else>
                     <div class="min-w-0 flex-1">
-                      <p class="text-sm text-muted-foreground/60">Not yet unlocked</p>
+                      <p class="text-sm text-muted-foreground/60">
+                        {{ t.shared.friendProfileDialog.notYetUnlocked }}
+                      </p>
                       <div
                         class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/30"
                       />
@@ -267,7 +285,9 @@ const xpToNextLevel = computed(() => {
               class="col-span-2 rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 dark:border-orange-900/50 dark:from-orange-950/30 dark:to-amber-950/30"
             >
               <div class="mb-5 flex items-center justify-between">
-                <p class="text-xs font-medium text-muted-foreground">Practice Streak</p>
+                <p class="text-xs font-medium text-muted-foreground">
+                  {{ t.shared.friendProfileDialog.practiceStreak }}
+                </p>
                 <Flame class="size-4 text-muted-foreground" />
               </div>
               <div class="flex items-center gap-3">
@@ -283,7 +303,9 @@ const xpToNextLevel = computed(() => {
                 <div>
                   <p class="text-2xl font-bold">
                     {{ weeklyActivity.filter((d) => d.active).length }}
-                    <span class="text-sm font-normal text-muted-foreground">days this week</span>
+                    <span class="text-sm font-normal text-muted-foreground">{{
+                      t.shared.friendProfileDialog.daysThisWeek
+                    }}</span>
                   </p>
                 </div>
               </div>
@@ -324,7 +346,7 @@ const xpToNextLevel = computed(() => {
 
           <!-- Member Since -->
           <p v-if="profile?.memberSince" class="text-xs text-muted-foreground">
-            Member since {{ formatDate(profile.memberSince) }}
+            {{ t.shared.friendProfileDialog.memberSince(formatDate(profile.memberSince)) }}
           </p>
         </div>
       </template>

@@ -1,70 +1,25 @@
 import type { DriveStep } from 'driver.js'
+import { useLanguageStore } from '@/stores/language'
 
 export function getParentTourSteps(): DriveStep[] {
+  const { t } = useLanguageStore()
+  const steps = t.shared.tours.mainTour.parent
+
   return [
     {
       element: '[data-tour="sidebar-nav"]',
       popover: {
-        title: 'Navigation Menu',
-        description: 'This is your navigation menu. Use it to access all the features of the app.',
+        title: steps.step1.title,
+        description: steps.step1.description,
         side: 'right',
         align: 'start',
       },
     },
     {
-      element: 'a[href="/parent/announcements"]',
-      popover: {
-        title: 'Announcements',
-        description: 'Stay updated with the latest news and announcements.',
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
-      element: 'a[href="/parent/children"]',
-      popover: {
-        title: 'Children',
-        description:
-          "Link and manage your children here. Send an invitation code to connect with your child's account.",
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
-      element: 'a[href="/parent/statistics"]',
-      popover: {
-        title: 'Statistics',
-        description:
-          "Track your children's learning progress, accuracy rates, and practice history.",
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
-      element: 'a[href="/parent/subscription"]',
-      popover: {
-        title: 'Subscription',
-        description:
-          'Manage your subscription plan here. Upgrade to unlock more daily practice sessions for your children.',
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
-      element: 'a[href="/parent/contact"]',
-      popover: {
-        title: 'Contact Us',
-        description: 'Have questions or need help? Reach out to us anytime.',
-        side: 'right',
-        align: 'center',
-      },
-    },
-    {
       element: '[data-tour="parent-child-selector"]',
       popover: {
-        title: 'Switch Children',
-        description:
-          'If you have multiple children linked, use this dropdown to switch between them.',
+        title: steps.step2.title,
+        description: steps.step2.description,
         side: 'bottom',
         align: 'end',
       },
@@ -72,8 +27,8 @@ export function getParentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="parent-dashboard-overview"]',
       popover: {
-        title: 'Daily Status & Sessions',
-        description: "See your child's daily mood and practice session history at a glance.",
+        title: steps.step3.title,
+        description: steps.step3.description,
         side: 'top',
         align: 'center',
       },
@@ -81,9 +36,8 @@ export function getParentTourSteps(): DriveStep[] {
     {
       element: '[data-tour="sidebar-profile"]',
       popover: {
-        title: 'Your Profile',
-        description:
-          'Access your profile here. You can restart this tour anytime from your Profile page.',
+        title: steps.step4.title,
+        description: steps.step4.description,
         side: 'right',
         align: 'end',
       },

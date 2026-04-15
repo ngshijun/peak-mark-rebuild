@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useT } from '@/composables/useT'
 import { useForm, Field as VeeField } from 'vee-validate'
 import { useAuthStore } from '@/stores/auth'
 import { useSubscriptionStore } from '@/stores/subscription'
@@ -19,6 +20,7 @@ const subscriptionStore = useSubscriptionStore()
 const childLinkStore = useChildLinkStore()
 
 const isSubmitting = ref(false)
+const t = useT()
 
 // Ensure subscription data is loaded for priority flag (guard is non-blocking)
 onMounted(async () => {
@@ -60,10 +62,10 @@ const onSubmit = handleSubmit(async (formValues) => {
       },
     })
     if (error) throw error
-    toast.success("Message sent successfully! We'll get back to you as soon as possible.")
+    toast.success(t.value.parent.contact.toastSuccess)
     resetForm()
   } catch {
-    toast.error('Failed to send message. Please try again later.')
+    toast.error(t.value.parent.contact.toastError)
   } finally {
     isSubmitting.value = false
   }
@@ -73,14 +75,14 @@ const onSubmit = handleSubmit(async (formValues) => {
 <template>
   <div class="space-y-6 p-6">
     <div>
-      <h1 class="text-2xl font-bold">Contact Us</h1>
-      <p class="text-muted-foreground">Have a question or feedback? We'd love to hear from you.</p>
+      <h1 class="text-2xl font-bold">{{ t.parent.contact.title }}</h1>
+      <p class="text-muted-foreground">{{ t.parent.contact.subtitle }}</p>
     </div>
 
     <Card>
       <CardHeader>
-        <CardTitle>Send us a message</CardTitle>
-        <CardDescription>We'll get back to you as soon as possible.</CardDescription>
+        <CardTitle>{{ t.parent.contact.cardTitle }}</CardTitle>
+        <CardDescription>{{ t.parent.contact.cardDescription }}</CardDescription>
       </CardHeader>
       <CardContent>
         <form class="space-y-4" @submit="onSubmit">
@@ -94,12 +96,12 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-subject">
-                Subject <span class="text-destructive">*</span>
+                {{ t.parent.contact.subjectLabel }} <span class="text-destructive">*</span>
               </FieldLabel>
               <Input
                 id="contact-subject"
                 type="text"
-                placeholder="What is this about?"
+                :placeholder="t.parent.contact.subjectPlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 v-bind="field"
@@ -118,11 +120,11 @@ const onSubmit = handleSubmit(async (formValues) => {
           >
             <Field :data-invalid="!!errors.length">
               <FieldLabel for="contact-message">
-                Message <span class="text-destructive">*</span>
+                {{ t.parent.contact.messageLabel }} <span class="text-destructive">*</span>
               </FieldLabel>
               <Textarea
                 id="contact-message"
-                placeholder="Tell us what's on your mind..."
+                :placeholder="t.parent.contact.messagePlaceholder"
                 :disabled="isSubmitting"
                 :aria-invalid="!!errors.length"
                 class="min-h-32"
@@ -135,7 +137,7 @@ const onSubmit = handleSubmit(async (formValues) => {
           <Button type="submit" class="w-full" :disabled="isSubmitting">
             <Loader2 v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
             <Send v-else class="mr-2 size-4" />
-            {{ isSubmitting ? 'Sending...' : 'Send Message' }}
+            {{ isSubmitting ? t.parent.contact.sending : t.parent.contact.sendMessage }}
           </Button>
         </form>
       </CardContent>

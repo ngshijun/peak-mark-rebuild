@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { Field as VeeField } from 'vee-validate'
+import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
+
+const t = useT()
+const languageStore = useLanguageStore()
 import { useCurriculumStore } from '@/stores/curriculum'
 import type { useQuestionForm } from '@/composables/useQuestionForm'
 import { ImagePlus, X } from 'lucide-vue-next'
@@ -43,8 +48,12 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <div class="grid grid-cols-2 gap-4">
     <VeeField v-slot="{ handleChange, value }" name="type">
       <Field>
-        <FieldLabel> Question Type <span class="text-destructive">*</span> </FieldLabel>
+        <FieldLabel>
+          {{ t.shared.questionFormFields.questionTypeLabel }}
+          <span class="text-destructive">*</span>
+        </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="f.isSaving.value"
           @update:model-value="handleChange"
@@ -53,9 +62,15 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="mcq">Multiple Choice (Single Answer)</SelectItem>
-            <SelectItem value="mrq">Multiple Response (Multiple Answers)</SelectItem>
-            <SelectItem value="short_answer">Short Answer</SelectItem>
+            <SelectItem value="mcq">{{
+              t.shared.questionFormFields.multipleChoiceSingle
+            }}</SelectItem>
+            <SelectItem value="mrq">{{
+              t.shared.questionFormFields.multipleResponseMultiple
+            }}</SelectItem>
+            <SelectItem value="short_answer">{{
+              t.shared.questionFormFields.shortAnswerType
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </Field>
@@ -63,8 +78,11 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
 
     <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="gradeLevelId">
       <Field :data-invalid="!!fieldErrors.length">
-        <FieldLabel> Grade Level <span class="text-destructive">*</span> </FieldLabel>
+        <FieldLabel>
+          {{ t.shared.questionFormFields.gradeLevelLabel }} <span class="text-destructive">*</span>
+        </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="f.isSaving.value"
           @update:model-value="
@@ -76,7 +94,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           "
         >
           <SelectTrigger class="w-full" :class="{ 'border-destructive': !!fieldErrors.length }">
-            <SelectValue placeholder="Select grade level" />
+            <SelectValue :placeholder="t.shared.questionFormFields.gradeLevelPlaceholder" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -97,8 +115,11 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <div class="grid grid-cols-3 gap-4">
     <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="subjectId">
       <Field :data-invalid="!!fieldErrors.length">
-        <FieldLabel> Subject <span class="text-destructive">*</span> </FieldLabel>
+        <FieldLabel>
+          {{ t.shared.questionFormFields.subjectLabel }} <span class="text-destructive">*</span>
+        </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="!f.values.gradeLevelId || f.isSaving.value"
           @update:model-value="
@@ -110,7 +131,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           "
         >
           <SelectTrigger class="w-full" :class="{ 'border-destructive': !!fieldErrors.length }">
-            <SelectValue placeholder="Select subject" />
+            <SelectValue :placeholder="t.shared.questionFormFields.subjectPlaceholder" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -128,8 +149,11 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
 
     <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="topicId">
       <Field :data-invalid="!!fieldErrors.length">
-        <FieldLabel> Topic <span class="text-destructive">*</span> </FieldLabel>
+        <FieldLabel>
+          {{ t.shared.questionFormFields.topicLabel }} <span class="text-destructive">*</span>
+        </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="!f.values.subjectId || f.isSaving.value"
           @update:model-value="
@@ -140,7 +164,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
           "
         >
           <SelectTrigger class="w-full" :class="{ 'border-destructive': !!fieldErrors.length }">
-            <SelectValue placeholder="Select topic" />
+            <SelectValue :placeholder="t.shared.questionFormFields.topicPlaceholder" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem v-for="topic in f.availableTopics.value" :key="topic.id" :value="topic.id">
@@ -154,14 +178,17 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
 
     <VeeField v-slot="{ handleChange, value, errors: fieldErrors }" name="subTopicId">
       <Field :data-invalid="!!fieldErrors.length">
-        <FieldLabel> Sub-Topic <span class="text-destructive">*</span> </FieldLabel>
+        <FieldLabel>
+          {{ t.shared.questionFormFields.subTopicLabel }} <span class="text-destructive">*</span>
+        </FieldLabel>
         <Select
+          :key="languageStore.language"
           :model-value="value"
           :disabled="!f.values.topicId || f.isSaving.value"
           @update:model-value="handleChange"
         >
           <SelectTrigger class="w-full" :class="{ 'border-destructive': !!fieldErrors.length }">
-            <SelectValue placeholder="Select sub-topic" />
+            <SelectValue :placeholder="t.shared.questionFormFields.subTopicPlaceholder" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -181,12 +208,14 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <!-- Question -->
   <VeeField v-slot="{ value, handleChange, handleBlur, errors: fieldErrors }" name="question">
     <Field :data-invalid="!!fieldErrors.length">
-      <FieldLabel> Question <span class="text-destructive">*</span> </FieldLabel>
+      <FieldLabel>
+        {{ t.shared.questionFormFields.questionLabel }} <span class="text-destructive">*</span>
+      </FieldLabel>
       <Textarea
         :model-value="value"
         @update:model-value="handleChange"
         @blur="handleBlur"
-        placeholder="Enter the question"
+        :placeholder="t.shared.questionFormFields.questionPlaceholder"
         rows="3"
         :disabled="f.isSaving.value"
         :aria-invalid="!!fieldErrors.length"
@@ -198,7 +227,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
 
   <!-- Question Image -->
   <Field>
-    <FieldLabel>Question Image (Optional)</FieldLabel>
+    <FieldLabel>{{ t.shared.questionFormFields.questionImageLabel }}</FieldLabel>
     <div v-if="f.questionImage.value.displayUrl" class="relative inline-block">
       <img
         :src="f.questionImage.value.displayUrl"
@@ -232,7 +261,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
         @click="f.imageInputRef.value?.click()"
       >
         <ImagePlus class="mr-2 size-4" />
-        Add Image
+        {{ t.shared.questionFormFields.addImage }}
       </Button>
     </div>
   </Field>
@@ -241,18 +270,27 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <div v-if="f.values.type === 'mcq' || f.values.type === 'mrq'" class="space-y-3">
     <Field :data-invalid="!!f.errors.value.options">
       <FieldLabel>
-        Options <span class="text-destructive">*</span>
+        {{ t.shared.questionFormFields.optionsLabel }} <span class="text-destructive">*</span>
         <span class="ml-1 text-xs font-normal text-muted-foreground">
           ({{
-            f.values.type === 'mcq' ? 'select the correct answer' : 'select all correct answers'
+            f.values.type === 'mcq'
+              ? t.shared.questionFormFields.mcqHint
+              : t.shared.questionFormFields.mrqHint
           }})
         </span>
       </FieldLabel>
       <p class="text-xs text-muted-foreground">
-        Each option can have text, an image, or both.
-        {{ f.values.type === 'mrq' ? 'Click to toggle correct answers.' : '' }}
+        {{ t.shared.questionFormFields.optionsDesc }}
+        {{ f.values.type === 'mrq' ? t.shared.questionFormFields.mrqToggleHint : '' }}
       </p>
-      <FieldError v-if="f.errors.value.options" :errors="[f.errors.value.options]" />
+      <FieldError
+        v-if="f.errors.value.options"
+        :errors="[
+          f.errors.value.options === 'At least 2 options must have text or an image'
+            ? t.shared.questionFormFields.optionValidation
+            : f.errors.value.options,
+        ]"
+      />
     </Field>
 
     <div v-for="option in f.values.options" :key="option.id" class="space-y-2">
@@ -274,7 +312,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
         <div class="flex-1 space-y-2">
           <Input
             :model-value="option.text ?? ''"
-            :placeholder="`Option ${option.id.toUpperCase()} text`"
+            :placeholder="t.shared.questionFormFields.optionPlaceholder(option.id.toUpperCase())"
             :disabled="f.isSaving.value"
             @update:model-value="f.updateOptionText(option.id, $event as string)"
           />
@@ -311,7 +349,7 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
               @click="f.optionImageInputRefs.value[option.id]?.click()"
             >
               <ImagePlus class="mr-1 size-3" />
-              Add Image
+              {{ t.shared.questionFormFields.addImage }}
             </Button>
           </div>
         </div>
@@ -326,12 +364,14 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
     name="answer"
   >
     <Field :data-invalid="!!fieldErrors.length">
-      <FieldLabel> Answer <span class="text-destructive">*</span> </FieldLabel>
+      <FieldLabel>
+        {{ t.shared.questionFormFields.answerLabel }} <span class="text-destructive">*</span>
+      </FieldLabel>
       <Input
         :model-value="value"
         @update:model-value="handleChange"
         @blur="handleBlur"
-        placeholder="Enter the correct answer"
+        :placeholder="t.shared.questionFormFields.answerPlaceholder"
         :disabled="f.isSaving.value"
         :aria-invalid="!!fieldErrors.length"
         :class="{ 'border-destructive': !!fieldErrors.length }"
@@ -343,12 +383,12 @@ function getOptionImageSrc(option: { id: string; imagePath: string | null }): st
   <!-- Explanation -->
   <VeeField v-slot="{ value, handleChange, handleBlur }" name="explanation">
     <Field>
-      <FieldLabel>Explanation (Optional)</FieldLabel>
+      <FieldLabel>{{ t.shared.questionFormFields.explanationLabel }}</FieldLabel>
       <Textarea
         :model-value="value"
         @update:model-value="handleChange"
         @blur="handleBlur"
-        placeholder="Explain the answer"
+        :placeholder="t.shared.questionFormFields.explanationPlaceholder"
         rows="2"
         :disabled="f.isSaving.value"
       />

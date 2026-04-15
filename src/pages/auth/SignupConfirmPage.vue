@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSeoMeta } from '@unhead/vue'
 import { useAuthStore } from '@/stores/auth'
+import { useT } from '@/composables/useT'
 import logoSvg from '@/assets/logo.svg'
 import { ArrowLeft, Loader2, CheckCircle, Mail } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +13,7 @@ import { toast } from 'vue-sonner'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const t = useT()
 
 useSeoMeta({
   title: 'Check Your Email',
@@ -63,10 +65,10 @@ async function handleResend() {
       return
     }
 
-    toast.success('Confirmation email sent!')
+    toast.success(t.value.auth.signupConfirm.resendSuccess)
     startCooldown()
   } catch {
-    toast.error('An unexpected error occurred')
+    toast.error(t.value.auth.signupConfirm.unexpectedError)
   } finally {
     isResending.value = false
   }
@@ -78,17 +80,17 @@ async function handleResend() {
     <Button as-child variant="ghost" size="sm" class="absolute left-4 top-4">
       <RouterLink to="/">
         <ArrowLeft class="mr-2 size-4" />
-        Back to Home
+        {{ t.auth.common.backToHome }}
       </RouterLink>
     </Button>
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
         <div class="mb-1 flex items-center justify-center gap-3">
-          <img :src="logoSvg" alt="Clavis logo" class="size-10" />
+          <img :src="logoSvg" :alt="t.auth.common.logoAlt" class="size-10" />
           <span class="font-logo translate-y-1 text-3xl text-primary">Clavis</span>
         </div>
-        <CardTitle class="text-xl">Verify Your Email</CardTitle>
-        <CardDescription>Check your email</CardDescription>
+        <CardTitle class="text-xl">{{ t.auth.signupConfirm.title }}</CardTitle>
+        <CardDescription>{{ t.auth.signupConfirm.description }}</CardDescription>
       </CardHeader>
       <CardContent>
         <div class="space-y-4">
@@ -99,12 +101,11 @@ async function handleResend() {
               <CheckCircle class="size-8 text-green-600" />
             </div>
             <div class="text-center">
-              <p class="text-sm text-muted-foreground">We've sent a confirmation email to</p>
+              <p class="text-sm text-muted-foreground">{{ t.auth.signupConfirm.sentTo }}</p>
               <p class="font-medium">{{ email }}</p>
             </div>
             <p class="text-center text-sm text-muted-foreground">
-              Please check your inbox and click the link to verify your account. If you don't see
-              the email, check your spam folder. The link will expire in 1 hour.
+              {{ t.auth.signupConfirm.instructions }}
             </p>
           </div>
 
@@ -116,23 +117,25 @@ async function handleResend() {
           >
             <Loader2 v-if="isResending" class="mr-2 size-4 animate-spin" />
             <Mail v-else class="mr-2 size-4" />
-            <template v-if="isResending">Sending...</template>
-            <template v-else-if="cooldownSeconds > 0"> Resend in {{ cooldownSeconds }}s </template>
-            <template v-else>Resend Confirmation Email</template>
+            <template v-if="isResending">{{ t.auth.signupConfirm.resendingSending }}</template>
+            <template v-else-if="cooldownSeconds > 0">
+              {{ t.auth.signupConfirm.resendCooldown(cooldownSeconds) }}
+            </template>
+            <template v-else>{{ t.auth.signupConfirm.resend }}</template>
           </Button>
 
           <div class="space-y-1 text-center text-sm text-muted-foreground">
             <div>
-              Already verified?
-              <RouterLink to="/login" class="text-primary hover:underline"
-                >Back to Login</RouterLink
-              >
+              {{ t.auth.signupConfirm.alreadyVerified }}
+              <RouterLink to="/login" class="text-primary hover:underline">{{
+                t.auth.signupConfirm.backToLogin
+              }}</RouterLink>
             </div>
             <div>
-              Wrong email?
-              <RouterLink to="/signup" class="text-primary hover:underline"
-                >Sign up again</RouterLink
-              >
+              {{ t.auth.signupConfirm.wrongEmail }}
+              <RouterLink to="/signup" class="text-primary hover:underline">{{
+                t.auth.signupConfirm.signUpAgain
+              }}</RouterLink>
             </div>
           </div>
         </div>

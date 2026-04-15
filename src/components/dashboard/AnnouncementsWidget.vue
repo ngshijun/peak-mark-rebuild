@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Megaphone, ChevronRight, Pin } from 'lucide-vue-next'
-import { useAnnouncementsStore, audienceConfig, type Announcement } from '@/stores/announcements'
+import { useAnnouncementsStore, getAudienceConfig, type Announcement } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
 import { formatTimeAgoCompact } from '@/lib/date'
 import AnnouncementDetailDialog from '@/components/announcements/AnnouncementDetailDialog.vue'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const router = useRouter()
 const announcementsStore = useAnnouncementsStore()
@@ -31,12 +34,12 @@ function goToAnnouncementsPage() {
 <template>
   <Card>
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm font-medium">Unread Announcements</CardTitle>
+      <CardTitle class="text-sm font-medium">{{ t.shared.announcementsWidget.title }}</CardTitle>
       <Megaphone class="size-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
       <div v-if="announcementsStore.unreadAnnouncements.length === 0" class="py-4 text-center">
-        <p class="text-sm text-muted-foreground">No unread announcements</p>
+        <p class="text-sm text-muted-foreground">{{ t.shared.announcementsWidget.noUnread }}</p>
       </div>
 
       <div v-else class="space-y-3">
@@ -57,12 +60,12 @@ function goToAnnouncementsPage() {
                 <Badge
                   variant="outline"
                   class="text-xs"
-                  :class="audienceConfig[announcement.targetAudience].color"
+                  :class="getAudienceConfig()[announcement.targetAudience].color"
                 >
-                  {{ audienceConfig[announcement.targetAudience].label }}
+                  {{ getAudienceConfig()[announcement.targetAudience].label }}
                 </Badge>
                 <span class="text-xs text-muted-foreground">
-                  {{ formatTimeAgoCompact(announcement.createdAt) }}
+                  {{ formatTimeAgoCompact(announcement.createdAt, t.shared.timeAgoCompact) }}
                 </span>
               </div>
             </div>
@@ -71,7 +74,7 @@ function goToAnnouncementsPage() {
 
         <!-- View All button -->
         <Button variant="ghost" size="sm" class="w-full" @click="goToAnnouncementsPage">
-          View All
+          {{ t.shared.announcementsWidget.viewAll }}
           <ChevronRight class="ml-1 size-4" />
         </Button>
       </div>

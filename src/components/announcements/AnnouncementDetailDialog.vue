@@ -4,10 +4,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge'
 import { Pin } from 'lucide-vue-next'
 import type { Announcement } from '@/stores/announcements'
-import { audienceConfig, useAnnouncementsStore } from '@/stores/announcements'
+import { getAudienceConfig, useAnnouncementsStore } from '@/stores/announcements'
 import { useAuthStore } from '@/stores/auth'
 import { parseSimpleMarkdown } from '@/lib/utils'
 import { formatLongDateTime, formatLongDate } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = defineProps<{
   announcement: Announcement | null
@@ -46,10 +49,10 @@ watch(
           <Badge
             v-if="announcement"
             variant="outline"
-            :class="audienceConfig[announcement.targetAudience].color"
+            :class="getAudienceConfig()[announcement.targetAudience].color"
             class="shrink-0"
           >
-            {{ audienceConfig[announcement.targetAudience].label }}
+            {{ getAudienceConfig()[announcement.targetAudience].label }}
           </Badge>
         </div>
         <p v-if="announcement" class="text-sm text-muted-foreground">
@@ -72,10 +75,14 @@ watch(
         <!-- Expiry info -->
         <div v-if="announcement.expiresAt" class="text-sm text-muted-foreground">
           <span v-if="new Date(announcement.expiresAt) > new Date()">
-            Expires on {{ formatLongDate(announcement.expiresAt) }}
+            {{
+              t.shared.announcementDetailDialog.expiresOn(formatLongDate(announcement.expiresAt))
+            }}
           </span>
           <span v-else class="text-destructive">
-            Expired on {{ formatLongDate(announcement.expiresAt) }}
+            {{
+              t.shared.announcementDetailDialog.expiredOn(formatLongDate(announcement.expiresAt))
+            }}
           </span>
         </div>
       </div>

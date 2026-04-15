@@ -3,8 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Pin } from 'lucide-vue-next'
 import type { Announcement } from '@/stores/announcements'
-import { audienceConfig } from '@/stores/announcements'
+import { getAudienceConfig } from '@/stores/announcements'
 import { formatTimeAgo } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 defineProps<{
   announcement: Announcement
@@ -40,17 +43,17 @@ const emit = defineEmits<{
         <Badge
           v-if="!compact"
           variant="outline"
-          :class="audienceConfig[announcement.targetAudience].color"
+          :class="getAudienceConfig()[announcement.targetAudience].color"
           class="shrink-0"
         >
-          {{ audienceConfig[announcement.targetAudience].label }}
+          {{ getAudienceConfig()[announcement.targetAudience].label }}
         </Badge>
       </div>
     </CardHeader>
     <CardContent :class="compact ? 'p-3 pt-0' : ''">
       <!-- Time ago -->
       <p class="text-xs text-muted-foreground">
-        {{ formatTimeAgo(announcement.createdAt) }}
+        {{ formatTimeAgo(announcement.createdAt, t.shared.timeAgo) }}
       </p>
     </CardContent>
   </Card>

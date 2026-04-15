@@ -1,42 +1,31 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
-import { usePreferredDark } from '@vueuse/core'
+import { ref, computed } from 'vue'
 
-export type Theme = 'light' | 'dark' | 'system'
+export type Theme = 'light' | 'dark'
 
 export const useThemeStore = defineStore('theme', () => {
-  const prefersDark = usePreferredDark()
-  const theme = ref<Theme>((localStorage.getItem('theme') as Theme) || 'system')
+  const stored = localStorage.getItem('theme')
+  const theme = ref<Theme>(stored === 'dark' ? 'dark' : 'light')
 
-  const isDark = computed(() => {
-    if (theme.value === 'system') {
-      return prefersDark.value
-    }
-    return theme.value === 'dark'
-  })
+  const isDark = computed(() => theme.value === 'dark')
 
-  function applyTheme() {
-    if (isDark.value) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
+  function applyTheme(dark: boolean) {
+    document.documentElement.classList.toggle('dark', dark)
   }
 
   function setTheme(newTheme: Theme) {
+    if (theme.value === newTheme) return
     theme.value = newTheme
     localStorage.setItem('theme', newTheme)
+    applyTheme(newTheme === 'dark')
   }
 
   function toggleTheme() {
-    const themes: Theme[] = ['light', 'dark', 'system']
-    const currentIndex = themes.indexOf(theme.value)
-    const nextIndex = (currentIndex + 1) % themes.length
-    setTheme(themes[nextIndex]!)
+    setTheme(theme.value === 'light' ? 'dark' : 'light')
   }
 
-  // Apply theme on init and watch for changes
-  watch(isDark, applyTheme, { immediate: true })
+  // Apply on init
+  applyTheme(isDark.value)
 
   return {
     theme,

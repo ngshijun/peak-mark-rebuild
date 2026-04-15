@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { DateRangeFilter } from '@/lib/sessionFilters'
-import { ALL_VALUE, dateRangeOptions } from '@/lib/statisticsColumns'
+import { ALL_VALUE, getDateRangeOptions } from '@/lib/statisticsColumns'
 import {
   Select,
   SelectContent,
@@ -10,6 +11,12 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+import { useLanguageStore } from '@/stores/language'
+
+const t = useT()
+const languageStore = useLanguageStore()
+const dateRangeOptions = computed(() => getDateRangeOptions())
 
 defineProps<{
   dateRange: DateRangeFilter
@@ -40,12 +47,13 @@ const emit = defineEmits<{
 
     <!-- Date Range Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="dateRange"
       @update:model-value="emit('update:dateRange', $event as DateRangeFilter)"
     >
       <SelectTrigger class="w-[140px]">
         <Calendar class="mr-2 size-4" />
-        <SelectValue placeholder="Date range" />
+        <SelectValue :placeholder="t.shared.statsFilterBar.dateRangePlaceholder" />
       </SelectTrigger>
       <SelectContent>
         <SelectItem v-for="option in dateRangeOptions" :key="option.value" :value="option.value">
@@ -56,14 +64,15 @@ const emit = defineEmits<{
 
     <!-- Grade Level Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="gradeLevel"
       @update:model-value="emit('update:gradeLevel', $event as string)"
     >
       <SelectTrigger class="w-[130px]">
-        <SelectValue placeholder="All Grades" />
+        <SelectValue :placeholder="t.shared.statsFilterBar.allGrades" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Grades</SelectItem>
+        <SelectItem :value="ALL_VALUE">{{ t.shared.statsFilterBar.allGrades }}</SelectItem>
         <SelectItem v-for="grade in availableGradeLevels" :key="grade" :value="grade">
           {{ grade }}
         </SelectItem>
@@ -72,15 +81,16 @@ const emit = defineEmits<{
 
     <!-- Subject Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="subject"
       :disabled="gradeLevel === ALL_VALUE"
       @update:model-value="emit('update:subject', $event as string)"
     >
       <SelectTrigger class="w-[140px]">
-        <SelectValue placeholder="All Subjects" />
+        <SelectValue :placeholder="t.shared.statsFilterBar.allSubjects" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Subjects</SelectItem>
+        <SelectItem :value="ALL_VALUE">{{ t.shared.statsFilterBar.allSubjects }}</SelectItem>
         <SelectItem v-for="s in availableSubjects" :key="s" :value="s">
           {{ s }}
         </SelectItem>
@@ -89,32 +99,34 @@ const emit = defineEmits<{
 
     <!-- Topic Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="topic"
       :disabled="subject === ALL_VALUE"
       @update:model-value="emit('update:topic', $event as string)"
     >
       <SelectTrigger class="w-[140px]">
-        <SelectValue placeholder="All Topics" />
+        <SelectValue :placeholder="t.shared.statsFilterBar.allTopics" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Topics</SelectItem>
-        <SelectItem v-for="t in availableTopics" :key="t" :value="t">
-          {{ t }}
+        <SelectItem :value="ALL_VALUE">{{ t.shared.statsFilterBar.allTopics }}</SelectItem>
+        <SelectItem v-for="topicItem in availableTopics" :key="topicItem" :value="topicItem">
+          {{ topicItem }}
         </SelectItem>
       </SelectContent>
     </Select>
 
     <!-- Sub-Topic Selector -->
     <Select
+      :key="languageStore.language"
       :model-value="subTopic"
       :disabled="topic === ALL_VALUE"
       @update:model-value="emit('update:subTopic', $event as string)"
     >
       <SelectTrigger class="w-[150px]">
-        <SelectValue placeholder="All Sub-Topics" />
+        <SelectValue :placeholder="t.shared.statsFilterBar.allSubTopics" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem :value="ALL_VALUE">All Sub-Topics</SelectItem>
+        <SelectItem :value="ALL_VALUE">{{ t.shared.statsFilterBar.allSubTopics }}</SelectItem>
         <SelectItem v-for="st in availableSubTopics" :key="st" :value="st">
           {{ st }}
         </SelectItem>
@@ -127,7 +139,7 @@ const emit = defineEmits<{
         :model-value="hideInProgress"
         @update:model-value="emit('update:hideInProgress', !!$event)"
       />
-      Hide in progress
+      {{ t.shared.statsFilterBar.hideInProgress }}
     </label>
   </div>
 </template>

@@ -134,7 +134,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch leaderboard.')
+      const message = handleError(err, 'failedFetchLeaderboard')
       error.value = message
       return { error: message }
     } finally {
@@ -200,7 +200,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to fetch weekly leaderboard.')
+      const message = handleError(err, 'failedFetchWeeklyLeaderboard')
       error.value = message
       return { error: message }
     } finally {

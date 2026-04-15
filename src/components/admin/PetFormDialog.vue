@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'vue-sonner'
+import { useT } from '@/composables/useT'
 
 const props = defineProps<{
   pet: Pet | null
@@ -31,6 +32,8 @@ const props = defineProps<{
 
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ saved: [] }>()
+
+const t = useT()
 
 const petsStore = usePetsStore()
 const adminPetsStore = useAdminPetsStore()
@@ -128,7 +131,7 @@ const handleSave = handleSubmit(async (values) => {
         props.pet?.imagePath,
       )
       if (uploadError) {
-        toast.error(uploadError)
+        toast.error(t.value.shared.petFormDialog.toastUploadError(uploadError))
         return
       }
       imagePath = path || ''
@@ -141,7 +144,7 @@ const handleSave = handleSubmit(async (values) => {
         props.pet?.tier2ImagePath,
       )
       if (uploadError) {
-        toast.error(uploadError)
+        toast.error(t.value.shared.petFormDialog.toastUploadError(uploadError))
         return
       }
       tier2ImagePath = path || null
@@ -154,7 +157,7 @@ const handleSave = handleSubmit(async (values) => {
         props.pet?.tier3ImagePath,
       )
       if (uploadError) {
-        toast.error(uploadError)
+        toast.error(t.value.shared.petFormDialog.toastUploadError(uploadError))
         return
       }
       tier3ImagePath = path || null
@@ -172,10 +175,10 @@ const handleSave = handleSubmit(async (values) => {
         toast.error(error)
         return
       }
-      toast.success('Pet updated successfully')
+      toast.success(t.value.shared.petFormDialog.toastUpdated)
     } else {
       if (!imagePath) {
-        toast.error('Tier 1 image is required')
+        toast.error(t.value.shared.petFormDialog.toastTier1Required)
         return
       }
       const { error } = await adminPetsStore.createPet({
@@ -189,7 +192,7 @@ const handleSave = handleSubmit(async (values) => {
         toast.error(error)
         return
       }
-      toast.success('Pet created successfully')
+      toast.success(t.value.shared.petFormDialog.toastCreated)
     }
 
     open.value = false
@@ -204,9 +207,11 @@ const handleSave = handleSubmit(async (values) => {
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-5xl">
       <DialogHeader>
-        <DialogTitle>{{ pet ? 'Edit Pet' : 'Add Pet' }}</DialogTitle>
+        <DialogTitle>{{
+          pet ? t.shared.petFormDialog.editTitle : t.shared.petFormDialog.addTitle
+        }}</DialogTitle>
         <DialogDescription>
-          {{ pet ? 'Update pet details.' : 'Create a new gacha pet.' }}
+          {{ pet ? t.shared.petFormDialog.editDesc : t.shared.petFormDialog.addDesc }}
         </DialogDescription>
       </DialogHeader>
 
@@ -214,10 +219,13 @@ const handleSave = handleSubmit(async (values) => {
         <!-- Pet Name -->
         <VeeField v-slot="{ field, errors }" name="name">
           <Field :data-invalid="!!errors.length">
-            <FieldLabel for="pet-name">Name <span class="text-destructive">*</span></FieldLabel>
+            <FieldLabel for="pet-name"
+              >{{ t.shared.petFormDialog.nameLabel }}
+              <span class="text-destructive">*</span></FieldLabel
+            >
             <Input
               id="pet-name"
-              placeholder="Enter pet name"
+              :placeholder="t.shared.petFormDialog.namePlaceholder"
               :disabled="isSaving"
               :aria-invalid="!!errors.length"
               v-bind="field"
@@ -229,7 +237,10 @@ const handleSave = handleSubmit(async (values) => {
         <!-- Rarity -->
         <VeeField v-slot="{ handleChange, value, errors }" name="rarity">
           <Field :data-invalid="!!errors.length">
-            <FieldLabel>Rarity <span class="text-destructive">*</span></FieldLabel>
+            <FieldLabel
+              >{{ t.shared.petFormDialog.rarityLabel }}
+              <span class="text-destructive">*</span></FieldLabel
+            >
             <Select :model-value="value" :disabled="isSaving" @update:model-value="handleChange">
               <SelectTrigger class="w-full" :class="{ 'border-destructive': !!errors.length }">
                 <SelectValue />
@@ -246,11 +257,13 @@ const handleSave = handleSubmit(async (values) => {
 
         <!-- Pet Images (3 Tiers) -->
         <div class="space-y-4">
-          <FieldLabel>Evolution Images</FieldLabel>
+          <FieldLabel>{{ t.shared.petFormDialog.evolutionImages }}</FieldLabel>
           <div class="grid grid-cols-3 gap-6">
             <!-- Tier 1 Image -->
             <div class="space-y-2">
-              <p class="text-xs font-medium text-muted-foreground">Tier 1 (Required)</p>
+              <p class="text-xs font-medium text-muted-foreground">
+                {{ t.shared.petFormDialog.tier1Required }}
+              </p>
               <div v-if="formImagePath" class="relative">
                 <img
                   :src="
@@ -296,7 +309,9 @@ const handleSave = handleSubmit(async (values) => {
 
             <!-- Tier 2 Image -->
             <div class="space-y-2">
-              <p class="text-xs font-medium text-muted-foreground">Tier 2 (Optional)</p>
+              <p class="text-xs font-medium text-muted-foreground">
+                {{ t.shared.petFormDialog.tier2Optional }}
+              </p>
               <div v-if="formTier2ImagePath" class="relative">
                 <img
                   :src="
@@ -342,7 +357,9 @@ const handleSave = handleSubmit(async (values) => {
 
             <!-- Tier 3 Image -->
             <div class="space-y-2">
-              <p class="text-xs font-medium text-muted-foreground">Tier 3 (Optional)</p>
+              <p class="text-xs font-medium text-muted-foreground">
+                {{ t.shared.petFormDialog.tier3Optional }}
+              </p>
               <div v-if="formTier3ImagePath" class="relative">
                 <img
                   :src="
@@ -387,17 +404,17 @@ const handleSave = handleSubmit(async (values) => {
             </div>
           </div>
           <p class="text-xs text-muted-foreground">
-            If tier images are not provided, the previous tier's image will be used.
+            {{ t.shared.petFormDialog.tierImagesHint }}
           </p>
         </div>
 
         <DialogFooter>
           <Button type="button" variant="outline" :disabled="isSaving" @click="open = false">
-            Cancel
+            {{ t.shared.petFormDialog.cancel }}
           </Button>
           <Button type="submit" :disabled="isSaving">
             <Loader2 v-if="isSaving" class="mr-2 size-4 animate-spin" />
-            {{ pet ? 'Update' : 'Create' }}
+            {{ pet ? t.shared.petFormDialog.update : t.shared.petFormDialog.create }}
           </Button>
         </DialogFooter>
       </form>

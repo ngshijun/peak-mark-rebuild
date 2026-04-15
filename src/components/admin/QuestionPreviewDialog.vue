@@ -3,9 +3,11 @@ import type { Question } from '@/stores/questions'
 import { useQuestionsStore } from '@/stores/questions'
 import type { QuestionFeedback } from '@/stores/feedback'
 import type { Database } from '@/types/database.types'
+import { parseSimpleMarkdown } from '@/lib/utils'
 import { CheckCircle2, AlertTriangle } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { useT } from '@/composables/useT'
 
 type FeedbackCategory = Database['public']['Enums']['feedback_category']
 
@@ -16,17 +18,18 @@ defineProps<{
 
 const open = defineModel<boolean>('open', { required: true })
 
+const t = useT()
 const questionsStore = useQuestionsStore()
 
 // Category labels
 function getCategoryLabel(category: FeedbackCategory): string {
   const labels: Record<FeedbackCategory, string> = {
-    question_error: 'Question Error',
-    image_error: 'Image Error',
-    option_error: 'Option Error',
-    answer_error: 'Answer Error',
-    explanation_error: 'Explanation Error',
-    other: 'Other',
+    question_error: t.value.shared.questionFeedbackDialog.categories.question_error,
+    image_error: t.value.shared.questionFeedbackDialog.categories.image_error,
+    option_error: t.value.shared.questionFeedbackDialog.categories.option_error,
+    answer_error: t.value.shared.questionFeedbackDialog.categories.answer_error,
+    explanation_error: t.value.shared.questionFeedbackDialog.categories.explanation_error,
+    other: t.value.shared.questionFeedbackDialog.categories.other,
   }
   return labels[category]
 }
@@ -51,14 +54,14 @@ function getCategoryVariant(
     <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
-          Question Preview
+          {{ t.shared.questionPreviewDialog.title }}
           <Badge v-if="question" variant="secondary">
             {{
               question.type === 'mcq'
-                ? 'Multiple Choice'
+                ? t.shared.questionPreviewDialog.multipleChoice
                 : question.type === 'mrq'
-                  ? 'Multiple Response'
-                  : 'Short Answer'
+                  ? t.shared.questionPreviewDialog.multipleResponse
+                  : t.shared.questionPreviewDialog.shortAnswer
             }}
           </Badge>
         </DialogTitle>
@@ -72,23 +75,29 @@ function getCategoryVariant(
         >
           <div class="mb-2 flex items-center gap-2">
             <AlertTriangle class="size-5 text-red-600" />
-            <h3 class="font-semibold text-red-700 dark:text-red-400">Reported Issue</h3>
+            <h3 class="font-semibold text-red-700 dark:text-red-400">
+              {{ t.shared.questionPreviewDialog.reportedIssue }}
+            </h3>
           </div>
           <div class="space-y-2">
             <div class="flex items-center gap-2">
-              <span class="text-sm text-muted-foreground">Category:</span>
+              <span class="text-sm text-muted-foreground">{{
+                t.shared.questionPreviewDialog.category
+              }}</span>
               <Badge :variant="getCategoryVariant(feedback.category)">
                 {{ getCategoryLabel(feedback.category) }}
               </Badge>
             </div>
             <div v-if="feedback.comments">
-              <span class="text-sm text-muted-foreground">Comments:</span>
+              <span class="text-sm text-muted-foreground">{{
+                t.shared.questionPreviewDialog.comments
+              }}</span>
               <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ feedback.comments }}</p>
             </div>
             <div v-else>
-              <span class="text-sm italic text-muted-foreground"
-                >No additional comments provided.</span
-              >
+              <span class="text-sm italic text-muted-foreground">{{
+                t.shared.questionPreviewDialog.noComments
+              }}</span>
             </div>
           </div>
         </div>
@@ -106,13 +115,16 @@ function getCategoryVariant(
 
         <!-- Question Text -->
         <div class="space-y-2">
-          <h3 class="font-semibold">Question</h3>
-          <p class="text-foreground whitespace-pre-line">{{ question.question }}</p>
+          <h3 class="font-semibold">{{ t.shared.questionPreviewDialog.questionText }}</h3>
+          <div
+            class="text-foreground leading-relaxed"
+            v-html="parseSimpleMarkdown(question.question)"
+          />
         </div>
 
         <!-- Question Image -->
         <div v-if="question.imagePath" class="space-y-2">
-          <h3 class="font-semibold">Question Image</h3>
+          <h3 class="font-semibold">{{ t.shared.questionPreviewDialog.questionImage }}</h3>
           <img
             :src="questionsStore.getOptimizedQuestionImageUrl(question.imagePath)"
             alt="Question image"
@@ -122,7 +134,7 @@ function getCategoryVariant(
 
         <!-- MCQ/MRQ Options -->
         <div v-if="question.type === 'mcq' || question.type === 'mrq'" class="space-y-2">
-          <h3 class="font-semibold">Options</h3>
+          <h3 class="font-semibold">{{ t.shared.questionPreviewDialog.options }}</h3>
           <div class="space-y-2">
             <div
               v-for="option in question.options"
@@ -149,7 +161,7 @@ function getCategoryVariant(
                   class="max-h-16 rounded border object-contain"
                 />
                 <span v-if="!option.text && !option.imagePath" class="text-muted-foreground italic">
-                  (Empty option)
+                  {{ t.shared.questionPreviewDialog.emptyOption }}
                 </span>
               </div>
               <CheckCircle2 v-if="option.isCorrect" class="size-5 shrink-0 text-green-500" />
@@ -159,7 +171,7 @@ function getCategoryVariant(
 
         <!-- Short Answer -->
         <div v-if="question.type === 'short_answer'" class="space-y-2">
-          <h3 class="font-semibold">Correct Answer</h3>
+          <h3 class="font-semibold">{{ t.shared.questionPreviewDialog.correctAnswer }}</h3>
           <div class="rounded-lg border border-green-500 bg-green-50 p-3 dark:bg-green-950/20">
             <div class="flex items-center gap-2">
               <CheckCircle2 class="size-5 shrink-0 text-green-500" />
@@ -170,20 +182,23 @@ function getCategoryVariant(
 
         <!-- Explanation -->
         <div v-if="question.explanation" class="space-y-2">
-          <h3 class="font-semibold">Explanation</h3>
+          <h3 class="font-semibold">{{ t.shared.questionPreviewDialog.explanation }}</h3>
           <div
             class="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/20"
           >
-            <p class="text-sm text-amber-700 dark:text-amber-300">
-              {{ question.explanation }}
-            </p>
+            <div
+              class="text-sm leading-relaxed text-amber-700 dark:text-amber-300"
+              v-html="parseSimpleMarkdown(question.explanation)"
+            />
           </div>
         </div>
 
         <!-- No explanation message -->
         <div v-else class="space-y-2">
-          <h3 class="font-semibold">Explanation</h3>
-          <p class="text-sm text-muted-foreground italic">No explanation provided.</p>
+          <h3 class="font-semibold">{{ t.shared.questionPreviewDialog.explanation }}</h3>
+          <p class="text-sm text-muted-foreground italic">
+            {{ t.shared.questionPreviewDialog.noExplanation }}
+          </p>
         </div>
       </div>
     </DialogContent>

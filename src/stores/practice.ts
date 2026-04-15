@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { useQuestionsStore, type Question, rowToQuestion } from './questions'
 import { useAuthStore } from './auth'
 import { useCurriculumStore } from './curriculum'
-import { handleError } from '@/lib/errors'
+import { useLanguageStore } from './language'
+import { handleError, errorMessages } from '@/lib/errors'
 import { computeScorePercent, mapAnswerRow } from '@/lib/questionHelpers'
 import {
   useStudentSubscriptionStore,
@@ -93,9 +94,13 @@ export const usePracticeStore = defineStore('practice', () => {
   async function startSession(
     subTopicId: string,
     questionCount: number = 10,
-  ): Promise<{ session: PracticeSession | null; error: string | null; limitReached?: boolean }> {
+  ): Promise<{
+    session: PracticeSession | null
+    error: string | null
+    limitReached?: boolean
+  }> {
     if (!authStore.user || authStore.user.userType !== 'student') {
-      return { session: null, error: 'Only students can start practice sessions' }
+      return { session: null, error: errorMessages().onlyStudentsCanPractice }
     }
 
     isLoading.value = true
@@ -107,11 +112,12 @@ export const usePracticeStore = defineStore('practice', () => {
       if (!limitStatus.canStartSession) {
         const subStatus = await subscription.getStudentSubscriptionStatus()
         const isTopTier = subStatus.tier === 'pro' || subStatus.tier === 'max'
+        const langStore = useLanguageStore()
         return {
           session: null,
           error: isTopTier
-            ? `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Come back tomorrow!`
-            : `You have reached your daily session limit (${limitStatus.sessionLimit} sessions). Upgrade your plan for more sessions!`,
+            ? langStore.t.student.practice.toastLimitReachedPro(limitStatus.sessionLimit)
+            : langStore.t.student.practice.toastLimitReachedFree(limitStatus.sessionLimit),
           limitReached: true,
         }
       }
@@ -124,7 +130,7 @@ export const usePracticeStore = defineStore('practice', () => {
       // Get sub-topic hierarchy for grade_level_id and subject_id
       const hierarchy = curriculumStore.getSubTopicWithHierarchy(subTopicId)
       if (!hierarchy) {
-        return { session: null, error: 'Sub-topic not found' }
+        return { session: null, error: errorMessages().subTopicNotFound }
       }
 
       // Fetch questions for this sub-topic
@@ -135,7 +141,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       const allQuestions = questionsResult.questions
       if (allQuestions.length === 0) {
-        return { session: null, error: 'No questions available for this sub-topic' }
+        return { session: null, error: errorMessages().noQuestionsAvailable }
       }
 
       // Get current cycle and answered questions for this student+sub-topic
@@ -216,7 +222,7 @@ export const usePracticeStore = defineStore('practice', () => {
       )
 
       if (createError) {
-        return { session: null, error: handleError(createError, 'Failed to start session.') }
+        return { session: null, error: handleError(createError, 'failedStartSession') }
       }
 
       const session: PracticeSession = {
@@ -251,7 +257,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       return { session, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to start session.')
+      const message = handleError(err, 'failedStartSession')
       error.value = message
       return { session: null, error: message }
     } finally {
@@ -271,7 +277,7 @@ export const usePracticeStore = defineStore('practice', () => {
     timeSpentSeconds?: number,
   ): Promise<{ answer: PracticeAnswer | null; error: string | null }> {
     if (!currentSession.value || !currentQuestion.value) {
-      return { answer: null, error: 'No active session or question' }
+      return { answer: null, error: errorMessages().noActiveSessionOrQuestion }
     }
 
     const question = currentQuestion.value
@@ -319,7 +325,7 @@ export const usePracticeStore = defineStore('practice', () => {
         .single()
 
       if (insertError) {
-        return { answer: null, error: handleError(insertError, 'Failed to submit answer.') }
+        return { answer: null, error: handleError(insertError, 'failedSubmitAnswer') }
       }
 
       const answer = mapAnswerRow(answerData)
@@ -333,7 +339,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       return { answer, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to submit answer.')
+      const message = handleError(err, 'failedSubmitAnswer')
       return { answer: null, error: message }
     }
   }
@@ -406,7 +412,7 @@ export const usePracticeStore = defineStore('practice', () => {
     error: string | null
   }> {
     if (!currentSession.value) {
-      return { session: null, error: 'No active session' }
+      return { session: null, error: errorMessages().noActiveSession }
     }
 
     try {
@@ -418,7 +424,10 @@ export const usePracticeStore = defineStore('practice', () => {
       )
 
       if (completeError) {
-        return { session: null, error: handleError(completeError, 'Failed to complete session.') }
+        return {
+          session: null,
+          error: handleError(completeError, 'failedCompleteSession'),
+        }
       }
 
       const result = rewards as { xp_earned: number; coins_earned: number; correct_count: number }
@@ -449,7 +458,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
       return { session: currentSession.value, error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to complete session.')
+      const message = handleError(err, 'failedCompleteSession')
       return { session: null, error: message }
     }
   }
@@ -502,7 +511,7 @@ export const usePracticeStore = defineStore('practice', () => {
     }
 
     if (result.session.completedAt) {
-      return { session: null, error: 'Session is already completed' }
+      return { session: null, error: errorMessages().sessionAlreadyCompleted }
     }
 
     // Fetch questions from session_questions table to get the original question order
@@ -513,11 +522,11 @@ export const usePracticeStore = defineStore('practice', () => {
       .order('question_order', { ascending: true })
 
     if (sqError) {
-      return { session: null, error: handleError(sqError, 'Failed to resume session.') }
+      return { session: null, error: handleError(sqError, 'failedResumeSession') }
     }
 
     if (!sessionQuestionsData || sessionQuestionsData.length === 0) {
-      return { session: null, error: 'Session questions not found' }
+      return { session: null, error: errorMessages().sessionQuestionsNotFound }
     }
 
     const questionIds = sessionQuestionsData.map((sq) => sq.question_id)
@@ -529,7 +538,7 @@ export const usePracticeStore = defineStore('practice', () => {
       .in('id', questionIds)
 
     if (qError) {
-      return { session: null, error: handleError(qError, 'Failed to resume session.') }
+      return { session: null, error: handleError(qError, 'failedResumeSession') }
     }
 
     // Create a map for quick lookup
@@ -628,12 +637,12 @@ export const usePracticeStore = defineStore('practice', () => {
       })
 
       if (fnError) {
-        return { summary: null, error: handleError(fnError, 'Failed to generate AI summary') }
+        return { summary: null, error: handleError(fnError, 'failedGenerateSummary') }
       }
 
       return { summary: data?.summary ?? null, error: null }
     } catch (err) {
-      return { summary: null, error: handleError(err, 'Failed to generate AI summary') }
+      return { summary: null, error: handleError(err, 'failedGenerateSummary') }
     }
   }
 

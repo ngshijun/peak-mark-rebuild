@@ -14,8 +14,10 @@ import heartGif from '@/assets/icons/heart.gif'
 import type { Friend } from '@/stores/friends'
 import FriendProfileDialog from './FriendProfileDialog.vue'
 import RemoveFriendDialog from './RemoveFriendDialog.vue'
+import { useT } from '@/composables/useT'
 
 const friendsStore = useFriendsStore()
+const t = useT()
 const sendingTo = ref<string | null>(null)
 // Decoupled from removeDialogOpen: AlertDialogAction auto-fires update:open(false)
 // on click, which would null this out before @confirm reads it.
@@ -42,7 +44,7 @@ async function handleSendCoins(friendshipId: string, friendName: string) {
   if (error) {
     toast.error(error)
   } else {
-    toast.success(`Sent 5 coins to ${friendName}!`)
+    toast.success(t.value.shared.friendList.toastSentCoins(friendName))
   }
 }
 
@@ -55,7 +57,7 @@ async function handleRemove() {
   if (error) {
     toast.error(error)
   } else {
-    toast.success(`Removed ${name} from friends`)
+    toast.success(t.value.shared.friendList.toastRemoved(name))
   }
 }
 </script>
@@ -69,7 +71,7 @@ async function handleRemove() {
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <Users class="size-5" />
-        My Friends
+        {{ t.shared.friendList.title }}
         <Badge variant="secondary" class="ml-2">
           {{ friendsStore.friendCount }}/{{ FRIEND_CAP }}
         </Badge>
@@ -78,8 +80,8 @@ async function handleRemove() {
     <CardContent class="p-0">
       <div v-if="friendsStore.friends.length === 0" class="py-8 text-center">
         <Users class="mx-auto size-12 text-muted-foreground/50" />
-        <p class="mt-2 text-sm text-muted-foreground">No friends yet</p>
-        <p class="text-xs text-muted-foreground">Add some from the "Add Friend" tab!</p>
+        <p class="mt-2 text-sm text-muted-foreground">{{ t.shared.friendList.noFriendsYet }}</p>
+        <p class="text-xs text-muted-foreground">{{ t.shared.friendList.noFriendsHint }}</p>
       </div>
 
       <div v-else class="divide-y border-y">
@@ -103,7 +105,7 @@ async function handleRemove() {
 
           <div class="flex items-start gap-6">
             <div class="w-14 text-center">
-              <p class="text-xs text-muted-foreground">Closeness</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.friendList.closeness }}</p>
               <p class="flex h-6 items-center justify-center gap-1 font-semibold">
                 <img
                   v-if="friend.closenessXp > 0"
@@ -116,15 +118,15 @@ async function handleRemove() {
               </p>
             </div>
             <div class="w-14 text-center">
-              <p class="text-xs text-muted-foreground">Friendship</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.friendList.friendship }}</p>
               <p class="flex h-6 items-center justify-center font-semibold">
                 Lv.{{ friend.closenessLevel }}
               </p>
             </div>
             <div class="w-20 text-center">
-              <p class="text-xs text-muted-foreground">Last Active</p>
+              <p class="text-xs text-muted-foreground">{{ t.shared.friendList.lastActive }}</p>
               <p class="flex h-6 items-center justify-center font-semibold">
-                {{ formatRelativeDate(friend.lastActive) }}
+                {{ formatRelativeDate(friend.lastActive, t.shared.relativeDate) }}
               </p>
             </div>
           </div>
@@ -132,7 +134,7 @@ async function handleRemove() {
           <div class="flex items-center gap-2" @click.stop>
             <Button v-if="friend.sentToday" size="sm" variant="secondary" disabled class="w-20">
               <CirclePoundSterling class="size-4" />
-              Sent
+              {{ t.shared.friendList.sent }}
             </Button>
             <Button
               v-else
@@ -143,7 +145,7 @@ async function handleRemove() {
             >
               <Loader2 v-if="sendingTo === friend.friendshipId" class="size-4 animate-spin" />
               <CirclePoundSterling v-else class="size-4" />
-              Send
+              {{ t.shared.friendList.send }}
             </Button>
 
             <Button size="icon-sm" variant="ghost" @click="handleRemoveClick(friend)">

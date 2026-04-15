@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePetsStore, rarityConfig, type PetRarity } from '@/stores/pets'
+import { usePetsStore, rarityConfig, getRarityLabel, type PetRarity } from '@/stores/pets'
 import { useGachaPull, SINGLE_PULL_COST, MULTI_PULL_COST } from '@/composables/useGachaPull'
+import { useT } from '@/composables/useT'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,6 +27,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
+const t = useT()
 
 // Reversed rarity order for display (legendary first)
 const rarityOrder: (keyof typeof rarityConfig)[] = ['legendary', 'epic', 'rare', 'common']
@@ -78,17 +80,17 @@ onMounted(async () => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Get Pets</h1>
-        <p class="text-muted-foreground">Spend coins to collect amazing pets!</p>
+        <h1 class="text-2xl font-bold">{{ t.student.gacha.title }}</h1>
+        <p class="text-muted-foreground">{{ t.student.gacha.subtitle }}</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" @click="router.push('/student/collections')">
           <FolderHeart class="mr-2 size-4" />
-          Collections
+          {{ t.student.gacha.collections }}
         </Button>
         <Button variant="outline" @click="router.push('/student/my-pet')">
           <PawPrint class="mr-2 size-4" />
-          My Pet
+          {{ t.student.gacha.myPet }}
         </Button>
       </div>
     </div>
@@ -149,7 +151,9 @@ onMounted(async () => {
                   <div
                     class="mt-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-400 px-6 py-1 shadow-md"
                   >
-                    <span class="text-sm font-bold text-amber-900">LUCKY PETS</span>
+                    <span class="text-sm font-bold text-amber-900">{{
+                      t.student.gacha.machineName
+                    }}</span>
                   </div>
 
                   <!-- Dispenser Opening -->
@@ -196,7 +200,7 @@ onMounted(async () => {
                   @click="handleSinglePull"
                 >
                   <span class="mr-2 text-lg">🎰</span>
-                  {{ isFirstPetMode ? 'Free Draw!' : 'Single Pull' }}
+                  {{ isFirstPetMode ? t.student.gacha.freeDraw : t.student.gacha.singlePull }}
                   <Badge
                     v-if="!isFirstPetMode"
                     variant="secondary"
@@ -214,7 +218,7 @@ onMounted(async () => {
                   @click="multiPull"
                 >
                   <span class="mr-2 text-lg">✨</span>
-                  10x Pull
+                  {{ t.student.gacha.multiPull }}
                   <Badge
                     variant="secondary"
                     class="ml-2 gap-1 bg-white/20 text-white hover:bg-white/20"
@@ -229,7 +233,7 @@ onMounted(async () => {
                 v-if="!isFirstPetMode && currentCoins < SINGLE_PULL_COST"
                 class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400"
               >
-                Not enough coins! Complete practice sessions to earn more.
+                {{ t.student.gacha.notEnoughCoins }}
               </p>
             </div>
           </CardContent>
@@ -240,9 +244,9 @@ onMounted(async () => {
           <CardHeader class="pb-3">
             <CardTitle class="flex items-center gap-2 text-lg">
               <Info class="size-4" />
-              Drop Rates
+              {{ t.student.gacha.dropRates }}
             </CardTitle>
-            <CardDescription>Chances for each rarity</CardDescription>
+            <CardDescription>{{ t.student.gacha.dropRatesDesc }}</CardDescription>
           </CardHeader>
           <CardContent>
             <div class="flex flex-col gap-2">
@@ -255,7 +259,7 @@ onMounted(async () => {
                 <div class="flex items-center gap-2">
                   <div class="size-4 rounded-full" :style="{ background: rarityColors[rarity] }" />
                   <span class="text-sm font-medium" :class="rarityConfig[rarity].color">
-                    {{ rarityConfig[rarity].label }}
+                    {{ getRarityLabel(rarity) }}
                   </span>
                 </div>
                 <span class="font-bold" :class="rarityConfig[rarity].color">
@@ -266,17 +270,23 @@ onMounted(async () => {
 
             <!-- Pricing Info -->
             <div class="mt-4 rounded-lg bg-muted/50 p-3">
-              <p class="mb-2 text-xs font-medium text-muted-foreground">Pricing</p>
+              <p class="mb-2 text-xs font-medium text-muted-foreground">
+                {{ t.student.gacha.pricing }}
+              </p>
               <div class="space-y-1 text-sm">
                 <div class="flex justify-between">
-                  <span>Single Pull</span>
-                  <span class="font-medium">{{ SINGLE_PULL_COST }} coins</span>
+                  <span>{{ t.student.gacha.singlePull }}</span>
+                  <span class="font-medium"
+                    >{{ SINGLE_PULL_COST }} {{ t.student.gacha.coins }}</span
+                  >
                 </div>
                 <div class="flex justify-between">
-                  <span>10x Pull</span>
+                  <span>{{ t.student.gacha.multiPull }}</span>
                   <span class="font-medium"
-                    >{{ MULTI_PULL_COST }} coins
-                    <span class="text-xs text-green-600">(10% off)</span></span
+                    >{{ MULTI_PULL_COST }} {{ t.student.gacha.coins }}
+                    <span class="text-xs text-green-600">{{
+                      t.student.gacha.tenPercentOff
+                    }}</span></span
                   >
                 </div>
               </div>
@@ -292,10 +302,10 @@ onMounted(async () => {
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2 text-xl">
             <span class="text-2xl">🎉</span>
-            Congratulations!
+            {{ t.student.gacha.resultTitle }}
           </DialogTitle>
           <DialogDescription>
-            You got {{ pullResults.length }} new pet{{ pullResults.length > 1 ? 's' : '' }}!
+            {{ t.student.gacha.resultDesc(pullResults.length) }}
           </DialogDescription>
         </DialogHeader>
         <div
@@ -327,14 +337,14 @@ onMounted(async () => {
             </div>
             <p class="mt-2 text-center text-sm font-semibold">{{ pet.name }}</p>
             <Badge :class="rarityConfig[pet.rarity].color" variant="outline" class="mt-1 text-xs">
-              {{ rarityConfig[pet.rarity].label }}
+              {{ getRarityLabel(pet.rarity) }}
             </Badge>
           </div>
         </div>
         <div class="flex justify-end gap-2">
-          <Button data-tour="gacha-close-results" variant="outline" @click="closeResults"
-            >Close</Button
-          >
+          <Button data-tour="gacha-close-results" variant="outline" @click="closeResults">{{
+            t.student.gacha.close
+          }}</Button>
           <template v-if="lastPullType !== 'free'">
             <!-- Single pull again button -->
             <Button
@@ -344,7 +354,7 @@ onMounted(async () => {
               @click="(closeResults(), singlePull())"
             >
               <span class="mr-1">🎰</span>
-              Pull 1 More
+              {{ t.student.gacha.pullOneMore }}
               <Badge
                 variant="secondary"
                 class="ml-2 gap-1 bg-white/20 text-white hover:bg-white/20"
@@ -361,7 +371,7 @@ onMounted(async () => {
               @click="(closeResults(), multiPull())"
             >
               <span class="mr-1">✨</span>
-              Pull 10 More
+              {{ t.student.gacha.pullTenMore }}
               <Badge
                 variant="secondary"
                 class="ml-2 gap-1 bg-white/20 text-white hover:bg-white/20"

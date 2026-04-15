@@ -9,9 +9,11 @@ import { DataTable } from '@/components/ui/data-table'
 import { ArrowUpDown, Play, ListTodo } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { formatDateTime } from '@/lib/date'
+import { useT } from '@/composables/useT'
 
 const practiceStore = usePracticeHistoryStore()
 const router = useRouter()
+const t = useT()
 
 interface InProgressRow {
   id: string
@@ -47,7 +49,7 @@ function handleContinue(sessionId: string) {
   router.push(`/student/practice/quiz?sessionId=${sessionId}`)
 }
 
-const columns: ColumnDef<InProgressRow>[] = [
+const columns = computed<ColumnDef<InProgressRow>[]>(() => [
   {
     accessorKey: 'createdAt',
     header: ({ column }) => {
@@ -57,7 +59,10 @@ const columns: ColumnDef<InProgressRow>[] = [
           variant: 'ghost',
           onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         },
-        () => ['Started', h(ArrowUpDown, { class: 'ml-2 size-4' })],
+        () => [
+          t.value.shared.inProgressSessionsCard.startedCol,
+          h(ArrowUpDown, { class: 'ml-2 size-4' }),
+        ],
       )
     },
     cell: ({ row }) => {
@@ -66,28 +71,28 @@ const columns: ColumnDef<InProgressRow>[] = [
   },
   {
     accessorKey: 'subjectName',
-    header: 'Subject',
+    header: t.value.shared.inProgressSessionsCard.subjectCol,
     cell: ({ row }) => {
       return h('div', { class: 'font-medium' }, row.original.subjectName)
     },
   },
   {
     accessorKey: 'topicName',
-    header: 'Topic',
+    header: t.value.shared.inProgressSessionsCard.topicCol,
     cell: ({ row }) => {
       return h('div', {}, row.original.topicName)
     },
   },
   {
     accessorKey: 'subTopicName',
-    header: 'Sub-Topic',
+    header: t.value.shared.inProgressSessionsCard.subTopicCol,
     cell: ({ row }) => {
       return h('div', {}, row.original.subTopicName)
     },
   },
   {
     accessorKey: 'progress',
-    header: 'Progress',
+    header: t.value.shared.inProgressSessionsCard.progressCol,
     cell: ({ row }) => {
       const answered = row.original.answeredQuestions
       const total = row.original.totalQuestions
@@ -95,7 +100,11 @@ const columns: ColumnDef<InProgressRow>[] = [
       const percentage = total > 0 ? Math.round((answered / total) * 100) : 0
 
       return h('div', { class: 'flex flex-col gap-1' }, [
-        h('div', { class: 'text-sm' }, `${answered}/${total} questions (${correct} correct)`),
+        h(
+          'div',
+          { class: 'text-sm' },
+          t.value.shared.inProgressSessionsCard.questionsProgress(answered, total, correct),
+        ),
         h('div', { class: 'h-2 w-24 rounded-full bg-muted overflow-hidden' }, [
           h('div', {
             class: 'h-full bg-primary transition-all',
@@ -118,27 +127,29 @@ const columns: ColumnDef<InProgressRow>[] = [
             size: 'sm',
             onClick: () => handleContinue(row.original.id),
           },
-          () => [h(Play, { class: 'mr-1 size-4' }), 'Continue'],
+          () => [h(Play, { class: 'mr-1 size-4' }), t.value.shared.inProgressSessionsCard.continue],
         ),
       )
     },
   },
-]
+])
 </script>
 
 <template>
   <Card>
     <CardHeader class="space-y-0 pb-2">
       <div class="flex flex-row items-center justify-between">
-        <CardTitle class="text-sm font-medium">In-Progress Sessions</CardTitle>
+        <CardTitle class="text-sm font-medium">{{
+          t.shared.inProgressSessionsCard.title
+        }}</CardTitle>
         <div class="flex items-center gap-2">
           <Badge v-if="inProgressData.length > 0" variant="secondary">
-            {{ inProgressData.length }} active
+            {{ t.shared.inProgressSessionsCard.active(inProgressData.length) }}
           </Badge>
           <ListTodo class="size-4 text-muted-foreground" />
         </div>
       </div>
-      <CardDescription>Continue where you left off</CardDescription>
+      <CardDescription>{{ t.shared.inProgressSessionsCard.continueWhere }}</CardDescription>
     </CardHeader>
     <CardContent>
       <template v-if="inProgressData.length > 0">
@@ -147,10 +158,12 @@ const columns: ColumnDef<InProgressRow>[] = [
       <template v-else>
         <div class="flex flex-col items-center justify-center py-8 text-center">
           <div class="mb-3 text-4xl">📚</div>
-          <p class="text-muted-foreground">No sessions in progress</p>
-          <p class="text-sm text-muted-foreground">Start a new practice session to see it here</p>
+          <p class="text-muted-foreground">{{ t.shared.inProgressSessionsCard.noSessions }}</p>
+          <p class="text-sm text-muted-foreground">
+            {{ t.shared.inProgressSessionsCard.noSessionsHint }}
+          </p>
           <Button class="mt-4" variant="outline" @click="router.push('/student/practice')">
-            Start Practice
+            {{ t.shared.inProgressSessionsCard.startPractice }}
           </Button>
         </div>
       </template>

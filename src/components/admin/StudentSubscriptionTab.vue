@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CreditCard } from 'lucide-vue-next'
+import { CreditCard, ExternalLink } from 'lucide-vue-next'
 
 import { tierConfig } from '@/lib/tierConfig'
 import { formatDate } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 function getSubscriptionStatusConfig(sub: {
   isActive: boolean
@@ -13,30 +17,67 @@ function getSubscriptionStatusConfig(sub: {
 }) {
   if (sub.cancelAtPeriodEnd) {
     return {
-      label: 'Cancelling',
+      label: t.value.shared.studentSubscriptionTab.statusCancelling,
       bgColor: 'bg-amber-100 dark:bg-amber-950/30',
       color: 'text-amber-700 dark:text-amber-400',
     }
   }
   if (sub.stripeStatus === 'past_due') {
     return {
-      label: 'Past Due',
+      label: t.value.shared.studentSubscriptionTab.statusPastDue,
       bgColor: 'bg-red-100 dark:bg-red-950/30',
       color: 'text-red-700 dark:text-red-400',
     }
   }
   if (sub.isActive) {
     return {
-      label: 'Active',
+      label: t.value.shared.studentSubscriptionTab.statusActive,
       bgColor: 'bg-green-100 dark:bg-green-950/30',
       color: 'text-green-700 dark:text-green-400',
     }
   }
   return {
-    label: 'Inactive',
+    label: t.value.shared.studentSubscriptionTab.statusInactive,
     bgColor: 'bg-gray-100 dark:bg-gray-950/30',
     color: 'text-gray-700 dark:text-gray-400',
   }
+}
+
+function formatPeriod(start: string | null, end: string | null): string {
+  if (!start || !end) return '-'
+  const s = new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const e = new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${s} – ${e}`
+}
+
+function formatNextCharge(sub: {
+  cancelAtPeriodEnd: boolean
+  nextBillingDate: string | null
+  currentPeriodEnd: string | null
+}): { primary: string; suffix: string | null } {
+  if (sub.cancelAtPeriodEnd && sub.currentPeriodEnd) {
+    return {
+      primary: '-',
+      suffix: t.value.shared.studentSubscriptionTab.cancelsOn(formatDate(sub.currentPeriodEnd)),
+    }
+  }
+  if (!sub.nextBillingDate) return { primary: '-', suffix: null }
+  return { primary: formatDate(sub.nextBillingDate), suffix: null }
+}
+
+function stripeSubscriptionUrl(id: string | null): string {
+  return id ? `https://dashboard.stripe.com/subscriptions/${id}` : '#'
+}
+
+function fullTimestampTooltip(iso: string): string {
+  const d = new Date(iso)
+  const utc = d.toISOString()
+  const myt = d.toLocaleString('en-US', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+  return `${utc} (UTC)\n${myt} (MYT)`
 }
 
 defineProps<{
@@ -45,10 +86,12 @@ defineProps<{
     cancelAtPeriodEnd: boolean
     stripeStatus: string | null
     tier: string
-    startDate: string | null
+    currentPeriodStart: string | null
+    currentPeriodEnd: string | null
     nextBillingDate: string | null
     scheduledTier: string | null
     scheduledChangeDate: string | null
+    stripeSubscriptionId: string | null
     paymentHistory: Array<{
       id: string
       createdAt: string
@@ -65,15 +108,31 @@ defineProps<{
 <template>
   <Card>
     <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <CreditCard class="size-5" />
-        Subscription Details
-      </CardTitle>
+      <div class="flex items-center justify-between">
+        <CardTitle class="flex items-center gap-2">
+          <CreditCard class="size-5" />
+          {{ t.shared.studentSubscriptionTab.title }}
+        </CardTitle>
+        <Button
+          v-if="subscription.stripeSubscriptionId"
+          variant="outline"
+          size="sm"
+          as="a"
+          :href="stripeSubscriptionUrl(subscription.stripeSubscriptionId)"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ t.shared.studentSubscriptionTab.viewInStripe }}
+          <ExternalLink class="ml-2 size-3" />
+        </Button>
+      </div>
     </CardHeader>
     <CardContent>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p class="text-xs text-muted-foreground">Status</p>
+          <p class="text-xs text-muted-foreground">
+            {{ t.shared.studentSubscriptionTab.statusLabel }}
+          </p>
           <Badge
             variant="secondary"
             :class="`mt-1 ${getSubscriptionStatusConfig(subscription).bgColor} ${getSubscriptionStatusConfig(subscription).color}`"
@@ -83,7 +142,9 @@ defineProps<{
         </div>
 
         <div>
-          <p class="text-xs text-muted-foreground">Tier</p>
+          <p class="text-xs text-muted-foreground">
+            {{ t.shared.studentSubscriptionTab.tierLabel }}
+          </p>
           <Badge
             variant="secondary"
             :class="`mt-1 ${tierConfig[subscription.tier]?.bgColor ?? ''} ${tierConfig[subscription.tier]?.color ?? ''}`"
@@ -93,43 +154,68 @@ defineProps<{
         </div>
 
         <div>
-          <p class="text-xs text-muted-foreground">Start Date</p>
+          <p class="text-xs text-muted-foreground">
+            {{ t.shared.studentSubscriptionTab.currentPeriodLabel }}
+          </p>
           <p class="mt-1 font-medium">
-            {{ formatDate(subscription.startDate) }}
+            {{ formatPeriod(subscription.currentPeriodStart, subscription.currentPeriodEnd) }}
           </p>
         </div>
 
         <div>
-          <p class="text-xs text-muted-foreground">Renewal Date</p>
+          <p class="text-xs text-muted-foreground">
+            {{ t.shared.studentSubscriptionTab.nextChargeLabel }}
+          </p>
           <p class="mt-1 font-medium">
-            {{ formatDate(subscription.nextBillingDate) }}
+            {{ formatNextCharge(subscription).primary }}
+            <span
+              v-if="formatNextCharge(subscription).suffix"
+              class="ml-1 text-xs font-normal text-muted-foreground"
+            >
+              {{ formatNextCharge(subscription).suffix }}
+            </span>
           </p>
         </div>
 
         <div v-if="subscription.scheduledTier" class="sm:col-span-2">
-          <p class="text-xs text-muted-foreground">Scheduled Tier Change</p>
+          <p class="text-xs text-muted-foreground">
+            {{ t.shared.studentSubscriptionTab.scheduledTierChange }}
+          </p>
           <p class="mt-1 font-medium">
-            Changing to
+            {{ t.shared.studentSubscriptionTab.changingTo }}
             <Badge variant="secondary" class="mx-1">
               {{ tierConfig[subscription.scheduledTier]?.label ?? subscription.scheduledTier }}
             </Badge>
-            on {{ formatDate(subscription.scheduledChangeDate) }}
+            {{ t.shared.studentSubscriptionTab.on }}
+            {{ formatDate(subscription.scheduledChangeDate) }}
           </p>
         </div>
       </div>
 
       <!-- Payment History -->
       <div v-if="subscription.paymentHistory.length > 0" class="mt-6">
-        <h4 class="mb-3 text-sm font-medium">Payment History</h4>
+        <h4 class="mb-3 text-sm font-medium">
+          {{ t.shared.studentSubscriptionTab.paymentHistory }}
+        </h4>
         <div class="rounded-md border">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b bg-muted/50">
-                <th class="px-4 py-2 text-left font-medium">Date</th>
-                <th class="px-4 py-2 text-left font-medium">Amount</th>
-                <th class="px-4 py-2 text-left font-medium">Tier</th>
-                <th class="px-4 py-2 text-left font-medium">Status</th>
-                <th class="px-4 py-2 text-left font-medium">Description</th>
+                <th class="px-4 py-2 text-left font-medium">
+                  {{ t.shared.studentSubscriptionTab.dateCol }}
+                </th>
+                <th class="px-4 py-2 text-left font-medium">
+                  {{ t.shared.studentSubscriptionTab.amountCol }}
+                </th>
+                <th class="px-4 py-2 text-left font-medium">
+                  {{ t.shared.studentSubscriptionTab.tierCol }}
+                </th>
+                <th class="px-4 py-2 text-left font-medium">
+                  {{ t.shared.studentSubscriptionTab.statusCol }}
+                </th>
+                <th class="px-4 py-2 text-left font-medium">
+                  {{ t.shared.studentSubscriptionTab.descriptionCol }}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -138,7 +224,9 @@ defineProps<{
                 :key="payment.id"
                 class="border-b last:border-0"
               >
-                <td class="px-4 py-2">{{ formatDate(payment.createdAt) }}</td>
+                <td class="px-4 py-2" :title="fullTimestampTooltip(payment.createdAt)">
+                  {{ formatDate(payment.createdAt) }}
+                </td>
                 <td class="px-4 py-2 font-medium">
                   {{ (payment.amountCents / 100).toFixed(2) }}
                   {{ payment.currency.toUpperCase() }}
@@ -162,7 +250,11 @@ defineProps<{
                         : 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
                     "
                   >
-                    {{ payment.status }}
+                    {{
+                      t.shared.paymentStatus[
+                        payment.status as keyof typeof t.shared.paymentStatus
+                      ] ?? payment.status
+                    }}
                   </Badge>
                 </td>
                 <td class="px-4 py-2 text-muted-foreground">

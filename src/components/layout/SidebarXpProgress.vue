@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useT } from '@/composables/useT'
 import { Progress } from '@/components/ui/progress'
 import { SidebarGroup, SidebarGroupContent } from '@/components/ui/sidebar'
 
 const authStore = useAuthStore()
+const t = useT()
 
 const level = computed(() => authStore.currentLevel)
 const currentXp = computed(() => authStore.currentLevelXp)
@@ -19,7 +21,9 @@ const progress = computed(() => authStore.xpProgress)
         <!-- Level Progress -->
         <div>
           <div class="flex items-center justify-between mb-1">
-            <span class="text-sm font-medium">Level {{ level }}</span>
+            <span class="text-sm font-medium">{{
+              t.shared.layout.xpProgress.levelLabel(level)
+            }}</span>
             <span class="text-xs text-muted-foreground">{{ currentXp }} / {{ xpNeeded }} XP</span>
           </div>
           <Progress :model-value="progress" class="h-2" />

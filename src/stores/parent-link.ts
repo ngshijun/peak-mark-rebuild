@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth'
-import { handleError } from '@/lib/errors'
+import { handleError, errorMessages } from '@/lib/errors'
 import { useInvitations } from '@/composables/useInvitations'
 
 export type { ParentStudentInvitation } from '@/lib/invitations'
@@ -25,8 +25,8 @@ export const useParentLinkStore = defineStore('parentLink', () => {
   const hasLinkedParent = computed(() => linkedParents.value.length > 0)
 
   const inv = useInvitations('student', {
-    canSend: () => (hasLinkedParent.value ? 'You can only have one linked parent' : null),
-    canAccept: () => (hasLinkedParent.value ? 'You can only have one linked parent' : null),
+    canSend: () => (hasLinkedParent.value ? errorMessages().onlyOneLinkedParent : null),
+    canAccept: () => (hasLinkedParent.value ? errorMessages().onlyOneLinkedParent : null),
     onAccepted: (result) => {
       linkedParents.value.push({
         id: result.parent_id,
@@ -42,7 +42,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
    */
   async function fetchLinkedParents(): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
+      return { error: errorMessages().notAuthenticatedAsStudent }
     }
 
     isLoading.value = true
@@ -79,7 +79,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to load linked parents.')
+      const message = handleError(err, 'failedLoadParents')
       error.value = message
       return { error: message }
     } finally {
@@ -114,7 +114,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
    */
   async function removeLinkedParent(parentId: string): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
+      return { error: errorMessages().notAuthenticatedAsStudent }
     }
 
     // Pre-check: block unlink if an active paid subscription exists for this link
@@ -130,13 +130,10 @@ export const useParentLinkStore = defineStore('parentLink', () => {
         .maybeSingle()
 
       if (activeSub) {
-        return {
-          error:
-            'Cannot unlink while an active paid subscription exists. Please ask your parent to cancel the subscription first.',
-        }
+        return { error: errorMessages().cannotUnlinkActiveSubStudent }
       }
     } catch (err) {
-      return { error: handleError(err, 'Failed to check subscription status.') }
+      return { error: handleError(err, 'failedCheckSubscription') }
     }
 
     try {
@@ -156,7 +153,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
       return { error: null }
     } catch (err) {
-      return { error: handleError(err, 'Failed to remove parent. Please try again.') }
+      return { error: handleError(err, 'failedRemoveParent') }
     }
   }
 
@@ -165,7 +162,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
 
   async function fetchActiveSubscribers(): Promise<{ error: string | null }> {
     if (!authStore.user || !authStore.isStudent) {
-      return { error: 'Not authenticated as student' }
+      return { error: errorMessages().notAuthenticatedAsStudent }
     }
 
     try {
@@ -185,7 +182,7 @@ export const useParentLinkStore = defineStore('parentLink', () => {
       activeSubscriberIds.value = ids
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'Failed to check subscription status.')
+      const message = handleError(err, 'failedCheckSubscription')
       return { error: message }
     }
   }

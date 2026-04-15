@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed } from 'vue'
+import { useT } from '@/composables/useT'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileEditor } from '@/composables/useProfileEditor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,6 +28,7 @@ import { useTour } from '@/composables/useTour'
 import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
+const t = useT()
 const {
   isSaving,
   userInitials,
@@ -76,7 +78,7 @@ async function handleBirthdayChange(v: DateValue | undefined) {
       toast.error(result.error)
       return
     }
-    toast.success('Birthday updated successfully')
+    toast.success(t.value.parent.profile.toastBirthdayUpdated)
     birthdayPopoverOpen.value = false
   } finally {
     isSaving.value = false
@@ -89,12 +91,12 @@ async function handleBirthdayChange(v: DateValue | undefined) {
     <!-- Header -->
     <div class="flex items-start justify-between">
       <div>
-        <h1 class="text-2xl font-bold">My Profile</h1>
-        <p class="text-muted-foreground">Manage your account settings and preferences</p>
+        <h1 class="text-2xl font-bold">{{ t.parent.profile.title }}</h1>
+        <p class="text-muted-foreground">{{ t.parent.profile.subtitle }}</p>
       </div>
       <Button variant="outline" size="sm" @click="resetAndStartTour">
         <RotateCcw class="mr-2 size-4" />
-        Restart Tour
+        {{ t.parent.profile.restartTour }}
       </Button>
     </div>
 
@@ -133,7 +135,7 @@ async function handleBirthdayChange(v: DateValue | undefined) {
           <div class="flex items-center justify-center">
             <Badge variant="secondary" class="text-sm">
               <Baby class="mr-1 size-3" />
-              Parent Account
+              {{ t.parent.profile.parentAccountBadge }}
             </Badge>
           </div>
         </CardContent>
@@ -142,18 +144,20 @@ async function handleBirthdayChange(v: DateValue | undefined) {
       <!-- Details Card -->
       <Card>
         <CardHeader>
-          <CardTitle>Account Details</CardTitle>
-          <CardDescription>Your personal information</CardDescription>
+          <CardTitle>{{ t.parent.profile.accountDetailsTitle }}</CardTitle>
+          <CardDescription>{{ t.parent.profile.accountDetailsDescription }}</CardDescription>
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
             <!-- Email -->
-            <div class="flex items-center gap-3">
-              <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+              >
                 <Mail class="size-4 text-muted-foreground" />
               </div>
-              <div>
-                <p class="text-xs text-muted-foreground">Email Address</p>
+              <div class="space-y-1">
+                <p class="text-xs text-muted-foreground">{{ t.parent.profile.emailLabel }}</p>
                 <p class="flex h-9 items-center text-sm font-medium">
                   {{ authStore.user?.email }}
                 </p>
@@ -161,12 +165,14 @@ async function handleBirthdayChange(v: DateValue | undefined) {
             </div>
 
             <!-- Birthday -->
-            <div class="flex items-center gap-3">
-              <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+              >
                 <Cake class="size-4 text-muted-foreground" />
               </div>
-              <div>
-                <p class="text-xs text-muted-foreground">Birthday</p>
+              <div class="space-y-1">
+                <p class="text-xs text-muted-foreground">{{ t.parent.profile.birthdayLabel }}</p>
                 <Popover v-model:open="birthdayPopoverOpen">
                   <PopoverTrigger as-child>
                     <button
@@ -181,7 +187,7 @@ async function handleBirthdayChange(v: DateValue | undefined) {
                         {{ formattedBirthday }}
                         <span class="text-muted-foreground">({{ age }})</span>
                       </template>
-                      <template v-else>Not set</template>
+                      <template v-else>{{ t.parent.profile.birthdayNotSet }}</template>
                       <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
                     </button>
                   </PopoverTrigger>
@@ -200,12 +206,14 @@ async function handleBirthdayChange(v: DateValue | undefined) {
             </div>
 
             <!-- Date Joined -->
-            <div class="flex items-center gap-3">
-              <div class="flex size-9 items-center justify-center rounded-full bg-muted">
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted"
+              >
                 <Calendar class="size-4 text-muted-foreground" />
               </div>
-              <div>
-                <p class="text-xs text-muted-foreground">Member Since</p>
+              <div class="space-y-1">
+                <p class="text-xs text-muted-foreground">{{ t.parent.profile.memberSinceLabel }}</p>
                 <p class="flex h-9 items-center text-sm font-medium">
                   {{ formattedDateJoined }}
                 </p>

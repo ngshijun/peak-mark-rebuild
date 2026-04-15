@@ -16,6 +16,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Mail, Send, Check, X, Clock, Loader2 } from 'lucide-vue-next'
 import { formatDate } from '@/lib/date'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const props = withDefaults(
   defineProps<{
@@ -56,7 +59,9 @@ const emit = defineEmits<{
     <CardContent class="p-0">
       <div v-if="receivedInvitations.length === 0" class="py-8 text-center">
         <Mail class="mx-auto size-12 text-muted-foreground/50" />
-        <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
+        <p class="mt-2 text-sm text-muted-foreground">
+          {{ t.shared.invitationCards.noPendingInvitations }}
+        </p>
       </div>
       <div v-else class="divide-y border-y">
         <div
@@ -73,7 +78,7 @@ const emit = defineEmits<{
                 {{ formatDate(invitation.createdAt) }}
               </p>
             </div>
-            <Badge variant="outline">Pending</Badge>
+            <Badge variant="outline">{{ t.shared.invitationCards.pending }}</Badge>
           </div>
           <div class="mt-3 flex gap-2">
             <Button
@@ -83,7 +88,7 @@ const emit = defineEmits<{
             >
               <Loader2 v-if="processingId === invitation.id" class="mr-1 size-4 animate-spin" />
               <Check v-else class="mr-1 size-4" />
-              Accept
+              {{ t.shared.invitationCards.accept }}
             </Button>
             <Button
               size="sm"
@@ -92,7 +97,7 @@ const emit = defineEmits<{
               @click="emit('reject', invitation.id)"
             >
               <X class="mr-1 size-4" />
-              Decline
+              {{ t.shared.invitationCards.decline }}
             </Button>
           </div>
         </div>
@@ -114,7 +119,9 @@ const emit = defineEmits<{
     <CardContent class="p-0">
       <div v-if="sentInvitations.length === 0" class="py-8 text-center">
         <Send class="mx-auto size-12 text-muted-foreground/50" />
-        <p class="mt-2 text-sm text-muted-foreground">No pending invitations</p>
+        <p class="mt-2 text-sm text-muted-foreground">
+          {{ t.shared.invitationCards.noPendingInvitations }}
+        </p>
       </div>
       <div v-else class="divide-y border-y">
         <div
@@ -127,10 +134,10 @@ const emit = defineEmits<{
               <p class="font-medium">{{ props.getSentEmail(invitation) }}</p>
               <p class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock class="size-3" />
-                Sent on {{ formatDate(invitation.createdAt) }}
+                {{ t.shared.invitationCards.sentOn(formatDate(invitation.createdAt)) }}
               </p>
             </div>
-            <Badge variant="outline">Pending</Badge>
+            <Badge variant="outline">{{ t.shared.invitationCards.pending }}</Badge>
           </div>
           <div class="mt-3">
             <AlertDialog>
@@ -143,21 +150,24 @@ const emit = defineEmits<{
                 >
                   <Loader2 v-if="processingId === invitation.id" class="mr-1 size-4 animate-spin" />
                   <X v-else class="mr-1 size-4" />
-                  Cancel
+                  {{ t.shared.invitationCards.cancel }}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
+                  <AlertDialogTitle>{{
+                    t.shared.invitationCards.cancelInvitationTitle
+                  }}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to cancel this invitation to
-                    {{ props.getSentEmail(invitation) }}?
+                    {{
+                      t.shared.invitationCards.cancelInvitationDesc(props.getSentEmail(invitation))
+                    }}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Keep</AlertDialogCancel>
+                  <AlertDialogCancel>{{ t.shared.invitationCards.keep }}</AlertDialogCancel>
                   <AlertDialogAction variant="destructive" @click="emit('cancel', invitation.id)">
-                    Cancel Invitation
+                    {{ t.shared.invitationCards.cancelInvitation }}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

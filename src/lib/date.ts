@@ -182,13 +182,26 @@ export function formatLongDateTime(dateString: string | null | undefined): strin
   })
 }
 
+export interface RelativeDateLabels {
+  today: string
+  yesterday: string
+  daysAgo: (n: number) => string
+  weeksAgo: (n: number) => string
+  never: string
+}
+
 /**
  * Formats a date string as a relative date.
  * Examples: "Today", "Yesterday", "3d ago", "2w ago", falls back to formatDate.
- * Returns 'Never' for null/undefined input.
+ * Returns 'Never' (or locale equivalent) for null/undefined input.
+ * Pass a `labels` object to localise the output strings.
  */
-export function formatRelativeDate(dateString: string | null | undefined): string {
-  if (!dateString) return 'Never'
+export function formatRelativeDate(
+  dateString: string | null | undefined,
+  labels?: RelativeDateLabels,
+): string {
+  const never = labels?.never ?? 'Never'
+  if (!dateString) return never
   const date = new Date(dateString)
   const now = new Date()
 
@@ -197,7 +210,7 @@ export function formatRelativeDate(dateString: string | null | undefined): strin
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
 
-  if (isToday) return 'Today'
+  if (isToday) return labels?.today ?? 'Today'
 
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
@@ -206,13 +219,14 @@ export function formatRelativeDate(dateString: string | null | undefined): strin
     date.getMonth() === yesterday.getMonth() &&
     date.getDate() === yesterday.getDate()
 
-  if (isYesterday) return 'Yesterday'
+  if (isYesterday) return labels?.yesterday ?? 'Yesterday'
 
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+  if (diffDays < 7) return labels ? labels.daysAgo(diffDays) : `${diffDays}d ago`
+  if (diffDays < 30)
+    return labels ? labels.weeksAgo(Math.floor(diffDays / 7)) : `${Math.floor(diffDays / 7)}w ago`
   return formatDate(dateString)
 }
 
@@ -221,7 +235,17 @@ export function formatRelativeDate(dateString: string | null | undefined): strin
  * Examples: "just now", "5 minutes ago", "3 hours ago", "2 days ago", falls back to short date.
  * Returns '' for null/undefined input.
  */
-export function formatTimeAgo(dateString: string | null | undefined): string {
+export interface TimeAgoLabels {
+  justNow: string
+  minutesAgo: (n: number) => string
+  hoursAgo: (n: number) => string
+  daysAgo: (n: number) => string
+}
+
+export function formatTimeAgo(
+  dateString: string | null | undefined,
+  labels?: TimeAgoLabels,
+): string {
   if (!dateString) return ''
   const date = new Date(dateString)
   const now = new Date()
@@ -230,11 +254,18 @@ export function formatTimeAgo(dateString: string | null | undefined): string {
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  if (diffMins < 1) return labels?.justNow ?? 'just now'
+  if (diffMins < 60)
+    return labels
+      ? labels.minutesAgo(diffMins)
+      : `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`
+  if (diffHours < 24)
+    return labels
+      ? labels.hoursAgo(diffHours)
+      : `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  if (diffDays < 7)
+    return labels ? labels.daysAgo(diffDays) : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+  return formatDate(dateString)
 }
 
 /**
@@ -242,7 +273,10 @@ export function formatTimeAgo(dateString: string | null | undefined): string {
  * Examples: "just now", "5m ago", "3h ago", "2d ago", falls back to short date.
  * Returns '' for null/undefined input.
  */
-export function formatTimeAgoCompact(dateString: string | null | undefined): string {
+export function formatTimeAgoCompact(
+  dateString: string | null | undefined,
+  labels?: TimeAgoLabels,
+): string {
   if (!dateString) return ''
   const date = new Date(dateString)
   const now = new Date()
@@ -251,9 +285,9 @@ export function formatTimeAgoCompact(dateString: string | null | undefined): str
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  if (diffMins < 1) return labels?.justNow ?? 'just now'
+  if (diffMins < 60) return labels ? labels.minutesAgo(diffMins) : `${diffMins}m ago`
+  if (diffHours < 24) return labels ? labels.hoursAgo(diffHours) : `${diffHours}h ago`
+  if (diffDays < 7) return labels ? labels.daysAgo(diffDays) : `${diffDays}d ago`
+  return formatDate(dateString)
 }

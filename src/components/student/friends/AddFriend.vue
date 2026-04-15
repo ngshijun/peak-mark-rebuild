@@ -11,6 +11,9 @@ import { getAvatarUrl } from '@/lib/storage'
 import { getInitials } from '@/lib/utils'
 import { toast } from 'vue-sonner'
 import { Search, Copy, Loader2, UserPlus, SearchX } from 'lucide-vue-next'
+import { useT } from '@/composables/useT'
+
+const t = useT()
 
 const authStore = useAuthStore()
 const friendsStore = useFriendsStore()
@@ -33,7 +36,7 @@ const filteredResults = computed(() => results.value.filter((r) => !hiddenIds.va
 
 async function handleSendRequest(targetId: string, name: string) {
   if (friendsStore.isFriendCapReached) {
-    toast.error(`Friend list full (${FRIEND_CAP}/${FRIEND_CAP}). Remove a friend to add new ones.`)
+    toast.error(t.value.shared.addFriend.toastFriendListFull(FRIEND_CAP))
     return
   }
   sendingTo.value = targetId
@@ -43,16 +46,16 @@ async function handleSendRequest(targetId: string, name: string) {
   if (error) {
     toast.error(error)
   } else {
-    toast.success(`Friend request sent to ${name}!`)
+    toast.success(t.value.shared.addFriend.toastRequestSent(name))
   }
 }
 
 async function copyFriendCode() {
   try {
     await navigator.clipboard.writeText(friendCode.value)
-    toast.success('Friend code copied!')
+    toast.success(t.value.shared.addFriend.toastCopied)
   } catch {
-    toast.error('Failed to copy')
+    toast.error(t.value.shared.addFriend.toastCopyFailed)
   }
 }
 </script>
@@ -64,16 +67,16 @@ async function copyFriendCode() {
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <Copy class="size-5" />
-          Your Friend Code
+          {{ t.shared.addFriend.friendCodeTitle }}
         </CardTitle>
-        <CardDescription>Share this code with friends so they can add you</CardDescription>
+        <CardDescription>{{ t.shared.addFriend.friendCodeDesc }}</CardDescription>
       </CardHeader>
       <CardContent>
         <div class="flex items-center justify-between rounded-lg bg-muted p-3">
           <p class="font-mono text-lg font-bold tracking-widest text-primary">{{ friendCode }}</p>
           <Button size="sm" variant="outline" @click="copyFriendCode">
             <Copy class="size-4" />
-            Copy
+            {{ t.shared.addFriend.copy }}
           </Button>
         </div>
       </CardContent>
@@ -84,22 +87,22 @@ async function copyFriendCode() {
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <UserPlus class="size-5" />
-          Find Friends
+          {{ t.shared.addFriend.findFriendsTitle }}
         </CardTitle>
-        <CardDescription>Search by name or enter a friend code</CardDescription>
+        <CardDescription>{{ t.shared.addFriend.findFriendsDesc }}</CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
         <div class="relative">
           <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             v-model="searchTerm"
-            placeholder="Search by name or friend code (e.g. ABCD-1234)"
+            :placeholder="t.shared.addFriend.searchPlaceholder"
             class="pl-9"
           />
         </div>
 
         <p v-if="friendsStore.isFriendCapReached" class="text-sm text-destructive">
-          Friend limit reached ({{ FRIEND_CAP }}/{{ FRIEND_CAP }}). Remove a friend to add new ones.
+          {{ t.shared.addFriend.friendLimitReached(FRIEND_CAP) }}
         </p>
 
         <!-- Search results -->
@@ -109,8 +112,8 @@ async function copyFriendCode() {
 
         <div v-else-if="searchTerm && filteredResults.length === 0" class="py-8 text-center">
           <SearchX class="mx-auto size-12 text-muted-foreground/50" />
-          <p class="mt-2 text-sm text-muted-foreground">No students found</p>
-          <p class="text-xs text-muted-foreground">Try a different name or friend code</p>
+          <p class="mt-2 text-sm text-muted-foreground">{{ t.shared.addFriend.noStudentsFound }}</p>
+          <p class="text-xs text-muted-foreground">{{ t.shared.addFriend.tryDifferent }}</p>
         </div>
 
         <div v-else-if="filteredResults.length > 0" class="space-y-2">
@@ -130,7 +133,7 @@ async function copyFriendCode() {
             </div>
 
             <Button v-if="sentRequestIds.has(student.id)" size="sm" variant="secondary" disabled>
-              Request Sent
+              {{ t.shared.addFriend.requestSent }}
             </Button>
             <Button
               v-else
@@ -140,7 +143,7 @@ async function copyFriendCode() {
             >
               <Loader2 v-if="sendingTo === student.id" class="size-4 animate-spin" />
               <UserPlus v-else class="size-4" />
-              Add
+              {{ t.shared.addFriend.add }}
             </Button>
           </div>
         </div>
