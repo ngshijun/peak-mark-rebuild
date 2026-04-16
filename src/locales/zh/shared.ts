@@ -640,6 +640,7 @@ export default {
   upgradePreviewDialog: {
     upgrade: '升级',
     downgrade: '降级',
+    title: (action: string, planName: string) => `${action}至 ${planName}`,
     calculatingPrice: '计算价格中...',
     priceBreakdown: '价格明细：',
     totalDueToday: '今日应付总额',

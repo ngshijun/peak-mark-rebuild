@@ -54,7 +54,9 @@ function formatCurrency(amount: number) {
   <AlertDialog :open="open" @update:open="emit('update:open', $event)">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle> {{ getActionLabel() }} to {{ pendingPlan?.name }} </AlertDialogTitle>
+        <AlertDialogTitle>
+          {{ t.shared.upgradePreviewDialog.title(getActionLabel(), pendingPlan?.name ?? '') }}
+        </AlertDialogTitle>
         <AlertDialogDescription as="div">
           <!-- Loading preview state -->
           <div v-if="isLoading" class="flex items-center justify-center py-4">

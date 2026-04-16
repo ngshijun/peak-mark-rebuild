@@ -661,6 +661,7 @@ export default {
   upgradePreviewDialog: {
     upgrade: 'Upgrade',
     downgrade: 'Downgrade',
+    title: (action: string, planName: string) => `${action} to ${planName}`,
     calculatingPrice: 'Calculating price...',
     priceBreakdown: 'Price breakdown:',
     totalDueToday: 'Total due today',
