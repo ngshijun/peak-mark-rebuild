@@ -665,6 +665,8 @@ export default {
     calculatingPrice: 'Calculating price...',
     priceBreakdown: 'Price breakdown:',
     totalDueToday: 'Total due today',
+    prorationMessage: (amount: string) =>
+      `You'll be charged ${amount} today. Your new billing cycle starts immediately.`,
     prorationEstimateNote:
       'Because proration is calculated to the second, the final amount may differ slightly from this preview.',
     newPlanSessions: (name: string, sessions: number) =>

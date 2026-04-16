@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           isUpgrade: false,
-          message: 'Downgrade will be applied at the end of your current billing cycle',
+          // No message — client builds the downgrade notice from effectiveDate via locale.
           effectiveDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           currentPlan: {
             priceId: currentPriceId,
@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
           priceId: newPriceId,
           amount: newAmount,
         },
-        message: `You'll be charged ${(previewInvoice.amount_due / 100).toFixed(2)} ${previewInvoice.currency.toUpperCase()} today. Your new billing cycle starts immediately.`,
+        // No server-built `message` — client composes via locale strings.
         newBillingCycleStart: new Date().toISOString(),
         newBillingCycleEnd: previewInvoice.lines.data[0]?.period?.end
           ? new Date(previewInvoice.lines.data[0].period.end * 1000).toISOString()

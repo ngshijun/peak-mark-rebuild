@@ -644,6 +644,7 @@ export default {
     calculatingPrice: '计算价格中...',
     priceBreakdown: '价格明细：',
     totalDueToday: '今日应付总额',
+    prorationMessage: (amount: string) => `您今日需支付 ${amount}，新的计费周期即刻开始。`,
     prorationEstimateNote: '按秒计算的比例费用可能在确认时有细微差异，最终金额以实际扣款为准。',
     newPlanSessions: (name: string, sessions: number) =>
       `${name} 的新方案每天包含 ${sessions} 次练习。`,

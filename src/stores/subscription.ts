@@ -49,7 +49,6 @@ export interface UpgradePreview {
     priceId: string
     amount: number
   }
-  message: string
   effectiveDate?: string
   newBillingCycleStart?: string
   newBillingCycleEnd?: string

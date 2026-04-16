@@ -72,7 +72,13 @@ function formatCurrency(amount: number) {
           <!-- Upgrade preview with proration details -->
           <template v-else-if="preview?.isUpgrade">
             <div class="space-y-4">
-              <p>{{ preview.message }}</p>
+              <p>
+                {{
+                  t.shared.upgradePreviewDialog.prorationMessage(
+                    formatCurrency(preview.amountDue ?? 0),
+                  )
+                }}
+              </p>
 
               <!-- Line items breakdown -->
               <div
@@ -121,7 +127,6 @@ function formatCurrency(amount: number) {
           <!-- Downgrade scheduled for next billing cycle -->
           <template v-else-if="preview && !preview.isUpgrade">
             <div class="space-y-3">
-              <p>{{ preview.message }}</p>
               <p class="text-sm text-muted-foreground">
                 {{
                   t.shared.upgradePreviewDialog.currentPlanActiveUntil(
