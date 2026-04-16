@@ -25,6 +25,8 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:stripe": "tsx scripts/test-stripe.ts"
   },
   "dependencies": {
@@ -63,6 +65,7 @@
     "@types/file-saver": "^2.0.7",
     "@types/node": "^25.5.2",
     "@vitejs/plugin-vue": "^6.0.5",
+    "@vitest/ui": "^4.1.4",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/tsconfig": "^0.9.1",
@@ -80,6 +83,7 @@
     "typescript": "~6.0.2",
     "vite": "^8.0.3",
     "vite-plugin-vue-devtools": "^8.1.1",
+    "vitest": "^4.1.4",
     "vue-tsc": "^3.2.6"
   }
 }

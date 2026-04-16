@@ -15,6 +15,23 @@ export default defineConfigWithVueTs(
   vueTsConfigs.recommended,
   skipFormatting,
 
+  // Honor the `_` prefix convention for intentionally-unused args / destructured
+  // values. Common in mock/stub functions (test doubles) and callback signatures
+  // where we don't control the arity.
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
+
   // shadcn-vue UI components use single-word names and vendored code with any types
   {
     files: ['src/components/ui/**/*.{vue,ts}'],

@@ -137,6 +137,7 @@ export default {
     failedPreviewUpgrade: 'Failed to preview upgrade.',
     failedModifySubscription: 'Failed to modify subscription.',
     failedCancelSubscription: 'Failed to cancel subscription.',
+    failedKeepCurrentPlan: 'Failed to cancel the pending change.',
     cannotCheckoutBasicTier: 'Cannot checkout for the basic tier.',
     planNotConfiguredForPayments: 'This plan is not configured for payments.',
     // Feedback
@@ -661,9 +662,14 @@ export default {
   upgradePreviewDialog: {
     upgrade: 'Upgrade',
     downgrade: 'Downgrade',
+    title: (action: string, planName: string) => `${action} to ${planName}`,
     calculatingPrice: 'Calculating price...',
     priceBreakdown: 'Price breakdown:',
     totalDueToday: 'Total due today',
+    prorationMessage: (amount: string) =>
+      `You'll be charged ${amount} today. Your new billing cycle starts immediately.`,
+    prorationEstimateNote:
+      'Because proration is calculated to the second, the final amount may differ slightly from this preview.',
     newPlanSessions: (name: string, sessions: number) =>
       `${name}'s new plan includes ${sessions} sessions per day.`,
     currentPlanActiveUntil: (date: string) => `Your current plan will remain active until ${date}.`,
@@ -1221,5 +1227,8 @@ export default {
     failed: 'Failed',
     pending: 'Pending',
     refunded: 'Refunded',
+    partially_refunded: 'Partially refunded',
+    disputed: 'Disputed',
+    dispute_lost: 'Dispute lost',
   },
 } as const

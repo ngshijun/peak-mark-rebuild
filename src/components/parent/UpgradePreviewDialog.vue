@@ -26,6 +26,10 @@ const props = defineProps<{
   childName: string
   pendingPlan: SubscriptionPlan | undefined
   hasActiveStripeSubscription: boolean
+  // Used by the Core downgrade branch, which skips the Stripe preview call
+  // (no Core price to preview against) but still needs the period_end date
+  // for the "current plan active until X" line.
+  currentPeriodEnd?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -54,7 +58,9 @@ function formatCurrency(amount: number) {
   <AlertDialog :open="open" @update:open="emit('update:open', $event)">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle> {{ getActionLabel() }} to {{ pendingPlan?.name }} </AlertDialogTitle>
+        <AlertDialogTitle>
+          {{ t.shared.upgradePreviewDialog.title(getActionLabel(), pendingPlan?.name ?? '') }}
+        </AlertDialogTitle>
         <AlertDialogDescription as="div">
           <!-- Loading preview state -->
           <div v-if="isLoading" class="flex items-center justify-center py-4">
@@ -70,7 +76,13 @@ function formatCurrency(amount: number) {
           <!-- Upgrade preview with proration details -->
           <template v-else-if="preview?.isUpgrade">
             <div class="space-y-4">
-              <p>{{ preview.message }}</p>
+              <p>
+                {{
+                  t.shared.upgradePreviewDialog.prorationMessage(
+                    formatCurrency(preview.amountDue ?? 0),
+                  )
+                }}
+              </p>
 
               <!-- Line items breakdown -->
               <div
@@ -100,6 +112,9 @@ function formatCurrency(amount: number) {
                     {{ formatCurrency(preview.amountDue ?? 0) }}
                   </span>
                 </div>
+                <p class="mt-2 text-xs text-muted-foreground">
+                  {{ t.shared.upgradePreviewDialog.prorationEstimateNote }}
+                </p>
               </div>
 
               <p class="text-sm text-muted-foreground">
@@ -116,7 +131,6 @@ function formatCurrency(amount: number) {
           <!-- Downgrade scheduled for next billing cycle -->
           <template v-else-if="preview && !preview.isUpgrade">
             <div class="space-y-3">
-              <p>{{ preview.message }}</p>
               <p class="text-sm text-muted-foreground">
                 {{
                   t.shared.upgradePreviewDialog.currentPlanActiveUntil(
@@ -129,12 +143,23 @@ function formatCurrency(amount: number) {
 
           <!-- Downgrade to basic -->
           <template v-else-if="pendingTier === 'core'">
-            {{
-              t.shared.upgradePreviewDialog.downgradeToBasic(
-                childName,
-                pendingPlan?.sessionsPerDay ?? 0,
-              )
-            }}
+            <div class="space-y-3">
+              <p>
+                {{
+                  t.shared.upgradePreviewDialog.downgradeToBasic(
+                    childName,
+                    pendingPlan?.sessionsPerDay ?? 0,
+                  )
+                }}
+              </p>
+              <p v-if="currentPeriodEnd" class="text-sm text-muted-foreground">
+                {{
+                  t.shared.upgradePreviewDialog.currentPlanActiveUntil(
+                    formatLongDate(currentPeriodEnd),
+                  )
+                }}
+              </p>
+            </div>
           </template>
 
           <!-- New subscription (no Stripe subscription yet) -->

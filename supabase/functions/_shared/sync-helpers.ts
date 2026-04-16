@@ -12,6 +12,55 @@ export interface SubscriptionChangeContext {
 }
 
 /**
+ * Normalize a Stripe expandable field — which may be a raw ID string, an
+ * expanded object with `.id`, or absent — into a plain string or null.
+ * Replaces the `typeof x === 'string' ? x : x.id` idiom across the codebase.
+ */
+export function extractStripeId(
+  ref: string | { id: string } | null | undefined,
+): string | null {
+  if (!ref) return null
+  return typeof ref === 'string' ? ref : ref.id
+}
+
+/**
+ * Pick the line item that represents the actual subscription charge for the
+ * NEW (post-change) plan. On a proration invoice (upgrade with
+ * `proration_behavior: 'always_invoice'`) the lines typically look like:
+ *
+ *   [0] proration credit  → old price, NEGATIVE amount, proration=true
+ *   [1] proration charge  → new price, POSITIVE amount, proration=true
+ *   [2] full-period charge → new price, POSITIVE amount, proration=false
+ *
+ * Naively picking `lines.data[0]` misattributes `payment_history.tier` to the
+ * OLD plan. We pick the highest-amount non-proration line first, falling back
+ * through proration lines, then to lines[0] for fully degenerate invoices.
+ */
+export function findRepresentativeLineItem(
+  invoice: Stripe.Invoice,
+): Stripe.InvoiceLineItem | null {
+  const lines = invoice.lines?.data ?? []
+  if (lines.length === 0) return null
+
+  const isProration = (line: Stripe.InvoiceLineItem): boolean =>
+    line.parent?.subscription_item_details?.proration === true
+
+  // Prefer the largest positive non-proration line (the "real" charge).
+  const nonProration = lines
+    .filter((line) => !isProration(line) && line.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+  if (nonProration[0]) return nonProration[0]
+
+  // Fallback: largest positive proration line (still represents the new plan).
+  const positiveProration = lines
+    .filter((line) => isProration(line) && line.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+  if (positiveProration[0]) return positiveProration[0]
+
+  return lines[0]
+}
+
+/**
  * Extract billing period timestamps from a Subscription object.
  * In Stripe Clover API (2025+), `current_period_start` and `current_period_end`
  * were removed from the Subscription object. The equivalent data is on the

@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           isUpgrade: false,
-          message: 'Downgrade will be applied at the end of your current billing cycle',
+          // No message — client builds the downgrade notice from effectiveDate via locale.
           effectiveDate: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           currentPlan: {
             priceId: currentPriceId,
@@ -68,8 +68,11 @@ Deno.serve(async (req: Request) => {
         ? stripeSubscription.customer
         : stripeSubscription.customer.id
 
-    const prorationDate = Math.floor(Date.now() / 1000)
-
+    // Mirror modify-subscription's update call shape so the preview matches what
+    // will actually happen on commit. In Clover flexible mode, `proration_date`
+    // is not allowed together with `billing_cycle_anchor: 'now'` — Stripe rejects
+    // with a 400. When the anchor resets to now, "now" is inherently the
+    // proration cutoff, so there's nothing to specify.
     const previewInvoice = await stripe.invoices.createPreview({
       customer: customerId,
       subscription: subscription.stripe_subscription_id,
@@ -80,7 +83,6 @@ Deno.serve(async (req: Request) => {
             price: newPriceId,
           },
         ],
-        proration_date: prorationDate,
         billing_cycle_anchor: 'now',
         proration_behavior: 'create_prorations',
       },
@@ -123,7 +125,7 @@ Deno.serve(async (req: Request) => {
           priceId: newPriceId,
           amount: newAmount,
         },
-        message: `You'll be charged ${(previewInvoice.amount_due / 100).toFixed(2)} ${previewInvoice.currency.toUpperCase()} today. Your new billing cycle starts immediately.`,
+        // No server-built `message` — client composes via locale strings.
         newBillingCycleStart: new Date().toISOString(),
         newBillingCycleEnd: previewInvoice.lines.data[0]?.period?.end
           ? new Date(previewInvoice.lines.data[0].period.end * 1000).toISOString()

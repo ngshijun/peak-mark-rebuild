@@ -175,7 +175,7 @@ async function confirmPlanChange() {
   upgradeDialogOpen.value = false
 
   if (tier === 'core') {
-    await handleCancel()
+    await handleCancel('downgrade')
     resetUpgradeState()
     return
   }
@@ -223,7 +223,18 @@ function resetUpgradeState() {
   pendingUpgradeTier.value = null
 }
 
-async function handleCancel() {
+/**
+ * Handle the cancel-at-period-end action.
+ *
+ * Called from two places with different user intent:
+ * 1. "Cancel Subscription" button → user wants to cancel (framing=cancel)
+ * 2. Plan picker selecting Core → user wants to downgrade (framing=downgrade)
+ *
+ * The Stripe call is identical in both cases (cancel_at_period_end=true
+ * because Core is a free tier with no Stripe price). Only the toast copy
+ * differs so the user sees their chosen action reflected in the wording.
+ */
+async function handleCancel(framing: 'cancel' | 'downgrade' = 'cancel') {
   if (!selectedChildId.value) return
 
   const hasStripe = subscriptionStore.hasActiveStripeSubscription(selectedChildId.value)
@@ -238,9 +249,38 @@ async function handleCancel() {
   const { error } = await subscriptionStore.cancelStripeSubscription(selectedChildId.value, false)
   if (error) {
     toast.error(t.value.parent.subscription.toastError, { description: error })
+    return
+  }
+
+  if (framing === 'downgrade') {
+    const periodEnd = currentSubscription.value?.stripe?.currentPeriodEnd
+    const scheduledDate = periodEnd
+      ? new Date(periodEnd).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'next billing cycle'
+    const coreName = subscriptionStore.plans.find((p) => p.id === 'core')?.name ?? 'Core'
+    toast.success(t.value.parent.subscription.toastDowngradeScheduled, {
+      description: t.value.parent.subscription.toastDowngradeScheduledDesc(coreName, scheduledDate),
+    })
   } else {
     toast.success(t.value.parent.subscription.toastCancelSuccess, {
       description: t.value.parent.subscription.toastCancelSuccessDesc,
+    })
+  }
+}
+
+async function handleKeepCurrentPlan() {
+  if (!selectedChildId.value) return
+
+  const { error } = await subscriptionStore.keepCurrentPlan(selectedChildId.value)
+  if (error) {
+    toast.error(t.value.parent.subscription.toastError, { description: error })
+  } else {
+    toast.success(t.value.parent.subscription.toastKeepPlanSuccess, {
+      description: t.value.parent.subscription.toastKeepPlanSuccessDesc,
     })
   }
 }
@@ -257,11 +297,11 @@ async function handleOpenPortal() {
 function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChildSubscription>) {
   if (!subscription.stripe) return null
 
-  if (subscription.stripe.cancelAtPeriodEnd) {
-    return { text: t.value.parent.subscription.cancelsSoon, variant: 'destructive' as const }
-  }
-
-  if (subscription.scheduledChange) {
+  // cancel_at_period_end and scheduledChange are both "heading to a lower
+  // tier at period end" from the user's perspective — show the same
+  // downgrade-framed badge for both instead of leaking Stripe's two-state
+  // representation (cancel vs schedule) to the parent.
+  if (subscription.stripe.cancelAtPeriodEnd || subscription.scheduledChange) {
     return { text: t.value.parent.subscription.downgradeScheduled, variant: 'secondary' as const }
   }
 
@@ -382,8 +422,12 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                   class="text-sm text-muted-foreground"
                 >
                   <template v-if="currentSubscription.stripe.cancelAtPeriodEnd">
+                    {{ t.parent.subscription.changingTo }}
+                    <span class="font-medium text-amber-600 dark:text-amber-400">
+                      {{ subscriptionStore.plans.find((p) => p.id === 'core')?.name || 'Core' }}
+                    </span>
                     {{
-                      t.parent.subscription.endsOn(
+                      t.parent.subscription.on(
                         formatDate(currentSubscription.stripe.currentPeriodEnd),
                       )
                     }}
@@ -466,6 +510,46 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
               </AlertDialogContent>
             </AlertDialog>
           </CardFooter>
+          <CardFooter
+            v-else-if="
+              currentSubscription.stripe?.cancelAtPeriodEnd || currentSubscription.scheduledChange
+            "
+          >
+            <AlertDialog>
+              <AlertDialogTrigger as-child>
+                <Button variant="outline" :disabled="subscriptionStore.isProcessingPayment">
+                  <Loader2
+                    v-if="subscriptionStore.isProcessingPayment"
+                    class="mr-2 size-4 animate-spin"
+                  />
+                  {{ t.parent.subscription.keepCurrentPlanButton(currentPlan.name) }}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{{
+                    t.parent.subscription.keepCurrentPlanTitle(currentPlan.name)
+                  }}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {{
+                      t.parent.subscription.keepCurrentPlanConfirm(
+                        currentPlan.name,
+                        formatDate(currentSubscription.stripe?.currentPeriodEnd),
+                      )
+                    }}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{{
+                    t.parent.subscription.keepCurrentPlanDismiss
+                  }}</AlertDialogCancel>
+                  <AlertDialogAction @click="handleKeepCurrentPlan">
+                    {{ t.parent.subscription.keepCurrentPlanConfirmAction }}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardFooter>
         </Card>
       </div>
 
@@ -481,6 +565,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
             :is-processing-payment="subscriptionStore.isProcessingPayment"
             :processing-tier="subscriptionStore.processingTier"
             :scheduled-change="currentSubscription.scheduledChange"
+            :cancel-at-period-end="currentSubscription.stripe?.cancelAtPeriodEnd ?? false"
             @change="handlePlanChange"
           />
         </div>
@@ -497,6 +582,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
           :has-active-stripe-subscription="
             subscriptionStore.hasActiveStripeSubscription(selectedChildId)
           "
+          :current-period-end="currentSubscription?.stripe?.currentPeriodEnd"
           @update:open="upgradeDialogOpen = $event"
           @confirm="confirmPlanChange"
           @cancel="resetUpgradeState"

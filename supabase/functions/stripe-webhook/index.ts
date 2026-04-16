@@ -4,6 +4,8 @@ import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import {
   syncSubscriptionToDatabase,
   syncSubscriptionDeletion,
+  findRepresentativeLineItem,
+  extractStripeId,
 } from '../_shared/sync-helpers.ts'
 import type Stripe from 'stripe'
 
@@ -116,6 +118,18 @@ Deno.serve(async (req: Request) => {
         await handlePaymentFailed(event.data.object as Stripe.Invoice)
         break
 
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object as Stripe.Charge)
+        break
+
+      case 'charge.dispute.created':
+        await handleDisputeCreated(event.data.object as Stripe.Dispute)
+        break
+
+      case 'charge.dispute.closed':
+        await handleDisputeClosed(event.data.object as Stripe.Dispute)
+        break
+
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }
@@ -170,27 +184,70 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 /**
- * Extract a subscription ID from a value that may be a string ID or expanded Subscription object.
- */
-function extractSubscriptionId(raw: string | Stripe.Subscription | null | undefined): string | null {
-  if (!raw) return null
-  return typeof raw === 'string' ? raw : raw.id
-}
-
-/**
  * Extract subscription ID from a Clover-era Invoice object.
  * In Clover API versions, `invoice.subscription` was moved to
  * `invoice.parent.subscription_details.subscription`.
  */
 function extractInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
-  const fromParent = extractSubscriptionId(invoice.parent?.subscription_details?.subscription)
+  const fromParent = extractStripeId(invoice.parent?.subscription_details?.subscription)
   if (fromParent) return fromParent
 
   const lineItem = invoice.lines?.data?.[0]
-  const fromLineItem = extractSubscriptionId(lineItem?.parent?.subscription_item_details?.subscription)
+  const fromLineItem = extractStripeId(lineItem?.parent?.subscription_item_details?.subscription)
   if (fromLineItem) return fromLineItem
 
-  return extractSubscriptionId(lineItem?.subscription)
+  return extractStripeId(lineItem?.subscription)
+}
+
+/**
+ * Resolve the invoice ID a dispute relates to. Disputes carry only a charge
+ * ID, so we have to fetch the charge from Stripe to pull its invoice ID.
+ */
+async function resolveDisputeInvoiceId(dispute: Stripe.Dispute): Promise<string | null> {
+  const chargeId = extractStripeId(dispute.charge)
+  if (!chargeId) return null
+  const charge = await stripe.charges.retrieve(chargeId)
+  return extractStripeId(charge.invoice)
+}
+
+/**
+ * Read the existing metadata for a payment_history row, merge in new fields,
+ * and write status + merged metadata back. Callers supply the status string
+ * and metadata extras; everything else (lookup, merge, error handling) is
+ * identical across refund/dispute-created/dispute-closed handlers.
+ */
+async function patchPaymentHistoryByInvoice(
+  invoiceId: string,
+  status: string,
+  metadataExtras: Record<string, unknown>,
+  context: string,
+): Promise<void> {
+  const { data: existing, error: selectError } = await supabaseAdmin
+    .from('payment_history')
+    .select('id, metadata')
+    .eq('stripe_invoice_id', invoiceId)
+    .maybeSingle()
+
+  if (selectError) {
+    throw new Error(`Error looking up payment for ${context}: ${selectError.message}`)
+  }
+  if (!existing) {
+    console.warn(`${context} for invoice ${invoiceId} — no matching payment_history row`)
+    return
+  }
+
+  const previousMetadata = (existing.metadata ?? {}) as Record<string, unknown>
+  const { error } = await supabaseAdmin
+    .from('payment_history')
+    .update({
+      status,
+      metadata: { ...previousMetadata, ...metadataExtras },
+    })
+    .eq('id', existing.id)
+
+  if (error) {
+    throw new Error(`Error recording ${context} for invoice ${invoiceId}: ${error.message}`)
+  }
 }
 
 /**
@@ -242,13 +299,18 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 
   const { parentId, studentId } = await resolveInvoiceMetadata(invoice, subscriptionId)
 
-  // Get tier from line item's price (Clover-era: pricing.price_details.price)
-  const priceId = invoice.lines?.data?.[0]?.pricing?.price_details?.price
-  const { data: plan } = await supabaseAdmin
-    .from('subscription_plans')
-    .select('id')
-    .eq('stripe_price_id', priceId)
-    .single()
+  // Pick the line item representing the NEW plan's charge, not the proration
+  // credit that appears first on upgrade invoices. See sync-helpers.ts for
+  // the disambiguation rules.
+  const representativeLine = findRepresentativeLineItem(invoice)
+  const priceId = representativeLine?.pricing?.price_details?.price
+  const { data: plan } = priceId
+    ? await supabaseAdmin
+        .from('subscription_plans')
+        .select('id')
+        .eq('stripe_price_id', priceId)
+        .single()
+    : { data: null }
 
   if (!plan) {
     console.warn(`No plan found for price ${priceId}, tier will be null`)
@@ -272,7 +334,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       currency: invoice.currency,
       status: 'succeeded',
       tier: plan?.id || null,
-      description: invoice.lines?.data?.[0]?.description || 'Subscription payment',
+      description: representativeLine?.description || 'Subscription payment',
       created_at: paidAt,
       metadata: {
         invoice_number: invoice.number,
@@ -287,6 +349,79 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   }
 
   console.log(`Payment recorded for invoice ${invoice.id}`)
+}
+
+/**
+ * Refund handler. Stripe fires `charge.refunded` for both full and partial
+ * refunds — we encode the distinction in status so admins can tell them apart.
+ */
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  const invoiceId = extractStripeId(charge.invoice)
+  if (!invoiceId) {
+    console.log(`Refunded charge ${charge.id} has no invoice — skipping`)
+    return
+  }
+
+  const status = charge.amount_refunded >= charge.amount ? 'refunded' : 'partially_refunded'
+  await patchPaymentHistoryByInvoice(
+    invoiceId,
+    status,
+    { refunded_amount_cents: charge.amount_refunded, refund_charge_id: charge.id },
+    'refund',
+  )
+  console.log(`Refund recorded for invoice ${invoiceId} (${status})`)
+}
+
+/**
+ * Dispute opened. Stripe handles the fund hold and any subscription
+ * cancellation via separate `customer.subscription.deleted` events — we
+ * only flag the payment row.
+ */
+async function handleDisputeCreated(dispute: Stripe.Dispute) {
+  const invoiceId = await resolveDisputeInvoiceId(dispute)
+  if (!invoiceId) {
+    console.log(`Disputed charge ${extractStripeId(dispute.charge)} has no invoice — skipping`)
+    return
+  }
+
+  await patchPaymentHistoryByInvoice(
+    invoiceId,
+    'disputed',
+    { dispute_id: dispute.id, dispute_reason: dispute.reason },
+    'dispute',
+  )
+  console.log(`Dispute recorded for invoice ${invoiceId} (${dispute.reason})`)
+}
+
+/**
+ * Dispute closed. Status depends on the outcome:
+ *   - 'won'                     → back to succeeded (money was retained)
+ *   - 'lost' / 'warning_closed' → dispute_lost (money permanently taken)
+ *   - other terminal statuses   → leave as disputed (rare — manual review)
+ */
+async function handleDisputeClosed(dispute: Stripe.Dispute) {
+  const nextStatus =
+    dispute.status === 'won'
+      ? 'succeeded'
+      : dispute.status === 'lost' || dispute.status === 'warning_closed'
+        ? 'dispute_lost'
+        : null
+
+  if (!nextStatus) {
+    console.log(`Dispute ${dispute.id} closed with status ${dispute.status} — no-op`)
+    return
+  }
+
+  const invoiceId = await resolveDisputeInvoiceId(dispute)
+  if (!invoiceId) return
+
+  await patchPaymentHistoryByInvoice(
+    invoiceId,
+    nextStatus,
+    { dispute_status: dispute.status },
+    'dispute close',
+  )
+  console.log(`Dispute ${dispute.id} closed → ${nextStatus}`)
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {

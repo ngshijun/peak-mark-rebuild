@@ -49,7 +49,6 @@ export interface UpgradePreview {
     priceId: string
     amount: number
   }
-  message: string
   effectiveDate?: string
   newBillingCycleStart?: string
   newBillingCycleEnd?: string
@@ -410,6 +409,27 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   }
 
   /**
+   * Extract the server-supplied error message from a FunctionsHttpError.
+   * supabase-js stashes the raw Response in `err.context`; without this,
+   * structured error bodies (e.g., the 402 from modify-subscription on a
+   * declined card) collapse into handleError's generic fallback.
+   */
+  async function extractFunctionErrorMessage(err: unknown): Promise<string | null> {
+    if (typeof err !== 'object' || err === null) return null
+    const ctx = (err as { context?: { response?: Response } }).context
+    if (!ctx?.response) return null
+    try {
+      const body = await ctx.response.clone().json()
+      if (body && typeof body === 'object' && 'error' in body) {
+        return String((body as { error: unknown }).error)
+      }
+    } catch {
+      // Body wasn't JSON — fall through to null.
+    }
+    return null
+  }
+
+  /**
    * Modify an existing Stripe subscription (upgrade/downgrade)
    * - Upgrades: Applied immediately with proration
    * - Downgrades: Scheduled for next billing cycle
@@ -446,7 +466,16 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         },
       })
 
-      if (invokeError) throw invokeError
+      if (invokeError) {
+        // Stripe decline / 3DS / etc. — surface the server's specific message
+        // instead of collapsing into a generic "failed to modify subscription".
+        const serverMessage = await extractFunctionErrorMessage(invokeError)
+        if (serverMessage) {
+          paymentError.value = serverMessage
+          return { error: serverMessage }
+        }
+        throw invokeError
+      }
       if (data.error) throw new Error(data.error)
 
       // Refresh subscriptions to get updated data (non-blocking, non-critical)
@@ -497,8 +526,12 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       if (invokeError) throw invokeError
       if (data.error) throw new Error(data.error)
 
-      // Refresh subscriptions
-      await fetchChildrenSubscriptions()
+      // Force-refresh: the subscription state changed server-side (schedule
+      // released, cancel_at_period_end flipped), so the in-memory cache is
+      // guaranteed stale. Without `force: true` a recent fetch (e.g. from a
+      // prior downgrade in the same session) would short-circuit this call
+      // and the UI would keep showing the old status.
+      await fetchChildrenSubscriptions(undefined, true)
       return { error: null }
     } catch (err) {
       const message = handleError(err, 'failedCancelSubscription')
@@ -507,6 +540,34 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     } finally {
       isProcessingPayment.value = false
       processingTier.value = null
+    }
+  }
+
+  /**
+   * Reverse a pending subscription change (scheduled downgrade or
+   * cancel-at-period-end) so the subscription stays on its current plan.
+   * Server detects which state is active; client doesn't need to distinguish.
+   */
+  async function keepCurrentPlan(childId: string): Promise<{ error: string | null }> {
+    isProcessingPayment.value = true
+    paymentError.value = null
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('keep-current-plan', {
+        body: { studentId: childId },
+      })
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      await fetchChildrenSubscriptions(undefined, true)
+      return { error: null }
+    } catch (err) {
+      const message = handleError(err, 'failedKeepCurrentPlan')
+      paymentError.value = message
+      return { error: message }
+    } finally {
+      isProcessingPayment.value = false
     }
   }
 
@@ -566,6 +627,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     previewUpgrade,
     modifySubscription,
     cancelStripeSubscription,
+    keepCurrentPlan,
     $reset,
   }
 })

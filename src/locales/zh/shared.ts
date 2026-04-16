@@ -134,7 +134,8 @@ export default {
     failedPreviewUpgrade: '预览升级失败。',
     failedModifySubscription: '修改订阅失败。',
     failedCancelSubscription: '取消订阅失败。',
-    cannotCheckoutBasicTier: '基础方案无需结账。',
+    failedKeepCurrentPlan: '撤销待处理更改失败。',
+    cannotCheckoutBasicTier: 'Core 方案无需结账。',
     planNotConfiguredForPayments: '此方案尚未配置支付。',
     // Feedback
     failedFetchFeedbacks: '加载反馈失败。',
@@ -640,14 +641,17 @@ export default {
   upgradePreviewDialog: {
     upgrade: '升级',
     downgrade: '降级',
+    title: (action: string, planName: string) => `${action}至 ${planName}`,
     calculatingPrice: '计算价格中...',
     priceBreakdown: '价格明细：',
     totalDueToday: '今日应付总额',
+    prorationMessage: (amount: string) => `您今日需支付 ${amount}，新的计费周期即刻开始。`,
+    prorationEstimateNote: '按秒计算的比例费用可能在确认时有细微差异，最终金额以实际扣款为准。',
     newPlanSessions: (name: string, sessions: number) =>
       `${name} 的新方案每天包含 ${sessions} 次练习。`,
     currentPlanActiveUntil: (date: string) => `您的当前方案将在 ${date} 前保持有效。`,
     downgradeToBasic: (name: string, sessions: number) =>
-      `${name} 将降级至免费基础方案，每天练习次数限制为 ${sessions} 次。`,
+      `${name} 将降级至免费 Core 方案，每天练习次数限制为 ${sessions} 次。`,
     redirectToCheckout: (name: string, sessions: number) =>
       `您将被重定向至安全结账页面以完成付款。${name} 的新方案每天包含 ${sessions} 次练习。`,
     downgradeWithSub: (name: string, planName: string) =>
@@ -1195,5 +1199,8 @@ export default {
     failed: '失败',
     pending: '处理中',
     refunded: '已退款',
+    partially_refunded: '部分退款',
+    disputed: '争议中',
+    dispute_lost: '争议败诉',
   },
 } as const

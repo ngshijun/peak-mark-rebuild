@@ -5,9 +5,52 @@ import {
   syncSubscriptionToDatabase,
   resolveSubscriptionChange,
   extractPeriodDates,
+  extractStripeId,
 } from '../_shared/sync-helpers.ts'
-import type Stripe from 'stripe'
+import Stripe from 'stripe'
 import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
+
+/**
+ * Convert a Stripe SDK error into a structured JSON response the UI can act
+ * on. Returns null if the error isn't recognized as a Stripe payment error
+ * (caller should fall back to a generic 500).
+ *
+ * We only surface the fields Stripe documents as customer-safe: the decline
+ * code family, the error code, and the user-facing message. No card data
+ * is ever on these fields — decline_code is a bounded enum like
+ * 'insufficient_funds' / 'expired_card' / 'authentication_required'.
+ */
+function stripePaymentErrorResponse(error: unknown): Response | null {
+  if (!(error instanceof Stripe.errors.StripeError)) return null
+
+  // StripeCardError covers the direct decline path. The two error codes
+  // cover the 3DS / authentication-required path that `error_if_incomplete`
+  // raises as a StripeInvalidRequestError rather than a card error.
+  const isPaymentError =
+    error instanceof Stripe.errors.StripeCardError ||
+    error.code === 'subscription_payment_intent_requires_action' ||
+    error.code === 'payment_intent_authentication_failure'
+
+  if (!isPaymentError) return null
+
+  console.error('Stripe payment error during subscription modification:', {
+    type: error.type,
+    code: error.code,
+    decline_code: error.decline_code,
+    message: error.message,
+  })
+
+  const body = {
+    error: error.message ?? 'Your payment could not be processed.',
+    code: error.code ?? null,
+    decline_code: error.decline_code ?? null,
+  }
+
+  return new Response(JSON.stringify(body), {
+    status: 402,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -44,12 +87,9 @@ Deno.serve(async (req: Request) => {
     if (isUpgrade) {
       // UPGRADE: Pay prorated difference immediately and reset billing cycle
       // If there's an existing schedule, release it first
-      if (stripeSubscription.schedule) {
-        const scheduleId =
-          typeof stripeSubscription.schedule === 'string'
-            ? stripeSubscription.schedule
-            : stripeSubscription.schedule.id
-        await stripe.subscriptionSchedules.release(scheduleId)
+      const existingScheduleId = extractStripeId(stripeSubscription.schedule)
+      if (existingScheduleId) {
+        await stripe.subscriptionSchedules.release(existingScheduleId)
       }
 
       updatedSubscription = await stripe.subscriptions.update(
@@ -116,14 +156,10 @@ Deno.serve(async (req: Request) => {
 
       let schedule: Stripe.SubscriptionSchedule
 
-      if (stripeSubscription.schedule) {
+      const existingScheduleId = extractStripeId(stripeSubscription.schedule)
+      if (existingScheduleId) {
         // Update existing schedule
-        const scheduleId =
-          typeof stripeSubscription.schedule === 'string'
-            ? stripeSubscription.schedule
-            : stripeSubscription.schedule.id
-
-        schedule = await stripe.subscriptionSchedules.update(scheduleId, {
+        schedule = await stripe.subscriptionSchedules.update(existingScheduleId, {
           phases: [
             {
               items: [{ price: currentPriceId, quantity: 1 }],
@@ -214,6 +250,8 @@ Deno.serve(async (req: Request) => {
     }
   } catch (error) {
     if (error instanceof Response) return error
+    const paymentResponse = stripePaymentErrorResponse(error)
+    if (paymentResponse) return paymentResponse
     return errorResponse('Failed to modify subscription', 500, error)
   }
 })
