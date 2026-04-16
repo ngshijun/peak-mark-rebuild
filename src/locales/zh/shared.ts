@@ -135,7 +135,7 @@ export default {
     failedModifySubscription: '修改订阅失败。',
     failedCancelSubscription: '取消订阅失败。',
     failedKeepCurrentPlan: '撤销待处理更改失败。',
-    cannotCheckoutBasicTier: '基础方案无需结账。',
+    cannotCheckoutBasicTier: 'Core 方案无需结账。',
     planNotConfiguredForPayments: '此方案尚未配置支付。',
     // Feedback
     failedFetchFeedbacks: '加载反馈失败。',
@@ -651,7 +651,7 @@ export default {
       `${name} 的新方案每天包含 ${sessions} 次练习。`,
     currentPlanActiveUntil: (date: string) => `您的当前方案将在 ${date} 前保持有效。`,
     downgradeToBasic: (name: string, sessions: number) =>
-      `${name} 将降级至免费基础方案，每天练习次数限制为 ${sessions} 次。`,
+      `${name} 将降级至免费Core 方案，每天练习次数限制为 ${sessions} 次。`,
     redirectToCheckout: (name: string, sessions: number) =>
       `您将被重定向至安全结账页面以完成付款。${name} 的新方案每天包含 ${sessions} 次练习。`,
     downgradeWithSub: (name: string, planName: string) =>
