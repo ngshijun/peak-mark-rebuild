@@ -26,6 +26,10 @@ const props = defineProps<{
   childName: string
   pendingPlan: SubscriptionPlan | undefined
   hasActiveStripeSubscription: boolean
+  // Used by the Core downgrade branch, which skips the Stripe preview call
+  // (no Core price to preview against) but still needs the period_end date
+  // for the "current plan active until X" line.
+  currentPeriodEnd?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -139,12 +143,23 @@ function formatCurrency(amount: number) {
 
           <!-- Downgrade to basic -->
           <template v-else-if="pendingTier === 'core'">
-            {{
-              t.shared.upgradePreviewDialog.downgradeToBasic(
-                childName,
-                pendingPlan?.sessionsPerDay ?? 0,
-              )
-            }}
+            <div class="space-y-3">
+              <p>
+                {{
+                  t.shared.upgradePreviewDialog.downgradeToBasic(
+                    childName,
+                    pendingPlan?.sessionsPerDay ?? 0,
+                  )
+                }}
+              </p>
+              <p v-if="currentPeriodEnd" class="text-sm text-muted-foreground">
+                {{
+                  t.shared.upgradePreviewDialog.currentPlanActiveUntil(
+                    formatLongDate(currentPeriodEnd),
+                  )
+                }}
+              </p>
+            </div>
           </template>
 
           <!-- New subscription (no Stripe subscription yet) -->

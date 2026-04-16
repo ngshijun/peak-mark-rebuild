@@ -582,6 +582,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
           :has-active-stripe-subscription="
             subscriptionStore.hasActiveStripeSubscription(selectedChildId)
           "
+          :current-period-end="currentSubscription?.stripe?.currentPeriodEnd"
           @update:open="upgradeDialogOpen = $event"
           @confirm="confirmPlanChange"
           @cancel="resetUpgradeState"
