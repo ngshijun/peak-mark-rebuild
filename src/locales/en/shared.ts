@@ -137,6 +137,7 @@ export default {
     failedPreviewUpgrade: 'Failed to preview upgrade.',
     failedModifySubscription: 'Failed to modify subscription.',
     failedCancelSubscription: 'Failed to cancel subscription.',
+    failedKeepCurrentPlan: 'Failed to cancel the pending change.',
     cannotCheckoutBasicTier: 'Cannot checkout for the basic tier.',
     planNotConfiguredForPayments: 'This plan is not configured for payments.',
     // Feedback

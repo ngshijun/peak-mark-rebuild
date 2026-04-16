@@ -150,5 +150,13 @@ export default {
     toastNoActiveSubDesc: 'This child is already on the basic tier.',
     toastCancelSuccess: 'Subscription cancelled',
     toastCancelSuccessDesc: 'Your subscription will end at the current billing period.',
+    keepCurrentPlanButton: (planName: string) => `Keep ${planName}`,
+    keepCurrentPlanTitle: (planName: string) => `Keep ${planName}`,
+    keepCurrentPlanConfirm: (planName: string, date: string) =>
+      `Your pending change will be cancelled and ${planName} will continue renewing on ${date}.`,
+    keepCurrentPlanConfirmAction: 'Confirm',
+    keepCurrentPlanDismiss: 'Never mind',
+    toastKeepPlanSuccess: 'Pending change cancelled',
+    toastKeepPlanSuccessDesc: 'Your subscription will continue on its current plan.',
   },
 } as const

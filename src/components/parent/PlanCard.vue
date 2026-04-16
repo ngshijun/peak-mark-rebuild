@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Sparkles, Zap, CreditCard, Loader2 } from 'lucide-vue-next'
+import { computed } from 'vue'
 import { useT } from '@/composables/useT'
 
 const t = useT()
@@ -21,11 +22,24 @@ const props = defineProps<{
   isProcessingPayment: boolean
   processingTier?: SubscriptionTier | null
   scheduledChange?: ScheduledChange | null
+  cancelAtPeriodEnd?: boolean
 }>()
 
 const emit = defineEmits<{
   change: [tier: SubscriptionTier]
 }>()
+
+/**
+ * The tier the subscription is heading to at period end, via either a
+ * Stripe subscription_schedule (explicit downgrade) or cancel_at_period_end
+ * (cancellation, which falls back to 'core'). Used to disable the button
+ * for that destination tier so the user can't queue up a redundant change.
+ */
+const effectiveScheduledTier = computed<SubscriptionTier | null>(() => {
+  if (props.scheduledChange?.scheduledTier) return props.scheduledChange.scheduledTier
+  if (props.cancelAtPeriodEnd) return 'core'
+  return null
+})
 
 function getTierIcon(tier: SubscriptionTier) {
   switch (tier) {
@@ -41,8 +55,7 @@ function getTierIcon(tier: SubscriptionTier) {
 function getButtonText() {
   if (props.plan.id === props.currentTier) return t.value.shared.planCard.currentPlan
 
-  if (props.scheduledChange?.scheduledTier === props.plan.id)
-    return t.value.shared.planCard.scheduled
+  if (effectiveScheduledTier.value === props.plan.id) return t.value.shared.planCard.scheduled
 
   if (props.plan.id === 'core') return t.value.shared.planCard.downgrade
 
@@ -119,7 +132,7 @@ function getButtonVariant() {
         v-if="plan.id !== currentTier"
         class="w-full"
         :variant="getButtonVariant()"
-        :disabled="isProcessingPayment || scheduledChange?.scheduledTier === plan.id"
+        :disabled="isProcessingPayment || effectiveScheduledTier === plan.id"
         @click="emit('change', plan.id)"
       >
         <Loader2

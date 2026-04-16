@@ -143,5 +143,13 @@ export default {
     toastNoActiveSubDesc: '该孩子目前使用的是基础方案。',
     toastCancelSuccess: '订阅已取消',
     toastCancelSuccessDesc: '您的订阅将在当前计费周期结束后停止。',
+    keepCurrentPlanButton: (planName: string) => `保留 ${planName}`,
+    keepCurrentPlanTitle: (planName: string) => `保留 ${planName}`,
+    keepCurrentPlanConfirm: (planName: string, date: string) =>
+      `待处理的变更将被撤销，${planName} 将于 ${date} 正常续费。`,
+    keepCurrentPlanConfirmAction: '确认',
+    keepCurrentPlanDismiss: '再想想',
+    toastKeepPlanSuccess: '待处理变更已撤销',
+    toastKeepPlanSuccessDesc: '您的订阅将在当前方案上继续。',
   },
 } as const

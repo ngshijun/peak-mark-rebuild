@@ -245,6 +245,19 @@ async function handleCancel() {
   }
 }
 
+async function handleKeepCurrentPlan() {
+  if (!selectedChildId.value) return
+
+  const { error } = await subscriptionStore.keepCurrentPlan(selectedChildId.value)
+  if (error) {
+    toast.error(t.value.parent.subscription.toastError, { description: error })
+  } else {
+    toast.success(t.value.parent.subscription.toastKeepPlanSuccess, {
+      description: t.value.parent.subscription.toastKeepPlanSuccessDesc,
+    })
+  }
+}
+
 async function handleOpenPortal() {
   const { url, error } = await subscriptionStore.openCustomerPortal()
   if (error) {
@@ -466,6 +479,46 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
               </AlertDialogContent>
             </AlertDialog>
           </CardFooter>
+          <CardFooter
+            v-else-if="
+              currentSubscription.stripe?.cancelAtPeriodEnd || currentSubscription.scheduledChange
+            "
+          >
+            <AlertDialog>
+              <AlertDialogTrigger as-child>
+                <Button variant="outline" :disabled="subscriptionStore.isProcessingPayment">
+                  <Loader2
+                    v-if="subscriptionStore.isProcessingPayment"
+                    class="mr-2 size-4 animate-spin"
+                  />
+                  {{ t.parent.subscription.keepCurrentPlanButton(currentPlan.name) }}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{{
+                    t.parent.subscription.keepCurrentPlanTitle(currentPlan.name)
+                  }}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {{
+                      t.parent.subscription.keepCurrentPlanConfirm(
+                        currentPlan.name,
+                        formatDate(currentSubscription.stripe?.currentPeriodEnd),
+                      )
+                    }}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{{
+                    t.parent.subscription.keepCurrentPlanDismiss
+                  }}</AlertDialogCancel>
+                  <AlertDialogAction @click="handleKeepCurrentPlan">
+                    {{ t.parent.subscription.keepCurrentPlanConfirmAction }}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardFooter>
         </Card>
       </div>
 
@@ -481,6 +534,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
             :is-processing-payment="subscriptionStore.isProcessingPayment"
             :processing-tier="subscriptionStore.processingTier"
             :scheduled-change="currentSubscription.scheduledChange"
+            :cancel-at-period-end="currentSubscription.stripe?.cancelAtPeriodEnd ?? false"
             @change="handlePlanChange"
           />
         </div>

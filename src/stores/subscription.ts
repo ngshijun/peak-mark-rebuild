@@ -539,6 +539,34 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }
   }
 
+  /**
+   * Reverse a pending subscription change (scheduled downgrade or
+   * cancel-at-period-end) so the subscription stays on its current plan.
+   * Server detects which state is active; client doesn't need to distinguish.
+   */
+  async function keepCurrentPlan(childId: string): Promise<{ error: string | null }> {
+    isProcessingPayment.value = true
+    paymentError.value = null
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('keep-current-plan', {
+        body: { studentId: childId },
+      })
+
+      if (invokeError) throw invokeError
+      if (data.error) throw new Error(data.error)
+
+      await fetchChildrenSubscriptions(undefined, true)
+      return { error: null }
+    } catch (err) {
+      const message = handleError(err, 'failedKeepCurrentPlan')
+      paymentError.value = message
+      return { error: message }
+    } finally {
+      isProcessingPayment.value = false
+    }
+  }
+
   // Get total monthly cost across all children
   const totalMonthlyCost = computed(() => {
     return childSubscriptions.value.reduce((total, sub) => {
@@ -595,6 +623,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     previewUpgrade,
     modifySubscription,
     cancelStripeSubscription,
+    keepCurrentPlan,
     $reset,
   }
 })

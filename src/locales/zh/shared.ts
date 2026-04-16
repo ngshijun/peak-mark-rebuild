@@ -134,6 +134,7 @@ export default {
     failedPreviewUpgrade: '预览升级失败。',
     failedModifySubscription: '修改订阅失败。',
     failedCancelSubscription: '取消订阅失败。',
+    failedKeepCurrentPlan: '撤销待处理更改失败。',
     cannotCheckoutBasicTier: '基础方案无需结账。',
     planNotConfiguredForPayments: '此方案尚未配置支付。',
     // Feedback
