@@ -526,8 +526,12 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       if (invokeError) throw invokeError
       if (data.error) throw new Error(data.error)
 
-      // Refresh subscriptions
-      await fetchChildrenSubscriptions()
+      // Force-refresh: the subscription state changed server-side (schedule
+      // released, cancel_at_period_end flipped), so the in-memory cache is
+      // guaranteed stale. Without `force: true` a recent fetch (e.g. from a
+      // prior downgrade in the same session) would short-circuit this call
+      // and the UI would keep showing the old status.
+      await fetchChildrenSubscriptions(undefined, true)
       return { error: null }
     } catch (err) {
       const message = handleError(err, 'failedCancelSubscription')
