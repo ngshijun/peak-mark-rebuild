@@ -651,7 +651,7 @@ export default {
       `${name} 的新方案每天包含 ${sessions} 次练习。`,
     currentPlanActiveUntil: (date: string) => `您的当前方案将在 ${date} 前保持有效。`,
     downgradeToBasic: (name: string, sessions: number) =>
-      `${name} 将降级至免费Core 方案，每天练习次数限制为 ${sessions} 次。`,
+      `${name} 将降级至免费 Core 方案，每天练习次数限制为 ${sessions} 次。`,
     redirectToCheckout: (name: string, sessions: number) =>
       `您将被重定向至安全结账页面以完成付款。${name} 的新方案每天包含 ${sessions} 次练习。`,
     downgradeWithSub: (name: string, planName: string) =>
