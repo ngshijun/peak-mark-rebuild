@@ -120,8 +120,8 @@ export default {
     cancelSubscriptionConfirm: (childName: string) =>
       `Are you sure you want to cancel ${childName}'s subscription?`,
     cancelSubscriptionStripeNote: (date: string) =>
-      `The subscription will remain active until ${date}, then automatically downgrade to Basic.`,
-    cancelSubscriptionImmediateNote: 'They will be downgraded to the Basic tier immediately.',
+      `The subscription will remain active until ${date}, then automatically downgrade to Core.`,
+    cancelSubscriptionImmediateNote: 'They will be downgraded to the Core tier immediately.',
     keepSubscription: 'Keep Subscription',
     availablePlansTitle: 'Available Plans',
     planFeaturesTitle: 'Plan Features Comparison',
@@ -145,16 +145,16 @@ export default {
       `Plan has been upgraded to ${tier}. Your billing cycle has been reset.`,
     toastError: 'Error',
     toastNoActiveSub: 'No active subscription',
-    toastNoActiveSubDesc: 'This child is already on the basic tier.',
+    toastNoActiveSubDesc: 'This child is already on the Core tier.',
     toastCancelSuccess: 'Subscription cancelled',
     toastCancelSuccessDesc: 'Your subscription will end at the current billing period.',
-    keepCurrentPlanButton: (planName: string) => `Keep ${planName}`,
-    keepCurrentPlanTitle: (planName: string) => `Keep ${planName}`,
-    keepCurrentPlanConfirm: (planName: string, date: string) =>
-      `Your pending change will be cancelled and ${planName} will continue renewing on ${date}.`,
-    keepCurrentPlanConfirmAction: 'Confirm',
-    keepCurrentPlanDismiss: 'Never mind',
-    toastKeepPlanSuccess: 'Pending change cancelled',
-    toastKeepPlanSuccessDesc: 'Your subscription will continue on its current plan.',
+    cancelDowngradeButton: 'Cancel Downgrade',
+    cancelDowngradeTitle: 'Cancel Scheduled Downgrade',
+    cancelDowngradeConfirm: (planName: string, date: string) =>
+      `The scheduled downgrade will be cancelled and ${planName} will continue renewing on ${date}.`,
+    cancelDowngradeConfirmAction: 'Yes, cancel downgrade',
+    cancelDowngradeDismiss: 'Keep downgrade',
+    toastCancelDowngradeSuccess: 'Downgrade cancelled',
+    toastCancelDowngradeSuccessDesc: 'Your subscription will continue on its current plan.',
   },
 } as const
