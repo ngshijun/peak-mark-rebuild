@@ -66,13 +66,20 @@ Deno.serve(async (req: Request) => {
         .eq('id', user.id)
         .single()
 
-      const customer = await stripe.customers.create({
-        email: parentInfo?.email ?? undefined,
-        name: parentInfo?.name ?? undefined,
-        metadata: {
-          supabase_parent_id: user.id,
+      // Idempotency key: if this edge function runs twice concurrently
+      // (parent double-clicks, opens two tabs), Stripe returns the SAME
+      // customer for both calls instead of creating duplicates that would
+      // orphan one of them.
+      const customer = await stripe.customers.create(
+        {
+          email: parentInfo?.email ?? undefined,
+          name: parentInfo?.name ?? undefined,
+          metadata: {
+            supabase_parent_id: user.id,
+          },
         },
-      })
+        { idempotencyKey: `customer-${user.id}` },
+      )
 
       stripeCustomerId = customer.id
 
@@ -102,30 +109,39 @@ Deno.serve(async (req: Request) => {
       .eq('id', studentId)
       .single()
 
-    // Create Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
+    // Create Checkout Session.
+    //
+    // Idempotency key buckets by the minute so two clicks within ~60s reuse
+    // the same Checkout Session URL instead of creating duplicate sessions.
+    // A longer window would strand parents on an expired URL after cancelling
+    // and retrying; a shorter window defeats the anti-duplicate goal.
+    const idempotencyBucket = Math.floor(Date.now() / 60000)
+    const session = await stripe.checkout.sessions.create(
+      {
+        customer: stripeCustomerId,
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${successUrl}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: cancelUrl,
+        subscription_data: {
+          metadata: {
+            supabase_parent_id: user.id,
+            supabase_student_id: studentId,
+            student_name: studentInfo?.name || 'Unknown',
+          },
         },
-      ],
-      mode: 'subscription',
-      success_url: `${successUrl}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl,
-      subscription_data: {
         metadata: {
           supabase_parent_id: user.id,
           supabase_student_id: studentId,
-          student_name: studentInfo?.name || 'Unknown',
         },
       },
-      metadata: {
-        supabase_parent_id: user.id,
-        supabase_student_id: studentId,
-      },
-    })
+      { idempotencyKey: `checkout-${user.id}-${studentId}-${priceId}-${idempotencyBucket}` },
+    )
 
     return new Response(JSON.stringify({ sessionId: session.id, url: session.url }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

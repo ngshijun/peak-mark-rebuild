@@ -1,7 +1,11 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import { stripe, corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
-import { syncSubscriptionToDatabase, extractPeriodDates } from '../_shared/sync-helpers.ts'
+import {
+  syncSubscriptionToDatabase,
+  extractPeriodDates,
+  extractStripeId,
+} from '../_shared/sync-helpers.ts'
 import { getAuthenticatedUser, verifyParentStudentLink } from '../_shared/auth.ts'
 
 /**
@@ -41,10 +45,7 @@ Deno.serve(async (req: Request) => {
         return errorResponse('Payment not completed', 400)
       }
 
-      if (session.subscription) {
-        stripeSubscriptionId =
-          typeof session.subscription === 'string' ? session.subscription : session.subscription.id
-      }
+      stripeSubscriptionId = extractStripeId(session.subscription)
     }
 
     // If no sessionId, try to get subscription from database
@@ -68,7 +69,28 @@ Deno.serve(async (req: Request) => {
       expand: ['latest_invoice'],
     })
 
-    // Ensure metadata has parent/student IDs for sync
+    // Verify the subscription's Stripe customer belongs to the authenticated
+    // parent. Without this check, any authenticated parent could pass an
+    // arbitrary sessionId/subscription_id and trigger sync/metadata-write
+    // side effects on someone else's subscription.
+    const subscriptionCustomerId = extractStripeId(subscription.customer)
+
+    const { data: parentProfile } = await supabaseAdmin
+      .from('parent_profiles')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single()
+
+    if (
+      !parentProfile?.stripe_customer_id ||
+      parentProfile.stripe_customer_id !== subscriptionCustomerId
+    ) {
+      return errorResponse('Subscription does not belong to this user', 403)
+    }
+
+    // Ensure metadata has parent/student IDs for sync. Safe to trust the
+    // caller's IDs here because the customer-ownership check above
+    // guarantees this subscription belongs to them.
     if (!subscription.metadata.supabase_parent_id || !subscription.metadata.supabase_student_id) {
       // Update Stripe subscription with metadata if missing
       await stripe.subscriptions.update(stripeSubscriptionId, {

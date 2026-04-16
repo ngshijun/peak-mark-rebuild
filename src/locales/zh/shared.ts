@@ -643,6 +643,7 @@ export default {
     calculatingPrice: '计算价格中...',
     priceBreakdown: '价格明细：',
     totalDueToday: '今日应付总额',
+    prorationEstimateNote: '按秒计算的比例费用可能在确认时有细微差异，最终金额以实际扣款为准。',
     newPlanSessions: (name: string, sessions: number) =>
       `${name} 的新方案每天包含 ${sessions} 次练习。`,
     currentPlanActiveUntil: (date: string) => `您的当前方案将在 ${date} 前保持有效。`,
@@ -1195,5 +1196,8 @@ export default {
     failed: '失败',
     pending: '处理中',
     refunded: '已退款',
+    partially_refunded: '部分退款',
+    disputed: '争议中',
+    dispute_lost: '争议败诉',
   },
 } as const

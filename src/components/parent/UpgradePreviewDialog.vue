@@ -100,6 +100,9 @@ function formatCurrency(amount: number) {
                     {{ formatCurrency(preview.amountDue ?? 0) }}
                   </span>
                 </div>
+                <p class="mt-2 text-xs text-muted-foreground">
+                  {{ t.shared.upgradePreviewDialog.prorationEstimateNote }}
+                </p>
               </div>
 
               <p class="text-sm text-muted-foreground">

@@ -410,6 +410,27 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   }
 
   /**
+   * Extract the server-supplied error message from a FunctionsHttpError.
+   * supabase-js stashes the raw Response in `err.context`; without this,
+   * structured error bodies (e.g., the 402 from modify-subscription on a
+   * declined card) collapse into handleError's generic fallback.
+   */
+  async function extractFunctionErrorMessage(err: unknown): Promise<string | null> {
+    if (typeof err !== 'object' || err === null) return null
+    const ctx = (err as { context?: { response?: Response } }).context
+    if (!ctx?.response) return null
+    try {
+      const body = await ctx.response.clone().json()
+      if (body && typeof body === 'object' && 'error' in body) {
+        return String((body as { error: unknown }).error)
+      }
+    } catch {
+      // Body wasn't JSON — fall through to null.
+    }
+    return null
+  }
+
+  /**
    * Modify an existing Stripe subscription (upgrade/downgrade)
    * - Upgrades: Applied immediately with proration
    * - Downgrades: Scheduled for next billing cycle
@@ -446,7 +467,16 @@ export const useSubscriptionStore = defineStore('subscription', () => {
         },
       })
 
-      if (invokeError) throw invokeError
+      if (invokeError) {
+        // Stripe decline / 3DS / etc. — surface the server's specific message
+        // instead of collapsing into a generic "failed to modify subscription".
+        const serverMessage = await extractFunctionErrorMessage(invokeError)
+        if (serverMessage) {
+          paymentError.value = serverMessage
+          return { error: serverMessage }
+        }
+        throw invokeError
+      }
       if (data.error) throw new Error(data.error)
 
       // Refresh subscriptions to get updated data (non-blocking, non-critical)
