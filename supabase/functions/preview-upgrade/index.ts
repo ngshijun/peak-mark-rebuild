@@ -68,8 +68,11 @@ Deno.serve(async (req: Request) => {
         ? stripeSubscription.customer
         : stripeSubscription.customer.id
 
-    const prorationDate = Math.floor(Date.now() / 1000)
-
+    // Mirror modify-subscription's update call shape so the preview matches what
+    // will actually happen on commit. In Clover flexible mode, `proration_date`
+    // is not allowed together with `billing_cycle_anchor: 'now'` — Stripe rejects
+    // with a 400. When the anchor resets to now, "now" is inherently the
+    // proration cutoff, so there's nothing to specify.
     const previewInvoice = await stripe.invoices.createPreview({
       customer: customerId,
       subscription: subscription.stripe_subscription_id,
@@ -80,7 +83,6 @@ Deno.serve(async (req: Request) => {
             price: newPriceId,
           },
         ],
-        proration_date: prorationDate,
         billing_cycle_anchor: 'now',
         proration_behavior: 'create_prorations',
       },
