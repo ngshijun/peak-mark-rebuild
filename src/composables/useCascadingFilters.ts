@@ -1,7 +1,6 @@
 import { ref, type Ref } from 'vue'
 import type { DateRangeFilter } from '@/lib/sessionFilters'
-
-const ALL_VALUE = '__all__'
+import { ALL_VALUE } from '@/lib/statisticsColumns'
 
 interface CascadingFiltersBase {
   gradeLevel: string

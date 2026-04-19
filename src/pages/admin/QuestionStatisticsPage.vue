@@ -18,6 +18,7 @@ import {
 import { QuestionPreviewDialog } from '@/components/admin'
 import { useT } from '@/composables/useT'
 import { useLanguageStore } from '@/stores/language'
+import { ALL_VALUE, resolveFilterValue } from '@/lib/statisticsColumns'
 
 const t = useT()
 const languageStore = useLanguageStore()
@@ -45,31 +46,20 @@ async function refreshStatistics(): Promise<void> {
   }
 }
 
-const ALL_VALUE = '__all__'
-
 const showPreviewDialog = ref(false)
 const previewQuestion = ref<QuestionWithStats | null>(null)
 
-// Helper to convert ALL_VALUE to undefined for store calls
 const gradeLevelFilter = computed(() =>
-  questionsStore.questionStatisticsFilters.gradeLevel === ALL_VALUE
-    ? undefined
-    : questionsStore.questionStatisticsFilters.gradeLevel,
+  resolveFilterValue(questionsStore.questionStatisticsFilters.gradeLevel),
 )
 const subjectFilter = computed(() =>
-  questionsStore.questionStatisticsFilters.subject === ALL_VALUE
-    ? undefined
-    : questionsStore.questionStatisticsFilters.subject,
+  resolveFilterValue(questionsStore.questionStatisticsFilters.subject),
 )
 const topicFilter = computed(() =>
-  questionsStore.questionStatisticsFilters.topic === ALL_VALUE
-    ? undefined
-    : questionsStore.questionStatisticsFilters.topic,
+  resolveFilterValue(questionsStore.questionStatisticsFilters.topic),
 )
 const subTopicFilter = computed(() =>
-  questionsStore.questionStatisticsFilters.subTopic === ALL_VALUE
-    ? undefined
-    : questionsStore.questionStatisticsFilters.subTopic,
+  resolveFilterValue(questionsStore.questionStatisticsFilters.subTopic),
 )
 
 // Get available filter options

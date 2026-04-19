@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useT } from '@/composables/useT'
 import { useLanguageStore } from '@/stores/language'
+import { ALL_VALUE, resolveFilterValue } from '@/lib/statisticsColumns'
 
 const t = useT()
 const languageStore = useLanguageStore()
@@ -34,24 +35,11 @@ const emit = defineEmits<{
 
 const questionsStore = useQuestionsStore()
 
-const ALL_VALUE = '__all__'
-
-// Helper to convert ALL_VALUE to undefined for store calls
 const gradeLevelFilter = computed(() =>
-  questionsStore.questionBankFilters.gradeLevel === ALL_VALUE
-    ? undefined
-    : questionsStore.questionBankFilters.gradeLevel,
+  resolveFilterValue(questionsStore.questionBankFilters.gradeLevel),
 )
-const subjectFilter = computed(() =>
-  questionsStore.questionBankFilters.subject === ALL_VALUE
-    ? undefined
-    : questionsStore.questionBankFilters.subject,
-)
-const topicFilter = computed(() =>
-  questionsStore.questionBankFilters.topic === ALL_VALUE
-    ? undefined
-    : questionsStore.questionBankFilters.topic,
-)
+const subjectFilter = computed(() => resolveFilterValue(questionsStore.questionBankFilters.subject))
+const topicFilter = computed(() => resolveFilterValue(questionsStore.questionBankFilters.topic))
 // Get available filter options
 const availableGradeLevels = computed(() => questionsStore.getGradeLevels())
 const availableSubjects = computed(() => questionsStore.getSubjects(gradeLevelFilter.value))

@@ -294,8 +294,9 @@ async function handleOpenPortal() {
   }
 }
 
-function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChildSubscription>) {
-  if (!subscription.stripe) return null
+const statusBadge = computed(() => {
+  const subscription = currentSubscription.value
+  if (!subscription?.stripe) return null
 
   // cancel_at_period_end and scheduledChange are both "heading to a lower
   // tier at period end" from the user's perspective — show the same
@@ -314,7 +315,7 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
   }
 
   return null
-}
+})
 </script>
 
 <template>
@@ -404,9 +405,9 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                 <div class="flex items-center gap-2">
                   <span class="text-2xl font-bold">{{ currentPlan.name }}</span>
                   <!-- Status badges -->
-                  <template v-if="getStatusBadge(currentSubscription)">
-                    <Badge :variant="getStatusBadge(currentSubscription)!.variant">
-                      {{ getStatusBadge(currentSubscription)!.text }}
+                  <template v-if="statusBadge">
+                    <Badge :variant="statusBadge.variant">
+                      {{ statusBadge.text }}
                     </Badge>
                   </template>
                   <template v-else>

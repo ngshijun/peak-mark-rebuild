@@ -1,4 +1,5 @@
-import { ref, watch, onScopeDispose } from 'vue'
+import { ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from '@/stores/auth'
 
@@ -24,7 +25,6 @@ export function useFriendSearch() {
   const searchTerm = ref('')
   const results = ref<FriendSearchResult[]>([])
   const isSearching = ref(false)
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null
   let currentVersion = 0
 
   async function search(query: string) {
@@ -78,9 +78,14 @@ export function useFriendSearch() {
     }
   }
 
-  watch(searchTerm, (value) => {
-    if (debounceTimer) clearTimeout(debounceTimer)
+  // Guarded inside the debounced callback so a clear() after typing does not
+  // fire a stale search when the debounce finally resolves.
+  const debouncedSearch = useDebounceFn(() => {
+    const trimmed = searchTerm.value.trim()
+    if (trimmed) search(trimmed)
+  }, DEBOUNCE_MS)
 
+  watch(searchTerm, (value) => {
     const trimmed = value.trim()
     if (!trimmed) {
       currentVersion++
@@ -89,11 +94,7 @@ export function useFriendSearch() {
       return
     }
 
-    debounceTimer = setTimeout(() => search(trimmed), DEBOUNCE_MS)
-  })
-
-  onScopeDispose(() => {
-    if (debounceTimer) clearTimeout(debounceTimer)
+    debouncedSearch()
   })
 
   function clear() {

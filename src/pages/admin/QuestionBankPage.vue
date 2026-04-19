@@ -22,6 +22,7 @@ import {
 import { toast } from 'vue-sonner'
 import { generateQuestionTemplate, exportQuestionsToExcel } from '@/lib/excel/questionExcel'
 import { useT } from '@/composables/useT'
+import { ALL_VALUE } from '@/lib/statisticsColumns'
 
 const t = useT()
 const questionsStore = useQuestionsStore()
@@ -114,7 +115,6 @@ async function downloadTemplate() {
 
 // Get export summary for confirmation dialog
 const exportSummary = computed(() => {
-  const ALL_VALUE = '__all__'
   const filters: string[] = []
   const f = questionsStore.questionBankFilters
   if (f.gradeLevel !== ALL_VALUE) filters.push(`Grade: ${f.gradeLevel}`)
