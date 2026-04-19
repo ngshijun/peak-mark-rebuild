@@ -419,8 +419,7 @@ async function confirmStartSession() {
               'opacity-50 pointer-events-none':
                 isStartingSession || !sessionLimitStatus?.canStartSession,
               'border-2 border-green-500 bg-green-50 dark:bg-green-950/30':
-                subTopic.questionCount > 0 &&
-                practiceStore.getSubTopicAnsweredCount(subTopic.id) >= subTopic.questionCount,
+                isSubTopicFullyPracticed(subTopic),
             }"
             @click="selectSubTopic(subTopic.id)"
           >
@@ -443,10 +442,7 @@ async function confirmStartSession() {
               <p
                 class="text-sm"
                 :class="
-                  subTopic.questionCount > 0 &&
-                  practiceStore.getSubTopicAnsweredCount(subTopic.id) >= subTopic.questionCount
-                    ? 'text-green-600'
-                    : 'text-muted-foreground'
+                  isSubTopicFullyPracticed(subTopic) ? 'text-green-600' : 'text-muted-foreground'
                 "
               >
                 {{

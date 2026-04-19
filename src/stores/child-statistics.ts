@@ -6,7 +6,7 @@ import { useChildLinkStore } from './child-link'
 import { useAuthStore } from './auth'
 import { handleError, errorMessages } from '@/lib/errors'
 import type { Database } from '@/types/database.types'
-import type { SubTopicHierarchy } from '@/types/supabase-helpers'
+import { asSubTopicHierarchy } from '@/types/supabase-helpers'
 import { type DateRangeFilter, createSessionLookupMethods } from '@/lib/sessionFilters'
 import { fetchSessionSummaries, fetchFullSessionDetails } from '@/lib/sessionFetching'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
@@ -260,7 +260,7 @@ export const useChildStatisticsStore = defineStore('childStatistics', () => {
       if (fetchError) throw fetchError
       if (!sessionData) return { session: null, error: errorMessages().sessionNotFound }
 
-      const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
+      const subTopic = asSubTopicHierarchy(sessionData.sub_topics)
       const session: ChildPracticeSessionFull = assembleSessionFull(
         sessionData,
         subTopic,

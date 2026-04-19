@@ -8,7 +8,7 @@
 
 import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
-import type { SubTopicHierarchy } from '@/types/supabase-helpers'
+import { asSubTopicHierarchy } from '@/types/supabase-helpers'
 import type { PracticeSessionSummary, PracticeSessionFull } from '@/types/session'
 import {
   computeScorePercent,
@@ -66,7 +66,7 @@ export async function fetchSessionSummaries(studentId: string): Promise<Practice
     const isCompleted = !!session.completed_at
     const totalQuestions = session.total_questions ?? 0
     const correctAnswers = session.correct_count ?? 0
-    const subTopic = session.sub_topics as unknown as SubTopicHierarchy
+    const subTopic = asSubTopicHierarchy(session.sub_topics)
 
     return {
       id: session.id,
@@ -167,7 +167,7 @@ export async function fetchFullSessionDetails(
   // Build questions and answers from DB rows
   const questions = buildQuestionsFromAnswers(answersData ?? [], questionsMap)
   const answers = mapAnswerRows(answersData ?? [])
-  const subTopic = sessionData.sub_topics as unknown as SubTopicHierarchy
+  const subTopic = asSubTopicHierarchy(sessionData.sub_topics)
 
   const correctAnswers = answers.filter((a) => a.isCorrect).length
   const durationSeconds = answers.reduce((sum, a) => sum + (a.timeSpentSeconds ?? 0), 0)

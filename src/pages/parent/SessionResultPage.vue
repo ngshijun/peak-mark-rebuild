@@ -13,6 +13,7 @@ import SessionResultContent from '@/components/session/SessionResultContent.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Loader2, Sparkles, BotMessageSquare, Crown } from 'lucide-vue-next'
+import { requireUuidParam } from '@/lib/route-params'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,8 +21,8 @@ const childStatisticsStore = useChildStatisticsStore()
 const childLinkStore = useChildLinkStore()
 
 const t = useT()
-const childId = computed(() => route.params.childId as string)
-const sessionId = computed(() => route.params.sessionId as string)
+const childId = computed(() => requireUuidParam(route, 'childId'))
+const sessionId = computed(() => requireUuidParam(route, 'sessionId'))
 
 const child = computed(() => {
   return childLinkStore.linkedChildren.find((c) => c.id === childId.value)

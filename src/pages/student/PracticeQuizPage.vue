@@ -25,6 +25,7 @@ import {
 import QuestionFeedbackDialog from '@/components/practice/QuestionFeedbackDialog.vue'
 import QuestionOptionsList from '@/components/session/QuestionOptionsList.vue'
 import ShortAnswerInput from '@/components/session/ShortAnswerInput.vue'
+import { optionalUuidQuery } from '@/lib/route-params'
 
 const router = useRouter()
 const route = useRoute()
@@ -52,7 +53,7 @@ watch(
 
 // Resume session from query param or redirect if no active session
 onMounted(async () => {
-  const sessionId = route.query.sessionId as string | undefined
+  const sessionId = optionalUuidQuery(route, 'sessionId')
 
   // If there's a sessionId in the URL, check if we need to resume it
   if (sessionId) {

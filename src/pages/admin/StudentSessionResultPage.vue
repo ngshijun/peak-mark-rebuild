@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Loader2, BotMessageSquare } from 'lucide-vue-next'
 import { useT } from '@/composables/useT'
+import { requireUuidParam } from '@/lib/route-params'
 
 const t = useT()
 
@@ -21,8 +22,8 @@ const router = useRouter()
 const adminStudentsStore = useAdminStudentsStore()
 const adminStatsStore = useAdminStudentStatsStore()
 
-const studentId = computed(() => route.params.studentId as string)
-const sessionId = computed(() => route.params.sessionId as string)
+const studentId = computed(() => requireUuidParam(route, 'studentId'))
+const sessionId = computed(() => requireUuidParam(route, 'sessionId'))
 
 // Get student info
 const student = computed(() => adminStudentsStore.getStudentById(studentId.value))

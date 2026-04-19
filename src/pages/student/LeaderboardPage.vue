@@ -10,6 +10,7 @@ import {
 import { useCurriculumStore } from '@/stores/curriculum'
 import { useT } from '@/composables/useT'
 import { useLanguageStore } from '@/stores/language'
+import { ALL_VALUE } from '@/lib/statisticsColumns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -41,7 +42,6 @@ const curriculumStore = useCurriculumStore()
 const t = useT()
 const languageStore = useLanguageStore()
 
-const ALL_VALUE = '__all__'
 const selectedGradeLevel = ref<string>(ALL_VALUE)
 const activeTab = ref<'all-time' | 'weekly'>('all-time')
 

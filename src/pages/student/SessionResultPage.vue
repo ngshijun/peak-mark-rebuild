@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Crown,
 } from 'lucide-vue-next'
+import { requireUuidParam } from '@/lib/route-params'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,7 +32,7 @@ const historyStore = usePracticeHistoryStore()
 const dashboardStore = useStudentDashboardStore()
 const t = useT()
 
-const sessionId = computed(() => route.params.sessionId as string)
+const sessionId = computed(() => requireUuidParam(route, 'sessionId'))
 const session = ref<PracticeSession | null>(null)
 const isLoading = ref(true)
 const subscriptionStatus = ref<StudentSubscriptionStatus | null>(null)

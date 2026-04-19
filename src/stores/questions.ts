@@ -6,6 +6,7 @@ import { useCurriculumStore } from './curriculum'
 import { handleError } from '@/lib/errors'
 import { uploadStorageFile, deleteStorageFile, createBucketImageHelpers } from '@/lib/storage'
 import { useCascadingFilters } from '@/composables/useCascadingFilters'
+import { ALL_VALUE } from '@/lib/statisticsColumns'
 
 export type QuestionRow = Database['public']['Tables']['questions']['Row']
 export type QuestionType = Database['public']['Enums']['question_type']
@@ -206,8 +207,6 @@ export const useQuestionsStore = defineStore('questions', () => {
     setPageSize: setQuestionStatisticsPageSize,
     resetFilters: resetQuestionStatisticsFilters,
   } = useCascadingFilters({ hasSearch: true })
-
-  const ALL_VALUE = '__all__'
 
   /**
    * Resolve current question bank filters to an array of sub_topic IDs

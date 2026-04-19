@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import { supabase } from '@/lib/supabaseClient'
 import { SCHOOL_NOT_LISTED_ID } from '@/lib/constants'
 
@@ -18,7 +19,6 @@ export function useSchoolSearch() {
   const schools = ref<School[]>([])
   const searchTerm = ref('')
   const isSearching = ref(false)
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null
   let currentVersion = 0
 
   async function fetchSchools(query: string) {
@@ -57,9 +57,13 @@ export function useSchoolSearch() {
     fetchSchools('')
   }
 
-  watch(searchTerm, (value) => {
-    if (debounceTimer) clearTimeout(debounceTimer)
+  // Read searchTerm at fire time so a clear-after-typing does not issue a
+  // stale fetch when the debounce resolves.
+  const debouncedFetch = useDebounceFn(() => {
+    fetchSchools(searchTerm.value.trim())
+  }, DEBOUNCE_MS)
 
+  watch(searchTerm, (value) => {
     // Reset to initial results immediately when search is cleared
     if (!value.trim() && cachedInitialSchools) {
       currentVersion++
@@ -68,7 +72,7 @@ export function useSchoolSearch() {
       return
     }
 
-    debounceTimer = setTimeout(() => fetchSchools(value.trim()), DEBOUNCE_MS)
+    debouncedFetch()
   })
 
   return { schools, searchTerm, isSearching }

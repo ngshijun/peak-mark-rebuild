@@ -65,6 +65,14 @@ const topSubjects = computed<SubjectStats[]>(() => {
   return subjects.sort((a, b) => b.averageScore - a.averageScore).slice(0, 3)
 })
 
+// 3 fixed slots so the template can iterate a concrete (SubjectStats | null)[]
+// and avoid non-null assertions on `topSubjects[index - 1]!.…`.
+const topSubjectSlots = computed<(SubjectStats | null)[]>(() => [
+  topSubjects.value[0] ?? null,
+  topSubjects.value[1] ?? null,
+  topSubjects.value[2] ?? null,
+])
+
 function goToHistory() {
   router.push('/student/history')
 }
@@ -82,20 +90,20 @@ function goToHistory() {
     </CardHeader>
     <CardContent>
       <div class="space-y-3">
-        <div v-for="index in 3" :key="index" class="flex items-center gap-2">
-          <span class="text-lg leading-none">{{ MEDAL_EMOJIS[index - 1] }}</span>
-          <template v-if="topSubjects[index - 1]">
+        <div v-for="(subject, i) in topSubjectSlots" :key="i" class="flex items-center gap-2">
+          <span class="text-lg leading-none">{{ MEDAL_EMOJIS[i] }}</span>
+          <template v-if="subject">
             <div class="min-w-0 flex-1">
               <div class="flex items-baseline justify-between gap-2">
                 <p class="truncate text-sm font-medium">
-                  {{ topSubjects[index - 1]!.gradeLevelName }} ·
-                  {{ topSubjects[index - 1]!.subjectName }}
+                  {{ subject.gradeLevelName }} ·
+                  {{ subject.subjectName }}
                 </p>
                 <span
                   class="shrink-0 text-sm font-bold"
-                  :class="getScoreTextColor(topSubjects[index - 1]!.averageScore)"
+                  :class="getScoreTextColor(subject.averageScore)"
                 >
-                  {{ t.shared.bestSubjectCard.averageLabel(topSubjects[index - 1]!.averageScore) }}
+                  {{ t.shared.bestSubjectCard.averageLabel(subject.averageScore) }}
                 </span>
               </div>
               <div
@@ -103,8 +111,8 @@ function goToHistory() {
               >
                 <div
                   class="h-full rounded-full transition-all"
-                  :class="getScoreBarColor(topSubjects[index - 1]!.averageScore)"
-                  :style="{ width: `${topSubjects[index - 1]!.averageScore}%` }"
+                  :class="getScoreBarColor(subject.averageScore)"
+                  :style="{ width: `${subject.averageScore}%` }"
                 />
               </div>
             </div>

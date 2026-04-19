@@ -7,6 +7,15 @@ import { toMYTDateString, toMYTMonthKey } from '@/lib/date'
 // Cache TTL for dashboard stats (5 minutes - balances freshness with avoiding redundant queries)
 const STATS_CACHE_TTL = 5 * 60 * 1000
 
+// Supabase server-side aggregate shapes — the generated `Database` types don't
+// cover `.select('col, col.count()')` / `.select('col.sum()')` payloads, so we
+// declare the expected row shape once and apply it via `.returns<T[]>()` to
+// avoid `as unknown as {...}[]` casts at each call site.
+type UserTypeAggregateRow = { user_type: string; count: number }
+type RevenueByCurrencyRow = { currency: string; sum: number }
+type RevenueSumRow = { sum: number }
+type TierCountRow = { subscription_tier: string; count: number }
+
 /** Create a Map with keys for the last 12 months (MYT), initialized with defaultValue */
 function initializeMonthlyMap<T>(defaultValue: () => T): Map<string, T> {
   const currentMonth = toMYTMonthKey()
@@ -162,7 +171,10 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         tierDistributionResult,
       ] = await Promise.all([
         // Total users by type (server-side aggregation)
-        supabase.from('profiles').select('user_type, user_type.count()'),
+        supabase
+          .from('profiles')
+          .select('user_type, user_type.count()')
+          .returns<UserTypeAggregateRow[]>(),
 
         // Active students today (rows in daily_statuses with date = today)
         supabase
@@ -181,14 +193,16 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         supabase
           .from('payment_history')
           .select('currency, amount_cents.sum()')
-          .eq('status', 'succeeded'),
+          .eq('status', 'succeeded')
+          .returns<RevenueByCurrencyRow[]>(),
 
         // Current month revenue (server-side sum)
         supabase
           .from('payment_history')
           .select('amount_cents.sum()')
           .eq('status', 'succeeded')
-          .gte('created_at', currentMonthStart),
+          .gte('created_at', currentMonthStart)
+          .returns<RevenueSumRow[]>(),
 
         // Previous month revenue (server-side sum)
         supabase
@@ -196,7 +210,8 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           .select('amount_cents.sum()')
           .eq('status', 'succeeded')
           .gte('created_at', previousMonth.start)
-          .lte('created_at', previousMonth.end),
+          .lte('created_at', previousMonth.end)
+          .returns<RevenueSumRow[]>(),
 
         // Monthly revenue for last 12 months (batch fetch to avoid 1000-row cap)
         (async () => {
@@ -244,7 +259,10 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
         })(),
 
         // Subscription tier distribution (server-side aggregation)
-        supabase.from('student_profiles').select('subscription_tier, subscription_tier.count()'),
+        supabase
+          .from('student_profiles')
+          .select('subscription_tier, subscription_tier.count()')
+          .returns<TierCountRow[]>(),
       ])
 
       // Check for errors
@@ -256,7 +274,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       // Process users (server-side grouped counts)
       if (usersResult.data) {
-        const rows = usersResult.data as unknown as { user_type: string; count: number }[]
+        const rows = usersResult.data
         let total = 0
         for (const row of rows) {
           total += row.count
@@ -275,20 +293,17 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
 
       // Process revenue (server-side sums)
       if (totalRevenueResult.data) {
-        const rows = totalRevenueResult.data as unknown as { currency: string; sum: number }[]
-        const firstRow = rows[0]
+        const firstRow = totalRevenueResult.data[0]
         stats.value.revenue.total = (firstRow?.sum ?? 0) / 100
         stats.value.revenue.currency = firstRow?.currency?.toUpperCase() || 'MYR'
       }
 
       if (currentMonthRevenueResult.data) {
-        const rows = currentMonthRevenueResult.data as unknown as { sum: number }[]
-        stats.value.revenue.currentMonth = (rows[0]?.sum ?? 0) / 100
+        stats.value.revenue.currentMonth = (currentMonthRevenueResult.data[0]?.sum ?? 0) / 100
       }
 
       if (previousMonthRevenueResult.data) {
-        const rows = previousMonthRevenueResult.data as unknown as { sum: number }[]
-        stats.value.revenue.previousMonth = (rows[0]?.sum ?? 0) / 100
+        stats.value.revenue.previousMonth = (previousMonthRevenueResult.data[0]?.sum ?? 0) / 100
       }
 
       // Calculate percentage change
@@ -356,12 +371,8 @@ export const useAdminDashboardStore = defineStore('adminDashboard', () => {
           plus: 'Plus',
           pro: 'Pro',
         }
-        const rows = tierDistributionResult.data as unknown as {
-          subscription_tier: string
-          count: number
-        }[]
         const tierCounts = new Map<string, number>()
-        for (const row of rows) {
+        for (const row of tierDistributionResult.data) {
           if (row.subscription_tier) {
             tierCounts.set(row.subscription_tier, row.count)
           }
