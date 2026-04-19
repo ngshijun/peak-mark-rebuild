@@ -2,6 +2,12 @@ import '@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders, errorResponse } from '../_shared/stripe.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import { getAuthenticatedUser } from '../_shared/auth.ts'
+import type {
+  AnswerWithQuestionRow,
+  OpenAIContent,
+  OpenAIMessage,
+  SubTopicHierarchy,
+} from '../_shared/types.ts'
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -156,7 +162,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // Build session data for prompt
-    const questionsData: QuestionData[] = (answers || []).map((a: any) => {
+    const answerRows = (answers ?? []) as unknown as AnswerWithQuestionRow[]
+    const questionsData: QuestionData[] = answerRows.map((a) => {
       const q = a.questions
       let studentAnswer: string | null = null
       let correctAnswer: string | null = null
@@ -180,7 +187,7 @@ Deno.serve(async (req: Request) => {
 
         optionData.forEach((opt, index) => {
           if (opt.text || opt.imagePath) {
-            const label = optionLabels[index]
+            const label = optionLabels[index] ?? ''
             const isStudentAnswer = selectedOptions.includes(index + 1)
             options.push({
               label,
@@ -205,7 +212,7 @@ Deno.serve(async (req: Request) => {
       return {
         question: q.question,
         type: q.type,
-        isCorrect: a.is_correct,
+        isCorrect: a.is_correct ?? false,
         studentAnswer,
         correctAnswer,
         questionImageUrl: getImagePublicUrl(q.image_path),
@@ -215,7 +222,7 @@ Deno.serve(async (req: Request) => {
 
     // Extract names from nested sub_topic structure
     // New hierarchy: sub_topics -> topics -> subjects -> grade_levels
-    const subTopic = session.sub_topics as any
+    const subTopic = session.sub_topics as unknown as SubTopicHierarchy | null
     const subTopicName = subTopic?.name || 'Unknown'
     const topicName = subTopic?.topics?.name || 'Unknown'
     const subjectName = subTopic?.topics?.subjects?.name || 'Unknown'
@@ -292,7 +299,7 @@ Deno.serve(async (req: Request) => {
   }
 })
 
-function buildMessages(data: SessionData, language: string): any[] {
+function buildMessages(data: SessionData, language: string): OpenAIMessage[] {
   const score = data.totalQuestions > 0
     ? Math.round((data.correctCount / data.totalQuestions) * 100)
     : 0
@@ -341,7 +348,7 @@ Rules:
   }
 
   // Build user message content (can include text and images)
-  const userContent: any[] = []
+  const userContent: OpenAIContent[] = []
 
   // Add session summary text
   let summaryText = `Practice Session Summary:

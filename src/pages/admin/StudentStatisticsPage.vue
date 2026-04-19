@@ -32,6 +32,7 @@ import {
   PawPrint,
 } from 'lucide-vue-next'
 import { useT } from '@/composables/useT'
+import { requireUuidParam } from '@/lib/route-params'
 
 const t = useT()
 const route = useRoute()
@@ -41,7 +42,7 @@ const adminStatsStore = useAdminStudentStatsStore()
 const adminEngagementStore = useAdminStudentEngagementStore()
 const petsStore = usePetsStore()
 
-const studentId = computed(() => route.params.studentId as string)
+const studentId = computed(() => requireUuidParam(route, 'studentId'))
 
 // Get student info
 const student = computed(() => adminStudentsStore.getStudentById(studentId.value))

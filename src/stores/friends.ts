@@ -7,12 +7,6 @@ import { toMYTDateString } from '@/lib/date'
 
 export const FRIEND_CAP = 30
 
-type FriendshipProfile = {
-  id: string
-  updated_at: string | null
-  profiles: { name: string; avatar_path: string | null }
-}
-
 export const CLOSENESS_THRESHOLDS = [0, 5, 15, 35, 70, 120] as const
 
 export const CLOSENESS_LABELS: Record<number, string> = {
@@ -50,12 +44,22 @@ export interface FriendRequest {
   createdAt: string
 }
 
-function getOtherProfile(
-  row: { requester_id: string; recipient_id: string; requester: unknown; recipient: unknown },
+function getOtherProfile<T>(
+  row: {
+    requester_id: string
+    recipient_id: string
+    requester: T | null
+    recipient: T | null
+  },
   userId: string,
-): FriendshipProfile {
-  const isRequester = row.requester_id === userId
-  return (isRequester ? row.recipient : row.requester) as unknown as FriendshipProfile
+): T {
+  const profile = row.requester_id === userId ? row.recipient : row.requester
+  if (!profile) {
+    // Inner-joined profiles are guaranteed by `profiles!inner(...)` in the
+    // select, but narrow here so the picked-side type flows cleanly.
+    throw new Error('Missing friend profile on friendship row')
+  }
+  return profile
 }
 
 export const useFriendsStore = defineStore('friends', () => {

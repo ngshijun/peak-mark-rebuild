@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { getStorageImageUrl } from '@/lib/storage'
 import { toMYTDateString, getMYTDayOfWeek, mytDateToUTCDate, utcDateToString } from '@/lib/date'
@@ -42,6 +42,14 @@ export function useStudentProfileDialog() {
   const bestSubjects = ref<SubjectStats[]>([])
   const weeklyActivity = ref<WeekDay[]>([])
   const isLoading = ref(false)
+
+  // 3 fixed slots so templates can iterate a concrete `(SubjectStats | null)[]`
+  // and avoid non-null assertions on `bestSubjects[index - 1]!.…`.
+  const bestSubjectSlots = computed<(SubjectStats | null)[]>(() => [
+    bestSubjects.value[0] ?? null,
+    bestSubjects.value[1] ?? null,
+    bestSubjects.value[2] ?? null,
+  ])
 
   async function fetchProfile(studentId: string) {
     isLoading.value = true
@@ -149,6 +157,7 @@ export function useStudentProfileDialog() {
     profile,
     pet,
     bestSubjects,
+    bestSubjectSlots,
     weeklyActivity,
     isLoading,
     fetchProfile,

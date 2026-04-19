@@ -26,7 +26,7 @@ const props = defineProps<{
   friend: Friend | null
 }>()
 
-const { profile, pet, bestSubjects, weeklyActivity, isLoading, fetchProfile } =
+const { profile, pet, bestSubjectSlots, weeklyActivity, isLoading, fetchProfile } =
   useStudentProfileDialog()
 
 const friendXp = ref(0)
@@ -239,20 +239,24 @@ const xpToNextLevel = computed(() => {
                 <Trophy class="size-4 text-muted-foreground" />
               </div>
               <div class="space-y-2">
-                <div v-for="index in 3" :key="index" class="flex items-center gap-2">
-                  <span class="text-lg leading-none">{{ MEDAL_EMOJIS[index - 1] }}</span>
-                  <template v-if="bestSubjects[index - 1]">
+                <div
+                  v-for="(subject, i) in bestSubjectSlots"
+                  :key="i"
+                  class="flex items-center gap-2"
+                >
+                  <span class="text-lg leading-none">{{ MEDAL_EMOJIS[i] }}</span>
+                  <template v-if="subject">
                     <div class="min-w-0 flex-1">
                       <div class="flex items-baseline justify-between gap-2">
                         <p class="truncate text-sm font-medium">
-                          {{ bestSubjects[index - 1]!.gradeLevelName }} ·
-                          {{ bestSubjects[index - 1]!.subjectName }}
+                          {{ subject.gradeLevelName }} ·
+                          {{ subject.subjectName }}
                         </p>
                         <span
                           class="shrink-0 text-sm font-bold"
-                          :class="getScoreTextColor(bestSubjects[index - 1]!.averageScore)"
+                          :class="getScoreTextColor(subject.averageScore)"
                         >
-                          {{ bestSubjects[index - 1]!.averageScore }}%
+                          {{ subject.averageScore }}%
                         </span>
                       </div>
                       <div
@@ -260,8 +264,8 @@ const xpToNextLevel = computed(() => {
                       >
                         <div
                           class="h-full rounded-full transition-all"
-                          :class="getScoreBarColor(bestSubjects[index - 1]!.averageScore)"
-                          :style="{ width: `${bestSubjects[index - 1]!.averageScore}%` }"
+                          :class="getScoreBarColor(subject.averageScore)"
+                          :style="{ width: `${subject.averageScore}%` }"
                         />
                       </div>
                     </div>

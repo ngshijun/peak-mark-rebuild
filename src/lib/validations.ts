@@ -16,8 +16,6 @@ export const nameSchema = z.string().min(1, 'Name is required').trim()
 export const requiredStringSchema = (fieldName: string) =>
   z.string().min(1, `${fieldName} is required`).trim()
 
-export const optionalStringSchema = z.string().optional()
-
 // ==========================================
 // Form schemas
 // ==========================================

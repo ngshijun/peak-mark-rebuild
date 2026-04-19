@@ -9,6 +9,7 @@ import { ArrowLeft, Loader2, CheckCircle, Mail } from 'lucide-vue-next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'vue-sonner'
+import { optionalStringQuery } from '@/lib/route-params'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,7 +28,7 @@ const cooldownSeconds = ref(0)
 let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  const queryEmail = route.query.email as string | undefined
+  const queryEmail = optionalStringQuery(route, 'email')
   if (!queryEmail) {
     router.replace('/signup')
     return
