@@ -52,6 +52,10 @@ export const rarityConfig: Record<
     borderColor: string
     textColor: string
     chance: number
+    hoverShadow: string
+    glowBg: string
+    gradientFrom: string
+    gradientTo: string
   }
 > = {
   common: {
@@ -61,6 +65,10 @@ export const rarityConfig: Record<
     borderColor: 'border-green-300 dark:border-green-800',
     textColor: 'text-green-800 dark:text-green-200',
     chance: 60,
+    hoverShadow: 'hover:shadow-green-500/30',
+    glowBg: 'bg-green-400/40 dark:bg-green-600/40',
+    gradientFrom: 'from-green-200/60 dark:from-green-900/60',
+    gradientTo: 'to-green-50/30 dark:to-green-950/30',
   },
   rare: {
     label: 'Rare',
@@ -69,6 +77,10 @@ export const rarityConfig: Record<
     borderColor: 'border-blue-300 dark:border-blue-800',
     textColor: 'text-blue-800 dark:text-blue-200',
     chance: 30,
+    hoverShadow: 'hover:shadow-blue-500/30',
+    glowBg: 'bg-blue-400/40 dark:bg-blue-600/40',
+    gradientFrom: 'from-blue-200/60 dark:from-blue-900/60',
+    gradientTo: 'to-blue-50/30 dark:to-blue-950/30',
   },
   epic: {
     label: 'Epic',
@@ -77,6 +89,10 @@ export const rarityConfig: Record<
     borderColor: 'border-purple-300 dark:border-purple-800',
     textColor: 'text-purple-800 dark:text-purple-200',
     chance: 9,
+    hoverShadow: 'hover:shadow-purple-500/30',
+    glowBg: 'bg-purple-400/40 dark:bg-purple-600/40',
+    gradientFrom: 'from-purple-200/60 dark:from-purple-900/60',
+    gradientTo: 'to-purple-50/30 dark:to-purple-950/30',
   },
   legendary: {
     label: 'Legendary',
@@ -85,6 +101,10 @@ export const rarityConfig: Record<
     borderColor: 'border-yellow-300 dark:border-yellow-800',
     textColor: 'text-yellow-800 dark:text-yellow-200',
     chance: 1,
+    hoverShadow: 'hover:shadow-yellow-500/30',
+    glowBg: 'bg-yellow-400/40 dark:bg-yellow-600/40',
+    gradientFrom: 'from-yellow-200/60 dark:from-yellow-900/60',
+    gradientTo: 'to-yellow-50/30 dark:to-yellow-950/30',
   },
 }
 

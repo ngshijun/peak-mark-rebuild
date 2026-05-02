@@ -15,10 +15,8 @@ onMounted(async () => {
   if (!badgesStore.hasLoaded) {
     await badgesStore.loadAll()
   } else {
-    // Already loaded by the route guard or a prior visit — just refresh progress
     await badgesStore.refreshProgress()
   }
-  // Clear the sidebar unread indicator: all currently-unseen unlocks are now "seen"
   await badgesStore.markAllSeen()
 })
 </script>

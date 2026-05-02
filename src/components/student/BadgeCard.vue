@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useT } from '@/composables/useT'
 import { useAuthStore } from '@/stores/auth'
 import { tierConfig, type Badge, type BadgeProgress } from '@/stores/badges'
-import { Lock, CirclePoundSterling } from 'lucide-vue-next'
+import { Lock } from 'lucide-vue-next'
 import type { Database } from '@/types/database.types'
 
 type SubscriptionTier = Database['public']['Enums']['subscription_tier']
@@ -15,6 +15,10 @@ const props = defineProps<{
   unlocked: boolean
   unlockedAt?: string | null
   progress?: BadgeProgress | null
+}>()
+
+defineEmits<{
+  select: [badge: Badge]
 }>()
 
 const t = useT()
@@ -70,45 +74,49 @@ const badgeStrings = computed(() => {
 </script>
 
 <template>
-  <div
-    class="relative flex flex-col items-center rounded-lg border px-2 pb-2 pt-3 transition-all"
-    :class="[
-      state === 'unlocked'
-        ? [cfg.bgColor, cfg.borderColor]
-        : [cfg.mutedBgColor, cfg.mutedBorderColor],
-    ]"
-    :title="badgeStrings.description"
+  <button
+    type="button"
+    class="group flex cursor-pointer flex-col items-center gap-1.5 transition-transform duration-300 hover:-translate-y-0.5"
+    :aria-label="badgeStrings.name"
+    @click="$emit('select', badge)"
   >
-    <!-- Badge icon -->
-    <div class="flex aspect-square w-full items-center justify-center">
+    <!-- Circle -->
+    <div
+      :class="[
+        'relative size-32 overflow-hidden rounded-full border-2 transition-shadow',
+        state === 'unlocked'
+          ? [cfg.bgColor, cfg.borderColor, 'group-hover:shadow-lg', cfg.hoverShadow]
+          : 'border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-muted',
+      ]"
+    >
       <img
         :src="badge.icon_path"
         :alt="badgeStrings.name"
         loading="lazy"
-        class="size-full object-contain"
-        :class="{ 'brightness-0 opacity-30': state !== 'unlocked' }"
+        class="size-full select-none object-cover text-transparent"
+        :class="{ 'brightness-0 opacity-20': state !== 'unlocked' }"
       />
+
+      <!-- Tier-gated overlay -->
+      <div
+        v-if="state === 'tier-gated'"
+        class="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-full bg-background/85"
+      >
+        <Lock class="size-5 text-muted-foreground" />
+        <p class="text-[10px] font-medium leading-tight">{{ requiredTierLabel }}</p>
+      </div>
     </div>
 
     <!-- Name -->
     <p
-      class="mt-1 text-center text-xs font-medium leading-tight"
-      :class="state === 'unlocked' ? cfg.textColor : 'text-muted-foreground'"
+      class="line-clamp-2 w-full text-center text-sm font-medium leading-tight"
+      :class="state === 'unlocked' ? cfg.textColor : 'text-gray-400 dark:text-gray-600'"
     >
       {{ badgeStrings.name }}
     </p>
 
-    <!-- Coin reward -->
-    <div
-      v-if="badge.coin_reward > 0"
-      class="mt-0.5 flex items-center gap-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
-    >
-      <CirclePoundSterling class="size-3" />
-      <span>+{{ badge.coin_reward }}</span>
-    </div>
-
     <!-- Progress bar (locked-progress state) -->
-    <div v-if="state === 'locked-progress' && progress" class="mt-1 w-full">
+    <div v-if="state === 'locked-progress' && progress" class="w-full px-2">
       <div class="h-1 overflow-hidden rounded-full bg-muted">
         <div
           class="h-full bg-primary transition-all"
@@ -116,14 +124,5 @@ const badgeStrings = computed(() => {
         />
       </div>
     </div>
-
-    <!-- Tier-gated overlay -->
-    <div
-      v-if="state === 'tier-gated'"
-      class="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg bg-background/85"
-    >
-      <Lock class="size-5 text-muted-foreground" />
-      <p class="text-[10px] font-medium">{{ requiredTierLabel }}</p>
-    </div>
-  </div>
+  </button>
 </template>

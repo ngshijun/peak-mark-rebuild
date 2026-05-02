@@ -1226,6 +1226,7 @@ export type Database = {
           coins: number | null
           created_at: string | null
           current_streak: number
+          featured_badges: string[]
           food: number | null
           friend_code: string
           grade_level_id: string | null
@@ -1242,6 +1243,7 @@ export type Database = {
           coins?: number | null
           created_at?: string | null
           current_streak?: number
+          featured_badges?: string[]
           food?: number | null
           friend_code?: string
           grade_level_id?: string | null
@@ -1258,6 +1260,7 @@ export type Database = {
           coins?: number | null
           created_at?: string | null
           current_streak?: number
+          featured_badges?: string[]
           food?: number | null
           friend_code?: string
           grade_level_id?: string | null
@@ -1793,6 +1796,7 @@ export type Database = {
       }
       send_daily_coins: { Args: { p_friendship_id: string }; Returns: Json }
       send_friend_request: { Args: { p_target_id: string }; Returns: string }
+      set_featured_badges: { Args: { p_badges: string[] }; Returns: string[] }
       update_student_streak: { Args: { p_student_id: string }; Returns: number }
     }
     Enums: {
@@ -1810,6 +1814,10 @@ export type Database = {
         | 'unique_pets_owned'
         | 'pet_max_tier_reached'
         | 'pets_of_rarity_count'
+        | 'parent_linked'
+        | 'subscription_tier_reached'
+        | 'total_friends'
+        | 'friend_closeness_level_reached'
       feedback_category:
         | 'question_error'
         | 'image_error'
@@ -1966,6 +1974,10 @@ export const Constants = {
         'unique_pets_owned',
         'pet_max_tier_reached',
         'pets_of_rarity_count',
+        'parent_linked',
+        'subscription_tier_reached',
+        'total_friends',
+        'friend_closeness_level_reached',
       ],
       feedback_category: [
         'question_error',
