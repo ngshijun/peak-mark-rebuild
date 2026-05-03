@@ -8,61 +8,61 @@
 insert into public.badges (slug, trigger_type, trigger_params, tier, coin_reward, icon_path, required_tier)
 values
   -- Bronze (5)
-  ('first_steps',       'total_sessions_completed', '{"threshold":1}',    'bronze', 15, 'first_steps.png',       'core'),
-  ('first_week',        'total_days_practiced',     '{"threshold":7}',    'bronze', 15, 'first_week.png',        'core'),
-  ('spark',             'max_streak_ever',          '{"threshold":3}',    'bronze', 15, 'spark.png',             'core'),
-  ('perfectionist',     'perfect_sessions_count',   '{"threshold":5}',    'bronze', 15, 'perfectionist.png',     'core'),
-  ('xp_novice',         'total_xp_earned',          '{"threshold":1000}', 'bronze', 15, 'xp_novice.png',         'core'),
+  ('first_steps',       'total_sessions_completed', '{"threshold":1}',    'bronze', 15, 'first_steps.webp',       'core'),
+  ('first_week',        'total_days_practiced',     '{"threshold":7}',    'bronze', 15, 'first_week.webp',        'core'),
+  ('spark',             'max_streak_ever',          '{"threshold":3}',    'bronze', 15, 'spark.webp',             'core'),
+  ('perfectionist',     'perfect_sessions_count',   '{"threshold":5}',    'bronze', 15, 'perfectionist.webp',     'core'),
+  ('xp_novice',         'total_xp_earned',          '{"threshold":1000}', 'bronze', 15, 'xp_novice.webp',         'core'),
 
   -- Silver (6)
-  ('getting_started',   'total_sessions_completed', '{"threshold":10}',   'silver', 35, 'getting_started.png',   'core'),
-  ('first_month',       'total_days_practiced',     '{"threshold":30}',   'silver', 35, 'first_month.png',       'core'),
-  ('hot_streak',        'max_streak_ever',          '{"threshold":7}',    'silver', 35, 'hot_streak.png',        'core'),
-  ('xp_adept',          'total_xp_earned',          '{"threshold":5000}', 'silver', 35, 'xp_adept.png',          'core'),
-  ('flawless',          'perfect_sessions_count',   '{"threshold":25}',   'silver', 35, 'flawless.png',          'core'),
-  ('pet_collector',     'unique_pets_owned',        '{"threshold":5}',    'silver', 35, 'pet_collector.png',     'core'),
+  ('getting_started',   'total_sessions_completed', '{"threshold":10}',   'silver', 35, 'getting_started.webp',   'core'),
+  ('first_month',       'total_days_practiced',     '{"threshold":30}',   'silver', 35, 'first_month.webp',       'core'),
+  ('hot_streak',        'max_streak_ever',          '{"threshold":7}',    'silver', 35, 'hot_streak.webp',        'core'),
+  ('xp_adept',          'total_xp_earned',          '{"threshold":5000}', 'silver', 35, 'xp_adept.webp',          'core'),
+  ('flawless',          'perfect_sessions_count',   '{"threshold":25}',   'silver', 35, 'flawless.webp',          'core'),
+  ('pet_collector',     'unique_pets_owned',        '{"threshold":5}',    'silver', 35, 'pet_collector.webp',     'core'),
 
   -- Gold (7)
-  ('dedicated_learner', 'total_sessions_completed', '{"threshold":50}',   'gold',   80, 'dedicated_learner.png', 'core'),
-  ('unstoppable',       'max_streak_ever',          '{"threshold":30}',   'gold',   80, 'unstoppable.png',       'core'),
-  ('pet_enthusiast',    'unique_pets_owned',        '{"threshold":15}',   'gold',   80, 'pet_enthusiast.png',    'core'),
+  ('dedicated_learner', 'total_sessions_completed', '{"threshold":50}',   'gold',   80, 'dedicated_learner.webp', 'core'),
+  ('unstoppable',       'max_streak_ever',          '{"threshold":30}',   'gold',   80, 'unstoppable.webp',       'core'),
+  ('pet_enthusiast',    'unique_pets_owned',        '{"threshold":15}',   'gold',   80, 'pet_enthusiast.webp',    'core'),
   -- evolved has been reshaped in v2 (migration 20260420120000); original row
   -- kept here so fresh-DB replays get a stable intermediate state before v2
   -- shifts it to Bronze with a threshold. See badges_v2_social.sql.
-  ('evolved',           'pet_max_tier_reached',     '{}',                 'gold',   80, 'evolved.png',           'core'),
-  ('xp_expert',         'total_xp_earned',          '{"threshold":20000}','gold',   80, 'xp_expert.png',         'core'),
-  ('steady_hand',       'total_days_practiced',     '{"threshold":60}',   'gold',   80, 'steady_hand.png',       'core'),
-  ('meticulous',        'perfect_sessions_count',   '{"threshold":75}',   'gold',   80, 'meticulous.png',        'core'),
+  ('evolved',           'pet_max_tier_reached',     '{}',                 'gold',   80, 'evolved.webp',           'core'),
+  ('xp_expert',         'total_xp_earned',          '{"threshold":20000}','gold',   80, 'xp_expert.webp',         'core'),
+  ('steady_hand',       'total_days_practiced',     '{"threshold":60}',   'gold',   80, 'steady_hand.webp',       'core'),
+  ('meticulous',        'perfect_sessions_count',   '{"threshold":75}',   'gold',   80, 'meticulous.webp',        'core'),
 
   -- Platinum (6)
-  ('serious_student',   'total_sessions_completed', '{"threshold":250}',  'platinum', 175, 'serious_student.png',   'core'),
-  ('centurion',         'total_days_practiced',     '{"threshold":100}',  'platinum', 175, 'centurion.png',         'core'),
-  ('xp_titan',          'total_xp_earned',          '{"threshold":75000}','platinum', 175, 'xp_titan.png',          'core'),
-  ('math_proficient',   'subject_accuracy_threshold','{"subject_id":"any","min_percentage":70,"min_questions":50}', 'platinum', 175, 'math_proficient.png', 'core'),
-  ('immaculate',        'perfect_sessions_count',   '{"threshold":200}',  'platinum', 175, 'immaculate.png',        'core'),
-  ('iron_streak',       'max_streak_ever',          '{"threshold":60}',   'platinum', 175, 'iron_streak.png',       'core'),
+  ('serious_student',   'total_sessions_completed', '{"threshold":250}',  'platinum', 175, 'serious_student.webp',   'core'),
+  ('centurion',         'total_days_practiced',     '{"threshold":100}',  'platinum', 175, 'centurion.webp',         'core'),
+  ('xp_titan',          'total_xp_earned',          '{"threshold":75000}','platinum', 175, 'xp_titan.webp',          'core'),
+  ('math_proficient',   'subject_accuracy_threshold','{"subject_id":"any","min_percentage":70,"min_questions":50}', 'platinum', 175, 'math_proficient.webp', 'core'),
+  ('immaculate',        'perfect_sessions_count',   '{"threshold":200}',  'platinum', 175, 'immaculate.webp',        'core'),
+  ('iron_streak',       'max_streak_ever',          '{"threshold":60}',   'platinum', 175, 'iron_streak.webp',       'core'),
 
   -- Diamond (6)
-  ('devoted_scholar',   'total_sessions_completed', '{"threshold":1000}', 'diamond', 400, 'devoted_scholar.png',   'core'),
-  ('legendary_streak',  'max_streak_ever',          '{"threshold":100}',  'diamond', 400, 'legendary_streak.png',  'core'),
-  ('legendary_tamer',   'pets_of_rarity_count',     '{"rarity":"legendary","threshold":1}', 'diamond', 400, 'legendary_tamer.png', 'core'),
-  ('xp_sage',           'total_xp_earned',          '{"threshold":200000}', 'diamond', 400, 'xp_sage.png',         'core'),
-  ('seasoned',          'total_days_practiced',     '{"threshold":180}',  'diamond', 400, 'seasoned.png',          'core'),
-  ('pristine',          'perfect_sessions_count',   '{"threshold":500}',  'diamond', 400, 'pristine.png',          'core'),
+  ('devoted_scholar',   'total_sessions_completed', '{"threshold":1000}', 'diamond', 400, 'devoted_scholar.webp',   'core'),
+  ('legendary_streak',  'max_streak_ever',          '{"threshold":100}',  'diamond', 400, 'legendary_streak.webp',  'core'),
+  ('legendary_tamer',   'pets_of_rarity_count',     '{"rarity":"legendary","threshold":1}', 'diamond', 400, 'legendary_tamer.webp', 'core'),
+  ('xp_sage',           'total_xp_earned',          '{"threshold":200000}', 'diamond', 400, 'xp_sage.webp',         'core'),
+  ('seasoned',          'total_days_practiced',     '{"threshold":180}',  'diamond', 400, 'seasoned.webp',          'core'),
+  ('pristine',          'perfect_sessions_count',   '{"threshold":500}',  'diamond', 400, 'pristine.webp',          'core'),
 
   -- Master (5)
-  ('xp_legend',         'total_xp_earned',          '{"threshold":500000}','master', 1200, 'xp_legend.png',         'core'),
-  ('summit_streak',     'max_streak_ever',          '{"threshold":200}',  'master', 1200, 'summit_streak.png',     'core'),
-  ('lifelong_learner',  'total_sessions_completed', '{"threshold":3000}', 'master', 1200, 'lifelong_learner.png',   'core'),
-  ('stalwart',          'total_days_practiced',     '{"threshold":270}',  'master', 1200, 'stalwart.png',           'core'),
-  ('sublime',           'perfect_sessions_count',   '{"threshold":1500}', 'master', 1200, 'sublime.png',            'core'),
+  ('xp_legend',         'total_xp_earned',          '{"threshold":500000}','master', 1200, 'xp_legend.webp',         'core'),
+  ('summit_streak',     'max_streak_ever',          '{"threshold":200}',  'master', 1200, 'summit_streak.webp',     'core'),
+  ('lifelong_learner',  'total_sessions_completed', '{"threshold":3000}', 'master', 1200, 'lifelong_learner.webp',   'core'),
+  ('stalwart',          'total_days_practiced',     '{"threshold":270}',  'master', 1200, 'stalwart.webp',           'core'),
+  ('sublime',           'perfect_sessions_count',   '{"threshold":1500}', 'master', 1200, 'sublime.webp',            'core'),
 
   -- Grandmaster (5) — free-earnable apex (~1 year on Pro)
-  ('eternal_scholar',      'total_sessions_completed','{"threshold":7500}',    'grandmaster', 5000, 'eternal_scholar.png',      'core'),
-  ('grand_perfectionist',  'perfect_sessions_count', '{"threshold":3000}',     'grandmaster', 5000, 'grand_perfectionist.png',  'core'),
-  ('xp_immortal',          'total_xp_earned',        '{"threshold":1000000}',  'grandmaster', 5000, 'xp_immortal.png',          'core'),
-  ('yearling',             'total_days_practiced',   '{"threshold":365}',      'grandmaster', 5000, 'yearling.png',             'core'),
-  ('eternal_flame',        'max_streak_ever',        '{"threshold":365}',      'grandmaster', 5000, 'eternal_flame.png',        'core')
+  ('eternal_scholar',      'total_sessions_completed','{"threshold":7500}',    'grandmaster', 5000, 'eternal_scholar.webp',      'core'),
+  ('grand_perfectionist',  'perfect_sessions_count', '{"threshold":3000}',     'grandmaster', 5000, 'grand_perfectionist.webp',  'core'),
+  ('xp_immortal',          'total_xp_earned',        '{"threshold":1000000}',  'grandmaster', 5000, 'xp_immortal.webp',          'core'),
+  ('yearling',             'total_days_practiced',   '{"threshold":365}',      'grandmaster', 5000, 'yearling.webp',             'core'),
+  ('eternal_flame',        'max_streak_ever',        '{"threshold":365}',      'grandmaster', 5000, 'eternal_flame.webp',        'core')
 ;
 
 -- Retroactive backfill: for every badge we just inserted, grant to all
