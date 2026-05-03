@@ -95,7 +95,7 @@ const badgeStrings = computed(() => {
         :alt="badgeStrings.name"
         loading="lazy"
         class="size-full select-none object-cover text-transparent"
-        :class="{ 'brightness-0 opacity-20': state !== 'unlocked' }"
+        :class="{ 'opacity-50 grayscale': state !== 'unlocked' }"
       />
 
       <!-- Tier-gated overlay -->

@@ -133,19 +133,24 @@ const statusIcon = computed(() => {
               <span>{{ statusLabel }}</span>
             </div>
 
-            <!-- Large bare badge icon — no frame, subtle pulsing glow when unlocked -->
-            <div class="relative flex size-40 items-center justify-center">
+            <!-- Large badge icon (circular) — subtle pulsing glow when unlocked -->
+            <div class="relative size-40">
               <div
                 v-if="isUnlocked"
                 class="absolute inset-0 animate-pulse rounded-full blur-2xl"
                 :class="cfg.glowBg"
               />
-              <img
-                :src="getBadgeIconUrl(props.badge.icon_path)"
-                :alt="badgeStrings.name"
-                class="relative size-full object-contain drop-shadow-xl"
-                :class="isUnlocked ? 'animate-bounce-slow' : 'brightness-0 opacity-25'"
-              />
+              <div
+                class="relative size-full overflow-hidden rounded-full border-2 drop-shadow-xl"
+                :class="[cfg.borderColor, cfg.bgColor]"
+              >
+                <img
+                  :src="getBadgeIconUrl(props.badge.icon_path)"
+                  :alt="badgeStrings.name"
+                  class="size-full select-none object-cover text-transparent"
+                  :class="isUnlocked ? 'animate-bounce-slow' : 'opacity-50 grayscale'"
+                />
+              </div>
               <div v-if="isTierGated" class="absolute inset-0 flex items-center justify-center">
                 <div class="rounded-full bg-background/80 p-3 backdrop-blur-sm">
                   <Lock class="size-9 text-muted-foreground" />

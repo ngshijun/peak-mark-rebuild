@@ -282,7 +282,7 @@ async function handleSave() {
                     :alt="getStrings(badge.slug).name"
                     loading="lazy"
                     class="size-full select-none object-cover text-transparent"
-                    :class="{ 'brightness-0 opacity-25': !isSelectable(badge) }"
+                    :class="{ 'opacity-50 grayscale': !isSelectable(badge) }"
                   />
 
                   <!-- Lock overlay -->
