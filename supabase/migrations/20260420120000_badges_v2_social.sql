@@ -1,24 +1,21 @@
 -- ============================================================================
 -- Badge Catalog v2 — social & lifecycle triggers
 --
--- Adds 4 new trigger types (parent_linked, subscription_tier_reached,
--- total_friends, friend_closeness_level_reached), extends pet_max_tier_reached
--- to honor a {threshold} param, and introduces 16 new badges + reshapes the
--- existing `evolved` badge (Gold → Bronze, threshold=1).
+-- Uses 4 new trigger types (parent_linked, subscription_tier_reached,
+-- total_friends, friend_closeness_level_reached) that were added to
+-- badge_trigger_type in the prior migration (20260420115500). The split is
+-- required because Postgres refuses to USE a new enum value in the same
+-- transaction it was added — see that migration for context.
 --
--- Event wiring: badge checks fire from accept_parent_student_invitation,
--- sync_subscription_tier_to_profile, respond_friend_request, and
--- send_daily_coins. All badge checks are wrapped in exception blocks so
--- failures never block the primary operation.
+-- This migration extends pet_max_tier_reached to honor a {threshold} param,
+-- introduces 16 new badges, reshapes the existing `evolved` badge
+-- (Gold → Bronze, threshold=1), and wires badge checks into the parent-link,
+-- subscription-sync, friend-accept, and daily-coin-gift flows. All badge
+-- checks are wrapped in exception blocks so failures never block the
+-- primary operation.
 -- ============================================================================
 
--- 1. Extend enum ------------------------------------------------------------
-alter type badge_trigger_type add value if not exists 'parent_linked';
-alter type badge_trigger_type add value if not exists 'subscription_tier_reached';
-alter type badge_trigger_type add value if not exists 'total_friends';
-alter type badge_trigger_type add value if not exists 'friend_closeness_level_reached';
-
--- 2. Replace check_trigger_eligibility --------------------------------------
+-- 1. Replace check_trigger_eligibility --------------------------------------
 -- New arms for the 4 new triggers; pet_max_tier_reached now honors {threshold}.
 
 create or replace function public.check_trigger_eligibility(
@@ -132,7 +129,7 @@ begin
 end;
 $$;
 
--- 3. Replace get_student_badge_progress -------------------------------------
+-- 2. Replace get_student_badge_progress -------------------------------------
 
 create or replace function public.get_student_badge_progress(p_student_id uuid)
 returns table (
@@ -279,9 +276,9 @@ begin
 end;
 $$;
 
--- 4. Event wiring -----------------------------------------------------------
+-- 3. Event wiring -----------------------------------------------------------
 
--- 4a. parent_linked — fires for student after link is created.
+-- 3a. parent_linked — fires for student after link is created.
 create or replace function public.accept_parent_student_invitation(
   p_invitation_id uuid, p_accepting_user_id uuid, p_is_parent boolean
 ) returns table(link_id uuid, parent_id uuid, student_id uuid, linked_at timestamptz,
@@ -342,7 +339,7 @@ begin
 end;
 $$;
 
--- 4b. subscription_tier_reached — fires on tier sync.
+-- 3b. subscription_tier_reached — fires on tier sync.
 create or replace function public.sync_subscription_tier_to_profile()
 returns trigger
 language plpgsql security definer set search_path to 'public' as $$
@@ -378,7 +375,7 @@ begin
 end;
 $$;
 
--- 4c. total_friends — fires on friend accept for both parties.
+-- 3c. total_friends — fires on friend accept for both parties.
 create or replace function public.respond_friend_request(p_friendship_id uuid, p_accept boolean)
 returns void language plpgsql security definer set search_path = public as $$
 declare
@@ -420,7 +417,7 @@ begin
 end;
 $$;
 
--- 4d. friend_closeness_level_reached — fires on mutual coin gift.
+-- 3d. friend_closeness_level_reached — fires on mutual coin gift.
 -- Returns newly-unlocked badges for the caller so the client can celebrate.
 create or replace function public.send_daily_coins(p_friendship_id uuid)
 returns jsonb language plpgsql security definer set search_path = public as $$
@@ -496,7 +493,7 @@ begin
 end;
 $$;
 
--- 5. Catalog updates --------------------------------------------------------
+-- 4. Catalog updates --------------------------------------------------------
 
 -- Reshape existing 'evolved': Gold 80 → Bronze 15, {} → {threshold:1}.
 update public.badges
@@ -524,7 +521,7 @@ values
   ('bonded_trio',        'friend_closeness_level_reached', '{"min_level":5,"threshold":3}', 'platinum', 175, 'badges/bonded_trio.png',        'core'),
   ('soulmates',          'friend_closeness_level_reached', '{"min_level":5,"threshold":5}', 'diamond',  400, 'badges/soulmates.png',          'core');
 
--- 6. Retroactive backfill ---------------------------------------------------
+-- 5. Retroactive backfill ---------------------------------------------------
 
 do $$
 declare b_id uuid;
