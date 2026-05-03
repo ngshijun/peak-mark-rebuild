@@ -137,8 +137,8 @@ export default {
     failedPreviewUpgrade: 'Failed to preview upgrade.',
     failedModifySubscription: 'Failed to modify subscription.',
     failedCancelSubscription: 'Failed to cancel subscription.',
-    failedKeepCurrentPlan: 'Failed to cancel the pending change.',
-    cannotCheckoutBasicTier: 'Cannot checkout for the basic tier.',
+    failedCancelDowngrade: 'Failed to cancel the downgrade.',
+    cannotCheckoutCoreTier: 'Cannot checkout for the Core tier.',
     planNotConfiguredForPayments: 'This plan is not configured for payments.',
     // Feedback
     failedFetchFeedbacks: 'Failed to load feedback.',
@@ -681,8 +681,8 @@ export default {
     newPlanSessions: (name: string, sessions: number) =>
       `${name}'s new plan includes ${sessions} sessions per day.`,
     currentPlanActiveUntil: (date: string) => `Your current plan will remain active until ${date}.`,
-    downgradeToBasic: (name: string, sessions: number) =>
-      `${name} will be downgraded to the free Basic plan. Their sessions will be limited to ${sessions} per day.`,
+    downgradeToCore: (name: string, sessions: number) =>
+      `${name} will be downgraded to the Core plan. Their sessions will be limited to ${sessions} per day.`,
     redirectToCheckout: (name: string, sessions: number) =>
       `You will be redirected to a secure checkout page to complete your payment. ${name}'s new plan includes ${sessions} sessions per day.`,
     downgradeWithSub: (name: string, planName: string) =>

@@ -272,15 +272,15 @@ async function handleCancel(framing: 'cancel' | 'downgrade' = 'cancel') {
   }
 }
 
-async function handleKeepCurrentPlan() {
+async function handleCancelDowngrade() {
   if (!selectedChildId.value) return
 
-  const { error } = await subscriptionStore.keepCurrentPlan(selectedChildId.value)
+  const { error } = await subscriptionStore.cancelDowngrade(selectedChildId.value)
   if (error) {
     toast.error(t.value.parent.subscription.toastError, { description: error })
   } else {
-    toast.success(t.value.parent.subscription.toastKeepPlanSuccess, {
-      description: t.value.parent.subscription.toastKeepPlanSuccessDesc,
+    toast.success(t.value.parent.subscription.toastCancelDowngradeSuccess, {
+      description: t.value.parent.subscription.toastCancelDowngradeSuccessDesc,
     })
   }
 }
@@ -469,12 +469,54 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
               </div>
             </div>
           </CardContent>
-          <CardFooter
-            v-if="
-              currentSubscription.tier !== 'core' && !currentSubscription.stripe?.cancelAtPeriodEnd
-            "
-          >
-            <AlertDialog>
+          <CardFooter v-if="currentSubscription.tier !== 'core'" class="flex flex-wrap gap-2">
+            <!-- Cancel Downgrade: shown whenever a pending downgrade exists
+                 (subscription_schedule OR cancel_at_period_end). Reverses the
+                 pending change so the subscription stays on the current plan. -->
+            <AlertDialog
+              v-if="
+                currentSubscription.stripe?.cancelAtPeriodEnd || currentSubscription.scheduledChange
+              "
+            >
+              <AlertDialogTrigger as-child>
+                <Button variant="outline" :disabled="subscriptionStore.isProcessingPayment">
+                  <Loader2
+                    v-if="subscriptionStore.isProcessingPayment"
+                    class="mr-2 size-4 animate-spin"
+                  />
+                  {{ t.parent.subscription.cancelDowngradeButton }}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{{
+                    t.parent.subscription.cancelDowngradeTitle
+                  }}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {{
+                      t.parent.subscription.cancelDowngradeConfirm(
+                        currentPlan.name,
+                        formatDate(currentSubscription.stripe?.currentPeriodEnd),
+                      )
+                    }}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{{
+                    t.parent.subscription.cancelDowngradeDismiss
+                  }}</AlertDialogCancel>
+                  <AlertDialogAction @click="handleCancelDowngrade">
+                    {{ t.parent.subscription.cancelDowngradeConfirmAction }}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <!-- Cancel Subscription: hidden once cancel_at_period_end is true
+                 (already canceling — nothing more to cancel). Still shown when
+                 only a scheduled downgrade exists, so the user can escalate
+                 from "downgrade to Plus" to "cancel the whole thing". -->
+            <AlertDialog v-if="!currentSubscription.stripe?.cancelAtPeriodEnd">
               <AlertDialogTrigger as-child>
                 <Button variant="outline" class="text-destructive hover:text-destructive">
                   {{ t.parent.subscription.cancelSubscriptionButton }}
@@ -505,46 +547,6 @@ function getStatusBadge(subscription: ReturnType<typeof subscriptionStore.getChi
                   }}</AlertDialogCancel>
                   <AlertDialogAction variant="destructive" @click="handleCancel">
                     {{ t.parent.subscription.cancelSubscriptionButton }}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardFooter>
-          <CardFooter
-            v-else-if="
-              currentSubscription.stripe?.cancelAtPeriodEnd || currentSubscription.scheduledChange
-            "
-          >
-            <AlertDialog>
-              <AlertDialogTrigger as-child>
-                <Button variant="outline" :disabled="subscriptionStore.isProcessingPayment">
-                  <Loader2
-                    v-if="subscriptionStore.isProcessingPayment"
-                    class="mr-2 size-4 animate-spin"
-                  />
-                  {{ t.parent.subscription.keepCurrentPlanButton(currentPlan.name) }}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{{
-                    t.parent.subscription.keepCurrentPlanTitle(currentPlan.name)
-                  }}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {{
-                      t.parent.subscription.keepCurrentPlanConfirm(
-                        currentPlan.name,
-                        formatDate(currentSubscription.stripe?.currentPeriodEnd),
-                      )
-                    }}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{{
-                    t.parent.subscription.keepCurrentPlanDismiss
-                  }}</AlertDialogCancel>
-                  <AlertDialogAction @click="handleKeepCurrentPlan">
-                    {{ t.parent.subscription.keepCurrentPlanConfirmAction }}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

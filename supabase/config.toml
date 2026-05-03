@@ -31,6 +31,9 @@ verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
 
+[functions.keep-current-plan]
+verify_jwt = false
+
 # Storage Buckets
 
 [storage.buckets.avatars]
