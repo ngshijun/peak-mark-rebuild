@@ -146,7 +146,7 @@ function formatCurrency(amount: number) {
             <div class="space-y-3">
               <p>
                 {{
-                  t.shared.upgradePreviewDialog.downgradeToBasic(
+                  t.shared.upgradePreviewDialog.downgradeToCore(
                     childName,
                     pendingPlan?.sessionsPerDay ?? 0,
                   )

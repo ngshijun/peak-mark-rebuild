@@ -282,7 +282,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     }
 
     if (tier === 'core') {
-      return { url: null, error: errorMessages().cannotCheckoutBasicTier }
+      return { url: null, error: errorMessages().cannotCheckoutCoreTier }
     }
 
     // Get price ID for tier
@@ -544,11 +544,15 @@ export const useSubscriptionStore = defineStore('subscription', () => {
   }
 
   /**
-   * Reverse a pending subscription change (scheduled downgrade or
-   * cancel-at-period-end) so the subscription stays on its current plan.
-   * Server detects which state is active; client doesn't need to distinguish.
+   * Reverse a pending downgrade (scheduled downgrade or cancel-at-period-end)
+   * so the subscription stays on its current plan. Server detects which state
+   * is active; client doesn't need to distinguish.
+   *
+   * The edge function is still named `keep-current-plan` — that's the internal
+   * implementation name. User-facing copy and this API are named after the
+   * action ("cancel the downgrade") rather than the outcome ("keep the plan").
    */
-  async function keepCurrentPlan(childId: string): Promise<{ error: string | null }> {
+  async function cancelDowngrade(childId: string): Promise<{ error: string | null }> {
     isProcessingPayment.value = true
     paymentError.value = null
 
@@ -563,7 +567,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
       await fetchChildrenSubscriptions(undefined, true)
       return { error: null }
     } catch (err) {
-      const message = handleError(err, 'failedKeepCurrentPlan')
+      const message = handleError(err, 'failedCancelDowngrade')
       paymentError.value = message
       return { error: message }
     } finally {
@@ -627,7 +631,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     previewUpgrade,
     modifySubscription,
     cancelStripeSubscription,
-    keepCurrentPlan,
+    cancelDowngrade,
     $reset,
   }
 })
