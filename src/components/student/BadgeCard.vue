@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useT } from '@/composables/useT'
 import { useAuthStore } from '@/stores/auth'
 import { tierConfig, type Badge, type BadgeProgress } from '@/stores/badges'
+import { getBadgeIconUrl } from '@/lib/storage'
 import { Lock } from 'lucide-vue-next'
 import type { Database } from '@/types/database.types'
 
@@ -90,7 +91,7 @@ const badgeStrings = computed(() => {
       ]"
     >
       <img
-        :src="badge.icon_path"
+        :src="getBadgeIconUrl(badge.icon_path)"
         :alt="badgeStrings.name"
         loading="lazy"
         class="size-full select-none object-cover text-transparent"

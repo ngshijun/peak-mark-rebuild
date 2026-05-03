@@ -4,6 +4,7 @@ import { useT } from '@/composables/useT'
 import { tierConfig } from '@/stores/badges'
 import { Pencil, Plus } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { getBadgeIconUrl } from '@/lib/storage'
 import type { Database } from '@/types/database.types'
 
 type BadgeTier = Database['public']['Enums']['badge_tier']
@@ -84,7 +85,7 @@ function getStrings(slug: string) {
           @click="editable && $emit('selectBadge', badge)"
         >
           <img
-            :src="badge.icon_path"
+            :src="getBadgeIconUrl(badge.icon_path)"
             :alt="getStrings(badge.slug).name"
             loading="lazy"
             class="size-full select-none object-cover text-transparent"

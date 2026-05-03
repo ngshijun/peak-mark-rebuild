@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { getBadgeIconUrl } from '@/lib/storage'
 import { Share2, Link, CirclePoundSterling } from 'lucide-vue-next'
 
 const celebrationQueue = useCelebrationQueue()
@@ -114,7 +115,11 @@ function dismiss() {
       <div v-if="currentBadge" class="space-y-4 py-2">
         <div class="flex flex-col items-center gap-3">
           <div :class="['rounded-full border-4 p-3', tierColorClass]">
-            <img :src="currentBadge.icon_path" :alt="badgeStrings.name" class="size-20" />
+            <img
+              :src="getBadgeIconUrl(currentBadge.icon_path)"
+              :alt="badgeStrings.name"
+              class="size-20"
+            />
           </div>
           <p class="text-2xl font-bold">{{ badgeStrings.name }}</p>
           <div

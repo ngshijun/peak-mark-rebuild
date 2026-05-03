@@ -504,22 +504,22 @@ update public.badges
 -- Insert 16 new badges.
 insert into public.badges (slug, trigger_type, trigger_params, tier, coin_reward, icon_path, required_tier)
 values
-  ('pet_menagerie',      'unique_pets_owned',              '{"threshold":30}', 'platinum', 175, 'badges/pet_menagerie.png',      'core'),
-  ('ascended',           'pet_max_tier_reached',           '{"threshold":3}',  'silver',    35, 'badges/ascended.png',           'core'),
-  ('apex_keeper',        'pet_max_tier_reached',           '{"threshold":7}',  'gold',      80, 'badges/apex_keeper.png',        'core'),
-  ('pantheon',           'pet_max_tier_reached',           '{"threshold":15}', 'platinum', 175, 'badges/pantheon.png',           'core'),
-  ('family_bond',        'parent_linked',                  '{}',               'bronze',    15, 'badges/family_bond.png',        'core'),
-  ('supporter',          'subscription_tier_reached',      '{"min_tier":"plus"}',  'gold',      80, 'badges/supporter.png',          'core'),
-  ('patron',             'subscription_tier_reached',      '{"min_tier":"pro"}',   'platinum', 175, 'badges/patron.png',             'core'),
-  ('first_friend',       'total_friends',                  '{"threshold":1}',  'bronze',    15, 'badges/first_friend.png',       'core'),
-  ('social_circle',      'total_friends',                  '{"threshold":5}',  'silver',    35, 'badges/social_circle.png',      'core'),
-  ('popular',            'total_friends',                  '{"threshold":15}', 'gold',      80, 'badges/popular.png',            'core'),
-  ('networker',          'total_friends',                  '{"threshold":30}', 'platinum', 175, 'badges/networker.png',          'core'),
-  ('new_bond',           'friend_closeness_level_reached', '{"min_level":1,"threshold":1}', 'bronze',    15, 'badges/new_bond.png',           'core'),
-  ('close_friend',       'friend_closeness_level_reached', '{"min_level":3,"threshold":1}', 'silver',    35, 'badges/close_friend.png',       'core'),
-  ('kindred_spirits',    'friend_closeness_level_reached', '{"min_level":5,"threshold":1}', 'gold',      80, 'badges/kindred_spirits.png',    'core'),
-  ('bonded_trio',        'friend_closeness_level_reached', '{"min_level":5,"threshold":3}', 'platinum', 175, 'badges/bonded_trio.png',        'core'),
-  ('soulmates',          'friend_closeness_level_reached', '{"min_level":5,"threshold":5}', 'diamond',  400, 'badges/soulmates.png',          'core');
+  ('pet_menagerie',      'unique_pets_owned',              '{"threshold":30}', 'platinum', 175, 'pet_menagerie.png',      'core'),
+  ('ascended',           'pet_max_tier_reached',           '{"threshold":3}',  'silver',    35, 'ascended.png',           'core'),
+  ('apex_keeper',        'pet_max_tier_reached',           '{"threshold":7}',  'gold',      80, 'apex_keeper.png',        'core'),
+  ('pantheon',           'pet_max_tier_reached',           '{"threshold":15}', 'platinum', 175, 'pantheon.png',           'core'),
+  ('family_bond',        'parent_linked',                  '{}',               'bronze',    15, 'family_bond.png',        'core'),
+  ('supporter',          'subscription_tier_reached',      '{"min_tier":"plus"}',  'gold',      80, 'supporter.png',          'core'),
+  ('patron',             'subscription_tier_reached',      '{"min_tier":"pro"}',   'platinum', 175, 'patron.png',             'core'),
+  ('first_friend',       'total_friends',                  '{"threshold":1}',  'bronze',    15, 'first_friend.png',       'core'),
+  ('social_circle',      'total_friends',                  '{"threshold":5}',  'silver',    35, 'social_circle.png',      'core'),
+  ('popular',            'total_friends',                  '{"threshold":15}', 'gold',      80, 'popular.png',            'core'),
+  ('networker',          'total_friends',                  '{"threshold":30}', 'platinum', 175, 'networker.png',          'core'),
+  ('new_bond',           'friend_closeness_level_reached', '{"min_level":1,"threshold":1}', 'bronze',    15, 'new_bond.png',           'core'),
+  ('close_friend',       'friend_closeness_level_reached', '{"min_level":3,"threshold":1}', 'silver',    35, 'close_friend.png',       'core'),
+  ('kindred_spirits',    'friend_closeness_level_reached', '{"min_level":5,"threshold":1}', 'gold',      80, 'kindred_spirits.png',    'core'),
+  ('bonded_trio',        'friend_closeness_level_reached', '{"min_level":5,"threshold":3}', 'platinum', 175, 'bonded_trio.png',        'core'),
+  ('soulmates',          'friend_closeness_level_reached', '{"min_level":5,"threshold":5}', 'diamond',  400, 'soulmates.png',          'core');
 
 -- 5. Retroactive backfill ---------------------------------------------------
 

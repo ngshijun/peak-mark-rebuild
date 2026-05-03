@@ -16,6 +16,7 @@ import { useBadgesStore, tierConfig, TIER_ORDER, type Badge } from '@/stores/bad
 import { useAuthStore } from '@/stores/auth'
 import { Check, Lock, Loader2, ArrowLeft, ArrowRight, X } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { getBadgeIconUrl } from '@/lib/storage'
 import { toast } from 'vue-sonner'
 import type { Database } from '@/types/database.types'
 
@@ -178,7 +179,7 @@ async function handleSave() {
                 @click="removeAt(idx)"
               >
                 <img
-                  :src="badge.icon_path"
+                  :src="getBadgeIconUrl(badge.icon_path)"
                   :alt="getStrings(badge.slug).name"
                   loading="lazy"
                   class="size-full select-none object-cover text-transparent"
@@ -277,7 +278,7 @@ async function handleSave() {
                   "
                 >
                   <img
-                    :src="badge.icon_path"
+                    :src="getBadgeIconUrl(badge.icon_path)"
                     :alt="getStrings(badge.slug).name"
                     loading="lazy"
                     class="size-full select-none object-cover text-transparent"

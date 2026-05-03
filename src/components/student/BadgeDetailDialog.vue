@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useT } from '@/composables/useT'
 import { useAuthStore } from '@/stores/auth'
 import { useBadgesStore, tierConfig, type Badge } from '@/stores/badges'
+import { getBadgeIconUrl } from '@/lib/storage'
 import {
   Dialog,
   DialogContent,
@@ -140,7 +141,7 @@ const statusIcon = computed(() => {
                 :class="cfg.glowBg"
               />
               <img
-                :src="props.badge.icon_path"
+                :src="getBadgeIconUrl(props.badge.icon_path)"
                 :alt="badgeStrings.name"
                 class="relative size-full object-contain drop-shadow-xl"
                 :class="isUnlocked ? 'animate-bounce-slow' : 'brightness-0 opacity-25'"
