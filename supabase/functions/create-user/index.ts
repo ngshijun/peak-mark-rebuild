@@ -1,5 +1,5 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
-import { corsHeaders, errorResponse } from '../_shared/http.ts'
+import { corsHeaders, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { supabaseAdmin } from '../_shared/supabase-admin.ts'
 import { getAuthenticatedUser } from '../_shared/auth.ts'
 import {
@@ -59,11 +59,11 @@ function isEmailTaken(error: { code?: string; status?: number; message?: string 
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders(req) })
   }
 
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405, headers: corsHeaders })
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders(req) })
   }
 
   try {
@@ -71,17 +71,17 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => null)
     if (!body || typeof body !== 'object') {
-      return errorResponse('INVALID_INPUT', 400)
+      return errorResponse(req, 'INVALID_INPUT', 400)
     }
 
     const caller = await loadCaller(user.id)
     if (!caller) {
-      return errorResponse('FORBIDDEN', 403, `no profile for caller ${user.id}`)
+      return errorResponse(req, 'FORBIDDEN', 403, `no profile for caller ${user.id}`)
     }
 
     const planned = planProvisioning(caller, body)
     if (isProvisionError(planned)) {
-      return errorResponse(planned.code, planned.status, planned.detail)
+      return errorResponse(req, planned.code, planned.status, planned.detail)
     }
     const plan: ProvisionPlan = planned
 
@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
 
     if (!organization) {
-      return errorResponse('ORGANIZATION_NOT_FOUND', 404)
+      return errorResponse(req, 'ORGANIZATION_NOT_FOUND', 404)
     }
 
     if (plan.role === 'student') {
@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle()
 
       if (!gradeLevel) {
-        return errorResponse('GRADE_LEVEL_NOT_FOUND', 404)
+        return errorResponse(req, 'GRADE_LEVEL_NOT_FOUND', 404)
       }
 
       const { data: usernameOwner } = await supabaseAdmin
@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle()
 
       if (usernameOwner) {
-        return errorResponse('USERNAME_TAKEN', 409)
+        return errorResponse(req, 'USERNAME_TAKEN', 409)
       }
     }
 
@@ -128,9 +128,9 @@ Deno.serve(async (req: Request) => {
 
     if (createError || !created?.user) {
       if (createError && isEmailTaken(createError)) {
-        return errorResponse(plan.role === 'student' ? 'USERNAME_TAKEN' : 'EMAIL_TAKEN', 409)
+        return errorResponse(req, plan.role === 'student' ? 'USERNAME_TAKEN' : 'EMAIL_TAKEN', 409)
       }
-      return errorResponse('CREATE_FAILED', 500, createError)
+      return errorResponse(req, 'CREATE_FAILED', 500, createError)
     }
 
     const userId = created.user.id
@@ -147,7 +147,7 @@ Deno.serve(async (req: Request) => {
 
     if (profileError) {
       await supabaseAdmin.auth.admin.deleteUser(userId)
-      return errorResponse('CREATE_FAILED', 500, profileError)
+      return errorResponse(req, 'CREATE_FAILED', 500, profileError)
     }
 
     if (plan.role === 'student') {
@@ -163,9 +163,9 @@ Deno.serve(async (req: Request) => {
         // 23505 = unique violation: the username was claimed between the
         // pre-check and this insert.
         if (studentError.code === '23505') {
-          return errorResponse('USERNAME_TAKEN', 409)
+          return errorResponse(req, 'USERNAME_TAKEN', 409)
         }
-        return errorResponse('CREATE_FAILED', 500, studentError)
+        return errorResponse(req, 'CREATE_FAILED', 500, studentError)
       }
     }
 
@@ -179,12 +179,9 @@ Deno.serve(async (req: Request) => {
       organizationId: plan.organizationId,
     }
 
-    return new Response(JSON.stringify(account), {
-      status: 201,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse(req, account, 201)
   } catch (error) {
     if (error instanceof Response) return error
-    return errorResponse('CREATE_FAILED', 500, error)
+    return errorResponse(req, 'CREATE_FAILED', 500, error)
   }
 })
