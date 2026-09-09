@@ -9,11 +9,10 @@ verify_jwt = false
 # Without this the bundler cannot resolve the bare "@supabase/..." specifiers.
 import_map = "./functions/deno.json"
 
-[functions.generate-session-summary]
-verify_jwt = false
-
 [functions.send-contact-email]
 verify_jwt = false
+# Without this the bundler cannot resolve the bare "@supabase/..." specifiers.
+import_map = "./functions/deno.json"
 
 # Storage Buckets
 

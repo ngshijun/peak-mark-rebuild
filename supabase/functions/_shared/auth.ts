@@ -30,20 +30,20 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 export async function getAuthenticatedUser(req: Request): Promise<AuthUser> {
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
-    throw errorResponse('No authorization header', 401)
+    throw errorResponse(req, 'No authorization header', 401)
   }
 
   // Strict scheme parse: require exactly "Bearer <token>" and reject anything else,
   // rather than naively stripping the first 'Bearer ' substring.
   const match = authHeader.match(/^Bearer (.+)$/)
   if (!match) {
-    throw errorResponse('Unauthorized', 401)
+    throw errorResponse(req, 'Unauthorized', 401)
   }
   const token = match[1]
   const { data, error } = await supabase.auth.getClaims(token)
 
   if (error || !data?.claims?.sub) {
-    throw errorResponse('Unauthorized', 401)
+    throw errorResponse(req, 'Unauthorized', 401)
   }
 
   return {

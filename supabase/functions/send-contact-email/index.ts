@@ -1,23 +1,10 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import { getAuthenticatedUser } from '../_shared/auth.ts'
+import { corsHeaders, errorResponse, jsonResponse } from '../_shared/http.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const FROM_EMAIL = 'Clavis <noreply@clavis.com.my>'
 const TO_EMAIL = 'support@clavis.com.my'
-
-// Restrict CORS to the app origin (no wildcard). Both the landing page and the
-// in-app form are served from APP_URL, so a single allowed origin covers both.
-const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_URL') ?? '',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function errorResponse(message: string, status: number): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
 
 // Cloudflare Turnstile secret for verifying the public (landing) path.
 // When unset, the landing path is rejected outright rather than left as an open relay.
@@ -414,27 +401,24 @@ function buildConfirmationEmail(
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders(req) })
   }
 
   if (req.method !== 'POST') {
-    return errorResponse('Method not allowed', 405)
+    return errorResponse(req, 'Method not allowed', 405)
   }
 
   try {
     // Per-IP rate limit (abuse control) before any work or outbound email.
     const clientIp = getClientIp(req)
     if (isRateLimited(clientIp)) {
-      return errorResponse('Too many requests. Please try again later.', 429)
+      return errorResponse(req, 'Too many requests. Please try again later.', 429)
     }
 
     const rawBody = await req.json()
     const validation = validateBody(rawBody)
     if (!validation.valid) {
-      return new Response(JSON.stringify({ error: validation.error }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return jsonResponse(req, { error: validation.error }, 400)
     }
 
     const { name, email, subject, message, source, priority, turnstileToken } = validation.data
@@ -455,7 +439,7 @@ Deno.serve(async (req: Request) => {
     } else if (turnstileToken) {
       const verified = await verifyTurnstile(turnstileToken, clientIp)
       if (!verified) {
-        return errorResponse('Verification failed', 403)
+        return errorResponse(req, 'Verification failed', 403)
       }
     }
 
@@ -477,10 +461,7 @@ Deno.serve(async (req: Request) => {
     if (!res.ok) {
       const errorData = await res.json().catch(() => null)
       console.error('Resend API error:', res.status, errorData)
-      return new Response(JSON.stringify({ error: 'Failed to send message' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return jsonResponse(req, { error: 'Failed to send message' }, 500)
     }
 
     const data = await res.json()
@@ -503,17 +484,11 @@ Deno.serve(async (req: Request) => {
       }),
     }).catch((err) => console.error('Confirmation email error:', err))
 
-    return new Response(JSON.stringify({ success: true, id: data.id }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse(req, { success: true, id: data.id }, 200)
   } catch (error) {
     // getAuthenticatedUser throws a Response (e.g. 401) — propagate it as-is.
     if (error instanceof Response) return error
     console.error('send-contact-email error:', error)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse(req, { error: 'Internal server error' }, 500)
   }
 })
